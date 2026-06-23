@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+agentflow_ledger.json.lock
+node_modules/
+*.egg-info/
+dist/
+build/
+.env
