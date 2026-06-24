@@ -6,10 +6,15 @@ Accepts an optional argument: `debug` — if present, also print a token summary
 
 Run these in parallel:
 - `git log --oneline -20`
+- `git status --short`
+- `git diff --stat main`
+- `grep -r "ESCALATE:" tasks/ .agentflow/ 2>/dev/null`
 - Read `.agentflow/state.json` if it exists
 - Read `tasks.json` if it exists
 - Read `.claude/memory/MEMORY.md` if it exists
 - Read `.agentflow/telemetry.jsonl` if it exists
+
+Use the `git status` and `git diff --stat` output for the "Codebase state" paragraph in Step 4 — do not infer it from conversation history. Use `ESCALATE:` hits for the "Open items" section.
 
 ## Step 2 — Verify and prune worktree branches
 
