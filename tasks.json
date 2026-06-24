@@ -1,0 +1,528 @@
+{
+  "project": "agentflow",
+  "version": "1.0.0",
+  "repo": ".",
+  "description": "Pip-installable multi-agent project management and token optimisation package",
+  "tasks": [
+    {
+      "task_id": "T-001",
+      "title": "Package scaffold",
+      "description": "Set up the installable package: pyproject.toml with entry points, top-level agentflow/__init__.py, and empty __init__.py files for every subpackage. CLI entry point agentflow maps to agentflow.cli:main. No logic yet — structure only.",
+      "owns": [
+        "pyproject.toml",
+        "agentflow/__init__.py",
+        "agentflow/cli.py",
+        "agentflow/oracle/__init__.py",
+        "agentflow/orchestrator/__init__.py",
+        "agentflow/worker/__init__.py",
+        "agentflow/reviewer/__init__.py",
+        "agentflow/tools/__init__.py",
+        "agentflow/telemetry/__init__.py",
+        "agentflow/config/__init__.py"
+      ],
+      "reads": ["architecture.md"],
+      "depends_on": [],
+      "contracts": [],
+      "test_requirements": {
+        "unit": ["agentflow CLI entry point is importable", "all subpackages importable"],
+        "integration": [],
+        "coverage_threshold": 80
+      },
+      "security_constraints": [],
+      "acceptance_criteria": "pip install -e . succeeds and agentflow --help prints usage",
+      "estimated_lines": 120,
+      "context_section": "architecture.md#package-structure"
+    },
+    {
+      "task_id": "T-002",
+      "title": "Config system",
+      "description": "Layered config loader resolving env vars → .agentflow/config.yaml → ~/.agentflow/config.yaml → defaults.yaml. Pydantic schema validates all fields. Expose load_config(cwd) returning a typed Config object. Ship defaults.yaml with sensible values per architecture.md#config-schema.",
+      "owns": [
+        "agentflow/config/loader.py",
+        "agentflow/config/schema.py",
+        "agentflow/config/defaults.yaml",
+        "tests/config/test_loader.py"
+      ],
+      "reads": ["architecture.md#config-schema"],
+      "depends_on": ["T-001"],
+      "contracts": ["agentflow/config/loader.py"],
+      "test_requirements": {
+        "unit": [
+          "env var overrides project config",
+          "project config overrides user config",
+          "user config overrides defaults",
+          "invalid config raises ValidationError with field name",
+          "missing config files fall through to defaults cleanly"
+        ],
+        "integration": [],
+        "coverage_threshold": 90
+      },
+      "security_constraints": ["never log config values that may contain API keys"],
+      "acceptance_criteria": "all unit tests green; load_config returns typed object with correct precedence",
+      "estimated_lines": 180,
+      "context_section": "architecture.md#config-schema"
+    },
+    {
+      "task_id": "T-003",
+      "title": "Telemetry — structured logger and metrics",
+      "description": "Structured JSON logger emitting newline-delimited records to .agentflow/telemetry.jsonl. Every record includes trace_id, span, task_id, model, tokens_in, tokens_out, duration_ms, status, metadata per architecture.md#telemetry-schema. Expose get_logger(trace_id) and emit_metric(span, **kwargs). OTel exporter hook is a no-op stub for now.",
+      "owns": [
+        "agentflow/telemetry/logger.py",
+        "agentflow/telemetry/metrics.py",
+        "tests/telemetry/test_logger.py"
+      ],
+      "reads": ["architecture.md#telemetry-schema"],
+      "depends_on": ["T-001"],
+      "contracts": ["agentflow/telemetry/logger.py", "agentflow/telemetry/metrics.py"],
+      "test_requirements": {
+        "unit": [
+          "emit_metric writes valid JSON line to telemetry.jsonl",
+          "trace_id propagates across nested calls",
+          "missing optional fields default to null not absent",
+          "file rotation does not lose records"
+        ],
+        "integration": [],
+        "coverage_threshold": 90
+      },
+      "security_constraints": ["telemetry must not capture prompt content — tokens counts only"],
+      "acceptance_criteria": "emit_metric produces OTel-compatible JSONL; no prompt content in output",
+      "estimated_lines": 160,
+      "context_section": "architecture.md#telemetry-schema"
+    },
+    {
+      "task_id": "T-004",
+      "title": "Prompts — oracle, worker, reviewer",
+      "description": "Write all prompt files under agentflow/prompts/. Oracle: system.md (senior PE persona), checklist.md (NFR question bank mapped to architecture.md#oracle-checklist), generation.md (artifact output format). Worker: system.md, context_bundle.md. Reviewer: code_review.md, security_review.md. Each file under its soft target of 80 lines.",
+      "owns": [
+        "agentflow/prompts/oracle/v1/system.md",
+        "agentflow/prompts/oracle/v1/checklist.md",
+        "agentflow/prompts/oracle/v1/generation.md",
+        "agentflow/prompts/worker/v1/system.md",
+        "agentflow/prompts/worker/v1/context_bundle.md",
+        "agentflow/prompts/worker/v1/testing_guide.md",
+        "agentflow/prompts/reviewer/v1/code_review.md",
+        "agentflow/prompts/reviewer/v1/security_review.md",
+        "agentflow/prompts/reviewer/v1/test_review.md"
+      ],
+      "reads": ["architecture.md#oracle-checklist", "architecture.md#context-bundle"],
+      "depends_on": ["T-001"],
+      "contracts": [],
+      "test_requirements": {
+        "unit": [
+          "all prompt files are valid UTF-8",
+          "no prompt file exceeds 150-line hard ceiling",
+          "oracle system.md contains the NFR checklist section headers",
+          "security_review.md references OWASP Top 10",
+          "testing_guide.md contains TDD, behavior-not-implementation, and IO mock sections",
+          "test_review.md contains scenario coverage and mock appropriateness criteria"
+        ],
+        "integration": [],
+        "coverage_threshold": 80
+      },
+      "security_constraints": ["prompts must not include example secrets or credentials"],
+      "acceptance_criteria": "all files exist, pass size check, pass content assertions",
+      "estimated_lines": 80,
+      "context_section": "architecture.md#guiding-principles"
+    },
+    {
+      "task_id": "T-005",
+      "title": "Git tools",
+      "description": "Worktree lifecycle: create_worktree(base_path, task_id, branch_name), delete_worktree(path), commit_files(worktree_path, message, files). All operations idempotent. Raise typed exceptions on conflict, missing repo, dirty state. Do not shell out with string interpolation — use subprocess with list args.",
+      "owns": [
+        "agentflow/tools/git.py",
+        "tests/tools/test_git.py"
+      ],
+      "reads": ["agentflow/config/loader.py"],
+      "depends_on": ["T-001", "T-002"],
+      "contracts": ["agentflow/tools/git.py"],
+      "test_requirements": {
+        "unit": [
+          "create_worktree creates branch and directory",
+          "create_worktree is idempotent if worktree already exists",
+          "delete_worktree removes directory and prunes ref",
+          "commit_files stages only listed files",
+          "non-list subprocess args raise TypeError"
+        ],
+        "integration": ["full worktree create → commit → delete cycle on a real temp repo"],
+        "coverage_threshold": 88
+      },
+      "security_constraints": [
+        "no shell=True in subprocess calls",
+        "validate branch names against allowlist pattern before use"
+      ],
+      "acceptance_criteria": "integration test passes on real git repo; no shell=True in source",
+      "estimated_lines": 200,
+      "context_section": "architecture.md#package-structure"
+    },
+    {
+      "task_id": "T-006",
+      "title": "GitHub tools",
+      "description": "PR creation, inline comment posting, and status check reading via GitHub REST API. create_pr(repo, branch, title, body) → pr_number. post_review_comments(repo, pr_number, comments: list[ReviewComment]). get_check_status(repo, pr_number) → CheckResult. Use httpx, not requests. Auth via GITHUB_TOKEN env var.",
+      "owns": [
+        "agentflow/tools/github.py",
+        "tests/tools/test_github.py"
+      ],
+      "reads": ["agentflow/config/loader.py", "agentflow/telemetry/logger.py"],
+      "depends_on": ["T-001", "T-002", "T-003"],
+      "contracts": ["agentflow/tools/github.py"],
+      "test_requirements": {
+        "unit": [
+          "create_pr posts to correct endpoint with correct payload",
+          "post_review_comments batches comments in one API call",
+          "missing GITHUB_TOKEN raises AuthError not KeyError",
+          "4xx responses raise GitHubAPIError with status code",
+          "rate limit response triggers retry with backoff"
+        ],
+        "integration": [],
+        "coverage_threshold": 88
+      },
+      "security_constraints": [
+        "GITHUB_TOKEN read from env only, never from config files",
+        "never log token value",
+        "validate repo name format before constructing URL"
+      ],
+      "acceptance_criteria": "all unit tests green with mocked httpx; AuthError on missing token",
+      "estimated_lines": 210,
+      "context_section": "architecture.md#package-structure"
+    },
+    {
+      "task_id": "T-007",
+      "title": "Test runner tool",
+      "description": "Run the project test suite inside a given worktree directory and return a structured result. run_tests(worktree_path, config) → TestResult(passed, failed, coverage_pct, output). Detect test framework from config (pytest default). Parse coverage from pytest-cov output. Enforce coverage_threshold from config. Return structured result; do not raise on test failure.",
+      "owns": [
+        "agentflow/tools/test_runner.py",
+        "agentflow/tools/file_validator.py",
+        "tests/tools/test_test_runner.py"
+      ],
+      "reads": ["agentflow/config/loader.py"],
+      "depends_on": ["T-001", "T-002"],
+      "contracts": ["agentflow/tools/test_runner.py", "agentflow/tools/file_validator.py"],
+      "test_requirements": {
+        "unit": [
+          "run_tests returns TestResult with correct pass/fail counts from parsed output",
+          "coverage below threshold sets TestResult.coverage_ok = False",
+          "file_validator flags files over ceiling with file path and line count",
+          "file_validator returns clean result for files under soft target",
+          "run_tests timeout returns TestResult with status=timeout"
+        ],
+        "integration": ["run_tests against a real minimal pytest project in a temp dir"],
+        "coverage_threshold": 88
+      },
+      "security_constraints": ["subprocess in worktree_path only; validate path is within project root"],
+      "acceptance_criteria": "integration test passes; coverage_ok reflects threshold comparison",
+      "estimated_lines": 220,
+      "context_section": "architecture.md#file-size-limits"
+    },
+    {
+      "task_id": "T-008",
+      "title": "Orchestrator — DAG and persistent state",
+      "description": "DAG builder from tasks.json: validate no ownership conflicts, build dependency graph, expose topological_order() and ready_tasks(completed_set). Persistent state store reading/writing .agentflow/state.json: task status transitions with timestamps, token totals per task. Expose load_state(cwd) and save_state(cwd, state).",
+      "owns": [
+        "agentflow/orchestrator/dag.py",
+        "agentflow/orchestrator/state.py",
+        "tests/orchestrator/test_dag.py",
+        "tests/orchestrator/test_state.py"
+      ],
+      "reads": ["architecture.md#task-state-machine", "architecture.md#task-schema"],
+      "depends_on": ["T-001", "T-002", "T-003"],
+      "contracts": ["agentflow/orchestrator/dag.py", "agentflow/orchestrator/state.py"],
+      "test_requirements": {
+        "unit": [
+          "DAG rejects tasks.json with shared owned files",
+          "topological_order respects depends_on edges",
+          "cyclic dependency raises CyclicDependencyError",
+          "ready_tasks returns only tasks whose dependencies are in completed_set",
+          "state transition from PENDING to SPAWNED writes timestamp",
+          "invalid state transition raises InvalidTransitionError",
+          "load_state returns empty state when file absent"
+        ],
+        "integration": [],
+        "coverage_threshold": 92
+      },
+      "security_constraints": ["state.json must not contain prompt content or API keys"],
+      "acceptance_criteria": "all unit tests green; ownership conflict caught before any worker spawns",
+      "estimated_lines": 230,
+      "context_section": "architecture.md#task-state-machine"
+    },
+    {
+      "task_id": "T-009",
+      "title": "Contract and test skeleton generator",
+      "description": "Given a task schema entry, generate: (1) stub Python files with function signatures and docstrings but NotImplementedError bodies, (2) test skeleton files with test class, method names from test_requirements.unit, and IO mock fixtures. (3) mock files for declared IO boundaries. Commit stubs to main before workers spawn. Output is deterministic given the same task input.",
+      "owns": [
+        "agentflow/oracle/contract_generator.py",
+        "tests/oracle/test_contract_generator.py"
+      ],
+      "reads": [
+        "agentflow/tools/git.py",
+        "agentflow/config/loader.py"
+      ],
+      "depends_on": ["T-001", "T-002", "T-005"],
+      "contracts": ["agentflow/oracle/contract_generator.py"],
+      "test_requirements": {
+        "unit": [
+          "stub file contains all function signatures from task owns list",
+          "stub function bodies raise NotImplementedError",
+          "test skeleton contains one test method per unit scenario",
+          "test skeleton imports the stub module correctly",
+          "mock fixtures are generated for each IO boundary declared",
+          "output is idempotent on second call with same task"
+        ],
+        "integration": [],
+        "coverage_threshold": 88
+      },
+      "security_constraints": [],
+      "acceptance_criteria": "generated stubs are valid Python; test skeleton is importable",
+      "estimated_lines": 200,
+      "context_section": "architecture.md#context-bundle"
+    },
+    {
+      "task_id": "T-010",
+      "title": "Worker context builder",
+      "description": "Given a task schema entry and the project's architecture.md, assemble the minimal context bundle and write it to .agentflow/context/<task-id>.md. The worker runner reads this file as its opening prompt — no in-memory coupling. Include: task brief, owned files, read-only files, contract stub contents, the relevant architecture.md section (by anchor), .agentflow/test_strategy.md (always included read-only), security constraints, test scenarios, and config snapshot. Exclude everything else. Measure token count of bundle and emit as metric.",
+      "owns": [
+        "agentflow/worker/context_builder.py",
+        "tests/worker/test_context_builder.py"
+      ],
+      "reads": [
+        "agentflow/config/loader.py",
+        "agentflow/telemetry/metrics.py",
+        "agentflow/orchestrator/dag.py"
+      ],
+      "depends_on": ["T-001", "T-002", "T-003", "T-008"],
+      "contracts": ["agentflow/worker/context_builder.py"],
+      "test_requirements": {
+        "unit": [
+          "bundle contains task description and acceptance criteria",
+          "bundle contains owned file list",
+          "bundle excludes files not in owns or reads",
+          "bundle includes only the anchored section of architecture.md",
+          "bundle includes .agentflow/test_strategy.md as read-only section",
+          "token count metric is emitted after build",
+          "bundle under 200k characters (hard guard)"
+        ],
+        "integration": [],
+        "coverage_threshold": 88
+      },
+      "security_constraints": ["bundle must not include GITHUB_TOKEN or API keys from env"],
+      "acceptance_criteria": "bundle contains exactly the specified sections; token metric emitted",
+      "estimated_lines": 180,
+      "context_section": "architecture.md#context-bundle"
+    },
+    {
+      "task_id": "T-011",
+      "title": "Headless worker agent runner",
+      "description": "Run a headless Anthropic API agent for a single task. Read .agentflow/context/<task-id>.md and use its contents as the opening user message. Agent loop: call API → parse tool calls (read file, write file, run tests) → continue until tests green and coverage met → call create_pr. Emit token spans per API call via token_tracker. On context budget exhaustion: compress progress and restart with fresh session. Max 2 restarts before escalating to orchestrator.",
+      "owns": [
+        "agentflow/worker/agent_runner.py",
+        "tests/worker/test_agent_runner.py"
+      ],
+      "reads": [
+        "agentflow/worker/context_builder.py",
+        "agentflow/tools/github.py",
+        "agentflow/tools/test_runner.py",
+        "agentflow/telemetry/token_tracker.py",
+        "agentflow/config/loader.py"
+      ],
+      "depends_on": ["T-001", "T-002", "T-003", "T-006", "T-007", "T-010", "T-014"],
+      "contracts": ["agentflow/worker/agent_runner.py"],
+      "test_requirements": {
+        "unit": [
+          "run returns WorkerResult with pr_number on success",
+          "run returns WorkerResult with status=escalate after max restarts",
+          "token spend per API call is emitted to telemetry",
+          "tool call for write_file is sandboxed to owned files only",
+          "test failure triggers continued loop, not immediate exit"
+        ],
+        "integration": [],
+        "coverage_threshold": 85
+      },
+      "security_constraints": [
+        "worker may only write to files in its owns list",
+        "worker may not execute arbitrary shell commands"
+      ],
+      "acceptance_criteria": "WorkerResult returned in all paths; file write sandbox enforced",
+      "estimated_lines": 240,
+      "context_section": "architecture.md#context-bundle"
+    },
+    {
+      "task_id": "T-012",
+      "title": "Code reviewer agent",
+      "description": "Headless reviewer that reads a PR diff and posts inline comments. Context: PR diff + contract stubs + relevant architecture section. Reviews for: contract adherence (does implementation match stub interfaces?), architecture conformance (are file size limits respected? correct module boundaries?), obvious logic errors. Posts comments via github.post_review_comments. Returns ReviewResult(issues_count, severity_distribution).",
+      "owns": [
+        "agentflow/reviewer/code_reviewer.py",
+        "tests/reviewer/test_code_reviewer.py"
+      ],
+      "reads": [
+        "agentflow/tools/github.py",
+        "agentflow/config/loader.py",
+        "agentflow/telemetry/logger.py",
+        "agentflow/prompts/reviewer/v1/code_review.md"
+      ],
+      "depends_on": ["T-001", "T-002", "T-003", "T-006"],
+      "contracts": ["agentflow/reviewer/code_reviewer.py"],
+      "test_requirements": {
+        "unit": [
+          "review returns ReviewResult with correct issue count",
+          "comments are posted as inline review comments not PR body",
+          "file exceeding size ceiling is flagged as HIGH severity",
+          "contract mismatch is flagged with specific function name",
+          "empty diff returns ReviewResult with zero issues"
+        ],
+        "integration": [],
+        "coverage_threshold": 85
+      },
+      "security_constraints": [],
+      "acceptance_criteria": "ReviewResult returned; inline comments posted to correct line numbers",
+      "estimated_lines": 200,
+      "context_section": "architecture.md#system-components"
+    },
+    {
+      "task_id": "T-013",
+      "title": "Security reviewer agent",
+      "description": "Headless security reviewer. Context: PR diff + security constraints from task schema + compliance requirements from oracle output. Checks: OWASP Top 10 patterns, hardcoded secrets, SQL injection vectors, missing input validation at system boundaries, compliance constraint violations. Posts inline comments via github tools. Returns SecurityReviewResult(critical_count, high_count, findings).",
+      "owns": [
+        "agentflow/reviewer/security_reviewer.py",
+        "tests/reviewer/test_security_reviewer.py"
+      ],
+      "reads": [
+        "agentflow/tools/github.py",
+        "agentflow/config/loader.py",
+        "agentflow/telemetry/logger.py",
+        "agentflow/prompts/reviewer/v1/security_review.md"
+      ],
+      "depends_on": ["T-001", "T-002", "T-003", "T-006"],
+      "contracts": ["agentflow/reviewer/security_reviewer.py"],
+      "test_requirements": {
+        "unit": [
+          "hardcoded secret pattern triggers CRITICAL finding",
+          "shell=True usage triggers HIGH finding",
+          "missing input validation at API boundary triggers HIGH",
+          "clean diff returns SecurityReviewResult with zero criticals",
+          "compliance constraint violation references the constraint string"
+        ],
+        "integration": [],
+        "coverage_threshold": 85
+      },
+      "security_constraints": ["reviewer output must not echo secret values — reference location only"],
+      "acceptance_criteria": "CRITICAL findings block PR merge; all findings reference file and line",
+      "estimated_lines": 210,
+      "context_section": "architecture.md#system-components"
+    },
+    {
+      "task_id": "T-014",
+      "title": "Token tracker",
+      "description": "Per-span token attribution integrated with agentflow_ledger.json. track_span(task_id, span_name, tokens_in, tokens_out) appends to ledger. Expose session_total(task_id) and project_total(). Enforce per_worker token budget from config: emit warning at 80%, return BudgetExceeded signal at 100% for orchestrator to act on. Shadow model: accumulate what single-session total would have been.",
+      "owns": [
+        "agentflow/telemetry/token_tracker.py",
+        "tests/telemetry/test_token_tracker.py"
+      ],
+      "reads": [
+        "agentflow/config/loader.py",
+        "agentflow/telemetry/logger.py"
+      ],
+      "depends_on": ["T-001", "T-002", "T-003"],
+      "contracts": ["agentflow/telemetry/token_tracker.py"],
+      "test_requirements": {
+        "unit": [
+          "track_span appends record to ledger file",
+          "session_total sums tokens_in + tokens_out for task_id",
+          "warning emitted at 80% of per_worker budget",
+          "BudgetExceeded returned at 100% not raised",
+          "shadow_total accumulates correctly across task restarts",
+          "project_total aggregates all task totals"
+        ],
+        "integration": [],
+        "coverage_threshold": 90
+      },
+      "security_constraints": ["ledger must not contain prompt text — token counts only"],
+      "acceptance_criteria": "BudgetExceeded signal returned at threshold; shadow ratio calculable",
+      "estimated_lines": 180,
+      "context_section": "architecture.md#guiding-principles"
+    },
+    {
+      "task_id": "T-015",
+      "title": "Orchestrator — project manager and merge sequencer",
+      "description": "Top-level orchestrator: reads tasks.json + state.json, runs the PM loop. Spawns workers for all READY tasks up to parallelism limit from config. Handles WorkerResult: success→PR_OPEN, escalate→human notification. Triggers reviewer pipeline after PR_OPEN. Transitions state on reviewer completion. Merge sequencer: after HUMAN_APPROVED, merges worktree branches into main in topological order, deletes worktrees.",
+      "owns": [
+        "agentflow/orchestrator/project_manager.py",
+        "agentflow/orchestrator/merge_sequencer.py",
+        "tests/orchestrator/test_project_manager.py"
+      ],
+      "reads": [
+        "agentflow/orchestrator/dag.py",
+        "agentflow/orchestrator/state.py",
+        "agentflow/worker/agent_runner.py",
+        "agentflow/reviewer/code_reviewer.py",
+        "agentflow/reviewer/security_reviewer.py",
+        "agentflow/tools/git.py",
+        "agentflow/telemetry/token_tracker.py",
+        "agentflow/config/loader.py"
+      ],
+      "depends_on": ["T-001", "T-002", "T-003", "T-005", "T-008", "T-011", "T-012", "T-013", "T-014"],
+      "contracts": ["agentflow/orchestrator/project_manager.py"],
+      "test_requirements": {
+        "unit": [
+          "ready tasks are spawned up to parallelism limit",
+          "task with unmet dependency is not spawned",
+          "WorkerResult escalate triggers human notification and halts task",
+          "CRITICAL security finding blocks HUMAN_APPROVED transition",
+          "merge sequencer processes tasks in topological order",
+          "failed merge rolls back and surfaces error without corrupting state"
+        ],
+        "integration": [],
+        "coverage_threshold": 85
+      },
+      "security_constraints": [],
+      "acceptance_criteria": "full lifecycle runs from PENDING to MERGED in integration scenario; state.json accurate throughout",
+      "estimated_lines": 245,
+      "context_section": "architecture.md#task-state-machine"
+    },
+    {
+      "task_id": "T-016",
+      "title": "Design Oracle",
+      "description": "Interactive CLI conversation loop with senior PE persona. Loads system.md prompt. Maintains message history. After each exchange evaluates checklist.py confidence score against architecture.md#oracle-checklist items. When all items resolve, proposes generation to user (Option B). On confirmation calls artifact_generator to produce architecture.md + tasks.json + .agentflow/design_session.md + .agentflow/test_strategy.md + contract stub commit. test_strategy.md captures coverage thresholds, integration scope, mock boundaries, and compliance-driven test requirements. Uses model from config (oracle field).",
+      "owns": [
+        "agentflow/oracle/conversation.py",
+        "agentflow/oracle/checklist.py",
+        "agentflow/oracle/artifact_generator.py",
+        "tests/oracle/test_checklist.py",
+        "tests/oracle/test_artifact_generator.py"
+      ],
+      "reads": [
+        "agentflow/config/loader.py",
+        "agentflow/telemetry/logger.py",
+        "agentflow/oracle/contract_generator.py",
+        "agentflow/prompts/oracle/v1/system.md",
+        "agentflow/prompts/oracle/v1/checklist.md",
+        "agentflow/prompts/oracle/v1/generation.md"
+      ],
+      "depends_on": ["T-001", "T-002", "T-003", "T-004", "T-009"],
+      "contracts": ["agentflow/oracle/conversation.py", "agentflow/oracle/artifact_generator.py"],
+      "test_requirements": {
+        "unit": [
+          "checklist returns unresolved items when NFRs missing",
+          "checklist returns all resolved when all NFR fields present",
+          "artifact_generator produces valid tasks.json against schema",
+          "artifact_generator raises if two tasks share owned files",
+          "artifact_generator raises if any task would exceed file size ceiling",
+          "conversation loop appends assistant and user turns to history"
+        ],
+        "integration": [],
+        "coverage_threshold": 85
+      },
+      "security_constraints": [],
+      "acceptance_criteria": "checklist resolves correctly; tasks.json passes agentflow validate; contracts committed to main",
+      "estimated_lines": 230,
+      "context_section": "architecture.md#oracle-checklist"
+    }
+  ],
+  "parallelism_plan": {
+    "round_1": ["T-001"],
+    "round_2": ["T-002", "T-003", "T-004"],
+    "round_3": ["T-005", "T-006", "T-007", "T-014"],
+    "round_4": ["T-008", "T-009", "T-012", "T-013"],
+    "round_5": ["T-010", "T-015"],
+    "round_6": ["T-011"],
+    "round_7": ["T-016"]
+  }
+}

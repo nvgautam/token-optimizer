@@ -14,6 +14,7 @@ Usage:
 
 import fcntl
 import json
+import os
 import sys
 import argparse
 from contextlib import contextmanager
@@ -779,7 +780,7 @@ def cmd_ctx_watch(args):
     import json as _json
 
     try:
-        proj_dir = Path(__file__).parent.resolve()
+        proj_dir = Path(os.environ.get("CLAUDE_PROJECT_DIR", Path.cwd())).resolve()
         slug = str(proj_dir).replace("/", "-")
         proj = CLAUDE_PROJECTS_DIR / slug
 
@@ -821,7 +822,6 @@ def cmd_ctx_watch(args):
             bar = "█" * bar_filled + "░" * (20 - bar_filled)
             msg = (
                 f"⚠  Context at {pct*100:.0f}%  [{bar}]  {ctx_tokens:,}/{CONTEXT_LIMIT:,} tokens"
-                f" — consider running /handoff before continuing."
             )
             print(_json.dumps({"systemMessage": msg}), flush=True)
 

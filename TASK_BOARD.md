@@ -34,6 +34,43 @@
 
 ---
 
+## Phase 2B — AgentFlow Package (Multi-Agent Project Manager)
+
+> Full design in `architecture.md`. Implementation tasks in `tasks.json`. 16 tasks, 7 parallelism rounds.
+
+| ID | Description | Status | Depends | Notes |
+|---|---|---|---|---|
+| T-001 | Package scaffold: pyproject.toml, entry points, subpackage structure | TODO | — | `pip install -e .` + `agentflow --help` |
+| T-002 | Config system: layered loader, pydantic schema, defaults.yaml | TODO | T-001 | env → project → user → defaults |
+| T-003 | Telemetry: structured JSON logger + OTel-compatible metrics | TODO | T-001 | JSONL to .agentflow/telemetry.jsonl |
+| T-004 | Prompts: oracle, worker (+ testing_guide.md), reviewer (+ test_review.md) — all files under 150-line ceiling | TODO | T-001 | Independently versioned under prompts/v1/ |
+| T-005 | Git tools: worktree create/delete/commit, no shell=True | TODO | T-001, T-002 | Typed exceptions, idempotent ops |
+| T-006 | GitHub tools: PR create, inline comments, status checks via httpx | TODO | T-001, T-002, T-003 | Auth via GITHUB_TOKEN env only |
+| T-007 | Test runner + file validator: pytest wrapper, coverage parse, size gate | TODO | T-001, T-002 | Returns structured TestResult |
+| T-008 | Orchestrator DAG + state: dependency graph, state machine, state.json | TODO | T-001, T-002, T-003 | Ownership conflict = hard reject |
+| T-009 | Contract generator: stub files, test skeletons, IO mock fixtures | TODO | T-001, T-002, T-005 | Committed to main before workers spawn |
+| T-010 | Worker context builder: minimal bundle assembly, token metric | TODO | T-001, T-002, T-003, T-008 | Excludes everything not in owns/reads |
+| T-011 | Headless worker agent runner: API loop, TDD, budget cycling | TODO | T-001–T-003, T-006, T-007, T-010, T-014 | Max 2 restarts before escalate |
+| T-012 | Code reviewer agent: conformance + contract adherence, inline comments | TODO | T-001, T-002, T-003, T-006 | Not PR body — inline only |
+| T-013 | Security reviewer agent: OWASP, secrets, compliance constraints | TODO | T-001, T-002, T-003, T-006 | CRITICAL findings block merge |
+| T-014 | Token tracker: per-span attribution, budget enforcement, shadow model | TODO | T-001, T-002, T-003 | BudgetExceeded signal not exception |
+| T-015 | Orchestrator PM + merge sequencer: full lifecycle, DAG-ordered merge | TODO | T-001–T-003, T-005, T-008, T-011–T-014 | State accurate through all transitions |
+| T-016 | Design Oracle: conversation loop, checklist eval, Option B exit | TODO | T-001–T-004, T-009 | Produces architecture.md + tasks.json + contracts |
+
+---
+
+## Phase 2C — Claude Code Skill (Native Orchestration)
+
+> Replaces the Python CLI orchestrator for large projects. Runs entirely within Claude Code using OAuth credentials — no API key required. Oracle, orchestrator, and workers are all Claude Code agents.
+
+| ID | Description | Status | Depends | Notes |
+|---|---|---|---|---|
+| AF-015 | **Wire `handoff` as a CLI subcommand.** Currently `handoff` exists only as a direct `agentflow.py` command. Skills hardcode the path (`python /Users/gautam/code/token-optimizer/agentflow.py handoff`). Add `handoff` to `cli.py` as a proper subcommand so skills can call `agentflow handoff` regardless of where agentflow.py lives. Update both `oracle.md` and `orchestrate.md` to use the CLI command. Remove hardcoded path. | TODO | AF-013 ✅ | Hardcoded path breaks for any user other than nvgautam. |
+| AF-014 | **Build step: produce clean packaged skill files.** Development skills (`oracle.md`, `orchestrate.md`) contain debug sections (grouping plan, overlap scores, `/orchestrate debug` option). Packaged distribution must be generated skill files with all debug sections stripped — no debug flag, no grouping rationale, no overlap scores, no reference to the existence of a debug mode. Implement as a build script that reads the dev skills and writes clean versions to a `dist/` directory. Packaged skills are what gets distributed; dev skills stay local only. | TODO | AF-013 ✅ | Grouping approach is proprietary — packaged files must contain no trace of debug capability. |
+| AF-013 | **`/oracle` Claude Code skill.** `.claude/commands/oracle.md` skill that drives the full project lifecycle: checklist-driven design sparring (18 items incl. architecture security review) → task generation with `reads`+`owns`+`depends_on` → DAG-ordered grouped agent spawning (group by shared `reads` to minimise context reload cost) → per-task code+security review gates → topological merge. Shadow/real token tracking via worker self-reporting written to `.agentflow/telemetry.jsonl`. Retry-once on worker failure then escalate. | TODO | — | Primary token optimisation lever is grouping tasks by shared `reads` — eliminates redundant context reloads across agent spawns. |
+
+---
+
 ## Phase 3 — PTY Orchestrator (build only after Phase 1 validates shadow/real ≥ 3×)
 
 > See `AGENT_ORCHESTRATOR_PLAN.md` for full architecture.

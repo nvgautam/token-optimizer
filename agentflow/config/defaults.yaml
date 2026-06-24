@@ -1,0 +1,31 @@
+models:
+  oracle: claude-opus-4-8
+  worker: claude-sonnet-4-6
+  reviewer_code: claude-sonnet-4-6
+  reviewer_security: claude-opus-4-8
+
+prompts:
+  oracle: v1
+  worker: v1
+  reviewer: v1
+
+testing:
+  coverage_threshold: 85
+  require_integration_tests: true
+  mock_io: true
+
+token_budget:
+  per_worker: 50000
+  reviewer: 20000
+
+file_limits:
+  implementation: 250
+  tests: 350
+  prompts: 150
+  stubs: 100
+
+mcps:
+  - github
+  - filesystem
+
+parallelism: 4
