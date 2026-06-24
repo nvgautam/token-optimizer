@@ -504,7 +504,25 @@ A: No, for the core system. MCP is an optional adapter that lets IDE-native agen
 
 ---
 
-## 12. Open Questions for Implementor
+## 12. Phase 2 Optimization — Prompt Caching for Shared File Content
+
+When multiple worker agents in the same orchestration run read the same files (e.g. `architecture.md`, shared interfaces, config schemas), each agent currently receives a full copy of those file contents pasted into its prompt. This pays the full input token cost once per agent.
+
+Claude's API supports **prompt caching** via `cache_control` on message blocks. Content marked as cacheable is stored server-side for up to 5 minutes and subsequent requests that match the cached prefix pay ~10x less (cache read price vs full input price).
+
+**How to apply it here:**
+
+Structure every worker prompt in two parts:
+1. **Cached prefix** — files shared across multiple agents in this run (architecture.md, shared interfaces, config). Mark with `cache_control: {"type": "ephemeral"}`. All agents in the same orchestration run that share these files will get cache hits.
+2. **Non-cached suffix** — task-specific content (task brief, owned files, task-specific reads). Changes per agent, so cannot be cached.
+
+**Expected savings:** For a 10-agent run where each agent loads a 5k-token `architecture.md`, caching reduces that file's cost from 50k input tokens to ~5k input tokens + 45k cache-read tokens — approximately 9x cheaper for the shared portion.
+
+**Prerequisite:** This requires the orchestrator to be implemented as an API layer (Phase 3 PTY orchestrator or the agentflow Python package) rather than a Claude Code skill, since `cache_control` is an API parameter not available in the Claude Code shell environment.
+
+---
+
+## 13. Open Questions for Implementor
 
 1. **Worker concurrency:** Sequential (simpler, safer for shared files) or parallel (faster, requires file locking)?
    *Recommendation: Start sequential. Add `max_concurrent > 1` as an opt-in config flag with file locking.*

@@ -159,6 +159,7 @@ For each task, write two things:
    - Security tests: for any scenario involving auth, user input, or data storage
 
 ## Rules
+- Do not use the Read tool on any file listed in your Dependencies section — its full contents are already in this prompt. Re-reading them pays the token cost again for no benefit.
 - Implement only files in your owns list — do not touch anything else
 - Commit both implementation and test files together on your branch
 - Run tests after implementing each file

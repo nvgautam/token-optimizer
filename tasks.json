@@ -516,6 +516,36 @@
       "context_section": "architecture.md#oracle-checklist"
     }
   ],
+    {
+      "task_id": "T-017",
+      "title": "Enforce no-re-read constraint in worker prompt",
+      "description": "Update agentflow/prompts/worker/v1/system.md and agentflow/worker/context_builder.py to explicitly instruct the worker agent not to use the Read tool on files already included in its context bundle. The context bundle already contains the full contents of all files in the task's reads list — re-reading them via tool call pays the token cost again without benefit. Add a prominent rule to the system prompt: 'Do not use the Read tool on any file listed in your Dependencies section — its contents are already in this context. Using Read on these files wastes tokens.' Also add an assertion in context_builder that logs a warning if bundle size exceeds 50k tokens, as a signal that the reads list may be too broad.",
+      "owns": [
+        "agentflow/prompts/worker/v1/system.md",
+        "agentflow/worker/context_builder.py",
+        "tests/worker/test_context_builder.py"
+      ],
+      "reads": [
+        "agentflow/worker/context_builder.py",
+        "agentflow/prompts/worker/v1/context_bundle.md"
+      ],
+      "depends_on": ["T-004", "T-010"],
+      "contracts": [],
+      "test_requirements": {
+        "unit": [
+          "system.md contains no-re-read rule",
+          "context_builder emits warning metric when bundle exceeds 50k tokens",
+          "no-re-read rule appears before the task description in the prompt order"
+        ],
+        "integration": [],
+        "coverage_threshold": 85
+      },
+      "security_constraints": [],
+      "acceptance_criteria": "worker system prompt contains explicit no-re-read rule; bundle size warning emitted when threshold exceeded",
+      "estimated_lines": 40,
+      "context_section": "architecture.md#context-bundle"
+    }
+  ],
   "parallelism_plan": {
     "round_1": ["T-001"],
     "round_2": ["T-002", "T-003", "T-004"],
