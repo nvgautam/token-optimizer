@@ -329,7 +329,20 @@ If drift was flagged and user replies "yes": update `architecture.md` and `CLAUD
 
 ## Step 7 — Merge in topological order
 
-Merge PRs dependencies-first after user approval. Update `tasks.json` status to `complete` and save state after each merge.
+Merge PRs dependencies-first after user approval. After each merge:
+
+1. **Update `tasks.json`** — for each completed task, replace its full definition with a slim stub:
+   ```json
+   {"task_id": "T-001", "status": "complete"}
+   ```
+   Preserve the full definition in `.agentflow/tasks.archive.json` — append it to an array there (create the file if it doesn't exist):
+   ```json
+   {"archived_at": "ISO8601", "task": { <original full task definition> }}
+   ```
+
+2. **Save state** — write `.agentflow/state.json` as usual after each merge.
+
+This keeps `tasks.json` lean — only pending and in_progress tasks carry full definitions. Dependency resolution still works because stubs retain `task_id` and `status`. Full definitions are recoverable from the archive if needed.
 
 ---
 
