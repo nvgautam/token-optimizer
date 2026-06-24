@@ -24,6 +24,7 @@ from pathlib import Path
 # ── Config ────────────────────────────────────────────────────────────────────
 
 LEDGER_FILE       = Path(__file__).parent / "agentflow_ledger.json"
+_ledger_override  = None             # set by --ledger flag before any ledger access
 CONTEXT_LIMIT     = 200_000          # Claude's context window
 COMPACT_THRESHOLD = 0.70             # Shadow compacts at 70% of context window
 CTX_WARN_THRESHOLD = 0.40            # Stop hook warns to handoff at this context %
@@ -129,11 +130,15 @@ def batch_decision(next_subject: str, current_ctx: int,
 
 # ── Ledger helpers ────────────────────────────────────────────────────────────
 
+def _active_ledger_path() -> Path:
+    return Path(_ledger_override) if _ledger_override else LEDGER_FILE
+
 LOCK_FILE = Path(str(LEDGER_FILE) + ".lock")
 
 @contextmanager
 def ledger_lock():
-    with open(LOCK_FILE, "w") as lf:
+    lock = Path(str(_active_ledger_path()) + ".lock")
+    with open(lock, "w") as lf:
         fcntl.flock(lf, fcntl.LOCK_EX)
         try:
             yield
@@ -141,13 +146,15 @@ def ledger_lock():
             fcntl.flock(lf, fcntl.LOCK_UN)
 
 def load_ledger() -> dict:
-    if not Path(LEDGER_FILE).exists():
+    path = _active_ledger_path()
+    if not path.exists():
         return {"sessions": [], "shadow_state": {"accumulated_context": 0, "compaction_events": 0}}
-    with open(LEDGER_FILE) as f:
+    with open(path) as f:
         return json.load(f)
 
 def save_ledger(ledger: dict):
-    with open(LEDGER_FILE, "w") as f:
+    path = _active_ledger_path()
+    with open(path, "w") as f:
         json.dump(ledger, f, indent=2)
 
 def active_session(ledger: dict) -> dict | None:
@@ -926,6 +933,10 @@ Commands:
     --files a,b            Comma-separated files touched in current session
     --next-files c,d       Comma-separated files the next task will touch
   ctx-watch          Stop hook: warn if context exceeds threshold (run automatically)
+
+Global flags:
+  --ledger PATH      Use a project-specific ledger instead of the default.
+                     Example: python agentflow.py report --ledger ~/code/whys/agentflow_ledger.json
         """
     )
     parser.add_argument("command",
@@ -941,7 +952,13 @@ Commands:
                         help="Comma-separated files in current session (batch-check)")
     parser.add_argument("--next-files", default=None,
                         help="Comma-separated files next task will touch (batch-check)")
+    parser.add_argument("--ledger", default=None,
+                        help="Path to a project-specific ledger file (default: agentflow_ledger.json next to this script)")
     args = parser.parse_args()
+
+    if args.ledger:
+        global _ledger_override
+        _ledger_override = args.ledger
 
     dispatch = {
         "start":       cmd_start,
