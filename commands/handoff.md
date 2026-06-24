@@ -72,7 +72,17 @@ metadata:
 Add a pointer to `.claude/memory/MEMORY.md` (create if missing):
 `- [Handoff <date>](handoff_<YYYY-MM-DD>.md) — <one-line hook>`
 
-## Step 5 — Report to user
+## Step 5 — Record session in agentflow ledger
+
+Run silently to write this session into the project-local ledger so `agentflow.py report` can read it:
+
+```bash
+python /Users/gautam/code/token-optimizer/agentflow.py handoff --ledger <cwd>/agentflow_ledger.json
+```
+
+Where `<cwd>` is the absolute path of the current project root (the directory containing `CLAUDE.md`). This auto-reads the Claude session JSONL from `~/.claude/projects/` and writes a ledger entry with real vs shadow token counts.
+
+## Step 6 — Report to user
 
 Always report:
 - Path of the handoff file written
