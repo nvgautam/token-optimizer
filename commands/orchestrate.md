@@ -145,6 +145,52 @@ build/
 .DS_Store
 ```
 
+**Index generation (.idx files):** For every file in each task's `reads` list, generate a `.idx` symbol index before spawning agents. Write index files to `~/.agentflow/cache/<sha256(cwd)>/index/<relative-path>.idx`. Skip files with fewer than 50 lines and skip extensions other than `.py` and `.md`. Run once per reads file, keyed on extension:
+
+**Python files** — `ast`-based extraction (function names, class names, `ClassName.method:start-end` format):
+
+```python
+import ast, hashlib, pathlib
+cwd = pathlib.Path.cwd()
+cache = pathlib.Path.home() / ".agentflow/cache" / hashlib.sha256(str(cwd).encode()).hexdigest() / "index"
+src = pathlib.Path("<reads_file>")
+lines = src.read_text().splitlines()
+if src.suffix == ".py" and len(lines) >= 50:
+    tree = ast.parse(src.read_text())
+    syms = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef):
+            syms.append(f"{node.name}:{node.lineno}-{node.end_lineno}")
+            for m in node.body:
+                if isinstance(m, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    syms.append(f"{node.name}.{m.name}:{m.lineno}-{m.end_lineno}")
+        elif isinstance(node, ast.FunctionDef):
+            syms.append(f"{node.name}:{node.lineno}-{node.end_lineno}")
+    idx = cache / src.relative_to(cwd)
+    idx.parent.mkdir(parents=True, exist_ok=True)
+    (idx.parent / (idx.name + ".idx")).write_text("\n".join(syms) + "\n")
+```
+
+**Markdown files** — `grep`-based H2/H3 header extraction (`## Header:start-end` format):
+
+```bash
+HASH=$(python3 -c "import hashlib,os; print(hashlib.sha256(os.getcwd().encode()).hexdigest())")
+CACHE=~/.agentflow/cache/$HASH/index
+LINES=$(wc -l < "$READS_FILE")
+if [ "$LINES" -ge 50 ]; then
+  mkdir -p "$CACHE/$(dirname "$READS_FILE")"
+  # grep H2/H3 headers and compute line ranges
+  grep -n "^## \|^### " "$READS_FILE" | python3 -c "
+import sys
+rows = [(l.split(':')[0], ':'.join(l.split(':')[1:]).rstrip()) for l in sys.stdin]
+total = int('$LINES')
+for i, (ln, hdr) in enumerate(rows):
+    end = int(rows[i+1][0]) - 1 if i+1 < len(rows) else total
+    print(f'{hdr.strip()}:{ln}-{end}')
+" > "$CACHE/$READS_FILE.idx"
+fi
+```
+
 ---
 
 ## Step 3 — Spawn implementation agents
