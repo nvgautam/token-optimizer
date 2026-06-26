@@ -142,11 +142,13 @@ pyproject.toml
 
 | Provider | Skill format | Handoff command | Tokenizer |
 |---|---|---|---|
-| Claude Code | `.md` in `~/.claude/commands/` | `/handoff` (existing skill) | `tiktoken` cl100k_base |
-| Gemini CLI | `SKILL.md` in `.agents/skills/` | `/handoff` (custom skill) | `tiktoken` cl100k_base (approx) |
-| Codex | — | — | v2 |
+| Claude Code | `.md` in `commands/` (git-tracked source → copy to `~/.claude/commands/` or `.claude/commands/`) | `/handoff` | `tiktoken` cl100k_base |
+| Gemini CLI | `SKILL.md` + scripts | `/handoff` | `tiktoken` cl100k_base (approx) | — deferred |
+| Codex | — | — | — v2 |
 
 Token counting uses `tiktoken` for all providers. ~95% accuracy is sufficient for a 40% threshold trigger.
+
+Skill file location: `commands/` is the canonical source in the repo. IP distribution mechanism is UNRESOLVED — `.md` files are human-readable. PTY binary protects shell mechanics; skill content protection deferred to commercial distribution design.
 
 ---
 
@@ -453,6 +455,16 @@ Nine strategies, applied at different layers. Savings are modelled estimates —
 
 ---
 
+### 10. Orchestrator round-sizing heuristic
+
+**Mechanism:** Before scheduling each round, the orchestrator estimates how many tasks fit in its remaining token budget. Each task added to a round contributes ~2,500 tokens of orchestrator context (PR description + review output + status update). Exceeding the threshold mid-round forces a handoff that interrupts task tracking.
+
+**Model:** `max_tasks_in_round = max(1, (orchestrator_threshold_tokens - current_estimated_tokens) / tokens_per_task_estimate)`. Current tokens estimated from accumulated `TOKENS:` reports of completed agents this session. If the round has more tasks than `max_tasks_in_round`, excess tasks deferred to a sub-round after the next state save.
+
+**v1 status:** v1. Encoded in `commands/orchestrate.md` skill logic. Config adds `shell.tokens_per_task_estimate` (default 2500). No code required.
+
+---
+
 ### 9. Per-session-type thresholds
 
 **Mechanism:** Oracle and orchestrator sessions have different token burn rates. Oracle is conversational (~200–300 tokens/turn) and can run longer. Orchestrator is file-heavy (~1,000–2,000 tokens/turn) and should trigger handoff sooner. Separate `threshold_tokens` per session type prevents premature handoffs in oracle and late handoffs in orchestrator.
@@ -476,6 +488,7 @@ Nine strategies, applied at different layers. Savings are modelled estimates —
 | Verbosity control | All sessions | ~20% slower growth | v1 | Yes — update skill prompts |
 | Section-only loading | Architecture reads | ~40K tokens/project | v1 | Yes — enforce in tasks.json |
 | Per-session thresholds | PTY shell | ~10–15% efficiency | v1 | Once session_manager built |
+| Orchestrator round-sizing | Orchestrator skill | Prevents wasted handoff mid-round | v1 | Yes — in commands/orchestrate.md |
 
 All savings figures are modelled, not measured. **Combined effect: with all strategies active, estimated 2× more work per session vs baseline** (same threshold gets through ~80 turns instead of ~40). Manual testing priority: handoff + verbosity + compact docs first (zero implementation cost, testable today).
 
@@ -546,6 +559,7 @@ shell:
   oracle_threshold_tokens: 60000  # oracle is conversational — slower burn, can run longer
   orchestrator_threshold_tokens: 30000  # orchestrator is file-heavy — faster burn, trigger earlier
   threshold_pct: 0.30             # percentage ceiling — safety net for large-window models (e.g. 1M Gemini)
+  tokens_per_task_estimate: 2500  # used by orchestrator round-sizing heuristic
   restart_delay_seconds: 5        # countdown before auto-restart
   providers:
     claude:
@@ -654,4 +668,7 @@ Violation at CI gate → rework prompt with specific split instruction, not sile
 | Per-session thresholds | RESOLVED | v1 — config adds oracle_threshold_tokens and orchestrator_threshold_tokens; session_manager reads per-type threshold on session detection. |
 | Orchestrator persona | RESOLVED | Staff Engineering Lead — executes plan faithfully, manages parallelism and failure, escalates to human when authority exceeded. Does not re-prioritize. Oracle (Senior PE + PM + Designer) sets priority; orchestrator delivers it. |
 | Skill IP protection | UNRESOLVED | `.md` skill files on disk are readable — not IP-protected. PTY binary protects shell mechanics only. Open: does PTY embed+inject skill content at runtime? Server-side delivery? Must resolve before commercial distribution. |
+| Skill file location | RESOLVED | `commands/` directory at project root (git-tracked). Users copy to `~/.claude/commands/` (global) or `.claude/commands/` (project-scoped). No pip package distribution of skill content — IP protection mechanism deferred. |
+| Gemini provider | DEFERRED | Claude Code skills (commands/*.md) built and validated first. Gemini provider added once Claude skills prove token savings hypothesis. |
+| Orchestrator round-sizing | RESOLVED | Before each round: `max_tasks = max(1, (orchestrator_threshold_tokens - current_tokens) / tokens_per_task_estimate)`. Prevents context blowout mid-round. Config: `shell.tokens_per_task_estimate` default 2500. Encoded in commands/orchestrate.md skill logic. |
 | Token savings validation | UNRESOLVED | Manual testing of oracle + orchestrate + handoff skills required to prove savings hypothesis before further build. Pass criteria: measurable reduction in accumulated tokens per session vs. no-handoff baseline. |
