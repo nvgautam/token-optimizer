@@ -22,8 +22,11 @@ agentflow/indexer/              → Symbol index — ~/.agentflow/cache/<project
 
 ## State documents (living — updated continuously, not written once)
 ```
-architecture.md      → Oracle state: RESOLVED / UNRESOLVED / DEFERRED design items
-execution_plan.md    → Oracle state: milestone structure + Milestone 1 tasks (full);
+design_status.md     → Oracle state: RESOLVED / UNRESOLVED / DEFERRED design decisions
+                       Oracle reads this on startup (not architecture.md)
+architecture.md      → Design reference: module boundaries, PTY design, config schema, etc.
+                       Workers read anchored sections; oracle does not read this at startup
+execution_plan.md    → Milestone state: milestone structure + Milestone 1 tasks (full);
                        Orchestrator extends with tasks for each subsequent milestone on prior completion
 tasks.json           → Task state: individual task lifecycle PENDING → MERGED
 ```
@@ -57,6 +60,7 @@ PTY shell deps: stdlib only (pty, subprocess, signal, time, re, pathlib, hashlib
 Compiled binary for PTY shell (Nuitka) + pip-installable package (runtime modules)
 
 ## Reference
+- Design decisions:  design_status.md
 - Full architecture: architecture.md
 - Milestone plan:    execution_plan.md
 - Task status:       tasks.json

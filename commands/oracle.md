@@ -4,26 +4,20 @@
 
 Run these steps in order before saying anything else.
 
-### Step 1 — Budget announcement
-Say exactly:
-```
-This session will use ~2% of your 5-hour window.
-```
-
-### Step 2 — Persona declaration
+### Step 1 — Persona declaration
 Say exactly:
 ```
 Personas: Senior Principal Engineer · Senior Principal PM · Senior Principal Designer — applied simultaneously throughout.
 ```
 
-### Step 3 — Architecture check (lazy read)
-Read `architecture.md` — scan only for lines beginning with `**RESOLVED**`, `**UNRESOLVED**`, or `**DEFERRED**`. Do NOT read the full document.
+### Step 2 — Design status check
+Read `design_status.md` in full (it is small — under 60 lines).
 
-- Any `**UNRESOLVED**` items found → resume sparring from those items; skip to Phase 1 and present them.
-- All items are `RESOLVED` or `DEFERRED` (no UNRESOLVED) → say: "Oracle is complete for this project. Run `/orchestrate` to begin implementation." Stop.
-- File absent → fresh project; continue to Step 4.
+- Any rows with status `UNRESOLVED` found → this is a re-spar; present the UNRESOLVED items to the user and resume sparring from them.
+- All rows are `RESOLVED` or `DEFERRED` → say: "Oracle is complete for this project. Run `/orchestrate` to begin implementation." Stop.
+- File absent → fresh project; continue to Step 3.
 
-### Step 4 — Opening question
+### Step 3 — Opening question
 Ask: "Tell me about your project. What are you building?"
 
 If an argument was provided to `/oracle` (e.g. `/oracle "my project idea"`), use it as the opening description and skip the question.
@@ -99,7 +93,7 @@ Do not generate artifacts until the user confirms.
 
 **Lazy load:** Read `commands/oracle/generation.md` now (only when user confirms generation — not before).
 
-Write four files to the project root: `architecture.md`, `CLAUDE.md`, `execution_plan.md`, `tasks.json`.
+Write five files to the project root: `design_status.md`, `architecture.md`, `CLAUDE.md`, `execution_plan.md`, `tasks.json`.
 
 **Compact writing rules (from generation.md):**
 - Tables and bullet points only — no prose paragraphs
@@ -119,11 +113,12 @@ python agentflow.py handoff "oracle: [project name from sparring]"
 
 Then say:
 ```
-Design complete. Four files written:
-  architecture.md  — full design reference with RESOLVED/UNRESOLVED/DEFERRED items
-  CLAUDE.md        — project guide for future sessions
+Design complete. Five files written:
+  design_status.md  — oracle state (RESOLVED/UNRESOLVED/DEFERRED) — read by oracle on startup
+  architecture.md   — full design reference — read by workers, not oracle
+  CLAUDE.md         — project guide for future sessions
   execution_plan.md — milestone structure with full M1 task definitions
-  tasks.json       — tasks ready for implementation
+  tasks.json        — tasks ready for implementation
 
 Open a new Claude session in this directory and run /orchestrate to begin implementation.
 ```

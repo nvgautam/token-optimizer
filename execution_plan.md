@@ -17,7 +17,7 @@ Architecture: architecture.md#module-boundaries
 ---
 
 ## Milestone 2: Skill Files
-Status: IN_PROGRESS
+Status: COMPLETE
 Architecture: architecture.md#oracle-design, architecture.md#orchestrator-design, architecture.md#handoff-flow
 Goal: All provider skill files and prompt files exist and are testable via manual invocation.
 
@@ -28,7 +28,7 @@ Goal: All provider skill files and prompt files exist and are testable via manua
 | T-015 | Reviewer + orchestrator prompts | T-001 | MERGED |
 | T-025 | Handoff skill — provider files | T-001 | MERGED |
 | T-026 | Oracle skill — provider files | T-013 | MERGED |
-| T-027 | Orchestrator skill — provider files | T-015 | PENDING |
+| T-027 | Orchestrator skill — provider files | T-015 | MERGED |
 
 | Round | Tasks | Note |
 |---|---|---|

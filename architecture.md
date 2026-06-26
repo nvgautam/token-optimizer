@@ -33,8 +33,8 @@ User types: claude / gemini                   ← existing AI CLI, unchanged
   │  Oracle skill    │    │  Orchestrator skill                       │
   │  (Claude/Gemini) │    │  (Claude/Gemini)                         │
   │                  │    │                                           │
-  │  multi-persona   │    │  reads architecture.md                    │
-  │  market-aware    │    │  reads tasks.json, writes execution_plan.md │
+  │  multi-persona   │    │  reads execution_plan.md, tasks.json      │
+  │  market-aware    │    │  extends execution_plan.md lazily          │
   │  checklist       │    │  spawns headless workers                  │
   │                  │    │  manages reviewer pipeline                │
   │  writes:         │    │  gates on HUMAN_APPROVED                  │
@@ -89,14 +89,14 @@ agentflow/
     countdown.py                  # configurable countdown with SIGINT handler
   oracle/
     checklist.py                  # market-aware NFR checklist, confidence scoring
-    artifact_generator.py         # writes architecture.md + CLAUDE.md
+    artifact_generator.py         # writes design_status.md, architecture.md, CLAUDE.md, execution_plan.md, tasks.json
     prompts/v1/
       system.md                   # multi-persona: Senior PE + PM + Designer
       market.md                   # market segment branching (consumer/SMB/enterprise)
       checklist.md                # NFR question bank, 23+ items
       generation.md               # artifact output format spec
   orchestrator/
-    execution_plan.py             # architecture.md → milestones → execution_plan.md
+    execution_plan.py             # extends execution_plan.md lazily at milestone boundaries (oracle creates it)
     task_decomposer.py            # milestone → tasks.json entries (lazy, per milestone)
     state_machine.py              # task state transitions with timestamps
     environment.py                # tech-stack aware env setup (python/node/go/ruby)
@@ -162,31 +162,17 @@ Skill file location: `commands/` is the canonical source in the repo. IP distrib
 
 ## State documents
 
-### architecture.md (oracle's living state)
+### design_status.md (oracle's living state)
 
-Each design item carries an explicit status:
-
-```markdown
-## Authentication
-Status: RESOLVED
-Decision: JWT tokens, 24h expiry, refresh via httpOnly cookie
-
-## Rate limiting
-Status: UNRESOLVED
-Open: per-user vs per-IP? burst allowance?
-
-## Audit logging
-Status: DEFERRED
-Reason: v2 scope — agreed 2026-06-25
-```
+Each design item carries an explicit status — RESOLVED, UNRESOLVED, or DEFERRED. Oracle reads this file on startup; handoff writes updates here.
 
 Oracle startup logic:
-1. Read `architecture.md`
-2. Any `UNRESOLVED` items (not `DEFERRED`)? → resume sparring from those items
-3. All items `RESOLVED` or `DEFERRED`? → oracle is complete, prompt user to run orchestrator
+1. Read `design_status.md`
+2. Any `UNRESOLVED` rows? → resume sparring from those items
+3. All rows `RESOLVED` or `DEFERRED`? → oracle is complete, prompt user to run orchestrator
 4. File absent? → fresh project, start from scratch
 
-The `/handoff` skill flushes current resolution state to `architecture.md` before `/clear`. No separate handoff file — the document IS the session state.
+The `/handoff` skill flushes current resolution state to `design_status.md` before `/clear`. `architecture.md` is updated manually when design decisions change — it is a worker reference, not a session state document.
 
 ### execution_plan.md (oracle-created, orchestrator-extended)
 
@@ -254,7 +240,8 @@ The oracle then covers: functional requirements, UX flows, module boundaries, in
 If yes → generates concrete tasks in `tasks.json` for runtime input sanitisation (prompt injection guard) and output validation (PII/sensitive data leakage check). These are acceptance-criteria tasks, not checkbox notes.
 
 ### Oracle outputs
-- `architecture.md` — living design document with RESOLVED/UNRESOLVED/DEFERRED items
+- `design_status.md` — oracle state (RESOLVED/UNRESOLVED/DEFERRED rows); read by oracle on startup
+- `architecture.md` — full design reference; read by workers, not oracle
 - `CLAUDE.md` — project guide for every future Claude Code session
 - `execution_plan.md` — milestone structure with full task definitions for Milestone 1; stubs for subsequent milestones
 - `tasks.json` — full task definitions for Milestone 1 only; slim stubs (`{task_id, status}`) for later milestones
@@ -637,46 +624,4 @@ Violation at CI gate → rework prompt with specific split instruction, not sile
 
 ## Design decisions log
 
-| Item | Status | Decision |
-|---|---|---|
-| Primary artifact | RESOLVED | Skills-first: .md files for Claude, SKILL.md + scripts for Gemini |
-| PTY LLM usage | RESOLVED | Zero LLM calls in PTY shell — fully deterministic |
-| Token counting | RESOLVED | Local tiktoken, ~95% accuracy, acceptable for threshold detection |
-| Handoff threshold | RESOLVED | Hybrid: absolute 40K floor OR 30% of window ceiling — whichever fires first |
-| Semantic handoff trigger | DEFERRED | Task completion (TASK_COMPLETE signal) as primary trigger; token threshold as safety net — v2 |
-| Velocity-based trigger | DEFERRED | Track turn-over-turn input delta; trigger on accelerating growth (second derivative positive over 3-turn window) — v2 |
-| Structured PTY signals | DEFERRED | Skills emit TASK_COMPLETE:<id> and CHECKLIST_ITEM_RESOLVED:<id> to stdout for PTY consumption — prerequisite for semantic trigger — v2 |
-| Handoff state | RESOLVED | Living documents (architecture.md, execution_plan.md) — no separate handoff files |
-| Session resume | RESOLVED | Oracle: UNRESOLVED items in architecture.md. Orchestrator: incomplete milestones in execution_plan.md |
-| execution_plan.md owner | RESOLVED | Oracle creates milestone structure + full tasks for Milestone 1; orchestrator lazily fills tasks for each subsequent milestone when prior milestone completes |
-| tasks.json owner | RESOLVED | Oracle writes full task definitions for Milestone 1 only; stubs for future milestones; orchestrator extends lazily at milestone boundaries |
-| Staleness detection | RESOLVED | Document state, not timestamps |
-| Symbol index location | RESOLVED | ~/.agentflow/cache/<hash>/index/ — never in project tree |
-| Index update trigger | RESOLVED | write_file tool side-effect; worker unaware |
-| Brownfield support | RESOLVED | Index generation v1; file refactoring v2 |
-| Prompt injection | RESOLVED | Oracle asks user; generates tasks if applicable; AgentFlow itself sanitises oracle input |
-| Human PR review | RESOLVED | HUMAN_APPROVED enforced gate before any merge |
-| Idempotency | RESOLVED | Cross-cutting constraint; all operations safe to run twice |
-| PTY countdown | RESOLVED | 5s default; configurable by tier (Free: fixed; Pro: user; Enterprise: admin) |
-| Providers v1 | RESOLVED | Claude Code + Gemini CLI |
-| Tier/licensing | DEFERRED | To be designed; compiled binary + server-side components likely |
-| Naming/branding | DEFERRED | PTY shell needs a distinct product name |
-| Codex provider | DEFERRED | v2 |
-| Brownfield refactoring | DEFERRED | v2 — requires existing test suite, per-file human approval |
-| OTel exporter | DEFERRED | v2 — JSONL schema already OTel-compatible |
-| Merge sequencer | DEFERRED | v1 manual merge acceptable; automated sequencer v2 |
-| PTY sequencing | RESOLVED | PTY is built alongside skills in v1 — the product IS skills + PTY shell. Headless automation layer is v2. |
-| v1 milestone order | RESOLVED | 1: skill files (oracle, orchestrate, handoff prompts + provider files) → 2: PTY shell (pty_wrapper, tokenizer, session_manager) → v2: headless automation layer |
-| Headless automation layer | DEFERRED | v2 — see Module boundaries for full list. PTY approach validated in v1 first before building headless runners. |
-| Symbol indexer | RESOLVED | v1 — standalone CLI tool; PTY shell runs on session start; skills instruct Claude to read .idx before full files. Highest-leverage read optimisation (~65% per targeted read). |
-| Context builder | RESOLVED | v1 — context_builder.py assembles minimal bundle; orchestrate skill writes context_bundle.md per task to disk; workers read only that file on session start. |
-| Compact state docs | RESOLVED | v1 — handoff skill writes architecture.md and execution_plan.md in dense structured format (tables/bullets, no prose). Prompt instruction only, no code. |
-| Verbosity control | RESOLVED | v1 — all skill system prompts instruct Claude to keep responses concise. Extends sessions by ~25% before threshold fires. |
-| Section-only loading | RESOLVED | v1 — task reads fields use anchors (already enforced); skill prompts explicitly forbid loading full architecture.md. |
-| Per-session thresholds | RESOLVED | v1 — config adds oracle_threshold_tokens and orchestrator_threshold_tokens; session_manager reads per-type threshold on session detection. |
-| Orchestrator persona | RESOLVED | Staff Engineering Lead — executes plan faithfully, manages parallelism and failure, escalates to human when authority exceeded. Does not re-prioritize. Oracle (Senior PE + PM + Designer) sets priority; orchestrator delivers it. |
-| Skill IP protection | UNRESOLVED | `.md` skill files on disk are readable — not IP-protected. PTY binary protects shell mechanics only. Open: does PTY embed+inject skill content at runtime? Server-side delivery? Must resolve before commercial distribution. |
-| Skill file location | RESOLVED | `commands/` directory at project root (git-tracked). Users copy to `~/.claude/commands/` (global) or `.claude/commands/` (project-scoped). No pip package distribution of skill content — IP protection mechanism deferred. |
-| Gemini provider | DEFERRED | Claude Code skills (commands/*.md) built and validated first. Gemini provider added once Claude skills prove token savings hypothesis. |
-| Orchestrator round-sizing | RESOLVED | Before each round: `max_tasks = max(1, (orchestrator_threshold_tokens - current_tokens) / tokens_per_task_estimate)`. Prevents context blowout mid-round. Config: `shell.tokens_per_task_estimate` default 2500. Encoded in commands/orchestrate.md skill logic. |
-| Token savings validation | UNRESOLVED | Manual testing of oracle + orchestrate + handoff skills required to prove savings hypothesis before further build. Pass criteria: measurable reduction in accumulated tokens per session vs. no-handoff baseline. |
+See [design_status.md](design_status.md) — oracle reads this on startup, handoff writes updates here.

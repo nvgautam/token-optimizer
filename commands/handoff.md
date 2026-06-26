@@ -16,7 +16,7 @@ Format: `HANDOFF RECOMMENDED: <reason>` — PTY shell (and user in manual mode) 
 ### Step 1 — Detect session type
 
 Check in order:
-- Read `architecture.md` — if it contains `Status: UNRESOLVED` → **oracle session**
+- Read `design_status.md` — if it contains `| UNRESOLVED |` in any row → **oracle session**
 - Read `execution_plan.md` — if it contains `Status: IN_PROGRESS` → **orchestrator session**
 - Otherwise → **unknown session type**
 
@@ -26,17 +26,13 @@ Check in order:
 
 | Session type | Action |
 |---|---|
-| oracle | Update `architecture.md` — write all design items resolved this session using RESOLVED/UNRESOLVED/DEFERRED format |
+| oracle | Update `design_status.md` — update table rows for all design items resolved or changed this session |
 | orchestrator | Update `execution_plan.md` — mark tasks completed/merged/in-progress this session |
 | unknown | Skip |
 
-**architecture.md item format:**
+**design_status.md row format:**
 ```
-## <Design Area>
-Status: RESOLVED | UNRESOLVED | DEFERRED
-Decision: <one-liner>       (RESOLVED only)
-Open: <questions>           (UNRESOLVED only)
-Reason: <scope note + date> (DEFERRED only)
+| <Item> | RESOLVED \| UNRESOLVED \| DEFERRED | <one-line decision or open question or scope note> |
 ```
 
 **execution_plan.md task row format:**
