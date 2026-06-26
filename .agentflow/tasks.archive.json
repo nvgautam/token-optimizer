@@ -172,5 +172,33 @@
       "context_section": "architecture.md#oracle-design",
       "status": "merged"
     }
+  },
+  {
+    "archived_at": "2026-07-26T21:45:00Z",
+    "task": {
+      "task_id": "T-031",
+      "title": "Inline .idx generation in orchestrate skill",
+      "description": "Update commands/orchestrate.md pre-spawn section to generate .idx files for every file in each task's reads list: Python files → ast-based symbol extraction (function names, class names, class methods in ClassName.method:start-end format); Markdown files → grep-based H2/H3 header extraction (format: ## Header:start-end). Write .idx files to ~/.agentflow/cache/<sha256-of-project-root>/index/<mirrored-path>.idx. Update commands/worker/system.md to add targeted reads instruction: before reading any file in the reads list, grep the .idx for the needed symbol, then use Read(offset, limit) instead of reading the full file. Fallback: if .idx absent or symbol not found, read full file. Both changes are prompt/instruction additions only — no Python code.",
+      "owns": ["commands/orchestrate.md", "commands/worker/system.md"],
+      "reads": ["architecture.md#symbol-indexer", "commands/worker/context_bundle.md"],
+      "depends_on": ["T-027"],
+      "contracts": [],
+      "test_requirements": {
+        "unit": [
+          "commands/orchestrate.md pre-spawn section includes .idx generation step for Python files (ast)",
+          "commands/orchestrate.md pre-spawn section includes .idx generation step for Markdown files (grep H2/H3)",
+          "commands/orchestrate.md specifies cache path ~/.agentflow/cache/<hash>/index/",
+          "commands/worker/system.md includes targeted reads instruction (grep .idx then Read(offset, limit))",
+          "commands/worker/system.md includes fallback to full file read when .idx absent or symbol not found"
+        ],
+        "integration": [],
+        "coverage_threshold": 80
+      },
+      "security_constraints": [],
+      "acceptance_criteria": "orchestrate.md generates .idx files in pre-spawn for py/md reads; worker/system.md instructs targeted reads via .idx with fallback; no Python code added",
+      "estimated_lines": 30,
+      "context_section": "architecture.md#symbol-indexer",
+      "status": "merged"
+    }
   }
 ]

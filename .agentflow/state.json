@@ -1,6 +1,6 @@
 {
-  "updated": "2026-06-26T17:42:00Z",
-  "milestone": "Milestone 2: Skill Files",
+  "updated": "2026-07-26T21:45:00Z",
+  "milestone": "Milestone 3: Symbol Indexer",
   "groups": [
     {"group_id": 1, "task_ids": ["T-001"], "status": "complete", "pr": null, "tokens": 32907},
     {"group_id": 2, "task_ids": ["T-013"], "status": "complete", "pr": 6, "tokens": 27226},
@@ -8,6 +8,7 @@
     {"group_id": 4, "task_ids": ["T-015"], "status": "complete", "pr": 8, "tokens": 29563},
     {"group_id": 5, "task_ids": ["T-025"], "status": "complete", "pr": 9, "tokens": 35713},
     {"group_id": 6, "task_ids": ["T-026"], "status": "complete", "pr": 10, "tokens": 32140},
-    {"group_id": 7, "task_ids": ["T-027"], "status": "pending", "pr": null, "tokens": null}
+    {"group_id": 7, "task_ids": ["T-027"], "status": "complete", "pr": 11, "tokens": 47617},
+    {"group_id": 8, "task_ids": ["T-031"], "status": "complete", "pr": null, "tokens": 47617}
   ]
 }

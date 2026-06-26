@@ -46,13 +46,13 @@ Goal: Orchestrate skill generates .idx files inline (pre-spawn) for task reads l
 
 | Task | Title | Depends on | Status |
 |---|---|---|---|
-| T-031 | Inline .idx generation in orchestrate skill | T-027 | PENDING |
+| T-031 | Inline .idx generation in orchestrate skill | T-027 | MERGED |
 | T-028 | Symbol index — parsers | T-001, T-031 | PENDING |
 | T-029 | Symbol index — index manager and brownfield scanner | T-001, T-028 | PENDING |
 
 | Round | Tasks | Note |
 |---|---|---|
-| A | T-031 | First — inline skill changes; validates approach empirically |
+| A | T-031 | MERGED — inline skill changes; validates approach empirically |
 | B | T-028 | After T-031 merged and approach confirmed |
 | C | T-029 | After T-028 |
 
