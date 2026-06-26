@@ -1,64 +1,62 @@
-# CLAUDE.md — AgentFlow / Token Optimizer
+# AgentFlow
 
-A standalone tool for multi-agent session management and token optimization. Developed here first; validated results applied back to the OCI Assistant project and eventually productized.
+Provider-agnostic multi-agent project management: skills for Claude and Gemini + PTY overlay shell that manages context lifecycle transparently. Reduces token consumption by cycling agent context at task boundaries and enabling targeted file reads via a local symbol index.
 
----
+## Commands
+- Test:  `pytest tests/`
+- Lint:  `ruff check .`
+- Build: `python -m build`
 
-## What this project is
-
-A system that reduces Claude/Gemini token consumption by:
-1. **Session cycling** — resetting agent context at task boundaries rather than letting it balloon
-2. **Token measurement** — tracking real vs shadow (hypothetical single-session) token usage
-3. **PTY orchestration** (Phase 3) — automating session restarts transparently via a terminal wrapper
-
-See `VISION.md` for the full product vision and `AGENT_ORCHESTRATOR_PLAN.md` for the PTY architecture.
-
----
-
-## Project layout
-
+## Structure
 ```
-token-optimizer/
-├── agentflow.py              # Core tool: session logger, shadow model, batch_decision, ctx-watch
-├── agentflow_ledger.json     # This project's session data (gitignored: add to .gitignore if sensitive)
-├── scripts/                  # Token scan, toggle, split-file helpers (Phase 2)
-├── test/                     # Tests
-├── TASK_BOARD.md             # Authoritative task list
-├── VISION.md                 # Product vision (ported from OCI project_manager_token_optimizer.md)
-└── AGENT_ORCHESTRATOR_PLAN.md  # PTY orchestrator architecture
+agentflow/shell/        → PTY overlay shell — token tracking, threshold, session restart (zero LLM calls)
+agentflow/skills/       → Provider skill files — Claude (.md), Gemini (SKILL.md + scripts)
+agentflow/oracle/       → Design sparring — market-aware multi-persona checklist, architecture.md + CLAUDE.md
+agentflow/orchestrator/ → Execution planning — execution_plan.md, tasks.json, milestone state machine
+agentflow/worker/       → Headless agent runner, context builder, write_file tool with index hook
+agentflow/indexer/      → Symbol index — ~/.agentflow/cache/<project-hash>/index/ — never in project tree
+agentflow/reviewer/     → Code and security review agents
+agentflow/tools/        → Git worktrees, GitHub API, test runner, file validator
+agentflow/telemetry/    → Token tracking, ledger, structured logging
+agentflow/config/       → Layered config: env → project → user → defaults (Pydantic v2)
 ```
 
----
-
-## Key commands
-
-```bash
-python agentflow.py handoff          # Record session token usage at session end
-python agentflow.py report           # Show cumulative savings (shadow/real ratio)
-python agentflow.py batch-check "task subject"   # Should next task batch or start fresh?
-python agentflow.py classify "task subject"      # mechanical or exploratory?
+## State documents (living — updated continuously, not written once)
+```
+architecture.md      → Oracle state: RESOLVED / UNRESOLVED / DEFERRED design items
+execution_plan.md    → Orchestrator state: milestones mapped to tasks, completion tracking
+tasks.json           → Task state: individual task lifecycle PENDING → MERGED
 ```
 
----
+## Integrations
+```
+GitHub API      → tools/github.py          credentials: GITHUB_TOKEN env var — never logged
+Anthropic API   → worker/agent_runner.py   credentials: ANTHROPIC_API_KEY env var — never logged
+Gemini API      → worker/agent_runner.py   credentials: GEMINI_API_KEY env var — never logged
+```
 
-## Relationship to OCI Assistant
+## Constraints
+- Compliance: None
+- No secrets in code or config — env vars only, never logged
+- No implementation file > 250 lines; tests ≤ 350; prompts ≤ 150; stubs ≤ 100
+- No two modules share ownership of the same file
+- PTY shell: zero LLM calls, stdlib-only, fully deterministic
+- Symbol index: `~/.agentflow/cache/<project-hash>/index/` — not committed, not visible in project
+- Pydantic v2 for all structured inputs and config validation
+- Human PR approval is an enforced gate (HUMAN_APPROVED state), not advisory
+- Every operation must be idempotent — safe to run twice with the same result
+- Brownfield: index generation v1; file refactoring deferred to v2
+- Codex provider: v2
+- Tier/licensing model: deferred
+- Naming/branding: deferred
 
-- `agentflow.py` is installed in `/Users/gautam/code/oci/oci-assistant/` as a copy.
-- When making changes here, manually sync to OCI after validating.
-- OCI-specific optimization tasks (CLAUDE.md hygiene, task board verbosity) stay in OCI's TASK_BOARD.md.
-- The source of truth for agentflow.py development is this repo.
+## Tech stack
+Python 3.11+, Pydantic v2, httpx, tiktoken, watchdog
+PTY shell deps: stdlib only (pty, subprocess, signal, time, re, pathlib, hashlib)
 
----
+## Deployment
+Compiled binary for PTY shell (Nuitka) + pip-installable package (runtime modules)
 
-## Validation target
-
-**Run `python agentflow.py report` after each session.** The success criterion is shadow/real ≥ 3× across 10+ sessions. Track in ledger. If ratio falls short, investigate task granularity (tasks spanning multiple sessions should be split).
-
----
-
-## Development conventions
-
-- Keep `agentflow.py` self-contained — one file, no external deps beyond stdlib.
-- Test changes against the JSONL reader before committing (needs a live `~/.claude/projects/` entry).
-- Do not add LLM calls to agentflow.py core — it must work offline.
-- PTY orchestrator (Phase 3) is a separate module; do not entangle with the core logger.
+## Reference
+- Full architecture: architecture.md
+- Task status:       tasks.json
