@@ -1,5 +1,5 @@
 {
-  "updated": "2026-06-26T15:45:00Z",
+  "updated": "2026-06-26T16:00:00Z",
   "milestone": "Milestone 3: Symbol Indexer",
   "groups": [
     {"group_id": 1, "task_ids": ["T-001"], "status": "complete", "pr": null, "tokens": 32907},
@@ -10,6 +10,7 @@
     {"group_id": 6, "task_ids": ["T-026"], "status": "complete", "pr": 10, "tokens": 32140},
     {"group_id": 7, "task_ids": ["T-027"], "status": "complete", "pr": 11, "tokens": 47617},
     {"group_id": 8, "task_ids": ["T-031"], "status": "complete", "pr": null, "tokens": 47617},
-    {"group_id": 9, "task_ids": ["T-028a"], "status": "complete", "pr": 12, "tokens": 35355}
+    {"group_id": 9, "task_ids": ["T-028a"], "status": "complete", "pr": 12, "tokens": 35355},
+    {"group_id": 10, "task_ids": ["T-028b"], "status": "complete", "pr": 13, "tokens": 30468}
   ]
 }
