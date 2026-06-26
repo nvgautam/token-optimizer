@@ -178,36 +178,45 @@ Oracle startup logic:
 
 The `/handoff` skill flushes current resolution state to `architecture.md` before `/clear`. No separate handoff file — the document IS the session state.
 
-### execution_plan.md (orchestrator's living state)
+### execution_plan.md (oracle-created, orchestrator-extended)
+
+Created by the oracle at sparring completion. Contains full milestone structure with task assignments for Milestone 1 and stubs for subsequent milestones.
 
 ```markdown
 ## Milestone 1: Foundation
 Status: COMPLETE
 Architecture: architecture.md#module-boundaries
-Tasks: T-001 (MERGED), T-002 (MERGED), T-003 (MERGED)
+Tasks: T-001 (MERGED)
 
-## Milestone 2: Core Tools
+## Milestone 2: Skill Files
 Status: IN_PROGRESS
-Architecture: architecture.md#tools
-Tasks: T-004 (MERGED), T-005 (IN_PROGRESS), T-006 (PENDING)
-Blocked: T-006 depends on T-005
+Architecture: architecture.md#oracle-design, architecture.md#orchestrator-design
+Tasks: T-013 (PENDING), T-014 (PENDING), T-015 (PENDING),
+       T-025 (PENDING), T-026 (PENDING), T-027 (PENDING)
 
-## Milestone 3: Orchestration Layer
-Status: PENDING — not yet decomposed
-Architecture: architecture.md#orchestrator-design
+## Milestone 3: Config + PTY Shell
+Status: PENDING — tasks decomposed when Milestone 2 completes
+Architecture: architecture.md#pty-shell-design, architecture.md#config-schema
+
+## Milestone 4: Symbol Indexer
+Status: PENDING — tasks decomposed when Milestone 3 completes
+Architecture: architecture.md#symbol-indexer
+
+## Milestone 5: Context Builder
+Status: PENDING — tasks decomposed when Milestone 4 completes
+Architecture: architecture.md#context-bundle
 
 ## Deferred
 - Codex provider: v2
 - Brownfield file refactoring: v2
+- Headless automation layer: v2
 - Tier/licensing: TBD
 ```
 
-Milestones are decomposed **lazily** — Milestone 3 tasks are only written to `tasks.json` when Milestone 2 completes. This keeps `tasks.json` lean and avoids over-planning against architecture that may still evolve.
-
 Orchestrator startup:
-1. Read `execution_plan.md` — any milestones not `COMPLETE`? → resume from the first incomplete milestone
-2. Read `tasks.json` — pick up in-flight tasks, spawn pending ones
-3. Neither exists? → decompose `architecture.md` into Milestone 1, write both files
+1. Read `execution_plan.md` (oracle-created) — any milestones not `COMPLETE`? → resume from first incomplete milestone
+2. If current milestone's tasks are stub-only → decompose now using the milestone's architecture anchor, write full tasks to `tasks.json`
+3. Read `tasks.json` — pick up in-flight tasks, spawn pending ones
 4. All milestones `COMPLETE`? → project done
 
 ---
@@ -237,8 +246,10 @@ If yes → generates concrete tasks in `tasks.json` for runtime input sanitisati
 ### Oracle outputs
 - `architecture.md` — living design document with RESOLVED/UNRESOLVED/DEFERRED items
 - `CLAUDE.md` — project guide for every future Claude Code session
+- `execution_plan.md` — milestone structure with full task definitions for Milestone 1; stubs for subsequent milestones
+- `tasks.json` — full task definitions for Milestone 1 only; slim stubs (`{task_id, status}`) for later milestones
 
-The oracle generates `tasks.json` as part of sparring completion — all tasks decomposed upfront. The orchestrator reads this and may extend it via lazy milestone decomposition as the project evolves.
+The oracle has full design context and is the right place to define milestone ordering and Milestone 1 scope. Future milestone tasks are intentionally left as stubs — the orchestrator fills them lazily when the prior milestone completes, against architecture that may have evolved.
 
 ---
 
@@ -615,7 +626,8 @@ Violation at CI gate → rework prompt with specific split instruction, not sile
 | Structured PTY signals | DEFERRED | Skills emit TASK_COMPLETE:<id> and CHECKLIST_ITEM_RESOLVED:<id> to stdout for PTY consumption — prerequisite for semantic trigger — v2 |
 | Handoff state | RESOLVED | Living documents (architecture.md, execution_plan.md) — no separate handoff files |
 | Session resume | RESOLVED | Oracle: UNRESOLVED items in architecture.md. Orchestrator: incomplete milestones in execution_plan.md |
-| tasks.json owner | RESOLVED | Oracle generates tasks.json upfront at sparring completion; orchestrator reads and extends via lazy milestone decomposition |
+| execution_plan.md owner | RESOLVED | Oracle creates milestone structure + full tasks for Milestone 1; orchestrator lazily fills tasks for each subsequent milestone when prior milestone completes |
+| tasks.json owner | RESOLVED | Oracle writes full task definitions for Milestone 1 only; stubs for future milestones; orchestrator extends lazily at milestone boundaries |
 | Staleness detection | RESOLVED | Document state, not timestamps |
 | Symbol index location | RESOLVED | ~/.agentflow/cache/<hash>/index/ — never in project tree |
 | Index update trigger | RESOLVED | write_file tool side-effect; worker unaware |

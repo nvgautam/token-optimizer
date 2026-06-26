@@ -497,11 +497,5 @@
       "context_section": "architecture.md#context-bundle",
       "status": "pending"
     }
-  ],
-  "parallelism_plan": {
-    "round_1": ["T-001"],
-    "round_2": ["T-002", "T-006", "T-007", "T-013", "T-014", "T-015", "T-025", "T-028"],
-    "round_3": ["T-008", "T-026", "T-027", "T-029"],
-    "round_4": ["T-030"]
-  }
+  ]
 }

@@ -23,7 +23,8 @@ agentflow/indexer/              → Symbol index — ~/.agentflow/cache/<project
 ## State documents (living — updated continuously, not written once)
 ```
 architecture.md      → Oracle state: RESOLVED / UNRESOLVED / DEFERRED design items
-execution_plan.md    → Orchestrator state: milestones mapped to tasks, completion tracking
+execution_plan.md    → Oracle state: milestone structure + Milestone 1 tasks (full);
+                       Orchestrator extends with tasks for each subsequent milestone on prior completion
 tasks.json           → Task state: individual task lifecycle PENDING → MERGED
 ```
 
@@ -57,4 +58,5 @@ Compiled binary for PTY shell (Nuitka) + pip-installable package (runtime module
 
 ## Reference
 - Full architecture: architecture.md
+- Milestone plan:    execution_plan.md
 - Task status:       tasks.json

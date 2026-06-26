@@ -2,32 +2,21 @@
 
 Read the design from disk, group tasks, spawn implementation agents, run reviews, and merge.
 
-Requires `CLAUDE.md`, `architecture.md`, and `tasks.json` in the project root.
-
----
-
-## Persona
-
-Operating as: **Staff Engineering Lead** — executes the plan faithfully, manages parallelism and failure, escalates to human when authority is exceeded. Does not re-prioritize or change scope; that is the oracle's role.
-
-On startup, before reporting orchestration state, say:
-
-```
-Operating as: Staff Engineering Lead.
-I execute the plan — I do not re-prioritize. Scope or priority changes go through /oracle.
-Escalation criteria: second rework failure, CRITICAL security finding, ambiguous authority.
-```
+Requires `CLAUDE.md`, `architecture.md`, `execution_plan.md`, and `tasks.json` in the project root.
 
 ---
 
 ## Startup
 
-Read `tasks.json`, `architecture.md`, and `CLAUDE.md` from disk. Do not rely on any prior conversation history — everything needed is in these files.
+Read `execution_plan.md`, `tasks.json`, `architecture.md`, and `CLAUDE.md` from disk. Do not rely on any prior conversation history — everything needed is in these files.
+
+`execution_plan.md` is the authoritative source for milestone ordering and parallelism rounds. `tasks.json` holds individual task definitions. Do not re-derive milestone structure or rounds from `tasks.json` — read them from `execution_plan.md`.
 
 Check for `.agentflow/state.json`. If it exists, this is a resumed session:
 
 ```
 Resuming orchestration. Current state:
+  Milestone:   [current milestone name and status from execution_plan.md]
   Complete:    [task_ids]
   In progress: [task_ids] (PRs open — check GitHub Desktop)
   Pending:     [task_ids]
@@ -35,36 +24,48 @@ Resuming orchestration. Current state:
 Continue from where we left off? yes/no
 ```
 
-If no state file, this is a fresh run. Report:
+If no state file, this is a fresh run. Identify the first incomplete milestone in `execution_plan.md`. Report:
 
 ```
 Ready to orchestrate.
-  Tasks:   N pending across M modules
-  Groups:  [will calculate after grouping]
+  Milestone:  [name] — [N tasks across R rounds]
+  Deferred:   [remaining milestones, one line each]
 
 Starting now.
 ```
 
 ---
 
-## Step 1 — Group tasks by shared context
+## Step 1 — Identify current milestone and group tasks
 
-Group tasks that share high `reads` overlap AND are adjacent in the DAG. One group = one agent spawn.
+Read the current milestone from `execution_plan.md` — the first milestone whose status is not `COMPLETE`.
 
-Algorithm:
-1. Topological sort all tasks by `depends_on`
-2. Score overlap between adjacent tasks: `len(set(task_a.reads) & set(task_b.reads))`
-3. Merge high-overlap adjacent pairs into groups (score ≥ 2 shared files)
-4. Cap each group at 4 tasks — do not span a dependency edge to an external task
+**If the milestone's tasks are stubs in `tasks.json`** (i.e. only `{task_id, status}` entries exist, no full definitions): decompose now.
+1. Read the milestone's `Architecture:` anchor from `execution_plan.md`
+2. Load only that section from `architecture.md` (not the full doc)
+3. Write full task definitions for this milestone's tasks into `tasks.json`
+4. Add parallelism rounds for this milestone into `execution_plan.md`
+
+**Grouping** — oracle defines which tasks can run in parallel (rounds); orchestrator decides how to co-spawn within a round for token efficiency.
+
+For each round in the current milestone (from `execution_plan.md`):
+1. Take all pending tasks in that round
+2. Score overlap between tasks: `len(set(task_a.reads) & set(task_b.reads))`
+3. Merge adjacent tasks with score ≥ 2 shared files into one group (one agent spawn)
+4. Tasks with no overlap each become their own group
+5. Cap each group at 4 tasks
+
+Do not group across rounds — round boundaries are dependency gates.
 
 If invoked as `/orchestrate debug`, report the grouping plan before proceeding:
 
 ```
-Task groups:
-  Group 1: T-001, T-002  (3 shared reads — auth + config)
-  Group 2: T-003         (no overlap with Group 1)
-  Group 3: T-004, T-005  (4 shared reads — db models + schema)
-  ...
+Milestone: [name]
+  Round A: 2 groups
+    Group 1: T-013, T-014  (2 shared reads)
+    Group 2: T-015, T-025  (no overlap — separate agents)
+  Round B: 1 group
+    Group 3: T-026, T-027  (1 shared read — separate agents)
 
 Proceed? yes/no
 ```
@@ -346,7 +347,7 @@ If drift was flagged and user replies "yes": update `architecture.md` and `CLAUD
 
 Merge PRs dependencies-first after user approval. After each merge:
 
-1. **Update `tasks.json`** — for each completed task, replace its full definition with a slim stub:
+1. **Update `tasks.json`** — replace the merged task's full definition with a slim stub:
    ```json
    {"task_id": "T-001", "status": "complete"}
    ```
@@ -355,9 +356,20 @@ Merge PRs dependencies-first after user approval. After each merge:
    {"archived_at": "ISO8601", "task": { <original full task definition> }}
    ```
 
-2. **Save state** — write `.agentflow/state.json` as usual after each merge.
+2. **Update `execution_plan.md`** — mark the merged task's status in the milestone table:
+   ```
+   | T-013 | Oracle prompts | T-001 | MERGED |
+   ```
 
-This keeps `tasks.json` lean — only pending and in_progress tasks carry full definitions. Dependency resolution still works because stubs retain `task_id` and `status`. Full definitions are recoverable from the archive if needed.
+3. **Check for milestone completion** — if all tasks in the current milestone are now `MERGED`:
+   - Mark the milestone `Status: COMPLETE` in `execution_plan.md`
+   - Find the next milestone stub in `execution_plan.md`
+   - Decompose it: load its architecture anchor section, write full task definitions into `tasks.json`, add parallelism rounds to `execution_plan.md`
+   - Report to user: `Milestone [N] complete. Milestone [N+1] decomposed — [M tasks across R rounds] ready.`
+
+4. **Save state** — write `.agentflow/state.json` as usual after each merge.
+
+This keeps `tasks.json` lean — only pending and in_progress tasks carry full definitions. `execution_plan.md` is the single source of truth for milestone progress.
 
 ---
 
