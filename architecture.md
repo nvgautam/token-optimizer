@@ -62,6 +62,24 @@ User types: claude / gemini                   ← existing AI CLI, unchanged
 ## Module boundaries
 
 ```
+commands/                           # Claude Code skill files (git-tracked; copy to .claude/commands/)
+  oracle.md                       # Claude oracle skill — lazy-loads oracle/ sub-files per phase
+  orchestrate.md                  # Claude orchestrate skill
+  handoff.md                      # Claude handoff skill
+  oracle/
+    market.md                     # market segment branching (loaded in Phase 1 only)
+    checklist.md                  # NFR question bank (loaded in Phase 2 only)
+    generation.md                 # artifact format spec (loaded in Phase 3 only)
+  worker/
+    system.md                     # worker persona + no-re-read rule (embedded in spawn prompts)
+    context_bundle.md             # bundle format interpretation guide
+    testing_guide.md              # TDD rules for workers
+  reviewer/
+    code_review.md                # code review checks (embedded in review prompts)
+    security_review.md            # security review checks
+    test_review.md                # test quality checks
+  orchestrator/
+    planning.md                   # milestone decomposition format guide
 agentflow/
   cli.py                          # entry points, arg dispatch
   shell/
@@ -69,16 +87,6 @@ agentflow/
     tokenizer.py                  # local token counting per provider (tiktoken)
     session_manager.py            # threshold watch, session type, restart coordination
     countdown.py                  # configurable countdown with SIGINT handler
-  skills/
-    providers/
-      claude/
-        oracle.md                 # Claude Code oracle skill
-        orchestrate.md            # Claude Code orchestrate skill
-        handoff.md                # Claude Code handoff skill
-      gemini/
-        oracle/SKILL.md + scripts/
-        orchestrate/SKILL.md + scripts/
-        handoff/SKILL.md + scripts/
   oracle/
     checklist.py                  # market-aware NFR checklist, confidence scoring
     artifact_generator.py         # writes architecture.md + CLAUDE.md

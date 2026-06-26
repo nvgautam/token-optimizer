@@ -107,6 +107,35 @@
   }
 ,
   {
+    "archived_at": "2026-06-26T17:42:00Z",
+    "task": {
+      "task_id": "T-026",
+      "title": "Oracle skill — Claude provider",
+      "description": "Update commands/oracle.md with full multi-persona design sparring flow: inline persona declaration (Senior PE + PM + Designer), market segment question first, verbosity instruction, HANDOFF RECOMMENDED signals after each checklist batch. Lazy sub-file loading per phase. Reads architecture.md on startup for UNRESOLVED check only. Writes 4 artifacts on completion. Generic across all projects.",
+      "owns": ["commands/oracle.md"],
+      "reads": ["commands/oracle/checklist.md", "commands/oracle/market.md", "commands/oracle/generation.md", "architecture.md#oracle-design"],
+      "depends_on": ["T-013"],
+      "contracts": [],
+      "test_requirements": {
+        "unit": [
+          "commands/oracle.md contains architecture.md UNRESOLVED check on startup",
+          "commands/oracle.md contains multi-persona persona declaration",
+          "commands/oracle.md does not reference any specific project name",
+          "commands/oracle.md contains ~2% budget announcement instruction",
+          "commands/oracle.md contains ≤3-sentence verbosity rule for spar phase",
+          "commands/oracle.md contains lazy sub-file loading instruction (per-phase, not at startup)"
+        ],
+        "integration": [],
+        "coverage_threshold": 80
+      },
+      "security_constraints": [],
+      "acceptance_criteria": "skill file is generic; UNRESOLVED check on startup present; sub-files lazy-loaded per phase; budget announcement and verbosity rules present",
+      "estimated_lines": 100,
+      "context_section": "architecture.md#oracle-design",
+      "status": "merged"
+    }
+  },
+  {
     "archived_at": "2026-06-26T12:00:00Z",
     "task": {
       "task_id": "T-013",

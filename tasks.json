@@ -156,39 +156,7 @@
     {"task_id": "T-013", "status": "complete"},
     {"task_id": "T-014", "status": "complete"},
     {"task_id": "T-015", "status": "complete"},
-    {
-      "task_id": "T-026",
-      "title": "Oracle skill — Claude provider",
-      "description": "Update commands/oracle.md (the existing working oracle skill). Must implement the full multi-persona design sparring flow: inline persona declaration (Senior PE + PM + Designer), market segment question first, verbosity instruction, prompt injection question, HANDOFF RECOMMENDED signals after each checklist batch. Reads commands/oracle/checklist.md, commands/oracle/market.md, commands/oracle/generation.md at runtime for sub-content — lazy-loaded per phase only (checklist.md when entering checklist phase, market.md when entering market segment phase, generation.md only at artifact generation time — NOT all at startup). Reads architecture.md on startup to check for UNRESOLVED items — resume or start fresh — but reads only the RESOLVED/UNRESOLVED/DEFERRED item list, not full doc. Writes artifacts (architecture.md, CLAUDE.md, execution_plan.md, tasks.json) on completion. Generic across all projects — no hardcoded project-specific content. Verbosity rules: (1) announce upfront '~2% of your 5-hour window'; (2) design spar responses ≤3 sentences per exchange unless user asks to elaborate; (3) artifact writes use tables and bullets only — no prose paragraphs. Gemini provider deferred.",
-      "owns": [
-        "commands/oracle.md"
-      ],
-      "reads": [
-        "commands/oracle/checklist.md",
-        "commands/oracle/market.md",
-        "commands/oracle/generation.md",
-        "architecture.md#oracle-design"
-      ],
-      "depends_on": ["T-013"],
-      "contracts": [],
-      "test_requirements": {
-        "unit": [
-          "commands/oracle.md contains architecture.md UNRESOLVED check on startup",
-          "commands/oracle.md contains multi-persona persona declaration",
-          "commands/oracle.md does not reference any specific project name",
-          "commands/oracle.md contains ~2% budget announcement instruction",
-          "commands/oracle.md contains ≤3-sentence verbosity rule for spar phase",
-          "commands/oracle.md contains lazy sub-file loading instruction (per-phase, not at startup)"
-        ],
-        "integration": [],
-        "coverage_threshold": 80
-      },
-      "security_constraints": [],
-      "acceptance_criteria": "skill file is generic; UNRESOLVED check on startup present; sub-files lazy-loaded per phase; budget announcement and verbosity rules present",
-      "estimated_lines": 100,
-      "context_section": "architecture.md#oracle-design",
-      "status": "pending"
-    },
+    {"task_id": "T-026", "status": "complete"},
     {
       "task_id": "T-027",
       "title": "Orchestrator skill — Claude provider",
