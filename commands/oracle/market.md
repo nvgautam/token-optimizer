@@ -50,7 +50,7 @@ Branch on the answer and apply the defaults below without prompting the user to 
 **Defaults applied automatically**
 | Dimension | Default |
 |---|---|
-| Compliance | SOC 2 Type II required; HIPAA if health data; PCI-DSS if payment data |
+| Compliance | SOC 2 Type II required; GDPR if any EU customers; HIPAA if health data; PCI-DSS if payment data |
 | Auth | SSO / SAML required; SCIM for user provisioning |
 | Deployment | Cloud or on-premises option; customer may dictate region |
 | Scale | Hundreds of thousands of users; 99.9%+ SLA; change-management window required |
