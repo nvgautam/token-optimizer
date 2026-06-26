@@ -1,0 +1,185 @@
+{
+  "updated": "2026-06-26T04:52:00.029120Z",
+  "groups": [
+    {
+      "group_id": 1,
+      "task_ids": [
+        "T-001"
+      ],
+      "status": "complete",
+      "pr": null,
+      "tokens": 32907
+    },
+    {
+      "group_id": 2,
+      "task_ids": [
+        "T-002"
+      ],
+      "status": "pending",
+      "pr": null,
+      "tokens": null
+    },
+    {
+      "group_id": 3,
+      "task_ids": [
+        "T-005"
+      ],
+      "status": "pending",
+      "pr": null,
+      "tokens": null
+    },
+    {
+      "group_id": 4,
+      "task_ids": [
+        "T-006",
+        "T-007"
+      ],
+      "status": "pending",
+      "pr": null,
+      "tokens": null
+    },
+    {
+      "group_id": 5,
+      "task_ids": [
+        "T-013",
+        "T-014",
+        "T-015",
+        "T-025"
+      ],
+      "status": "pending",
+      "pr": null,
+      "tokens": null
+    },
+    {
+      "group_id": 6,
+      "task_ids": [
+        "T-003"
+      ],
+      "status": "pending",
+      "pr": null,
+      "tokens": null
+    },
+    {
+      "group_id": 7,
+      "task_ids": [
+        "T-004"
+      ],
+      "status": "pending",
+      "pr": null,
+      "tokens": null
+    },
+    {
+      "group_id": 8,
+      "task_ids": [
+        "T-008"
+      ],
+      "status": "pending",
+      "pr": null,
+      "tokens": null
+    },
+    {
+      "group_id": 9,
+      "task_ids": [
+        "T-009",
+        "T-011"
+      ],
+      "status": "pending",
+      "pr": null,
+      "tokens": null
+    },
+    {
+      "group_id": 10,
+      "task_ids": [
+        "T-016"
+      ],
+      "status": "pending",
+      "pr": null,
+      "tokens": null
+    },
+    {
+      "group_id": 11,
+      "task_ids": [
+        "T-010",
+        "T-022",
+        "T-023"
+      ],
+      "status": "pending",
+      "pr": null,
+      "tokens": null
+    },
+    {
+      "group_id": 12,
+      "task_ids": [
+        "T-012",
+        "T-028"
+      ],
+      "status": "pending",
+      "pr": null,
+      "tokens": null
+    },
+    {
+      "group_id": 13,
+      "task_ids": [
+        "T-017"
+      ],
+      "status": "pending",
+      "pr": null,
+      "tokens": null
+    },
+    {
+      "group_id": 14,
+      "task_ids": [
+        "T-018"
+      ],
+      "status": "pending",
+      "pr": null,
+      "tokens": null
+    },
+    {
+      "group_id": 15,
+      "task_ids": [
+        "T-019"
+      ],
+      "status": "pending",
+      "pr": null,
+      "tokens": null
+    },
+    {
+      "group_id": 16,
+      "task_ids": [
+        "T-020",
+        "T-021"
+      ],
+      "status": "pending",
+      "pr": null,
+      "tokens": null
+    },
+    {
+      "group_id": 17,
+      "task_ids": [
+        "T-026"
+      ],
+      "status": "pending",
+      "pr": null,
+      "tokens": null
+    },
+    {
+      "group_id": 18,
+      "task_ids": [
+        "T-024"
+      ],
+      "status": "pending",
+      "pr": null,
+      "tokens": null
+    },
+    {
+      "group_id": 19,
+      "task_ids": [
+        "T-027"
+      ],
+      "status": "pending",
+      "pr": null,
+      "tokens": null
+    }
+  ]
+}
