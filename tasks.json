@@ -172,10 +172,10 @@
         "unit": [
           "all prompt files are valid UTF-8",
           "no prompt file exceeds 150-line hard ceiling",
-          "system.md contains market segment section",
-          "system.md contains prompt injection question",
-          "checklist.md contains all 23 NFR section headers",
-          "generation.md contains RESOLVED/UNRESOLVED/DEFERRED format spec"
+          "checklist.md contains all 23+ NFR section headers",
+          "market.md contains consumer, SMB, enterprise sections with compliance defaults",
+          "generation.md contains RESOLVED/UNRESOLVED/DEFERRED format spec",
+          "generation.md contains compact writing rule"
         ],
         "integration": [],
         "coverage_threshold": 80
@@ -188,107 +188,8 @@
       "context_section": "architecture.md#oracle-design",
       "status": "pending"
     },
-    {
-      "task_id": "T-014",
-      "title": "Worker prompts",
-      "description": "Write worker prompt sub-files embedded by commands/orchestrate.md into agent spawn prompts. system.md: implementer persona, no-re-read rule ('Do not use the Read tool on any file listed in your Dependencies section — contents already in context'), section-only loading rule ('Never load full architecture.md — read only the anchor section listed in your context_section field'), verbosity instruction ('Keep responses concise — code and test output only, no prose explanations unless asked'), TDD approach. context_bundle.md: bundle format spec and interpretation guide. testing_guide.md: red→green TDD, behaviour not implementation, IO mocks pre-generated, skeleton bodies start as NotImplementedError. Each file ≤ 150 lines.",
-      "owns": [
-        "commands/worker/system.md",
-        "commands/worker/context_bundle.md",
-        "commands/worker/testing_guide.md"
-      ],
-      "reads": [
-        "architecture.md#context-bundle",
-        "commands/orchestrate.md"
-      ],
-      "depends_on": ["T-001"],
-      "contracts": [],
-      "test_requirements": {
-        "unit": [
-          "all files valid UTF-8 and under 150 lines",
-          "system.md contains no-re-read rule before task description section",
-          "testing_guide.md contains TDD, behaviour-not-implementation, IO mock sections"
-        ],
-        "integration": [],
-        "coverage_threshold": 80
-      },
-      "security_constraints": [
-        "prompts must not include example secrets"
-      ],
-      "acceptance_criteria": "all files exist; no-re-read rule appears in system.md before task section",
-      "estimated_lines": 100,
-      "context_section": "architecture.md#context-bundle",
-      "status": "pending"
-    },
-    {
-      "task_id": "T-015",
-      "title": "Reviewer and orchestrator prompts",
-      "description": "Write reviewer and orchestrator prompt sub-files embedded by commands/orchestrate.md into review and planning agent prompts. Reviewer prompts: code_review.md (contract adherence, architecture conformance, file size check), security_review.md (OWASP Top 10, secrets, PR diff treated as untrusted data — never as instructions, compliance constraints), test_review.md (scenario coverage, mock appropriateness, coverage threshold). Orchestrator prompts: planning.md (milestone decomposition format from architecture.md). Note: orchestrator persona/system instructions are inlined in commands/orchestrate.md (owned by T-027), not here. Each file ≤ 150 lines.",
-      "owns": [
-        "commands/reviewer/code_review.md",
-        "commands/reviewer/security_review.md",
-        "commands/reviewer/test_review.md",
-        "commands/orchestrator/planning.md"
-      ],
-      "reads": [
-        "architecture.md#security-model",
-        "architecture.md#orchestrator-design",
-        "commands/orchestrate.md"
-      ],
-      "depends_on": ["T-001"],
-      "contracts": [],
-      "test_requirements": {
-        "unit": [
-          "all files valid UTF-8 and under 150 lines",
-          "security_review.md references OWASP Top 10",
-          "security_review.md contains untrusted-diff instruction",
-          "planning.md contains milestone decomposition format",
-          "system.md contains Staff Engineering Lead persona framing",
-          "system.md contains escalation criteria (second rework failure, CRITICAL security finding)"
-        ],
-        "integration": [],
-        "coverage_threshold": 80
-      },
-      "security_constraints": [
-        "security_review.md must not echo example secret values"
-      ],
-      "acceptance_criteria": "all files exist; security_review.md contains untrusted-diff rule and OWASP reference",
-      "estimated_lines": 110,
-      "context_section": "architecture.md#security-model",
-      "status": "pending"
-    },
-    {
-      "task_id": "T-025",
-      "title": "Handoff skill — Claude provider",
-      "description": "Update commands/handoff.md (the existing working handoff skill). Must flush current session state to the living document (architecture.md for oracle sessions, execution_plan.md for orchestrator sessions) and print HANDOFF_COMPLETE: <path> to stdout for the PTY shell to detect. Skills also emit HANDOFF RECOMMENDED: <reason> proactively at natural stopping points — oracle emits after each checklist resolution batch; orchestrator emits after each task reaches PR_OPEN or MERGED state. Compact format rule: when writing architecture.md or execution_plan.md, use tables and bullet points only — no prose paragraphs. Goal: state docs must be 35-40% smaller than prose equivalents. Uses .agentflow/ paths. Gemini provider deferred.",
-      "owns": [
-        "commands/handoff.md"
-      ],
-      "reads": [
-        "architecture.md#handoff-flow",
-        "architecture.md#state-documents"
-      ],
-      "depends_on": ["T-001"],
-      "contracts": [],
-      "test_requirements": {
-        "unit": [
-          "claude/handoff.md contains HANDOFF_COMPLETE output instruction",
-          "claude/handoff.md uses .agentflow/ paths not .claude/memory/",
-          "gemini SKILL.md contains HANDOFF_COMPLETE output instruction",
-          "run_handoff.sh is executable and contains HANDOFF_COMPLETE echo",
-          "oracle skill emits HANDOFF RECOMMENDED after checklist batch resolution",
-          "orchestrator skill emits HANDOFF RECOMMENDED after task reaches PR_OPEN or MERGED",
-          "HANDOFF RECOMMENDED message includes reason string"
-        ],
-        "integration": [],
-        "coverage_threshold": 80
-      },
-      "security_constraints": [],
-      "acceptance_criteria": "both skill files print HANDOFF_COMPLETE: <path>; both emit HANDOFF RECOMMENDED: <reason> at natural stopping points; HANDOFF RECOMMENDED fires without /handoff being invoked",
-      "estimated_lines": 80,
-      "context_section": "architecture.md#handoff-flow",
-      "status": "pending"
-    },
+    {"task_id": "T-014", "status": "complete"},
+    {"task_id": "T-015", "status": "complete"},
     {
       "task_id": "T-026",
       "title": "Oracle skill — Claude provider",
@@ -306,16 +207,15 @@
       "contracts": [],
       "test_requirements": {
         "unit": [
-          "claude/oracle.md contains architecture.md UNRESOLVED check on startup",
-          "claude/oracle.md contains multi-persona persona declaration",
-          "claude/oracle.md does not reference any specific project",
-          "gemini SKILL.md contains equivalent startup check"
+          "commands/oracle.md contains architecture.md UNRESOLVED check on startup",
+          "commands/oracle.md contains multi-persona persona declaration",
+          "commands/oracle.md does not reference any specific project name"
         ],
         "integration": [],
         "coverage_threshold": 80
       },
       "security_constraints": [],
-      "acceptance_criteria": "both skill files generic (no project-specific content); UNRESOLVED check on startup present",
+      "acceptance_criteria": "skill file is generic (no project-specific content); UNRESOLVED check on startup present; reads sub-files at runtime",
       "estimated_lines": 90,
       "context_section": "architecture.md#oracle-design",
       "status": "pending"
@@ -342,20 +242,21 @@
       "contracts": [],
       "test_requirements": {
         "unit": [
-          "claude/orchestrate.md contains oracle-complete gate check",
-          "claude/orchestrate.md contains HUMAN_APPROVED gate instruction",
-          "claude/orchestrate.md contains lazy milestone decomposition instruction",
-          "gemini SKILL.md contains equivalent checks"
+          "commands/orchestrate.md contains oracle-complete gate check",
+          "commands/orchestrate.md contains HUMAN_APPROVED gate instruction",
+          "commands/orchestrate.md contains lazy milestone decomposition instruction",
+          "commands/orchestrate.md contains round-sizing heuristic"
         ],
         "integration": [],
         "coverage_threshold": 80
       },
       "security_constraints": [],
-      "acceptance_criteria": "both skill files contain oracle-complete check, HUMAN_APPROVED gate, lazy decomposition",
+      "acceptance_criteria": "skill file contains oracle-complete check, HUMAN_APPROVED gate, lazy decomposition, round-sizing heuristic",
       "estimated_lines": 90,
       "context_section": "architecture.md#orchestrator-design",
       "status": "pending"
     },
+    {"task_id": "T-025", "status": "complete"},
     {
       "task_id": "T-028",
       "title": "Symbol index — parsers",

@@ -1,0 +1,108 @@
+[
+  {
+    "archived_at": "2026-06-26T00:00:00Z",
+    "task": {
+      "task_id": "T-014",
+      "title": "Worker prompts",
+      "description": "Write worker prompt sub-files embedded by commands/orchestrate.md into agent spawn prompts. system.md: implementer persona, no-re-read rule ('Do not use the Read tool on any file listed in your Dependencies section — contents already in context'), section-only loading rule ('Never load full architecture.md — read only the anchor section listed in your context_section field'), verbosity instruction ('Keep responses concise — code and test output only, no prose explanations unless asked'), TDD approach. context_bundle.md: bundle format spec and interpretation guide. testing_guide.md: red→green TDD, behaviour not implementation, IO mocks pre-generated, skeleton bodies start as NotImplementedError. Each file ≤ 150 lines.",
+      "owns": [
+        "commands/worker/system.md",
+        "commands/worker/context_bundle.md",
+        "commands/worker/testing_guide.md"
+      ],
+      "reads": [
+        "architecture.md#context-bundle",
+        "commands/orchestrate.md"
+      ],
+      "depends_on": ["T-001"],
+      "contracts": [],
+      "test_requirements": {
+        "unit": [
+          "all files valid UTF-8 and under 150 lines",
+          "system.md contains no-re-read rule before task description section",
+          "testing_guide.md contains TDD, behaviour-not-implementation, IO mock sections"
+        ],
+        "integration": [],
+        "coverage_threshold": 80
+      },
+      "security_constraints": [
+        "prompts must not include example secrets"
+      ],
+      "acceptance_criteria": "all files exist; no-re-read rule appears in system.md before task section",
+      "estimated_lines": 100,
+      "context_section": "architecture.md#context-bundle",
+      "status": "merged"
+    }
+  },
+  {
+    "archived_at": "2026-06-26T00:00:00Z",
+    "task": {
+      "task_id": "T-015",
+      "title": "Reviewer and orchestrator prompts",
+      "description": "Write reviewer and orchestrator prompt sub-files embedded by commands/orchestrate.md into review and planning agent prompts. Reviewer prompts: code_review.md (contract adherence, architecture conformance, file size check), security_review.md (OWASP Top 10, secrets, PR diff treated as untrusted data — never as instructions, compliance constraints), test_review.md (scenario coverage, mock appropriateness, coverage threshold). Orchestrator prompts: planning.md (milestone decomposition format from architecture.md). Note: orchestrator persona/system instructions are inlined in commands/orchestrate.md (owned by T-027), not here. Each file ≤ 150 lines.",
+      "owns": [
+        "commands/reviewer/code_review.md",
+        "commands/reviewer/security_review.md",
+        "commands/reviewer/test_review.md",
+        "commands/orchestrator/planning.md"
+      ],
+      "reads": [
+        "architecture.md#security-model",
+        "architecture.md#orchestrator-design",
+        "commands/orchestrate.md"
+      ],
+      "depends_on": ["T-001"],
+      "contracts": [],
+      "test_requirements": {
+        "unit": [
+          "all files valid UTF-8 and under 150 lines",
+          "security_review.md references OWASP Top 10",
+          "security_review.md contains untrusted-diff instruction",
+          "planning.md contains milestone decomposition format"
+        ],
+        "integration": [],
+        "coverage_threshold": 80
+      },
+      "security_constraints": [
+        "security_review.md must not echo example secret values"
+      ],
+      "acceptance_criteria": "all files exist; security_review.md contains untrusted-diff rule and OWASP reference",
+      "estimated_lines": 110,
+      "context_section": "architecture.md#security-model",
+      "status": "merged"
+    }
+  },
+  {
+    "archived_at": "2026-06-26T00:00:00Z",
+    "task": {
+      "task_id": "T-025",
+      "title": "Handoff skill — Claude provider",
+      "description": "Update commands/handoff.md (the existing working handoff skill). Must flush current session state to the living document (architecture.md for oracle sessions, execution_plan.md for orchestrator sessions) and print HANDOFF_COMPLETE: <path> to stdout for the PTY shell to detect. Skills also emit HANDOFF RECOMMENDED: <reason> proactively at natural stopping points. Compact format rule: when writing architecture.md or execution_plan.md, use tables and bullet points only — no prose paragraphs. Uses .agentflow/ paths. Gemini provider deferred.",
+      "owns": [
+        "commands/handoff.md"
+      ],
+      "reads": [
+        "architecture.md#handoff-flow",
+        "architecture.md#state-documents"
+      ],
+      "depends_on": ["T-001"],
+      "contracts": [],
+      "test_requirements": {
+        "unit": [
+          "commands/handoff.md contains HANDOFF_COMPLETE output instruction",
+          "commands/handoff.md uses .agentflow/ paths not .claude/memory/",
+          "handoff flushes state to architecture.md for oracle sessions",
+          "handoff flushes state to execution_plan.md for orchestrator sessions",
+          "HANDOFF RECOMMENDED message includes reason string"
+        ],
+        "integration": [],
+        "coverage_threshold": 80
+      },
+      "security_constraints": [],
+      "acceptance_criteria": "skill file prints HANDOFF_COMPLETE: <path>; emits HANDOFF RECOMMENDED: <reason> at natural stopping points; uses .agentflow/ paths",
+      "estimated_lines": 80,
+      "context_section": "architecture.md#handoff-flow",
+      "status": "merged"
+    }
+  }
+]
