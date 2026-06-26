@@ -47,7 +47,7 @@ Goal: Orchestrate skill generates .idx files inline (pre-spawn) for task reads l
 | Task | Title | Depends on | Status |
 |---|---|---|---|
 | T-031 | Inline .idx generation in orchestrate skill | T-027 | MERGED |
-| T-028a | Symbol index — Python parser | T-001, T-031 | PENDING |
+| T-028a | Symbol index — Python parser | T-001, T-031 | MERGED |
 | T-028b | Symbol index — Markdown parser | T-001, T-028a | PENDING |
 | T-029 | Symbol index — index manager and brownfield scanner | T-001, T-028b | PENDING |
 
@@ -56,7 +56,7 @@ Note: json_parser and yaml_parser dropped — design_status.md resolves .idx for
 | Round | Tasks | Note |
 |---|---|---|
 | A | T-031 | MERGED — inline skill changes; validates approach empirically |
-| B | T-028a | Python parser + IndexEntry type + init scaffolding |
+| B | T-028a | MERGED — Python parser + IndexEntry type + init scaffolding |
 | C | T-028b | Markdown parser — depends on T-028a |
 | D | T-029 | Index manager + brownfield scanner — depends on T-028b |
 

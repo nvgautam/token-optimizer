@@ -200,5 +200,27 @@
       "context_section": "architecture.md#symbol-indexer",
       "status": "merged"
     }
+  },
+  {
+    "archived_at": "2026-06-26T15:45:00Z",
+    "task": {
+      "task_id": "T-028a",
+      "title": "Symbol index — Python parser",
+      "description": "AST-based parser for Python files. Define IndexEntry dataclass in agentflow/indexer/__init__.py: fields name (str), kind (str), start_line (int), end_line (int), signature (str | None). python_parser.py exposes parse(path: Path) → list[IndexEntry]. Extracts: top-level functions (kind='function'), top-level classes (kind='class'), and class methods in ClassName.method format (kind='method'). Include signature string for functions and methods. Skip files with fewer than 50 lines (return []). No external deps beyond stdlib + ast. Unreadable or unparseable files return [] without raising.",
+      "owns": [
+        "agentflow/indexer/__init__.py",
+        "agentflow/indexer/parsers/__init__.py",
+        "agentflow/indexer/parsers/python_parser.py",
+        "tests/indexer/__init__.py",
+        "tests/indexer/test_python_parser.py"
+      ],
+      "reads": ["architecture.md#symbol-indexer"],
+      "depends_on": ["T-001", "T-031"],
+      "contracts": ["agentflow/indexer/__init__.py", "agentflow/indexer/parsers/python_parser.py"],
+      "acceptance_criteria": "parse returns correct IndexEntry list for a fixture Python file with functions, classes, and methods; files < 50 lines skipped; no external deps",
+      "status": "merged",
+      "pr": 12,
+      "result": "17 tests green, 100% coverage"
+    }
   }
 ]

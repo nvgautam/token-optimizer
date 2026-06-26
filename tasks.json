@@ -205,46 +205,7 @@
     },
     {"task_id": "T-025", "status": "complete"},
     {"task_id": "T-031", "status": "complete"},
-    {
-      "task_id": "T-028a",
-      "title": "Symbol index — Python parser",
-      "description": "AST-based parser for Python files. Define IndexEntry dataclass in agentflow/indexer/__init__.py: fields name (str), kind (str), start_line (int), end_line (int), signature (str | None). python_parser.py exposes parse(path: Path) → list[IndexEntry]. Extracts: top-level functions (kind='function'), top-level classes (kind='class'), and class methods in ClassName.method format (kind='method'). Include signature string for functions and methods. Skip files with fewer than 50 lines (return []). No external deps beyond stdlib + ast. Unreadable or unparseable files return [] without raising.",
-      "owns": [
-        "agentflow/indexer/__init__.py",
-        "agentflow/indexer/parsers/__init__.py",
-        "agentflow/indexer/parsers/python_parser.py",
-        "tests/indexer/__init__.py",
-        "tests/indexer/test_python_parser.py"
-      ],
-      "reads": [
-        "architecture.md#symbol-indexer"
-      ],
-      "depends_on": ["T-001", "T-031"],
-      "contracts": [
-        "agentflow/indexer/__init__.py",
-        "agentflow/indexer/parsers/python_parser.py"
-      ],
-      "test_requirements": {
-        "unit": [
-          "parse extracts top-level function names and line ranges",
-          "parse extracts top-level class names and line ranges",
-          "parse extracts class methods in ClassName.method format",
-          "parse extracts function and method signatures",
-          "parse returns empty list for files with fewer than 50 lines",
-          "parse returns empty list for empty file",
-          "parse returns empty list for unreadable file without raising",
-          "parse returns empty list for syntactically invalid Python without raising",
-          "IndexEntry has name, kind, start_line, end_line, signature fields"
-        ],
-        "integration": [],
-        "coverage_threshold": 88
-      },
-      "security_constraints": [],
-      "acceptance_criteria": "parse returns correct IndexEntry list for a fixture Python file with functions, classes, and methods; files < 50 lines skipped; no external deps",
-      "estimated_lines": 120,
-      "context_section": "architecture.md#symbol-indexer",
-      "status": "pending"
-    },
+    {"task_id": "T-028a", "status": "complete"},
     {
       "task_id": "T-028b",
       "title": "Symbol index — Markdown parser",
