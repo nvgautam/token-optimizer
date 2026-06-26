@@ -206,47 +206,78 @@
     {"task_id": "T-025", "status": "complete"},
     {"task_id": "T-031", "status": "complete"},
     {
-      "task_id": "T-028",
-      "title": "Symbol index — parsers",
-      "description": "AST and regex parsers for all indexed file types. python_parser.py: ast-based extraction of function names, class names, method names, signatures, and line ranges. markdown_parser.py: regex extraction of H2/H3 section headers and line ranges. json_parser.py: top-level key extraction with line ranges (files > 30 lines only). yaml_parser.py: top-level and second-level key extraction with line numbers (files > 30 lines only). Each parser exposes parse(path) → list[IndexEntry] where IndexEntry = {name, kind, start_line, end_line, signature?}. No external deps beyond stdlib + ast. Begins only after T-031 empirical validation of inline indexing approach.",
+      "task_id": "T-028a",
+      "title": "Symbol index — Python parser",
+      "description": "AST-based parser for Python files. Define IndexEntry dataclass in agentflow/indexer/__init__.py: fields name (str), kind (str), start_line (int), end_line (int), signature (str | None). python_parser.py exposes parse(path: Path) → list[IndexEntry]. Extracts: top-level functions (kind='function'), top-level classes (kind='class'), and class methods in ClassName.method format (kind='method'). Include signature string for functions and methods. Skip files with fewer than 50 lines (return []). No external deps beyond stdlib + ast. Unreadable or unparseable files return [] without raising.",
       "owns": [
         "agentflow/indexer/__init__.py",
         "agentflow/indexer/parsers/__init__.py",
         "agentflow/indexer/parsers/python_parser.py",
-        "agentflow/indexer/parsers/markdown_parser.py",
-        "agentflow/indexer/parsers/json_parser.py",
-        "agentflow/indexer/parsers/yaml_parser.py",
         "tests/indexer/__init__.py",
-        "tests/indexer/test_parsers.py"
+        "tests/indexer/test_python_parser.py"
       ],
       "reads": [
         "architecture.md#symbol-indexer"
       ],
       "depends_on": ["T-001", "T-031"],
       "contracts": [
-        "agentflow/indexer/parsers/python_parser.py",
-        "agentflow/indexer/parsers/markdown_parser.py",
-        "agentflow/indexer/parsers/json_parser.py",
-        "agentflow/indexer/parsers/yaml_parser.py"
+        "agentflow/indexer/__init__.py",
+        "agentflow/indexer/parsers/python_parser.py"
       ],
       "test_requirements": {
         "unit": [
-          "python_parser extracts function names and line ranges",
-          "python_parser extracts class names and method names",
-          "python_parser extracts function signatures",
-          "markdown_parser extracts H2 and H3 headers with line ranges",
-          "json_parser returns empty list for files <= 30 lines",
-          "json_parser extracts top-level keys with line ranges for larger files",
-          "yaml_parser extracts top-level and second-level keys",
-          "all parsers return empty list for empty files",
-          "all parsers return empty list for unreadable files without raising"
+          "parse extracts top-level function names and line ranges",
+          "parse extracts top-level class names and line ranges",
+          "parse extracts class methods in ClassName.method format",
+          "parse extracts function and method signatures",
+          "parse returns empty list for files with fewer than 50 lines",
+          "parse returns empty list for empty file",
+          "parse returns empty list for unreadable file without raising",
+          "parse returns empty list for syntactically invalid Python without raising",
+          "IndexEntry has name, kind, start_line, end_line, signature fields"
         ],
         "integration": [],
         "coverage_threshold": 88
       },
       "security_constraints": [],
-      "acceptance_criteria": "all parsers return correct IndexEntry lists for fixture files; no external deps",
-      "estimated_lines": 220,
+      "acceptance_criteria": "parse returns correct IndexEntry list for a fixture Python file with functions, classes, and methods; files < 50 lines skipped; no external deps",
+      "estimated_lines": 120,
+      "context_section": "architecture.md#symbol-indexer",
+      "status": "pending"
+    },
+    {
+      "task_id": "T-028b",
+      "title": "Symbol index — Markdown parser",
+      "description": "Regex-based parser for Markdown files. markdown_parser.py exposes parse(path: Path) → list[IndexEntry]. Extracts H2 (##) and H3 (###) section headers with line ranges. Symbol name field contains the full header text including the ## or ### prefix (e.g. '## Symbol Indexer'). kind='section'. end_line is the line before the next header at same or higher level, or EOF. Skip files with fewer than 50 lines (return []). No external deps beyond stdlib. Unreadable files return [] without raising.",
+      "owns": [
+        "agentflow/indexer/parsers/markdown_parser.py",
+        "tests/indexer/test_markdown_parser.py"
+      ],
+      "reads": [
+        "agentflow/indexer/__init__.py",
+        "architecture.md#symbol-indexer"
+      ],
+      "depends_on": ["T-001", "T-028a"],
+      "contracts": [
+        "agentflow/indexer/parsers/markdown_parser.py"
+      ],
+      "test_requirements": {
+        "unit": [
+          "parse extracts H2 headers with correct name and start_line",
+          "parse extracts H3 headers with correct name and start_line",
+          "parse sets end_line to line before next header of same or higher level",
+          "parse sets end_line to EOF for last section",
+          "parse returns empty list for files with fewer than 50 lines",
+          "parse returns empty list for empty file",
+          "parse returns empty list for unreadable file without raising",
+          "kind field is 'section' for all entries"
+        ],
+        "integration": [],
+        "coverage_threshold": 88
+      },
+      "security_constraints": [],
+      "acceptance_criteria": "parse returns correct IndexEntry list for a fixture Markdown file; H2 and H3 extracted; line ranges span to next header; files < 50 lines skipped; no external deps",
+      "estimated_lines": 80,
       "context_section": "architecture.md#symbol-indexer",
       "status": "pending"
     },
@@ -262,12 +293,11 @@
       ],
       "reads": [
         "architecture.md#symbol-indexer",
+        "agentflow/indexer/__init__.py",
         "agentflow/indexer/parsers/python_parser.py",
-        "agentflow/indexer/parsers/markdown_parser.py",
-        "agentflow/indexer/parsers/json_parser.py",
-        "agentflow/indexer/parsers/yaml_parser.py"
+        "agentflow/indexer/parsers/markdown_parser.py"
       ],
-      "depends_on": ["T-001", "T-028"],
+      "depends_on": ["T-001", "T-028b"],
       "contracts": [
         "agentflow/indexer/index_manager.py",
         "agentflow/indexer/brownfield_scanner.py"
