@@ -1,92 +1,129 @@
-Record a session handoff and finalize the token ledger.
+# /handoff — Session State Flush
 
-Accepts an optional argument: `debug` — if present, also print a token summary to the user.
+Flush current session state to the living document, emit PTY signal, and record telemetry.
 
-## Step 1 — Gather session data
+## Proactive handoff signals
 
-Run these in parallel:
+Skills emit `HANDOFF RECOMMENDED: <reason>` proactively at natural stopping points — before `/handoff` is invoked:
+- Oracle: emit `HANDOFF RECOMMENDED: [section] checklist items resolved` after each batch (functional/NFR/integrations/security/quality gates) resolves
+- Orchestrator: emit `HANDOFF RECOMMENDED: [task_id] PR open — good stopping point before review` when a task reaches PR_OPEN state
+- Orchestrator: emit `HANDOFF RECOMMENDED: [task_id] merged — good stopping point before next round` after each merge
+
+Format: `HANDOFF RECOMMENDED: <reason>` — PTY shell (and user in manual mode) uses this to know when context is at a natural boundary.
+
+## On invocation
+
+### Step 1 — Detect session type
+
+Check in order:
+- Read `architecture.md` — if it contains `Status: UNRESOLVED` → **oracle session**
+- Read `execution_plan.md` — if it contains `Status: IN_PROGRESS` → **orchestrator session**
+- Otherwise → **unknown session type**
+
+### Step 2 — Flush state to living document
+
+**Compact format rule:** tables and bullet points only — no prose paragraphs. Target: 35-40% smaller than prose equivalent.
+
+| Session type | Action |
+|---|---|
+| oracle | Update `architecture.md` — write all design items resolved this session using RESOLVED/UNRESOLVED/DEFERRED format |
+| orchestrator | Update `execution_plan.md` — mark tasks completed/merged/in-progress this session |
+| unknown | Skip |
+
+**architecture.md item format:**
+```
+## <Design Area>
+Status: RESOLVED | UNRESOLVED | DEFERRED
+Decision: <one-liner>       (RESOLVED only)
+Open: <questions>           (UNRESOLVED only)
+Reason: <scope note + date> (DEFERRED only)
+```
+
+**execution_plan.md task row format:**
+```
+| T-NNN | Title | Depends on | MERGED | PENDING | IN_PROGRESS |
+```
+
+### Step 3 — Gather session data
+
+Run in parallel:
 - `git log --oneline -20`
 - `git status --short`
 - `git diff --stat main`
-- `grep -r "ESCALATE:" tasks/ .agentflow/ 2>/dev/null`
-- Read `.agentflow/state.json` if it exists
-- Read `tasks.json` if it exists
-- Read `.claude/memory/MEMORY.md` if it exists
-- Read `.agentflow/telemetry.jsonl` if it exists
+- `grep -r "ESCALATE:" .agentflow/ 2>/dev/null`
+- Read `.agentflow/state.json` (if exists)
+- Read `tasks.json` (if exists)
 
-Use the `git status` and `git diff --stat` output for the "Codebase state" paragraph in Step 4 — do not infer it from conversation history. Use `ESCALATE:` hits for the "Open items" section.
+Use `git status` and `git diff --stat` for codebase state — do not infer from conversation history.
 
-## Step 2 — Verify and prune worktree branches
+### Step 4 — Verify and prune worktrees
 
-Run `git worktree list` to find any agent worktrees still present.
+Run `git worktree list`. For each branch other than main:
+- `git diff main...<branch> --name-only` → check for unmerged files
+- Unmerged: STOP — report which branch has unmerged work before proceeding
+- Fully merged: `git worktree remove --force <path>` then `git branch -d <branch>`
 
-For each worktree branch other than main:
-- Run `git diff main...<branch> --name-only` to check for unmerged files
-- If any files are unmerged: STOP and tell the user which branch has unmerged work before proceeding
-- If fully merged: run `git worktree remove --force <path>` then `git branch -d <branch>`
+Report branches cleaned or confirm none present.
 
-Report how many branches were cleaned up, or confirm none were present.
+### Step 5 — Aggregate token ledger
 
-## Step 3 — Aggregate token ledger
-
-Scan the current conversation for agent result summaries containing `TOKENS: input=N output=N`. Collect every agent's input and output token counts.
-
-Sum them:
+Scan conversation for `TOKENS: input=N output=N` patterns. Sum:
 - `agent_tokens_in` = sum of all agent input tokens
 - `agent_tokens_out` = sum of all agent output tokens
+- `agents` = count of distinct agent summaries found
 
-Read the most recent `session_complete` entry from `telemetry.jsonl` (if any) to avoid double-counting agents already recorded there.
+Read most recent `session_complete` entry from `.agentflow/telemetry.jsonl` to avoid double-counting.
 
-Append a `handoff` event to `.agentflow/telemetry.jsonl`:
+Append to `.agentflow/telemetry.jsonl`:
 ```json
-{"event": "handoff", "timestamp": "<ISO8601>", "agent_tokens_in": N, "agent_tokens_out": N, "agents": N}
+{"event": "handoff", "timestamp": "<ISO8601>", "session_type": "oracle|orchestrator|unknown", "agent_tokens_in": N, "agent_tokens_out": N, "agents": N}
 ```
 
-## Step 4 — Write handoff memory
+### Step 6 — Write handoff state
 
-Create `.claude/memory/` in the project root if it doesn't exist.
+Create `.agentflow/` if missing. Write `.agentflow/handoff_<YYYY-MM-DD>.md`:
 
-Write `.claude/memory/handoff_<YYYY-MM-DD>.md` using today's date:
-
-```
+```markdown
 ---
 name: handoff-<YYYY-MM-DD>
-description: Session handoff — <one-line summary of what was accomplished>
-metadata:
-  type: project
+description: <one-line summary of what was accomplished>
+session_type: oracle|orchestrator|unknown
 ---
 
 ## Completed this session
-<bullet list of concrete deliverables>
+- <bullet list of concrete deliverables>
 
 ## Key decisions
-<non-obvious choices, trade-offs, deviations from plan>
+- <non-obvious choices, trade-offs, deviations from plan>
 
 ## Open items / next steps
-<what's unfinished, what comes next, known issues>
+- <what's unfinished, what comes next, known issues>
 
-## Codebase state
-<one-paragraph snapshot of what exists, what works, what doesn't yet>
+## State document updated
+<path to architecture.md or execution_plan.md flushed, or "none">
 ```
 
-Add a pointer to `.claude/memory/MEMORY.md` (create if missing):
-`- [Handoff <date>](handoff_<YYYY-MM-DD>.md) — <one-line hook>`
+### Step 7 — Run ledger script
 
-## Step 5 — Record session in agentflow ledger
-
-Run silently to write this session into the project-local ledger so `agentflow.py report` can read it:
-
+Run silently (suppress output):
 ```bash
 python /Users/gautam/code/token-optimizer/agentflow.py handoff --ledger <cwd>/agentflow_ledger.json
 ```
 
-Where `<cwd>` is the absolute path of the current project root (the directory containing `CLAUDE.md`). This auto-reads the Claude session JSONL from `~/.claude/projects/` and writes a ledger entry with real vs shadow token counts.
+### Step 8 — Print HANDOFF_COMPLETE
 
-## Step 6 — Report to user
+This MUST be the last output — PTY shell scans stdout for this signal:
+```
+HANDOFF_COMPLETE: .agentflow/handoff_<YYYY-MM-DD>.md
+```
+
+### Step 9 — Report to user
 
 Always report:
-- Path of the handoff file written
-- The "Open items / next steps" section
+- Path of handoff file written
+- State document updated (path)
+- Open items / next steps
 
-If the argument is `debug`, also print:
-- Token breakdown: per-agent input/output, totals, and the aggregated ledger entry that was written
+If the argument is `debug`, also report:
+- Per-agent token breakdown (input/output) and totals
+- The aggregated ledger entry written
