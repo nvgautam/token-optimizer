@@ -39,8 +39,17 @@ Acceptance: `/oracle`, `/orchestrate`, `/handoff` skills invoke correctly in a n
 
 ---
 
-## Milestone 3: Config + PTY Shell
+## Milestone 3: Symbol Indexer
 Status: PENDING — tasks decomposed when Milestone 2 completes
+Architecture: architecture.md#symbol-indexer
+Goal: Orchestrate skill generates .idx files inline (pre-spawn) for task reads lists; workers use targeted reads to validate token savings empirically. Python parser modules follow after validation.
+
+Known scope: T-031 (inline indexing in orchestrate.md + worker system.md reads instruction), then T-028 (parsers), T-029 (index manager) after empirical validation
+
+---
+
+## Milestone 4: Config + PTY Shell
+Status: PENDING — tasks decomposed when Milestone 3 completes
 Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 Goal: PTY overlay shell wraps `claude`/`gemini`, counts tokens locally, injects `/handoff` at threshold, restarts session.
 
@@ -53,22 +62,9 @@ Known scope: T-002 (config), T-006 (PTY wrapper), T-007 (tokenizer), T-008 (sess
 
 ---
 
-## Milestone 4: Symbol Indexer
-Status: PENDING — tasks decomposed when Milestone 3 completes
-Architecture: architecture.md#symbol-indexer
-Goal: Standalone CLI tool indexes project files; targeted symbol lookups return line ranges instead of full files.
-
-Known scope: T-028 (parsers), T-029 (index manager + brownfield scanner)
-
-| Round | Tasks | Note |
-|---|---|---|
-| A | T-028 | Parsers first |
-| B | T-029 | After Round A — depends on T-028 |
-
----
-
 ## Milestone 5: Context Builder
 Status: PENDING — tasks decomposed when Milestone 4 completes
+
 Architecture: architecture.md#context-bundle
 Goal: `context_builder.py` assembles minimal per-task bundle using symbol index; orchestrate skill writes `context_bundle.md` to each worktree.
 

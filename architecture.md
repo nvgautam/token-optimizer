@@ -176,42 +176,13 @@ The `/handoff` skill flushes current resolution state to `design_status.md` befo
 
 ### execution_plan.md (oracle-created, orchestrator-extended)
 
-Created by the oracle at sparring completion. Contains full milestone structure with task assignments for Milestone 1 and stubs for subsequent milestones.
-
-```markdown
-## Milestone 1: Foundation
-Status: COMPLETE
-Architecture: architecture.md#module-boundaries
-Tasks: T-001 (MERGED)
-
-## Milestone 2: Skill Files
-Status: IN_PROGRESS
-Architecture: architecture.md#oracle-design, architecture.md#orchestrator-design
-Tasks: T-013 (PENDING), T-014 (PENDING), T-015 (PENDING),
-       T-025 (PENDING), T-026 (PENDING), T-027 (PENDING)
-
-## Milestone 3: Config + PTY Shell
-Status: PENDING — tasks decomposed when Milestone 2 completes
-Architecture: architecture.md#pty-shell-design, architecture.md#config-schema
-
-## Milestone 4: Symbol Indexer
-Status: PENDING — tasks decomposed when Milestone 3 completes
-Architecture: architecture.md#symbol-indexer
-
-## Milestone 5: Context Builder
-Status: PENDING — tasks decomposed when Milestone 4 completes
-Architecture: architecture.md#context-bundle
-
-## Deferred
-- Codex provider: v2
-- Brownfield file refactoring: v2
-- Headless automation layer: v2
-- Tier/licensing: TBD
-```
+- Oracle creates at sparring completion: milestone structure + full M1 task definitions; stubs for later milestones
+- Orchestrator extends lazily: fills task definitions per milestone when prior milestone completes
+- Source of truth for milestone status and task assignments — see `execution_plan.md`
 
 Orchestrator startup:
-1. Read `execution_plan.md` (oracle-created) — any milestones not `COMPLETE`? → resume from first incomplete milestone
-2. If current milestone's tasks are stub-only → decompose now using the milestone's architecture anchor, write full tasks to `tasks.json`
+1. Read `execution_plan.md` — find first incomplete milestone
+2. Stub-only tasks in current milestone → decompose using milestone's architecture anchor, write to `tasks.json`
 3. Read `tasks.json` — pick up in-flight tasks, spawn pending ones
 4. All milestones `COMPLETE`? → project done
 
@@ -315,34 +286,22 @@ index file:    ~/.agentflow/cache/<sha256-of-project-root>/index/agentflow/tools
 
 Index files are never in the project tree, never committed, never visible to users. Cache miss → regenerate on demand (deterministic from file contents).
 
-### File types indexed
+### .idx format
 
-| Extension | Indexed by | Condition |
+Plaintext, one symbol per line: `name:start-end`
+
+| Extension | Symbols indexed | Condition |
 |---|---|---|
-| `.py` | function/class names, signatures, line ranges | always |
-| `.md` | H2/H3 section headers, line ranges | always |
-| `.json` | top-level keys + line ranges | file > 30 lines |
-| `.yaml` | top-level + second-level keys, line numbers | file > 30 lines |
-| `.sh` | skipped | — |
+| `.py` | functions, classes, class methods (`ClassName.method:start-end`) | file ≥ 50 lines |
+| `.md` | H2/H3 headers (`## Header:start-end`) | file ≥ 50 lines |
+| all others | skipped | — |
 
-Parsers: `ast` (Python), regex (Markdown, YAML), `json.loads` (JSON). No external deps.
+Worker lookup: `grep "^symbol_name:" file.py.idx` → `symbol_name:83-100` → `Read(offset=83, limit=18)`.
 
-### write_file hook
+### Generation
 
-Workers call `write_file(path, contents)`. The tool:
-1. Writes the file to disk
-2. Calls `index_manager.update(path, contents)` silently
-3. Returns success
-
-Workers are unaware indexing exists. The `.idx` update is a side effect, always in sync at commit time.
-
-### Ownership rule
-
-A task that owns `agentflow/tools/git.py` implicitly owns its index file. No other task may write either. The validator enforces this pair as a unit.
-
-### Brownfield scan
-
-On first load of an existing project, `brownfield_scanner.py` walks the project tree, indexes all files meeting the size threshold, and populates the cache. No refactoring — index only. Workers on existing files then get targeted reads immediately.
+- **v1 (skill-based):** Orchestrate skill generates `.idx` files during pre-spawn using `ast` (Python) and `grep` (Markdown). Workers receive targeted read instructions in spawn prompt.
+- **v2 (module-based):** `indexer/` Python modules (`python_parser.py`, `index_manager.py`) regenerate on write_file side-effect; PTY shell runs brownfield scan on session start.
 
 ---
 
@@ -406,7 +365,7 @@ Nine strategies, applied at different layers. Savings are modelled estimates —
 
 **Model:** If a worker needs 3 functions from a 250-line file, full-file read = 250 lines ≈ 1.25K tokens. Index lookup = ~30 lines × 3 = 90 lines ≈ 450 tokens. **~65% reduction per targeted read.** Multiplied across all reads in a worker session, this is the highest-leverage strategy at scale.
 
-**v1 status:** v1. `indexer/` module ships in v1 as a standalone CLI tool. PTY shell runs it on session start. Skill prompts instruct Claude to read `.idx` files before full files — targeted reads without a headless runner.
+**v1 status:** v1. Orchestrate skill generates `.idx` files inline during pre-spawn. Workers read `.idx` and do targeted reads. Python indexer modules (T-028, T-029) follow after empirical validation.
 
 ---
 

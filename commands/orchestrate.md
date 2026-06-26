@@ -59,6 +59,7 @@ Defer tasks beyond `max_tasks` to a sub-round after the next state save.
 - If no GitHub remote: `gh repo create --source=. --remote=origin --push`
 - Write a stub file for every `owns` path across all tasks (interface stubs with `raise NotImplementedError`)
 - If `.gitignore` absent: generate an appropriate one for the project's tech stack and write it
+- Generate `.idx` for each file in the round's `reads` lists with ≥ 50 lines: write to `~/.agentflow/cache/<sha256(cwd)>/index/<path>.idx`; one symbol per line as `name:start-end`; Python: ast functions, classes, class methods (`ClassName.method:start-end`); Markdown: H2/H3 headers (`## Header:start-end`); skip if `.idx` newer than source
 
 **Build each agent prompt** — read and embed in order:
 1. `commands/worker/system.md` — persona and no-re-read rule
