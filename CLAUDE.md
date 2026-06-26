@@ -9,16 +9,15 @@ Provider-agnostic multi-agent project management: skills for Claude and Gemini +
 
 ## Structure
 ```
-agentflow/shell/        → PTY overlay shell — token tracking, threshold, session restart (zero LLM calls)
-agentflow/skills/       → Provider skill files — Claude (.md), Gemini (SKILL.md + scripts)
-agentflow/oracle/       → Design sparring — market-aware multi-persona checklist, architecture.md + CLAUDE.md
-agentflow/orchestrator/ → Execution planning — execution_plan.md, tasks.json, milestone state machine
-agentflow/worker/       → Headless agent runner, context builder, write_file tool with index hook
-agentflow/indexer/      → Symbol index — ~/.agentflow/cache/<project-hash>/index/ — never in project tree
-agentflow/reviewer/     → Code and security review agents
-agentflow/tools/        → Git worktrees, GitHub API, test runner, file validator
-agentflow/telemetry/    → Token tracking, ledger, structured logging
-agentflow/config/       → Layered config: env → project → user → defaults (Pydantic v2)
+agentflow/shell/                → PTY overlay shell — token counting, threshold, handoff inject, session restart (zero LLM calls)
+agentflow/skills/               → Provider skill files — Claude (.md), Gemini (SKILL.md + scripts)
+agentflow/oracle/prompts/       → Oracle prompt files (system, market, checklist, generation)
+agentflow/worker/prompts/       → Worker prompt files (system, context_bundle, testing_guide)
+agentflow/worker/context_builder.py → Assembles minimal context bundle per task; writes context_bundle.md to disk
+agentflow/reviewer/prompts/     → Reviewer prompt files (code_review, security_review, test_review)
+agentflow/orchestrator/prompts/ → Orchestrator prompt files (system, planning)
+agentflow/config/               → Layered config: threshold settings, model config (Pydantic v2)
+agentflow/indexer/              → Symbol index — ~/.agentflow/cache/<project-hash>/index/ (standalone CLI tool)
 ```
 
 ## State documents (living — updated continuously, not written once)
@@ -30,9 +29,8 @@ tasks.json           → Task state: individual task lifecycle PENDING → MERGE
 
 ## Integrations
 ```
-GitHub API      → tools/github.py          credentials: GITHUB_TOKEN env var — never logged
-Anthropic API   → worker/agent_runner.py   credentials: ANTHROPIC_API_KEY env var — never logged
-Gemini API      → worker/agent_runner.py   credentials: GEMINI_API_KEY env var — never logged
+PTY shell: none — stdlib-only, no direct API calls
+Skills execute via Claude Code / Gemini CLI
 ```
 
 ## Constraints
@@ -51,7 +49,7 @@ Gemini API      → worker/agent_runner.py   credentials: GEMINI_API_KEY env var
 - Naming/branding: deferred
 
 ## Tech stack
-Python 3.11+, Pydantic v2, httpx, tiktoken, watchdog
+Python 3.11+, Pydantic v2, tiktoken
 PTY shell deps: stdlib only (pty, subprocess, signal, time, re, pathlib, hashlib)
 
 ## Deployment

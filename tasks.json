@@ -2,52 +2,13 @@
   "project": "agentflow",
   "version": "2.0.0",
   "repo": ".",
-  "description": "Provider-agnostic multi-agent project management: skills + PTY overlay shell",
+  "description": "Provider-agnostic multi-agent project management: skills for Claude and Gemini + PTY overlay shell",
   "tasks": [
-    {
-      "task_id": "T-001",
-      "title": "Package scaffold",
-      "description": "pyproject.toml with entry points, agentflow/__init__.py, agentflow/cli.py with full argparse structure (subcommands delegate to modules via lazy imports \u2014 NotImplementedError until modules built), and empty __init__.py for every subpackage. CLI entry point: agentflow \u2192 agentflow.cli:main.",
-      "owns": [
-        "pyproject.toml",
-        "agentflow/__init__.py",
-        "agentflow/cli.py",
-        "agentflow/shell/__init__.py",
-        "agentflow/skills/__init__.py",
-        "agentflow/oracle/__init__.py",
-        "agentflow/orchestrator/__init__.py",
-        "agentflow/worker/__init__.py",
-        "agentflow/reviewer/__init__.py",
-        "agentflow/indexer/__init__.py",
-        "agentflow/tools/__init__.py",
-        "agentflow/telemetry/__init__.py",
-        "agentflow/config/__init__.py",
-        "tests/__init__.py"
-      ],
-      "reads": [
-        "architecture.md"
-      ],
-      "depends_on": [],
-      "contracts": [],
-      "test_requirements": {
-        "unit": [
-          "package is importable",
-          "all subpackages importable",
-          "agentflow --help prints usage"
-        ],
-        "integration": [],
-        "coverage_threshold": 80
-      },
-      "security_constraints": [],
-      "acceptance_criteria": "pip install -e . succeeds and agentflow --help prints all subcommands",
-      "estimated_lines": 120,
-      "context_section": "architecture.md#module-boundaries",
-      "status": "pending"
-    },
+    {"task_id": "T-001", "status": "complete"},
     {
       "task_id": "T-002",
       "title": "Config system",
-      "description": "Pydantic v2 schema for all config fields (models, shell, testing, token_budget, file_limits, parallelism). Layered loader resolving env vars \u2192 .agentflow/config.yaml \u2192 ~/.agentflow/config.yaml \u2192 defaults.yaml. Expose load_config(cwd) \u2192 typed Config object. Ship defaults.yaml per architecture.md#config-schema.",
+      "description": "Pydantic v2 schema for all config fields (models, shell, testing, token_budget, file_limits, parallelism). Layered loader resolving env vars → .agentflow/config.yaml → ~/.agentflow/config.yaml → defaults.yaml. Expose load_config(cwd) → typed Config object. Ship defaults.yaml per architecture.md#config-schema. Shell config must include per-session-type thresholds: shell.oracle_threshold_tokens (default 60000) and shell.orchestrator_threshold_tokens (default 30000) in addition to the global threshold_tokens.",
       "owns": [
         "agentflow/config/loader.py",
         "agentflow/config/schema.py",
@@ -58,9 +19,7 @@
       "reads": [
         "architecture.md#config-schema"
       ],
-      "depends_on": [
-        "T-001"
-      ],
+      "depends_on": ["T-001"],
       "contracts": [
         "agentflow/config/loader.py",
         "agentflow/config/schema.py"
@@ -72,7 +31,10 @@
           "user config overrides defaults",
           "invalid config raises ValidationError with field name",
           "missing config files fall through to defaults cleanly",
-          "load_config returns typed Config with correct precedence"
+          "load_config returns typed Config with correct precedence",
+          "oracle_threshold_tokens defaults to 60000",
+          "orchestrator_threshold_tokens defaults to 30000",
+          "per-session thresholds can be overridden independently"
         ],
         "integration": [],
         "coverage_threshold": 90
@@ -86,133 +48,9 @@
       "status": "pending"
     },
     {
-      "task_id": "T-003",
-      "title": "Telemetry \u2014 logger, token tracker, ledger",
-      "description": "Structured JSON logger emitting JSONL to .agentflow/telemetry.jsonl per architecture.md#telemetry-schema. Token tracker: track_span(task_id, span, tokens_in, tokens_out) \u2192 appends to ledger; session_total(task_id); project_total(); shadow model accumulation; BudgetExceeded signal (not raise) at per_worker threshold; warning at 80%. Ledger r/w to .agentflow/ledger.json.",
-      "owns": [
-        "agentflow/telemetry/logger.py",
-        "agentflow/telemetry/token_tracker.py",
-        "agentflow/telemetry/ledger.py",
-        "tests/telemetry/test_logger.py",
-        "tests/telemetry/test_token_tracker.py",
-        "tests/telemetry/__init__.py"
-      ],
-      "reads": [
-        "architecture.md#telemetry-schema",
-        "agentflow/config/schema.py"
-      ],
-      "depends_on": [
-        "T-001",
-        "T-002"
-      ],
-      "contracts": [
-        "agentflow/telemetry/logger.py",
-        "agentflow/telemetry/token_tracker.py",
-        "agentflow/telemetry/ledger.py"
-      ],
-      "test_requirements": {
-        "unit": [
-          "emit_metric writes valid JSON line to telemetry.jsonl",
-          "trace_id propagates across nested calls",
-          "track_span appends record to ledger file",
-          "warning emitted at 80% of per_worker budget",
-          "BudgetExceeded returned at 100% not raised",
-          "shadow_total accumulates correctly across task restarts",
-          "telemetry must not contain prompt text \u2014 assert on output content"
-        ],
-        "integration": [],
-        "coverage_threshold": 90
-      },
-      "security_constraints": [
-        "telemetry must not capture prompt content \u2014 token counts only",
-        "ledger must not contain prompt text or API keys"
-      ],
-      "acceptance_criteria": "BudgetExceeded signal returned at threshold; shadow ratio calculable; no prompt content in JSONL",
-      "estimated_lines": 200,
-      "context_section": "architecture.md#telemetry-schema",
-      "status": "pending"
-    },
-    {
-      "task_id": "T-004",
-      "title": "Symbol indexer \u2014 index manager",
-      "description": "Cache path resolution: ~/.agentflow/cache/<sha256-of-project-root>/index/<mirrored-path>.idx. Expose get_index(project_root, file_path) \u2192 parsed index dict (cache hit) or None (miss). Expose update_index(project_root, file_path, contents) \u2192 writes .idx file by dispatching to correct parser. Cache miss on get \u2192 regenerate from disk if source file exists. Index files are JSON.",
-      "owns": [
-        "agentflow/indexer/index_manager.py",
-        "tests/indexer/test_index_manager.py",
-        "tests/indexer/__init__.py"
-      ],
-      "reads": [
-        "architecture.md#symbol-indexer",
-        "agentflow/config/schema.py"
-      ],
-      "depends_on": [
-        "T-001",
-        "T-002"
-      ],
-      "contracts": [
-        "agentflow/indexer/index_manager.py"
-      ],
-      "test_requirements": {
-        "unit": [
-          "get_index returns None on cache miss",
-          "update_index writes .idx to correct cache path",
-          "cache path is deterministic given same project root",
-          "get_index returns parsed dict on cache hit",
-          "index file absent but source exists triggers regeneration"
-        ],
-        "integration": [],
-        "coverage_threshold": 88
-      },
-      "security_constraints": [],
-      "acceptance_criteria": "index path deterministic; cache miss triggers regen; index files never in project tree",
-      "estimated_lines": 160,
-      "context_section": "architecture.md#symbol-indexer",
-      "status": "pending"
-    },
-    {
-      "task_id": "T-005",
-      "title": "Symbol indexer \u2014 parsers",
-      "description": "Four parsers returning {symbol_name: {type, signature, start_line, end_line, summary}} dicts. python_parser: ast.parse \u2192 functions and classes with signatures and docstring first line. markdown_parser: regex H2/H3 headers \u2192 section name + line range. json_parser: json.loads \u2192 top-level keys + line numbers (skip files \u2264 30 lines). yaml_parser: regex top-level and second-level keys (skip files \u2264 30 lines). All stdlib, no external deps.",
-      "owns": [
-        "agentflow/indexer/parsers/__init__.py",
-        "agentflow/indexer/parsers/python_parser.py",
-        "agentflow/indexer/parsers/markdown_parser.py",
-        "agentflow/indexer/parsers/json_parser.py",
-        "agentflow/indexer/parsers/yaml_parser.py",
-        "tests/indexer/test_parsers.py"
-      ],
-      "reads": [
-        "architecture.md#symbol-indexer"
-      ],
-      "depends_on": [
-        "T-001"
-      ],
-      "contracts": [
-        "agentflow/indexer/parsers/python_parser.py",
-        "agentflow/indexer/parsers/markdown_parser.py"
-      ],
-      "test_requirements": {
-        "unit": [
-          "python_parser extracts function name, signature, and line range",
-          "python_parser extracts class name and methods",
-          "markdown_parser extracts H2 and H3 headers with line ranges",
-          "json_parser returns empty dict for files \u2264 30 lines",
-          "yaml_parser extracts top-level and second-level keys",
-          "unknown extension returns empty dict without error"
-        ],
-        "integration": [],
-        "coverage_threshold": 88
-      },
-      "security_constraints": [],
-      "acceptance_criteria": "all parsers return correct symbol dicts; no external deps; files \u2264 30 lines skipped",
-      "estimated_lines": 200,
-      "context_section": "architecture.md#symbol-indexer",
-      "status": "pending"
-    },
-    {
       "task_id": "T-006",
       "title": "PTY wrapper",
-      "description": "Spawn an AI CLI command (e.g. 'claude', 'gemini') inside a PTY using the pty module. Transparently relay I/O between user terminal and child process. Expose read_output(timeout) \u2192 bytes, write_input(text) \u2192 None. Detect child process exit and surface ExitCode. All I/O callbacks registered at construction time for interception. stdlib only.",
+      "description": "Spawn an AI CLI command (e.g. 'claude', 'gemini') inside a PTY using the pty module. Transparently relay I/O between user terminal and child process. Expose read_output(timeout) → bytes, write_input(text) → None. Detect child process exit and surface ExitCode. All I/O callbacks registered at construction time for interception. stdlib only.",
       "owns": [
         "agentflow/shell/pty_wrapper.py",
         "tests/shell/test_pty_wrapper.py",
@@ -221,9 +59,7 @@
       "reads": [
         "architecture.md#pty-shell-design"
       ],
-      "depends_on": [
-        "T-001"
-      ],
+      "depends_on": ["T-001"],
       "contracts": [
         "agentflow/shell/pty_wrapper.py"
       ],
@@ -248,7 +84,7 @@
     {
       "task_id": "T-007",
       "title": "Local tokenizer",
-      "description": "Per-provider token counting using tiktoken. count_tokens(text, provider) \u2192 int. Supported providers: 'claude', 'gemini' (both use cl100k_base approximation). Maintain a running total via accumulate(text, provider) \u2192 int (cumulative). reset() clears the accumulator. No API calls. Fallback to whitespace split if tiktoken unavailable (degrade gracefully, log warning).",
+      "description": "Per-provider token counting using tiktoken. count_tokens(text, provider) → int. Supported providers: 'claude', 'gemini' (both use cl100k_base approximation). Maintain a running total via accumulate(text, provider) → int (cumulative). reset() clears the accumulator. No API calls. Fallback to whitespace split if tiktoken unavailable (degrade gracefully, log warning).",
       "owns": [
         "agentflow/shell/tokenizer.py",
         "tests/shell/test_tokenizer.py"
@@ -256,9 +92,7 @@
       "reads": [
         "architecture.md#pty-shell-design"
       ],
-      "depends_on": [
-        "T-001"
-      ],
+      "depends_on": ["T-001"],
       "contracts": [
         "agentflow/shell/tokenizer.py"
       ],
@@ -282,7 +116,7 @@
     {
       "task_id": "T-008",
       "title": "PTY session manager and countdown",
-      "description": "Session manager: wraps PTYWrapper and Tokenizer. Watches I/O for session_type detection (first /oracle or /orchestrate in stdin). Accumulates tokens. On threshold breach: calls trigger_handoff() which injects /handoff, scans stdout for HANDOFF_COMPLETE, then passes to countdown. Suppresses auto-restart if /handoff came from user (not injected). countdown.py: prints '...restarting in Ns (Ctrl+C to cancel)', handles SIGINT, calls restart callback on expiry.",
+      "description": "Session manager: wraps PTYWrapper and Tokenizer. Watches I/O for session_type detection (first /oracle or /orchestrate in stdin). Accumulates tokens. On threshold breach: calls trigger_handoff() which injects /handoff, scans stdout for HANDOFF_COMPLETE, then passes to countdown. Suppresses auto-restart if /handoff came from user (not injected). countdown.py: prints '...restarting in Ns (Ctrl+C to cancel)', handles SIGINT, calls restart callback on expiry. Threshold is per-session-type: use config.shell.oracle_threshold_tokens for oracle sessions, config.shell.orchestrator_threshold_tokens for orchestrator sessions, config.shell.threshold_tokens as fallback when session type is None.",
       "owns": [
         "agentflow/shell/session_manager.py",
         "agentflow/shell/countdown.py",
@@ -293,12 +127,7 @@
         "agentflow/shell/tokenizer.py",
         "agentflow/config/schema.py"
       ],
-      "depends_on": [
-        "T-001",
-        "T-002",
-        "T-006",
-        "T-007"
-      ],
+      "depends_on": ["T-001", "T-002", "T-006", "T-007"],
       "contracts": [
         "agentflow/shell/session_manager.py"
       ],
@@ -310,187 +139,24 @@
           "user-initiated /handoff suppresses auto-restart",
           "HANDOFF_COMPLETE pattern parsed correctly from stdout",
           "countdown fires restart callback after delay",
-          "SIGINT during countdown cancels restart"
+          "SIGINT during countdown cancels restart",
+          "oracle session uses oracle_threshold_tokens not global threshold",
+          "orchestrator session uses orchestrator_threshold_tokens not global threshold",
+          "unknown session type falls back to global threshold_tokens"
         ],
         "integration": [],
         "coverage_threshold": 85
       },
       "security_constraints": [],
-      "acceptance_criteria": "threshold breach triggers full flow: inject /handoff \u2192 detect HANDOFF_COMPLETE \u2192 countdown \u2192 restart skill",
+      "acceptance_criteria": "threshold breach triggers full flow: inject /handoff → detect HANDOFF_COMPLETE → countdown → restart skill",
       "estimated_lines": 230,
       "context_section": "architecture.md#pty-shell-design",
       "status": "pending"
     },
     {
-      "task_id": "T-009",
-      "title": "Git tools",
-      "description": "Worktree lifecycle: create_worktree(base_path, task_id, branch_name) \u2192 Path, delete_worktree(path), commit_files(worktree_path, message, files). All operations idempotent. Typed exceptions: WorktreeExistsError, DirtyStateError, MissingRepoError. No shell=True \u2014 subprocess list args only. Branch names validated against allowlist pattern before use.",
-      "owns": [
-        "agentflow/tools/git.py",
-        "tests/tools/test_git.py",
-        "tests/tools/__init__.py"
-      ],
-      "reads": [
-        "agentflow/config/schema.py"
-      ],
-      "depends_on": [
-        "T-001",
-        "T-002"
-      ],
-      "contracts": [
-        "agentflow/tools/git.py"
-      ],
-      "test_requirements": {
-        "unit": [
-          "create_worktree creates branch and directory",
-          "create_worktree is idempotent if worktree already exists",
-          "delete_worktree removes directory and prunes ref",
-          "commit_files stages only listed files",
-          "invalid branch name raises ValueError before subprocess call"
-        ],
-        "integration": [
-          "full worktree create \u2192 commit \u2192 delete cycle on real temp repo"
-        ],
-        "coverage_threshold": 88
-      },
-      "security_constraints": [
-        "no shell=True in any subprocess call",
-        "validate branch names against ^[a-zA-Z0-9/_-]+$ before use"
-      ],
-      "acceptance_criteria": "integration test passes on real git repo; no shell=True in source",
-      "estimated_lines": 200,
-      "context_section": "architecture.md#module-boundaries",
-      "status": "pending"
-    },
-    {
-      "task_id": "T-010",
-      "title": "GitHub tools",
-      "description": "PR creation, inline comment posting, status check reading via GitHub REST API. create_pr(repo, branch, title, body) \u2192 pr_number. post_review_comments(repo, pr_number, comments: list[ReviewComment]) \u2014 batched in one call. get_check_status(repo, pr_number) \u2192 CheckResult. Auth via GITHUB_TOKEN env var only. httpx, not requests. Retry 3\u00d7 on rate limit with exponential backoff.",
-      "owns": [
-        "agentflow/tools/github.py",
-        "tests/tools/test_github.py"
-      ],
-      "reads": [
-        "agentflow/config/schema.py",
-        "agentflow/telemetry/logger.py"
-      ],
-      "depends_on": [
-        "T-001",
-        "T-002",
-        "T-003"
-      ],
-      "contracts": [
-        "agentflow/tools/github.py"
-      ],
-      "test_requirements": {
-        "unit": [
-          "create_pr posts to correct endpoint with correct payload",
-          "post_review_comments batches comments in one API call",
-          "missing GITHUB_TOKEN raises AuthError not KeyError",
-          "4xx responses raise GitHubAPIError with status code",
-          "rate limit response triggers retry with backoff",
-          "repo name format validated before URL construction"
-        ],
-        "integration": [],
-        "coverage_threshold": 88
-      },
-      "security_constraints": [
-        "GITHUB_TOKEN read from env only \u2014 never from config files",
-        "never log token value",
-        "validate repo name format before constructing URL"
-      ],
-      "acceptance_criteria": "all unit tests green with mocked httpx; AuthError on missing token; no token in logs",
-      "estimated_lines": 210,
-      "context_section": "architecture.md#external-integrations",
-      "status": "pending"
-    },
-    {
-      "task_id": "T-011",
-      "title": "Test runner and file validator",
-      "description": "test_runner: run_tests(worktree_path, config) \u2192 TestResult(passed, failed, coverage_pct, coverage_ok, status). Detect framework from config (pytest default). Parse coverage from pytest-cov output. Timeout returns TestResult(status='timeout'). file_validator: validate_file(path) \u2192 ValidationResult(ok, line_count, limit, message). Enforces file_limits from config. Paths validated to be within project root.",
-      "owns": [
-        "agentflow/tools/test_runner.py",
-        "agentflow/tools/file_validator.py",
-        "tests/tools/test_test_runner.py",
-        "tests/tools/test_file_validator.py"
-      ],
-      "reads": [
-        "agentflow/config/schema.py"
-      ],
-      "depends_on": [
-        "T-001",
-        "T-002"
-      ],
-      "contracts": [
-        "agentflow/tools/test_runner.py",
-        "agentflow/tools/file_validator.py"
-      ],
-      "test_requirements": {
-        "unit": [
-          "run_tests returns TestResult with correct pass/fail counts",
-          "coverage below threshold sets coverage_ok=False",
-          "file_validator flags files over ceiling with path and line count",
-          "file_validator returns clean for files under soft target",
-          "run_tests timeout returns status=timeout",
-          "subprocess path validated within project root"
-        ],
-        "integration": [
-          "run_tests against minimal pytest project in temp dir"
-        ],
-        "coverage_threshold": 88
-      },
-      "security_constraints": [
-        "subprocess runs in worktree_path only; validate path is within project root before execution"
-      ],
-      "acceptance_criteria": "integration test passes; coverage_ok reflects threshold comparison; path escape rejected",
-      "estimated_lines": 220,
-      "context_section": "architecture.md#file-size-limits",
-      "status": "pending"
-    },
-    {
-      "task_id": "T-012",
-      "title": "write_file tool with index hook",
-      "description": "write_file(project_root, path, contents) \u2192 WriteResult. Validates path is within owns list (SandboxViolationError if not). Writes file to disk. Calls index_manager.update_index(project_root, path, contents) as silent side effect. Worker never knows about the index. Expose set_owns_list(task_id, owns) to register allowed paths before the worker runs.",
-      "owns": [
-        "agentflow/worker/write_file_tool.py",
-        "tests/worker/test_write_file_tool.py",
-        "tests/worker/__init__.py"
-      ],
-      "reads": [
-        "agentflow/indexer/index_manager.py",
-        "agentflow/config/schema.py"
-      ],
-      "depends_on": [
-        "T-001",
-        "T-004",
-        "T-005"
-      ],
-      "contracts": [
-        "agentflow/worker/write_file_tool.py"
-      ],
-      "test_requirements": {
-        "unit": [
-          "write_file writes content to correct path",
-          "write_file calls index_manager.update_index after writing",
-          "path outside owns list raises SandboxViolationError",
-          "SandboxViolationError does not write the file",
-          "index update failure does not fail the write"
-        ],
-        "integration": [],
-        "coverage_threshold": 90
-      },
-      "security_constraints": [
-        "worker may only write to files in its registered owns list \u2014 enforced in this tool, not by the LLM"
-      ],
-      "acceptance_criteria": "SandboxViolationError raised for out-of-owns writes; index updated silently on success",
-      "estimated_lines": 110,
-      "context_section": "architecture.md#symbol-indexer",
-      "status": "pending"
-    },
-    {
       "task_id": "T-013",
       "title": "Oracle prompts",
-      "description": "Write all oracle prompt files. system.md: multi-persona (Senior PE + PM + Designer), market segment branching, prompt injection question. market.md: consumer/SMB/enterprise question bank with compliance and auth defaults per segment. checklist.md: 23+ NFR items mapped to architecture.md#oracle-design. generation.md: architecture.md + CLAUDE.md output format with RESOLVED/UNRESOLVED/DEFERRED item format. Each file \u2264 150 lines.",
+      "description": "Write all oracle prompt files. system.md: multi-persona (Senior PE + PM + Designer), market segment branching, prompt injection question, verbosity instruction ('Keep responses concise — prefer 3-sentence answers over paragraphs; use tables and bullets over prose'). market.md: consumer/SMB/enterprise question bank with compliance and auth defaults per segment. checklist.md: 23+ NFR items mapped to architecture.md#oracle-design. generation.md: architecture.md + CLAUDE.md output format with RESOLVED/UNRESOLVED/DEFERRED item format, compact writing rules (tables/bullets/no prose paragraphs for all state document writes). Each file ≤ 150 lines.",
       "owns": [
         "agentflow/oracle/prompts/__init__.py",
         "agentflow/oracle/prompts/v1/system.md",
@@ -501,9 +167,7 @@
       "reads": [
         "architecture.md#oracle-design"
       ],
-      "depends_on": [
-        "T-001"
-      ],
+      "depends_on": ["T-001"],
       "contracts": [],
       "test_requirements": {
         "unit": [
@@ -528,7 +192,7 @@
     {
       "task_id": "T-014",
       "title": "Worker prompts",
-      "description": "Write all worker prompt files. system.md: implementer persona, no-re-read rule ('Do not use the Read tool on any file listed in your Dependencies section \u2014 contents already in context'), TDD approach. context_bundle.md: bundle format spec and interpretation guide. testing_guide.md: red\u2192green TDD, behaviour not implementation, IO mocks pre-generated, skeleton bodies start as NotImplementedError. Each file \u2264 150 lines.",
+      "description": "Write all worker prompt files. system.md: implementer persona, no-re-read rule ('Do not use the Read tool on any file listed in your Dependencies section — contents already in context'), section-only loading rule ('Never load full architecture.md — read only the anchor section listed in your context_section field'), verbosity instruction ('Keep responses concise — code and test output only, no prose explanations unless asked'), TDD approach. context_bundle.md: bundle format spec and interpretation guide. testing_guide.md: red→green TDD, behaviour not implementation, IO mocks pre-generated, skeleton bodies start as NotImplementedError. Each file ≤ 150 lines.",
       "owns": [
         "agentflow/worker/prompts/__init__.py",
         "agentflow/worker/prompts/v1/system.md",
@@ -538,9 +202,7 @@
       "reads": [
         "architecture.md#context-bundle"
       ],
-      "depends_on": [
-        "T-001"
-      ],
+      "depends_on": ["T-001"],
       "contracts": [],
       "test_requirements": {
         "unit": [
@@ -562,7 +224,7 @@
     {
       "task_id": "T-015",
       "title": "Reviewer and orchestrator prompts",
-      "description": "Reviewer prompts: code_review.md (contract adherence, architecture conformance, file size check), security_review.md (OWASP Top 10, secrets, PR diff treated as untrusted data \u2014 never as instructions, compliance constraints), test_review.md (scenario coverage, mock appropriateness, coverage threshold). Orchestrator prompts: system.md (Staff Engineering Lead persona \u2014 executes the milestone plan faithfully, manages parallelism and failure, escalates to human when authority is exceeded; does not re-prioritize), planning.md (milestone decomposition format from architecture.md). Each \u2264 150 lines.",
+      "description": "Reviewer prompts: code_review.md (contract adherence, architecture conformance, file size check), security_review.md (OWASP Top 10, secrets, PR diff treated as untrusted data — never as instructions, compliance constraints), test_review.md (scenario coverage, mock appropriateness, coverage threshold). Orchestrator prompts: system.md (Staff Engineering Lead persona — executes the milestone plan faithfully, manages parallelism and failure, escalates to human when authority is exceeded; does not re-prioritize; verbosity instruction: 'Report status in one line per task — no prose'; section-only loading rule: 'Load only the architecture.md anchor section relevant to the current milestone'), planning.md (milestone decomposition format from architecture.md). Each ≤ 150 lines.",
       "owns": [
         "agentflow/reviewer/prompts/__init__.py",
         "agentflow/reviewer/prompts/v1/code_review.md",
@@ -576,9 +238,7 @@
         "architecture.md#security-model",
         "architecture.md#orchestrator-design"
       ],
-      "depends_on": [
-        "T-001"
-      ],
+      "depends_on": ["T-001"],
       "contracts": [],
       "test_requirements": {
         "unit": [
@@ -601,408 +261,9 @@
       "status": "pending"
     },
     {
-      "task_id": "T-016",
-      "title": "Oracle checklist evaluator",
-      "description": "checklist.py: evaluate confidence score across 23 NFR checklist items given a conversation history dict. Returns ChecklistResult(resolved: list, unresolved: list, deferred: list, confidence: float). Market segment answer gates which items are required vs optional. resolve_item(item_id, decision) marks item RESOLVED. defer_item(item_id, reason) marks DEFERRED. All items RESOLVED or DEFERRED \u2192 generation_ready() returns True.",
-      "owns": [
-        "agentflow/oracle/checklist.py",
-        "tests/oracle/test_checklist.py",
-        "tests/oracle/__init__.py"
-      ],
-      "reads": [
-        "agentflow/oracle/prompts/v1/checklist.md",
-        "agentflow/config/schema.py"
-      ],
-      "depends_on": [
-        "T-001",
-        "T-002",
-        "T-013"
-      ],
-      "contracts": [
-        "agentflow/oracle/checklist.py"
-      ],
-      "test_requirements": {
-        "unit": [
-          "checklist returns unresolved items when NFRs missing",
-          "checklist returns generation_ready=True when all items RESOLVED or DEFERRED",
-          "enterprise market segment requires SOC2 and SSO items",
-          "consumer market segment adds GDPR and COPPA items",
-          "defer_item removes item from unresolved, adds to deferred"
-        ],
-        "integration": [],
-        "coverage_threshold": 88
-      },
-      "security_constraints": [],
-      "acceptance_criteria": "generation_ready() accurate for all market segments; deferred items not blocking",
-      "estimated_lines": 190,
-      "context_section": "architecture.md#oracle-design",
-      "status": "pending"
-    },
-    {
-      "task_id": "T-017",
-      "title": "Oracle artifact generator",
-      "description": "artifact_generator.py: given resolved ChecklistResult and conversation summary, write architecture.md (with all design items as RESOLVED/DEFERRED entries per format spec), CLAUDE.md, and tasks.json. Validate tasks.json: no two tasks share owned files; estimated_lines \u2264 250 per file. Input sanitisation: scan user-provided project description for instruction-override patterns before embedding in artifacts. Orchestrator reads tasks.json and may extend it via lazy milestone decomposition.",
-      "owns": [
-        "agentflow/oracle/artifact_generator.py",
-        "tests/oracle/test_artifact_generator.py"
-      ],
-      "reads": [
-        "agentflow/oracle/checklist.py",
-        "agentflow/oracle/prompts/v1/generation.md",
-        "agentflow/config/schema.py",
-        "agentflow/telemetry/logger.py"
-      ],
-      "depends_on": [
-        "T-001",
-        "T-002",
-        "T-003",
-        "T-013",
-        "T-016"
-      ],
-      "contracts": [
-        "agentflow/oracle/artifact_generator.py"
-      ],
-      "test_requirements": {
-        "unit": [
-          "artifact_generator writes architecture.md with RESOLVED/DEFERRED items",
-          "artifact_generator writes CLAUDE.md",
-          "artifact_generator writes valid tasks.json with all tasks pending",
-          "instruction-override pattern in description raises SanitisationError",
-          "architecture.md contains all sections from generation.md format spec"
-        ],
-        "integration": [],
-        "coverage_threshold": 85
-      },
-      "security_constraints": [
-        "scan input for prompt injection patterns before embedding in output artifacts"
-      ],
-      "acceptance_criteria": "architecture.md, CLAUDE.md, and tasks.json written; ownership conflicts rejected; injection patterns rejected",
-      "estimated_lines": 200,
-      "context_section": "architecture.md#oracle-design",
-      "status": "pending"
-    },
-    {
-      "task_id": "T-018",
-      "title": "Worker context builder",
-      "description": "context_builder.py: assemble minimal context bundle for a task and write to .agentflow/context/<task-id>.md. Include: task brief, owned file list, read-only file contents (do not re-read signal), contract stub contents, relevant architecture.md section by anchor, security constraints, test scenarios, config snapshot. Use index_manager.get_index to include symbol lookups for referenced files. Emit bundle token count as metric. Warn if bundle > 50k tokens.",
-      "owns": [
-        "agentflow/worker/context_builder.py",
-        "tests/worker/test_context_builder.py"
-      ],
-      "reads": [
-        "agentflow/config/schema.py",
-        "agentflow/telemetry/token_tracker.py",
-        "agentflow/indexer/index_manager.py",
-        "agentflow/worker/prompts/v1/context_bundle.md"
-      ],
-      "depends_on": [
-        "T-001",
-        "T-002",
-        "T-003",
-        "T-004",
-        "T-014"
-      ],
-      "contracts": [
-        "agentflow/worker/context_builder.py"
-      ],
-      "test_requirements": {
-        "unit": [
-          "bundle contains task description and acceptance criteria",
-          "bundle contains owned file list",
-          "bundle excludes files not in owns or reads",
-          "bundle includes only the anchored section of architecture.md",
-          "token count metric emitted after build",
-          "warning emitted when bundle exceeds 50k tokens",
-          "bundle must not include API keys from env"
-        ],
-        "integration": [],
-        "coverage_threshold": 88
-      },
-      "security_constraints": [
-        "bundle must not include GITHUB_TOKEN, ANTHROPIC_API_KEY, or GEMINI_API_KEY"
-      ],
-      "acceptance_criteria": "bundle contains exactly specified sections; token metric emitted; no secrets in bundle",
-      "estimated_lines": 180,
-      "context_section": "architecture.md#context-bundle",
-      "status": "pending"
-    },
-    {
-      "task_id": "T-019",
-      "title": "Headless worker agent runner",
-      "description": "agent_runner.py: run a headless API agent for a single task. Read .agentflow/context/<task-id>.md as opening user message. Agent loop: call provider API \u2192 parse tool calls (read_file, write_file via write_file_tool, run_tests) \u2192 continue until tests green and coverage met \u2192 call create_pr. Track token spans per API call via token_tracker. On BudgetExceeded signal: compress progress summary and restart with fresh session (max 2 restarts). On 3rd: return WorkerResult(status='escalate').",
-      "owns": [
-        "agentflow/worker/agent_runner.py",
-        "tests/worker/test_agent_runner.py"
-      ],
-      "reads": [
-        "agentflow/worker/context_builder.py",
-        "agentflow/worker/write_file_tool.py",
-        "agentflow/tools/github.py",
-        "agentflow/tools/test_runner.py",
-        "agentflow/telemetry/token_tracker.py",
-        "agentflow/config/schema.py"
-      ],
-      "depends_on": [
-        "T-001",
-        "T-002",
-        "T-003",
-        "T-010",
-        "T-011",
-        "T-012",
-        "T-018"
-      ],
-      "contracts": [
-        "agentflow/worker/agent_runner.py"
-      ],
-      "test_requirements": {
-        "unit": [
-          "run returns WorkerResult with pr_number on success",
-          "run returns WorkerResult(status=escalate) after max restarts",
-          "token spend per API call emitted to telemetry",
-          "write_file tool call sandboxed to owns list",
-          "test failure triggers continued loop not immediate exit",
-          "BudgetExceeded triggers compress-and-restart, not raise"
-        ],
-        "integration": [],
-        "coverage_threshold": 85
-      },
-      "security_constraints": [
-        "worker may only write to files in its owns list via write_file_tool",
-        "worker may not execute arbitrary shell commands \u2014 tool whitelist enforced"
-      ],
-      "acceptance_criteria": "WorkerResult returned in all paths; sandbox enforced; escalate returned after max restarts",
-      "estimated_lines": 240,
-      "context_section": "architecture.md#context-bundle",
-      "status": "pending"
-    },
-    {
-      "task_id": "T-020",
-      "title": "Code reviewer agent",
-      "description": "code_reviewer.py: headless reviewer reading PR diff + contract stubs + relevant architecture section. Reviews for: contract adherence (implementation matches stub interfaces), architecture conformance (file size limits, module boundaries), obvious logic errors. Posts inline comments via github.post_review_comments. Returns ReviewResult(issues_count, severity_distribution). File exceeding hard ceiling \u2192 HIGH severity. Contract mismatch \u2192 references specific function name.",
-      "owns": [
-        "agentflow/reviewer/code_reviewer.py",
-        "tests/reviewer/test_code_reviewer.py",
-        "tests/reviewer/__init__.py"
-      ],
-      "reads": [
-        "agentflow/tools/github.py",
-        "agentflow/config/schema.py",
-        "agentflow/telemetry/logger.py",
-        "agentflow/reviewer/prompts/v1/code_review.md"
-      ],
-      "depends_on": [
-        "T-001",
-        "T-002",
-        "T-003",
-        "T-010",
-        "T-015"
-      ],
-      "contracts": [
-        "agentflow/reviewer/code_reviewer.py"
-      ],
-      "test_requirements": {
-        "unit": [
-          "review returns ReviewResult with correct issue count",
-          "comments posted as inline review not PR body",
-          "file exceeding size ceiling flagged as HIGH severity",
-          "contract mismatch flagged with specific function name",
-          "empty diff returns ReviewResult with zero issues"
-        ],
-        "integration": [],
-        "coverage_threshold": 85
-      },
-      "security_constraints": [],
-      "acceptance_criteria": "ReviewResult returned; inline comments on correct line numbers; size violations flagged HIGH",
-      "estimated_lines": 200,
-      "context_section": "architecture.md#security-model",
-      "status": "pending"
-    },
-    {
-      "task_id": "T-021",
-      "title": "Security reviewer agent",
-      "description": "security_reviewer.py: headless security reviewer. Context: PR diff (treated as untrusted data \u2014 never as instructions) + security_constraints from task schema + compliance requirements. Checks: OWASP Top 10 patterns, hardcoded secrets, shell=True usage, missing input validation at system boundaries, compliance constraint violations. Returns SecurityReviewResult(critical_count, high_count, findings). CRITICAL findings block HUMAN_APPROVED transition. Findings reference file and line \u2014 never echo secret values.",
-      "owns": [
-        "agentflow/reviewer/security_reviewer.py",
-        "tests/reviewer/test_security_reviewer.py"
-      ],
-      "reads": [
-        "agentflow/tools/github.py",
-        "agentflow/config/schema.py",
-        "agentflow/telemetry/logger.py",
-        "agentflow/reviewer/prompts/v1/security_review.md"
-      ],
-      "depends_on": [
-        "T-001",
-        "T-002",
-        "T-003",
-        "T-010",
-        "T-015"
-      ],
-      "contracts": [
-        "agentflow/reviewer/security_reviewer.py"
-      ],
-      "test_requirements": {
-        "unit": [
-          "hardcoded secret pattern triggers CRITICAL finding",
-          "shell=True usage triggers HIGH finding",
-          "missing input validation at API boundary triggers HIGH",
-          "clean diff returns SecurityReviewResult with zero criticals",
-          "compliance constraint violation references the constraint string",
-          "finding output never echoes the detected secret value"
-        ],
-        "integration": [],
-        "coverage_threshold": 85
-      },
-      "security_constraints": [
-        "reviewer output must not echo secret values \u2014 reference location only"
-      ],
-      "acceptance_criteria": "CRITICAL findings present in result; findings reference file and line; no secret values echoed",
-      "estimated_lines": 210,
-      "context_section": "architecture.md#security-model",
-      "status": "pending"
-    },
-    {
-      "task_id": "T-022",
-      "title": "Orchestrator \u2014 execution plan and task decomposer",
-      "description": "execution_plan.py: read architecture.md \u2192 extract design sections \u2192 produce execution_plan.md with milestones (PENDING/IN_PROGRESS/COMPLETE/DEFERRED). Lazy decomposition: only decompose next milestone when current completes. resume_from(execution_plan_path) \u2192 returns first incomplete milestone. task_decomposer.py: given a milestone and architecture section, produce tasks.json entries. Validate: no shared owned files; estimated_lines \u2264 250. Write tasks.json idempotently (update pending tasks only).",
-      "owns": [
-        "agentflow/orchestrator/execution_plan.py",
-        "agentflow/orchestrator/task_decomposer.py",
-        "tests/orchestrator/test_execution_plan.py",
-        "tests/orchestrator/__init__.py"
-      ],
-      "reads": [
-        "agentflow/config/schema.py",
-        "agentflow/telemetry/logger.py",
-        "agentflow/orchestrator/prompts/v1/planning.md"
-      ],
-      "depends_on": [
-        "T-001",
-        "T-002",
-        "T-003",
-        "T-015"
-      ],
-      "contracts": [
-        "agentflow/orchestrator/execution_plan.py",
-        "agentflow/orchestrator/task_decomposer.py"
-      ],
-      "test_requirements": {
-        "unit": [
-          "execution_plan.py writes milestones from architecture.md sections",
-          "resume_from returns first milestone not COMPLETE",
-          "resume_from returns None when all milestones COMPLETE",
-          "task_decomposer rejects tasks.json with shared owned files",
-          "task_decomposer rejects task with estimated_lines > 250",
-          "update is idempotent \u2014 running twice produces same result"
-        ],
-        "integration": [],
-        "coverage_threshold": 88
-      },
-      "security_constraints": [],
-      "acceptance_criteria": "execution_plan.md written; resume point correct; ownership conflicts rejected before workers spawn",
-      "estimated_lines": 230,
-      "context_section": "architecture.md#orchestrator-design",
-      "status": "pending"
-    },
-    {
-      "task_id": "T-023",
-      "title": "Orchestrator \u2014 state machine and environment setup",
-      "description": "state_machine.py: task state transitions PENDING\u2192SPAWNED\u2192IMPLEMENTING\u2192PR_OPEN\u2192REVIEW_IN_PROGRESS\u2192REVIEW_PASSED\u2192HUMAN_APPROVED\u2192MERGED (and REWORK_NEEDED). Persist timestamps per transition to .agentflow/state.json. InvalidTransitionError on illegal moves. CRITICAL security finding blocks HUMAN_APPROVED. environment.py: tech-stack aware env bootstrap. Read tech_stack from architecture.md or config. Dispatch: python\u2192virtualenv+requirements.txt, node\u2192npm install, go\u2192go mod download.",
-      "owns": [
-        "agentflow/orchestrator/state_machine.py",
-        "agentflow/orchestrator/environment.py",
-        "tests/orchestrator/test_state_machine.py"
-      ],
-      "reads": [
-        "agentflow/config/schema.py",
-        "agentflow/telemetry/logger.py"
-      ],
-      "depends_on": [
-        "T-001",
-        "T-002",
-        "T-003"
-      ],
-      "contracts": [
-        "agentflow/orchestrator/state_machine.py",
-        "agentflow/orchestrator/environment.py"
-      ],
-      "test_requirements": {
-        "unit": [
-          "PENDING\u2192SPAWNED transition writes timestamp to state.json",
-          "invalid transition raises InvalidTransitionError",
-          "CRITICAL finding blocks HUMAN_APPROVED transition",
-          "load_state returns empty state when file absent",
-          "environment.py dispatches to virtualenv for python tech stack",
-          "environment.py dispatches to npm for node tech stack"
-        ],
-        "integration": [],
-        "coverage_threshold": 90
-      },
-      "security_constraints": [
-        "state.json must not contain prompt content or API keys"
-      ],
-      "acceptance_criteria": "all transitions correct; CRITICAL blocks HUMAN_APPROVED; state.json clean of secrets",
-      "estimated_lines": 230,
-      "context_section": "architecture.md#task-state-machine",
-      "status": "pending"
-    },
-    {
-      "task_id": "T-024",
-      "title": "Orchestrator \u2014 project manager and merge sequencer",
-      "description": "project_manager.py: PM loop reading tasks.json + state.json. Spawns workers for READY tasks up to parallelism limit. Handles WorkerResult: success\u2192PR_OPEN transition + trigger reviewer pipeline; escalate\u2192human notification + halt task. Triggers code_reviewer and security_reviewer after PR_OPEN. Transitions state on reviewer completion. merge_sequencer.py: after HUMAN_APPROVED, merges worktree branches into main in topological DAG order, deletes worktrees, updates milestone status in execution_plan.md.",
-      "owns": [
-        "agentflow/orchestrator/project_manager.py",
-        "agentflow/orchestrator/merge_sequencer.py",
-        "tests/orchestrator/test_project_manager.py"
-      ],
-      "reads": [
-        "agentflow/orchestrator/execution_plan.py",
-        "agentflow/orchestrator/state_machine.py",
-        "agentflow/orchestrator/environment.py",
-        "agentflow/worker/agent_runner.py",
-        "agentflow/reviewer/code_reviewer.py",
-        "agentflow/reviewer/security_reviewer.py",
-        "agentflow/tools/git.py",
-        "agentflow/telemetry/token_tracker.py",
-        "agentflow/config/schema.py"
-      ],
-      "depends_on": [
-        "T-001",
-        "T-002",
-        "T-003",
-        "T-009",
-        "T-010",
-        "T-019",
-        "T-020",
-        "T-021",
-        "T-022",
-        "T-023"
-      ],
-      "contracts": [
-        "agentflow/orchestrator/project_manager.py"
-      ],
-      "test_requirements": {
-        "unit": [
-          "ready tasks spawned up to parallelism limit",
-          "task with unmet dependency not spawned",
-          "WorkerResult escalate triggers notification and halts task",
-          "CRITICAL security finding blocks HUMAN_APPROVED transition",
-          "merge sequencer processes tasks in topological order",
-          "failed merge rolls back without corrupting state.json"
-        ],
-        "integration": [],
-        "coverage_threshold": 85
-      },
-      "security_constraints": [],
-      "acceptance_criteria": "full lifecycle runs PENDING\u2192MERGED; state.json accurate throughout; CRITICAL blocks merge",
-      "estimated_lines": 245,
-      "context_section": "architecture.md#task-state-machine",
-      "status": "pending"
-    },
-    {
       "task_id": "T-025",
-      "title": "Handoff skill \u2014 provider files",
-      "description": "Write handoff skill files for Claude and Gemini. Both flush current session state to the living document (architecture.md for oracle sessions, execution_plan.md for orchestrator sessions) and print HANDOFF_COMPLETE: <path> to stdout for the PTY shell to detect. Skills also emit HANDOFF RECOMMENDED: <reason> proactively at natural stopping points during normal skill operation \u2014 oracle emits after each checklist resolution batch; orchestrator emits after each task reaches PR_OPEN or MERGED state. This is the pre-PTY manual signal: user reads it and triggers /handoff themselves. PTY will later detect and act on this signal automatically. Claude: agentflow/skills/providers/claude/handoff.md \u2014 provider-agnostic, HANDOFF_COMPLETE signal, .agentflow/ paths. Gemini: agentflow/skills/providers/gemini/handoff/SKILL.md + run_handoff.sh \u2014 structured output and HANDOFF_COMPLETE signal.",
+      "title": "Handoff skill — provider files",
+      "description": "Write handoff skill files for Claude and Gemini. Both flush current session state to the living document (architecture.md for oracle sessions, execution_plan.md for orchestrator sessions) and print HANDOFF_COMPLETE: <path> to stdout for the PTY shell to detect. Skills also emit HANDOFF RECOMMENDED: <reason> proactively at natural stopping points during normal skill operation — oracle emits after each checklist resolution batch; orchestrator emits after each task reaches PR_OPEN or MERGED state. Compact format rule: when writing architecture.md or execution_plan.md, use tables and bullet points only — no prose paragraphs. Goal: state docs must be 35-40% smaller than prose equivalents. Claude: agentflow/skills/providers/claude/handoff.md — provider-agnostic, HANDOFF_COMPLETE signal, .agentflow/ paths. Gemini: agentflow/skills/providers/gemini/handoff/SKILL.md + run_handoff.sh — structured output and HANDOFF_COMPLETE signal.",
       "owns": [
         "agentflow/skills/providers/claude/handoff.md",
         "agentflow/skills/providers/gemini/handoff/SKILL.md",
@@ -1015,9 +276,7 @@
         "architecture.md#handoff-flow",
         "architecture.md#state-documents"
       ],
-      "depends_on": [
-        "T-001"
-      ],
+      "depends_on": ["T-001"],
       "contracts": [],
       "test_requirements": {
         "unit": [
@@ -1033,15 +292,15 @@
         "coverage_threshold": 80
       },
       "security_constraints": [],
-      "acceptance_criteria": "both skill files print HANDOFF_COMPLETE: <path>; both emit HANDOFF RECOMMENDED: <reason> at natural stopping points; no OCI-specific content; HANDOFF RECOMMENDED fires without /handoff being invoked",
+      "acceptance_criteria": "both skill files print HANDOFF_COMPLETE: <path>; both emit HANDOFF RECOMMENDED: <reason> at natural stopping points; HANDOFF RECOMMENDED fires without /handoff being invoked",
       "estimated_lines": 80,
       "context_section": "architecture.md#handoff-flow",
       "status": "pending"
     },
     {
       "task_id": "T-026",
-      "title": "Oracle skill \u2014 provider files",
-      "description": "Write oracle skill files for Claude and Gemini. Both implement the multi-persona design sparring flow, read architecture.md on startup to check for UNRESOLVED items, resume or start fresh accordingly, and call artifact_generator on completion. Claude: agentflow/skills/providers/claude/oracle.md. Gemini: agentflow/skills/providers/gemini/oracle/SKILL.md + scripts/run_oracle.sh. Skills must not hardcode project-specific content \u2014 they are generic across all projects.",
+      "title": "Oracle skill — provider files",
+      "description": "Write oracle skill files for Claude and Gemini. Both implement the multi-persona design sparring flow, read architecture.md on startup to check for UNRESOLVED items, resume or start fresh accordingly, and write artifacts on completion. Claude: agentflow/skills/providers/claude/oracle.md. Gemini: agentflow/skills/providers/gemini/oracle/SKILL.md + scripts/run_oracle.sh. Skills must not hardcode project-specific content — they are generic across all projects.",
       "owns": [
         "agentflow/skills/providers/claude/oracle.md",
         "agentflow/skills/providers/gemini/oracle/SKILL.md",
@@ -1053,11 +312,7 @@
         "agentflow/oracle/prompts/v1/generation.md",
         "architecture.md#oracle-design"
       ],
-      "depends_on": [
-        "T-013",
-        "T-016",
-        "T-017"
-      ],
+      "depends_on": ["T-013"],
       "contracts": [],
       "test_requirements": {
         "unit": [
@@ -1077,8 +332,8 @@
     },
     {
       "task_id": "T-027",
-      "title": "Orchestrator skill \u2014 provider files",
-      "description": "Write orchestrator skill files for Claude and Gemini. Both read architecture.md (oracle must be complete \u2014 all RESOLVED or DEFERRED) then read execution_plan.md to resume or initialise. Decompose next incomplete milestone lazily. Spawn workers, manage reviews, gate on HUMAN_APPROVED, trigger merge sequencer. Claude: agentflow/skills/providers/claude/orchestrate.md. Gemini: agentflow/skills/providers/gemini/orchestrate/SKILL.md.",
+      "title": "Orchestrator skill — provider files",
+      "description": "Write orchestrator skill files for Claude and Gemini. Both read architecture.md (oracle must be complete — all RESOLVED or DEFERRED) then read execution_plan.md to resume or initialise. Decompose next incomplete milestone lazily. Spawn workers, manage reviews, gate on HUMAN_APPROVED, trigger merge sequencer. Claude: agentflow/skills/providers/claude/orchestrate.md. Gemini: agentflow/skills/providers/gemini/orchestrate/SKILL.md.",
       "owns": [
         "agentflow/skills/providers/claude/orchestrate.md",
         "agentflow/skills/providers/gemini/orchestrate/SKILL.md",
@@ -1090,12 +345,7 @@
         "architecture.md#orchestrator-design",
         "architecture.md#task-state-machine"
       ],
-      "depends_on": [
-        "T-015",
-        "T-022",
-        "T-023",
-        "T-024"
-      ],
+      "depends_on": ["T-015"],
       "contracts": [],
       "test_requirements": {
         "unit": [
@@ -1115,86 +365,143 @@
     },
     {
       "task_id": "T-028",
-      "title": "Brownfield scanner",
-      "description": "brownfield_scanner.py: on first load of an existing project, walk the project tree and index all files meeting the minimum line threshold (30 lines). Dispatch to correct parser by extension. Write index files to ~/.agentflow/cache/<hash>/index/. Skip files already in cache (check mtime). Report: files indexed, files skipped, total time. No refactoring \u2014 index only. Expose scan(project_root, config) \u2192 ScanResult(indexed, skipped, duration_ms).",
+      "title": "Symbol index — parsers",
+      "description": "AST and regex parsers for all indexed file types. python_parser.py: ast-based extraction of function names, class names, method names, signatures, and line ranges. markdown_parser.py: regex extraction of H2/H3 section headers and line ranges. json_parser.py: top-level key extraction with line ranges (files > 30 lines only). yaml_parser.py: top-level and second-level key extraction with line numbers (files > 30 lines only). Each parser exposes parse(path) → list[IndexEntry] where IndexEntry = {name, kind, start_line, end_line, signature?}. No external deps beyond stdlib + ast.",
       "owns": [
+        "agentflow/indexer/__init__.py",
+        "agentflow/indexer/parsers/__init__.py",
+        "agentflow/indexer/parsers/python_parser.py",
+        "agentflow/indexer/parsers/markdown_parser.py",
+        "agentflow/indexer/parsers/json_parser.py",
+        "agentflow/indexer/parsers/yaml_parser.py",
+        "tests/indexer/__init__.py",
+        "tests/indexer/test_parsers.py"
+      ],
+      "reads": [
+        "architecture.md#symbol-indexer"
+      ],
+      "depends_on": ["T-001"],
+      "contracts": [
+        "agentflow/indexer/parsers/python_parser.py",
+        "agentflow/indexer/parsers/markdown_parser.py",
+        "agentflow/indexer/parsers/json_parser.py",
+        "agentflow/indexer/parsers/yaml_parser.py"
+      ],
+      "test_requirements": {
+        "unit": [
+          "python_parser extracts function names and line ranges",
+          "python_parser extracts class names and method names",
+          "python_parser extracts function signatures",
+          "markdown_parser extracts H2 and H3 headers with line ranges",
+          "json_parser returns empty list for files <= 30 lines",
+          "json_parser extracts top-level keys with line ranges for larger files",
+          "yaml_parser extracts top-level and second-level keys",
+          "all parsers return empty list for empty files",
+          "all parsers return empty list for unreadable files without raising"
+        ],
+        "integration": [],
+        "coverage_threshold": 88
+      },
+      "security_constraints": [],
+      "acceptance_criteria": "all parsers return correct IndexEntry lists for fixture files; no external deps",
+      "estimated_lines": 220,
+      "context_section": "architecture.md#symbol-indexer",
+      "status": "pending"
+    },
+    {
+      "task_id": "T-029",
+      "title": "Symbol index — index manager and brownfield scanner",
+      "description": "index_manager.py: manages the cache at ~/.agentflow/cache/<sha256-of-project-root>/index/<mirrored-path>.idx. Exposes update(path, contents) → None (write index entry), lookup(path, symbol) → IndexEntry|None (targeted read), get_index(path) → list[IndexEntry] (all entries for a file). Cache miss regenerates from file contents deterministically. brownfield_scanner.py: walk project tree on first load, index all files meeting type+size thresholds, populate cache. Exposes scan(project_root) → int (files indexed). Both modules are idempotent — safe to run twice.",
+      "owns": [
+        "agentflow/indexer/index_manager.py",
         "agentflow/indexer/brownfield_scanner.py",
+        "tests/indexer/test_index_manager.py",
         "tests/indexer/test_brownfield_scanner.py"
       ],
       "reads": [
-        "agentflow/indexer/index_manager.py",
+        "architecture.md#symbol-indexer",
         "agentflow/indexer/parsers/python_parser.py",
-        "agentflow/config/schema.py"
+        "agentflow/indexer/parsers/markdown_parser.py",
+        "agentflow/indexer/parsers/json_parser.py",
+        "agentflow/indexer/parsers/yaml_parser.py"
       ],
-      "depends_on": [
-        "T-004",
-        "T-005"
-      ],
+      "depends_on": ["T-001", "T-028"],
       "contracts": [
+        "agentflow/indexer/index_manager.py",
         "agentflow/indexer/brownfield_scanner.py"
       ],
       "test_requirements": {
         "unit": [
-          "scan indexes all eligible files in project tree",
-          "scan skips files under 30-line threshold",
-          "scan skips files already in cache with current mtime",
-          "scan returns correct indexed and skipped counts",
-          "scan does not modify any source files"
+          "update writes .idx file at correct cache path",
+          "lookup returns correct IndexEntry for known symbol",
+          "lookup returns None for unknown symbol",
+          "cache miss triggers regeneration from file contents",
+          "update is idempotent — running twice produces same result",
+          "brownfield scan returns count of files indexed",
+          "brownfield scan skips files below size threshold",
+          "brownfield scan is idempotent"
         ],
         "integration": [
-          "scan against real temp project with mixed file types and sizes"
+          "scan project fixture tree, then lookup symbol — returns correct entry"
         ],
-        "coverage_threshold": 85
+        "coverage_threshold": 88
       },
-      "security_constraints": [],
-      "acceptance_criteria": "no source files modified; cache populated; mtime-based skip works correctly",
-      "estimated_lines": 150,
+      "security_constraints": [
+        "cache path must be outside project tree — validate it resolves under ~/.agentflow/"
+      ],
+      "acceptance_criteria": "lookup returns correct entry after update; brownfield scan indexes all eligible files; cache path never inside project tree",
+      "estimated_lines": 200,
       "context_section": "architecture.md#symbol-indexer",
+      "status": "pending"
+    },
+    {
+      "task_id": "T-030",
+      "title": "Context builder",
+      "description": "Assembles a minimal context bundle for a task and writes it to context_bundle.md in the task's worktree. Bundle contents (in order): task brief (description + acceptance criteria), owned file list, read-only dependency contents (via index lookup for targeted reads — fall back to full file if no index entry), relevant architecture.md anchor section only (not full doc), test scenarios, security constraints, config snapshot (model, coverage threshold, file size limits). Exposes build(task, project_root, config) → Path (path to written context_bundle.md). Emits telemetry warning if bundle exceeds 50K tokens. Uses index_manager for targeted reads.",
+      "owns": [
+        "agentflow/worker/__init__.py",
+        "agentflow/worker/context_builder.py",
+        "tests/worker/__init__.py",
+        "tests/worker/test_context_builder.py"
+      ],
+      "reads": [
+        "architecture.md#context-bundle",
+        "agentflow/indexer/index_manager.py",
+        "agentflow/config/schema.py"
+      ],
+      "depends_on": ["T-001", "T-002", "T-029"],
+      "contracts": [
+        "agentflow/worker/context_builder.py"
+      ],
+      "test_requirements": {
+        "unit": [
+          "build writes context_bundle.md at expected path",
+          "bundle contains task brief section",
+          "bundle contains owned file list",
+          "bundle uses index lookup for dependency reads when index exists",
+          "bundle falls back to full file read when no index entry",
+          "bundle includes only anchor section of architecture.md not full doc",
+          "build emits warning when bundle exceeds 50K tokens",
+          "build is idempotent — running twice overwrites with same content"
+        ],
+        "integration": [
+          "build with real task fixture and index — verify bundle contains correct symbol excerpts"
+        ],
+        "coverage_threshold": 88
+      },
+      "security_constraints": [
+        "dependency file contents must not include secrets — validate no env var patterns in bundle output"
+      ],
+      "acceptance_criteria": "bundle written correctly; targeted reads used when index available; 50K warning fires; section-only architecture loading confirmed",
+      "estimated_lines": 220,
+      "context_section": "architecture.md#context-bundle",
       "status": "pending"
     }
   ],
   "parallelism_plan": {
-    "round_1": [
-      "T-001"
-    ],
-    "round_2": [
-      "T-002",
-      "T-005",
-      "T-006",
-      "T-007",
-      "T-009",
-      "T-013",
-      "T-014",
-      "T-015"
-    ],
-    "round_3": [
-      "T-003",
-      "T-004",
-      "T-008",
-      "T-011",
-      "T-016"
-    ],
-    "round_4": [
-      "T-010",
-      "T-012",
-      "T-017",
-      "T-018",
-      "T-023",
-      "T-025"
-    ],
-    "round_5": [
-      "T-019",
-      "T-020",
-      "T-021",
-      "T-022",
-      "T-028"
-    ],
-    "round_6": [
-      "T-024",
-      "T-026"
-    ],
-    "round_7": [
-      "T-027"
-    ]
+    "round_1": ["T-001"],
+    "round_2": ["T-002", "T-006", "T-007", "T-013", "T-014", "T-015", "T-025", "T-028"],
+    "round_3": ["T-008", "T-026", "T-027", "T-029"],
+    "round_4": ["T-030"]
   }
 }
