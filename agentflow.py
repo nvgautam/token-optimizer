@@ -680,7 +680,7 @@ def cmd_report(args):
     Saved:          {total_saved:>14,}   [{saved_pct:.0f}% reduction]
 
   What {saved_pct:.0f}% means: for the same output, you consumed {saved_pct:.0f}% fewer
-  tokens than a continuous non-cycling session would have.
+  tokens than a typical session would have.
 
   Session stats
     Sessions recorded:    {len(sessions)}
