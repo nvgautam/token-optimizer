@@ -1,9 +1,9 @@
 {
-  "updated": "2026-06-26T00:00:00Z",
+  "updated": "2026-06-26T12:00:00Z",
   "milestone": "Milestone 2: Skill Files",
   "groups": [
     {"group_id": 1, "task_ids": ["T-001"], "status": "complete", "pr": null, "tokens": 32907},
-    {"group_id": 2, "task_ids": ["T-013"], "status": "in_progress", "pr": 6, "tokens": 27226},
+    {"group_id": 2, "task_ids": ["T-013"], "status": "complete", "pr": 6, "tokens": 27226},
     {"group_id": 3, "task_ids": ["T-014"], "status": "complete", "pr": 7, "tokens": 37099},
     {"group_id": 4, "task_ids": ["T-015"], "status": "complete", "pr": 8, "tokens": 29563},
     {"group_id": 5, "task_ids": ["T-025"], "status": "complete", "pr": 9, "tokens": 35713},

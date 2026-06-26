@@ -153,41 +153,7 @@
       "context_section": "architecture.md#pty-shell-design",
       "status": "pending"
     },
-    {
-      "task_id": "T-013",
-      "title": "Oracle prompts",
-      "description": "Write oracle prompt sub-files loaded by commands/oracle.md at runtime. market.md: consumer/SMB/enterprise question bank with compliance and auth defaults per segment. checklist.md: 23+ NFR items (each as a ## section header) covering the full checklist. generation.md: architecture.md + CLAUDE.md output format with RESOLVED/UNRESOLVED/DEFERRED item format, compact writing rules (tables/bullets/no prose paragraphs for all state document writes). Each file ≤ 150 lines. Note: persona/system instructions are inlined in commands/oracle.md (owned by T-026), not here.",
-      "owns": [
-        "commands/oracle/checklist.md",
-        "commands/oracle/market.md",
-        "commands/oracle/generation.md"
-      ],
-      "reads": [
-        "architecture.md#oracle-design",
-        "commands/oracle.md"
-      ],
-      "depends_on": ["T-001"],
-      "contracts": [],
-      "test_requirements": {
-        "unit": [
-          "all prompt files are valid UTF-8",
-          "no prompt file exceeds 150-line hard ceiling",
-          "checklist.md contains all 23+ NFR section headers",
-          "market.md contains consumer, SMB, enterprise sections with compliance defaults",
-          "generation.md contains RESOLVED/UNRESOLVED/DEFERRED format spec",
-          "generation.md contains compact writing rule"
-        ],
-        "integration": [],
-        "coverage_threshold": 80
-      },
-      "security_constraints": [
-        "prompts must not include example secrets or credentials"
-      ],
-      "acceptance_criteria": "all files exist, pass size check, pass content assertions",
-      "estimated_lines": 120,
-      "context_section": "architecture.md#oracle-design",
-      "status": "pending"
-    },
+    {"task_id": "T-013", "status": "complete"},
     {"task_id": "T-014", "status": "complete"},
     {"task_id": "T-015", "status": "complete"},
     {

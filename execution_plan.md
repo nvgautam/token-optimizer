@@ -23,7 +23,7 @@ Goal: All provider skill files and prompt files exist and are testable via manua
 
 | Task | Title | Depends on | Status |
 |---|---|---|---|
-| T-013 | Oracle prompts | T-001 | PENDING |
+| T-013 | Oracle prompts | T-001 | MERGED |
 | T-014 | Worker prompts | T-001 | MERGED |
 | T-015 | Reviewer + orchestrator prompts | T-001 | MERGED |
 | T-025 | Handoff skill — provider files | T-001 | MERGED |

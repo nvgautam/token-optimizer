@@ -6,3 +6,4 @@
 - [Handoff 2026-06-26b](handoff_2026-06-26b.md) — execution_plan.md created; oracle owns milestone plan; orchestrate skill updated to read rounds from it; state.json is stale
 - [Handoff 2026-06-26c](handoff_2026-06-26c.md) — fixed orchestrate persona + HANDOFF RECOMMENDED signals; Milestone 2 stubs committed; Round A blocked by rate limit
 - [Handoff 2026-06-26d](handoff_2026-06-26d.md) — Milestone 2 re-scoped to commands/; 4 wrong-path PRs closed; round-sizing heuristic added; tasks.json + architecture.md updated
+- [Handoff 2026-06-26e](handoff_2026-06-26e.md) — Round A complete; T-014/T-015/T-025 merged; T-013 PR #6 open (GDPR fix applied); T-026/T-027 unblocked
