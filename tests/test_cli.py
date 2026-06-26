@@ -6,7 +6,7 @@ import sys
 
 def test_package_importable():
     import agentflow
-    assert agentflow.__version__ == "0.1.0"
+    assert agentflow.__version__ == "2.0.0"
 
 
 def test_all_subpackages_importable():
@@ -18,6 +18,9 @@ def test_all_subpackages_importable():
     import agentflow.tools
     import agentflow.telemetry
     import agentflow.config
+    import agentflow.shell
+    import agentflow.skills
+    import agentflow.indexer
 
 
 def test_cli_entry_point_importable():
@@ -49,12 +52,11 @@ def test_cli_module_help_exits_zero():
 def test_cli_all_subcommands_present():
     from agentflow.cli import build_parser
     parser = build_parser()
-    # parse_args will raise SystemExit on --help; check subcommand choices directly
     subparsers_action = next(
         a for a in parser._actions if hasattr(a, "_name_parser_map")
     )
     assert set(subparsers_action._name_parser_map) == {
-        "init", "oracle", "orchestrate", "report", "validate"
+        "init", "oracle", "orchestrate", "report", "validate", "scan", "shell"
     }
 
 

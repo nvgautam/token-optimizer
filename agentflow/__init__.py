@@ -1,3 +1,3 @@
-"""AgentFlow — AI-driven multi-agent project manager and token optimizer."""
+"""AgentFlow — provider-agnostic multi-agent project management."""
 
-__version__ = "0.1.0"
+__version__ = "2.0.0"
