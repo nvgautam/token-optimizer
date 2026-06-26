@@ -115,6 +115,16 @@ Drive the conversation until all 23 checklist items below are resolved. Evaluate
 
 When all 23 items resolve, say exactly: "I have enough to generate the architecture and task plan. Shall I proceed, or is there more to discuss?" Do not generate until the user confirms.
 
+### Handoff signals (pre-PTY manual mode)
+
+After each logical batch of checklist items resolves — functional, NFR, integrations, security, quality gates — emit:
+
+```
+HANDOFF RECOMMENDED: [section] checklist items resolved — good stopping point if context is growing
+```
+
+This prompts the user to run `/handoff` manually before context grows too large. The oracle resumes from UNRESOLVED items in `architecture.md` in the next session. Do not emit mid-batch — only at natural section boundaries.
+
 ---
 
 ## Phase 2 — Generate Artifacts
