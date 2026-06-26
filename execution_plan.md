@@ -40,11 +40,21 @@ Acceptance: `/oracle`, `/orchestrate`, `/handoff` skills invoke correctly in a n
 ---
 
 ## Milestone 3: Symbol Indexer
-Status: PENDING — tasks decomposed when Milestone 2 completes
+Status: IN_PROGRESS
 Architecture: architecture.md#symbol-indexer
 Goal: Orchestrate skill generates .idx files inline (pre-spawn) for task reads lists; workers use targeted reads to validate token savings empirically. Python parser modules follow after validation.
 
-Known scope: T-031 (inline indexing in orchestrate.md + worker system.md reads instruction), then T-028 (parsers), T-029 (index manager) after empirical validation
+| Task | Title | Depends on | Status |
+|---|---|---|---|
+| T-031 | Inline .idx generation in orchestrate skill | T-027 | PENDING |
+| T-028 | Symbol index — parsers | T-001, T-031 | PENDING |
+| T-029 | Symbol index — index manager and brownfield scanner | T-001, T-028 | PENDING |
+
+| Round | Tasks | Note |
+|---|---|---|
+| A | T-031 | First — inline skill changes; validates approach empirically |
+| B | T-028 | After T-031 merged and approach confirmed |
+| C | T-029 | After T-028 |
 
 ---
 

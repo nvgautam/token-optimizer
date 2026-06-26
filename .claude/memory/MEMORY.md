@@ -7,3 +7,6 @@
 - [Handoff 2026-06-26c](handoff_2026-06-26c.md) — fixed orchestrate persona + HANDOFF RECOMMENDED signals; Milestone 2 stubs committed; Round A blocked by rate limit
 - [Handoff 2026-06-26d](handoff_2026-06-26d.md) — Milestone 2 re-scoped to commands/; 4 wrong-path PRs closed; round-sizing heuristic added; tasks.json + architecture.md updated
 - [Handoff 2026-06-26e](handoff_2026-06-26e.md) — Round A complete; T-014/T-015/T-025 merged; T-013 PR #6 open (GDPR fix applied); T-026/T-027 unblocked
+- [Handoff 2026-06-26f](handoff_2026-06-26f.md) — rate-pacing design (sequential-first ramp-up); T-026/T-027 expanded with verbosity + lazy-loading; Round B ready
+- [Handoff 2026-06-26g](handoff_2026-06-26g.md) — T-026 merged (oracle.md rewritten); T-027 is next; first-agent-solo rule established
+- [Handoff 2026-06-26h](handoff_2026-06-26h.md) — Milestone 2 complete; design_status.md split from architecture.md; orchestrate.md rewritten 422→140 lines; T-027 done
