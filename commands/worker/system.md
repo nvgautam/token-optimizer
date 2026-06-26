@@ -48,6 +48,35 @@ ESCALATE: [reason]
 Do not attempt a third fix. Retrying blind wastes tokens and rarely fixes root
 causes.
 
+### 7. Targeted Reads Rule
+
+Before reading any file in your `reads` list, check for a `.idx` symbol index in the cache and use it to read only the lines you need.
+
+**Steps:**
+
+1. Compute the index path for the file you want to read:
+   ```bash
+   HASH=$(python3 -c "import hashlib,os; print(hashlib.sha256(os.getcwd().encode()).hexdigest())")
+   IDX=~/.agentflow/cache/$HASH/index/<relative-path>.idx
+   ```
+
+2. Grep for the exact symbol you need:
+   ```bash
+   grep "^<symbol_name>:" "$IDX"
+   # Example: grep "^MyClass.parse:" ~/.agentflow/cache/$HASH/index/agentflow/parser.py.idx
+   # Result:  MyClass.parse:83-100
+   ```
+
+3. Parse the result and call `Read` with precise bounds:
+   ```
+   symbol_name:start-end  →  Read(offset=start, limit=end-start+1)
+   # Example: MyClass.parse:83-100  →  Read(offset=83, limit=18)
+   ```
+
+4. **Fallback:** if the `.idx` file is absent or the symbol is not found in it, read the full file without `offset`/`limit`.
+
+This rule applies to every file in your `reads` list. Never read a full file when a targeted read suffices.
+
 ---
 
 ## Workflow
