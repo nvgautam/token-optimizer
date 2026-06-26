@@ -1,47 +1,79 @@
 # Testing Guide
 
-## TDD — red first
+## Red → Green TDD Cycle
 
-Run the test skeleton before writing any implementation code:
+Always start from a failing test. Never write implementation code before you have a failing test.
+
+**Step 1 — Red:** Run the skeleton test file. All tests must fail with `NotImplementedError`.
 
 ```
-pytest <test_file> -v
+.venv/bin/pytest <test_file> -v
 ```
 
-All tests must fail with `NotImplementedError`. If a test passes before you write code, the skeleton is wrong — stop and investigate before continuing.
+If a test passes before you write any code, the skeleton is wrong. Stop, investigate, and escalate
+via the blockers file before continuing.
 
-## Behaviour, not implementation
+**Step 2 — Green:** Write the minimum code to make one failing test pass. Do not over-implement.
 
-Tests assert what a function does, not how it does it internally.
+**Step 3 — Refactor:** Clean up without changing behaviour. Run tests again to confirm still green.
 
-Correct: `assert result.status == "ok"`
-Wrong: `assert mock_db.execute.call_count == 3`
+**Step 4 — Repeat:** Move to the next failing test. One at a time.
 
-Do not assert on internal call counts, internal state, or private method invocations. Assert on the observable output and side effects declared in the test scenario.
+---
 
-## IO mocks are pre-generated
+## Skeleton Bodies Start as NotImplementedError
 
-Your context bundle includes mock fixtures for all external IO boundaries (database, HTTP API calls, filesystem outside your worktree). Use them as provided. Do not introduce new mocking libraries. Do not mock IO that is not declared in the project's test strategy.
+All stub function bodies must start as:
 
-## One behaviour per test method
+```python
+def my_function(arg):
+    raise NotImplementedError
+```
 
-Each test method covers exactly one scenario from your TEST SCENARIOS list. Name the test after the scenario description:
+This guarantees every test is red before implementation begins. Never write `pass` or `return None`
+as a stub body — those silently pass some assertions and break the red-first guarantee.
 
-Correct: `test_expired_token_raises_401`
-Wrong: `test_auth_cases` or `test_auth_2`
+---
 
-Do not combine multiple assertions for unrelated behaviours in one test method.
+## Behaviour, Not Implementation
+
+Tests assert what a function does from the outside, not how it does it internally.
+
+**Correct:** `assert result.status == "ok"`
+**Wrong:** `assert mock_db.execute.call_count == 3`
+
+Do not assert on internal call counts, internal state, or private method invocations. Assert on
+observable outputs and declared side effects only. If the test would break after a valid internal
+refactor, it is testing the wrong thing.
+
+One behaviour per test method. Name each test after the scenario it covers:
+
+**Correct:** `test_expired_token_raises_401`
+**Wrong:** `test_auth_cases` or `test_auth_2`
+
+---
+
+## IO Boundaries Are Mocked Before Implementation Exists
+
+IO boundaries (file reads, HTTP calls, subprocess invocations, database queries) are mocked in the
+skeleton test file before any implementation exists. This is by design.
+
+- Use only the mock fixtures pre-provided in your context bundle.
+- Do not introduce new mocking libraries (`unittest.mock` and `pytest-mock` are available).
+- Do not mock internal functions of the module under test — only IO boundaries.
+- Integration test scenarios run against real dependencies; use `tmp_path` for filesystem isolation.
+
+If an IO boundary is not declared in the project's test strategy, do not mock it. Escalate instead.
+
+---
 
 ## Coverage
 
-After each test turns green, run:
+After each test turns green, check coverage:
 
 ```
-pytest --cov=<module> --cov-report=term-missing
+.venv/bin/pytest --cov=<module> --cov-report=term-missing
 ```
 
-The missing lines column shows what to test next. Do not open a PR until coverage meets the threshold in your CONFIG section.
-
-## Integration tests
-
-Integration test scenarios run against real dependencies — real filesystem (`tmp_path`), real subprocess calls. Do not use mocks in integration tests. Use `tmp_path` for filesystem isolation so tests do not pollute each other.
+The missing lines column shows what to test next. Do not open a PR until coverage meets the
+threshold in your CONFIG section. Coverage below threshold is a hard gate — not advisory.
