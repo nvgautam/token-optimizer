@@ -38,13 +38,12 @@ def cmd_init(args: argparse.Namespace) -> int:
     config_path = af_dir / "config.yaml"
     config_path.write_text(_PROJECT_CONFIG_TEMPLATE, encoding="utf-8")
 
-    # Emit an init span so telemetry.jsonl exists from day one.
     try:
         from agentflow.telemetry.logger import get_logger
         logger = get_logger(output_path=af_dir / "telemetry.jsonl")
         logger.emit("init", status="ok", metadata={"cwd": str(cwd)})
     except Exception:
-        pass  # telemetry failure must never block init
+        pass
 
     print(f"Initialised AgentFlow in {af_dir}")
     print(f"  config  → {config_path}")
@@ -54,66 +53,58 @@ def cmd_init(args: argparse.Namespace) -> int:
 
 
 def cmd_oracle(args: argparse.Namespace) -> int:
-    from pathlib import Path
-    from agentflow.config.loader import load_config
-    from agentflow.oracle.conversation import OracleConversation
-
-    cwd = Path.cwd()
-    try:
-        config = load_config(cwd)
-    except Exception as exc:
-        print(f"Failed to load config: {exc}")
-        return 1
-
-    conversation = OracleConversation(project_root=cwd, config=config)
-    try:
-        conversation.run_interactive()
-    except EnvironmentError as exc:
-        print(f"Error: {exc}")
-        return 1
+    print("agentflow oracle — start the oracle skill in your AI CLI (claude or gemini)")
+    print("  Use /oracle in Claude Code or the Gemini CLI.")
     return 0
 
 
 def cmd_orchestrate_start(args: argparse.Namespace) -> int:
-    print("agentflow orchestrate start — not yet implemented (T-015)")
+    print("agentflow orchestrate start — not yet implemented")
     return 0
 
 
 def cmd_orchestrate_status(args: argparse.Namespace) -> int:
-    print("agentflow orchestrate status — not yet implemented (T-015)")
+    print("agentflow orchestrate status — not yet implemented")
     return 0
 
 
 def cmd_orchestrate_merge(args: argparse.Namespace) -> int:
-    print("agentflow orchestrate merge — not yet implemented (T-015)")
+    print("agentflow orchestrate merge — not yet implemented")
     return 0
 
 
 def cmd_report(args: argparse.Namespace) -> int:
-    print("agentflow report — not yet implemented (T-014)")
+    print("agentflow report — not yet implemented")
     return 0
 
 
 def cmd_validate(args: argparse.Namespace) -> int:
-    print("agentflow validate — not yet implemented (T-008)")
+    print("agentflow validate — not yet implemented")
+    return 0
+
+
+def cmd_scan(args: argparse.Namespace) -> int:
+    print("agentflow scan — not yet implemented")
+    return 0
+
+
+def cmd_shell(args: argparse.Namespace) -> int:
+    print("agentflow shell — not yet implemented")
     return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="agentflow",
-        description="AgentFlow — AI-driven multi-agent project manager and token optimizer",
+        description="AgentFlow — provider-agnostic multi-agent project management",
     )
-    parser.add_argument(
-        "--version", action="version", version="%(prog)s 0.1.0"
-    )
+    parser.add_argument("--version", action="version", version="%(prog)s 2.0.0")
 
     sub = parser.add_subparsers(dest="command", metavar="command")
     sub.required = True
 
     sub.add_parser("init", help="Scaffold .agentflow/ in the current project")
-
-    sub.add_parser("oracle", help="Start a design sparring session with the AI architect")
+    sub.add_parser("oracle", help="Print instructions for starting an oracle session")
 
     orch = sub.add_parser("orchestrate", help="Manage the agent orchestration lifecycle")
     orch_sub = orch.add_subparsers(dest="orch_command", metavar="subcommand")
@@ -127,6 +118,14 @@ def build_parser() -> argparse.ArgumentParser:
     validate = sub.add_parser("validate", help="Validate tasks.json schema and ownership rules")
     validate.add_argument("tasks_file", nargs="?", default="tasks.json", metavar="FILE")
 
+    scan = sub.add_parser("scan", help="Scan an existing project and build the symbol index")
+    scan.add_argument("path", nargs="?", default=".", metavar="PATH",
+                      help="Project root to scan (default: current directory)")
+
+    shell = sub.add_parser("shell", help="Start the PTY overlay shell (wraps claude or gemini)")
+    shell.add_argument("--command", default="claude",
+                       help="AI CLI command to wrap (default: claude)")
+
     return parser
 
 
@@ -139,6 +138,8 @@ def main() -> None:
         "oracle": cmd_oracle,
         "report": cmd_report,
         "validate": cmd_validate,
+        "scan": cmd_scan,
+        "shell": cmd_shell,
     }
 
     if args.command == "orchestrate":
