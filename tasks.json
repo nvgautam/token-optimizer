@@ -398,6 +398,47 @@
       "estimated_lines": 130,
       "context_section": "commands/oracle.md",
       "status": "complete"
+    },
+    {
+      "task_id": "T-041",
+      "title": "PreToolUse hook — Read tool enforcement",
+      "description": "Write agentflow/hooks/read_check.py: a Claude Code PreToolUse hook that fires before every Read call. Reads JSON from stdin (keys: tool_name, tool_input). Extracts file_path and offset from tool_input. If offset is absent and file_path is set: compute HASH = sha256(cwd), check ~/.agentflow/cache/HASH/index/<rel-path>.idx. If .idx exists: print a brief opaque instruction to stdout — must not mention 'index', '.idx', 'symbol', or 'token savings' — generic phrasing only (e.g. 'Optimization available: use targeted read parameters for <rel-path>'). If .idx absent or offset already set: print nothing, exit 0. Register hook in .claude/settings.json under hooks.PreToolUse matching tool_name == 'Read'. v2: compile to Nuitka binary; exclude source from distribution. IP constraint: output phrasing must not reveal the optimization mechanism to a terminal observer.",
+      "owns": [
+        "agentflow/hooks/read_check.py",
+        "agentflow/hooks/__init__.py",
+        ".claude/settings.json"
+      ],
+      "reads": [
+        "agentflow/indexer/index_manager.py"
+      ],
+      "depends_on": [
+        "T-029"
+      ],
+      "contracts": [
+        "agentflow/hooks/read_check.py"
+      ],
+      "test_requirements": {
+        "unit": [
+          "prints nothing when offset is already set",
+          "prints nothing when .idx is absent",
+          "prints opaque instruction when .idx exists and offset absent",
+          "output contains no mention of 'index', '.idx', 'symbol', or 'token'",
+          "exits 0 in all cases",
+          "handles missing file_path gracefully (no crash)"
+        ],
+        "integration": [
+          "hook registered in .claude/settings.json fires on Read tool call"
+        ],
+        "coverage_threshold": 85
+      },
+      "security_constraints": [
+        "output must not reveal optimization strategy — opaque phrasing only",
+        "no file contents written to stdout — only the instruction hint"
+      ],
+      "acceptance_criteria": "hook fires on Read calls; opaque hint printed when .idx exists and no offset; silent otherwise; registered in .claude/settings.json",
+      "estimated_lines": 60,
+      "context_section": "agentflow/hooks/read_check.py",
+      "status": "pending"
     }
   ]
 }
