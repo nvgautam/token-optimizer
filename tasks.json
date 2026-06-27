@@ -335,6 +335,69 @@
     {
       "task_id": "T-038",
       "status": "complete"
+    },
+    {
+      "task_id": "T-039",
+      "title": "Orchestrate skill — ledger-anchored rate cap derivation",
+      "description": "Update the rate calibration logic in commands/orchestrate.md. Replace single-session delta method (cap = session_tokens / delta_pct) with ledger-anchored method: at session end, read agentflow_ledger.json, filter sessions where start_time >= window_start (local time; datetime.now() no tz), sum billable tokens (uncached_input + cache_creation + output per session), then cap_5hr = total_5hr_tokens / (end_pct_5hr / 100) and cap_wkly = total_wkly_tokens / (end_pct_wkly / 100). Window starts: 5hr = reset_time_5hr - 5h; weekly = reset_time_wkly - 7d. Gap: current session tokens not yet flushed to ledger — correct by adding (end_pct - start_pct) * prior_cap_estimate as current-session delta if ledger read returns fewer tokens than expected. Write updated cap estimates to ~/.agentflow/rate_calibration.json alongside existing EWMA fields.",
+      "owns": [
+        "commands/orchestrate.md"
+      ],
+      "reads": [
+        "agentflow_ledger.json"
+      ],
+      "depends_on": [
+        "T-038"
+      ],
+      "contracts": [],
+      "test_requirements": {
+        "unit": [
+          "commands/orchestrate.md instructs ledger read at session end",
+          "commands/orchestrate.md filters sessions by start_time >= window_start (local time)",
+          "commands/orchestrate.md sums uncached_input + cache_creation + output per session",
+          "commands/orchestrate.md derives cap_5hr = total_5hr_tokens / (end_pct_5hr / 100)",
+          "commands/orchestrate.md derives cap_wkly = total_wkly_tokens / (end_pct_wkly / 100)",
+          "commands/orchestrate.md documents current-session gap and correction"
+        ],
+        "integration": [],
+        "coverage_threshold": 80
+      },
+      "security_constraints": [],
+      "acceptance_criteria": "orchestrate.md rate calibration write uses ledger-anchored cap derivation; window start computation documented; current-session gap correction present",
+      "estimated_lines": 145,
+      "context_section": "commands/orchestrate.md",
+      "status": "pending"
+    },
+    {
+      "task_id": "T-040",
+      "title": "Oracle skill — general .idx reading protocol",
+      "description": "Add a general Targeted Reads Rule section to commands/oracle.md. Currently oracle only checks .idx for architecture.md (Step 2a). All other file reads (lazy-loaded phase files: market.md 63L, checklist.md 113L, generation.md 133L; any future reads) have no .idx protocol. Add a 'Targeted Reads Rule' section matching the structure in commands/worker/system.md lines 51-78: compute HASH, check IDX path, grep for symbol, Read with offset+limit, fallback to full read if absent. Note: oracle's phase files (market.md, checklist.md, generation.md) are intentionally read in full when entering each phase — the rule applies to any targeted symbol/section lookup oracle makes outside of those full-phase loads.",
+      "owns": [
+        "commands/oracle.md"
+      ],
+      "reads": [
+        "commands/worker/system.md"
+      ],
+      "depends_on": [
+        "T-038"
+      ],
+      "contracts": [],
+      "test_requirements": {
+        "unit": [
+          "commands/oracle.md contains a Targeted Reads Rule section",
+          "commands/oracle.md Targeted Reads Rule instructs HASH computation",
+          "commands/oracle.md Targeted Reads Rule instructs grep for symbol in .idx",
+          "commands/oracle.md Targeted Reads Rule instructs Read with offset+limit",
+          "commands/oracle.md Targeted Reads Rule has fallback to full read when .idx absent"
+        ],
+        "integration": [],
+        "coverage_threshold": 80
+      },
+      "security_constraints": [],
+      "acceptance_criteria": "oracle.md contains a general Targeted Reads Rule matching the worker protocol; existing Step 2a architecture.md-specific section preserved",
+      "estimated_lines": 130,
+      "context_section": "commands/oracle.md",
+      "status": "pending"
     }
   ]
 }

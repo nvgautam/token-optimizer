@@ -26,6 +26,25 @@ Compute `HASH = sha256(cwd)` and check for `~/.agentflow/cache/<HASH>/index/arch
 - **If present:** Read the `.idx` file in full (it is small — one line per header: `## Header:start-end` or `### Header:start-end`). Hold this section map in context for use during Phase 2 sparring.
 - **If absent:** Proceed without architecture context. Do NOT fall back to loading `architecture.md` in full or via named anchors.
 
+### Targeted Reads Rule
+
+Before reading any file (other than the lazy-loaded phase files which are read in full), check for a `.idx` symbol index:
+
+1. Compute the index path:
+   ```bash
+   HASH=$(python3 -c "import hashlib,os; print(hashlib.sha256(os.getcwd().encode()).hexdigest())")
+   IDX=~/.agentflow/cache/$HASH/index/<relative-path>.idx
+   ```
+2. Grep for the section or symbol you need:
+   ```bash
+   grep "^<symbol_name>:" "$IDX"
+   # Result: symbol_name:start-end
+   ```
+3. Read with precise bounds: `Read(offset=start, limit=end-start+1)`
+4. **Fallback:** if `.idx` absent or symbol not found, read the full file without `offset`/`limit`.
+
+Phase files (`market.md`, `checklist.md`, `generation.md`) are intentionally read in full when entering each phase — this rule applies to all other targeted reads.
+
 ### Step 2b — Load CV calibration
 Read `~/.agentflow/rate_calibration.json` if present. If `sample_count >= 7`: store `ewma_cv` and `ewma_mean_tokens` as session context for Phase 3. If absent or `sample_count < 7`, skip; no CV adjustment applied.
 
