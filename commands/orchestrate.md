@@ -56,8 +56,13 @@ Compute on receipt of startup data:
 2. Before each round: `max_tasks = max(1, floor(effective_rate × 10 / pct_cost))` (10 = default round minutes; `pct_cost` from round-sizing heuristic above)
 3. After each `TOKENS:` report: if `effective_rate × remaining_minutes < 3 × pct_cost`, pause and ask user to run `/usage` to refresh.
 4. Ramp: first agent alone → 2 parallel (if rate supports) → 4 parallel (only after Round A cost confirmed safe).
-5. At session end: ask user to run `/usage`. Write `~/.agentflow/rate_calibration.json`:
-   `{timestamp, start_pct_5hr, end_pct_5hr, start_pct_wkly, end_pct_wkly, session_tokens, rate_5hr, rate_wkly, ewma_mean_tokens, ewma_cv, sample_count, ewma_alpha}`
+5. At session end: ask user to run `/usage` (report `end_pct_5hr`, `end_pct_wkly`). Derive caps ledger-anchored:
+   - Window starts (local time): `win_5hr = reset_time_5hr − 5h`; `win_wkly = reset_time_wkly − 7d`
+   - Read `agentflow_ledger.json`; filter `sessions[]` where `start_time ≥ window_start`
+   - Sum billable per session: `uncached_input + cache_creation + output`
+   - `cap_5hr = total_5hr_tokens / (end_pct_5hr / 100)`; `cap_wkly = total_wkly_tokens / (end_pct_wkly / 100)`
+   - Gap: current session not yet in ledger — add `(end_pct − start_pct) × prior_cap_estimate` to totals if ledger sum is visibly low
+   - Write `~/.agentflow/rate_calibration.json`: `{timestamp, start_pct_5hr, end_pct_5hr, start_pct_wkly, end_pct_wkly, session_tokens, cap_5hr, cap_wkly, rate_5hr, rate_wkly, ewma_mean_tokens, ewma_cv, sample_count, ewma_alpha}`
 
 ---
 

@@ -366,7 +366,7 @@
       "acceptance_criteria": "orchestrate.md rate calibration write uses ledger-anchored cap derivation; window start computation documented; current-session gap correction present",
       "estimated_lines": 145,
       "context_section": "commands/orchestrate.md",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-040",
@@ -397,7 +397,7 @@
       "acceptance_criteria": "oracle.md contains a general Targeted Reads Rule matching the worker protocol; existing Step 2a architecture.md-specific section preserved",
       "estimated_lines": 130,
       "context_section": "commands/oracle.md",
-      "status": "pending"
+      "status": "complete"
     }
   ]
 }

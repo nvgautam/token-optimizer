@@ -87,12 +87,17 @@ Status: IN_PROGRESS
 Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 Goal: PTY overlay shell wraps `claude`/`gemini`, counts tokens locally, injects `/handoff` at threshold, restarts session.
 
-Known scope: T-002 (config), T-006 (PTY wrapper), T-007 (tokenizer), T-008 (session manager + countdown), T-039 (ledger-anchored cap derivation)
+Known scope: T-002 (config), T-006 (PTY wrapper), T-007 (tokenizer), T-008 (session manager + countdown), T-039 (ledger-anchored cap derivation), T-040 (oracle .idx protocol)
 
 | Round | Tasks | Note |
 |---|---|---|
-| A | T-002, T-006, T-007, T-039 | All unblocked — run in parallel |
+| A | T-002, T-006, T-007, T-039, T-040 | All unblocked — run in parallel |
 | B | T-008 | After Round A — depends on T-002, T-006, T-007 |
+
+| Task | Title | Status |
+|---|---|---|
+| T-039 | Orchestrate skill — ledger-anchored rate cap | MERGED |
+| T-040 | Oracle skill — general .idx protocol | MERGED |
 
 ---
 
