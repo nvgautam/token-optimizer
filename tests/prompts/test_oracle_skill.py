@@ -99,3 +99,62 @@ def test_oracle_skill_uses_lazy_subfile_loading():
     # Lazy load instruction must indicate per-phase loading
     assert re.search(r"[Ll]azy\s+load|only when entering|not at startup", content), \
         "oracle.md must contain lazy loading instruction (e.g. 'Lazy load' or 'only when entering')"
+
+
+# Test 7: oracle reads rate_calibration.json after oracle-complete check
+def test_oracle_reads_rate_calibration_after_oracle_complete_check():
+    content = _content()
+    assert "rate_calibration.json" in content, \
+        "oracle.md must reference rate_calibration.json"
+    # Must appear in startup section (before Phase 1)
+    startup_section = content.split("## Phase")[0]
+    assert "rate_calibration.json" in startup_section, \
+        "rate_calibration.json must be read in the startup section (before Phase 1)"
+    # Must appear after Step 2 (oracle-complete check)
+    step2_idx = content.find("### Step 2")
+    cal_idx = content.find("rate_calibration.json")
+    assert cal_idx > step2_idx, \
+        "rate_calibration.json read must appear after Step 2 (oracle-complete check)"
+
+
+# Test 8: skips CV adjustment when sample_count < 7
+def test_oracle_skips_cv_adjustment_when_sample_count_below_threshold():
+    content = _content()
+    # Must mention sample_count threshold of 7
+    assert re.search(r"sample_count\s*[<>=!]+\s*7|sample_count.*7", content), \
+        "oracle.md must reference sample_count threshold of 7 for CV adjustment"
+    # Must explicitly skip or not apply when sample_count < 7
+    assert re.search(r"sample_count\s*<\s*7|sample_count.*fewer than 7|below\s*7", content), \
+        "oracle.md must skip CV adjustment when sample_count < 7"
+
+
+# Test 9: informs user of CV-driven adjustment when ewma_cv >= cv_threshold
+def test_oracle_informs_user_of_cv_driven_adjustment():
+    content = _content()
+    # Must contain the one-line user notification pattern
+    assert re.search(r"CV=.*high.*sizing tasks more conservatively", content), \
+        "oracle.md must inform user with 'CV=<value> (high) — sizing tasks more conservatively.'"
+    # Must mention cv_threshold or 0.3
+    assert re.search(r"cv_threshold|0\.3", content), \
+        "oracle.md must reference cv_threshold (default 0.3)"
+    # Notification must appear in Phase 3
+    phase3_match = re.search(r"## Phase 3.*", content, re.DOTALL)
+    assert phase3_match, "oracle.md must have Phase 3 section"
+    phase3_content = phase3_match.group(0)
+    assert re.search(r"CV=.*high.*sizing tasks more conservatively", phase3_content), \
+        "CV user notification must appear in Phase 3"
+
+
+# Test 10: caps estimated_lines more tightly when high CV detected
+def test_oracle_caps_estimated_lines_when_high_cv():
+    content = _content()
+    # Must mention estimated_lines capping or reduction in Phase 3
+    phase3_match = re.search(r"## Phase 3.*", content, re.DOTALL)
+    assert phase3_match, "oracle.md must have Phase 3 section"
+    phase3_content = phase3_match.group(0)
+    # Must reference tighter sizing (20% reduction or 180-line split threshold)
+    assert re.search(r"180|20%|tightly|conservativ", phase3_content, re.IGNORECASE), \
+        "Phase 3 must reference 180-line split threshold or 20% reduction for high CV"
+    # ewma_cv must be referenced in Phase 3
+    assert "ewma_cv" in phase3_content, \
+        "Phase 3 must reference ewma_cv for CV-driven task sizing"
