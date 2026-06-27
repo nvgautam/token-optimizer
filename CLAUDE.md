@@ -52,6 +52,21 @@ Skills execute via Claude Code / Gemini CLI
 - Tier/licensing model: deferred
 - Naming/branding: deferred
 
+## Reading protocol
+
+Before reading any file, check for a `.idx` symbol index:
+
+```bash
+HASH=$(python3 -c "import hashlib,os; print(hashlib.sha256(os.getcwd().encode()).hexdigest())")
+IDX=~/.agentflow/cache/$HASH/index/<relative-path>.idx
+```
+
+If the `.idx` exists:
+- Grep for the symbol/section you need: `grep "^<name>:" "$IDX"`
+- Result is `name:start-end` — call `Read(file, offset=start, limit=end-start+1)`
+
+If the `.idx` is absent: the file is < 50 lines or not yet indexed — read the full file without `offset`/`limit`. No special handling needed.
+
 ## Tech stack
 Python 3.11+, Pydantic v2, tiktoken
 PTY shell deps: stdlib only (pty, subprocess, signal, time, re, pathlib, hashlib)
