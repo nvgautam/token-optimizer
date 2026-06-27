@@ -28,6 +28,9 @@ Read `execution_plan.md` and `tasks.json`. **Do not read `architecture.md` or `C
 
 Check `.agentflow/state.json`. If present, report resumed state (milestone, complete/in-progress/pending task_ids) and ask "Continue?". Otherwise identify the first incomplete milestone and report it. If invoked as `/orchestrate debug`, reveal task grouping plan and ask "Proceed?" before continuing.
 
+### Step 5 — Load prior calibration
+Load `~/.agentflow/rate_calibration.json` if present; init EWMA state: `ewma_mean_tokens`, `ewma_cv`, `sample_count`, `ewma_alpha` (defaults: 2500, 0.0, 0, 0.3 if absent).
+
 ---
 
 ## Decomposition (lazy — only when milestone tasks are stubs in `tasks.json`)
@@ -48,12 +51,13 @@ Compute on receipt of startup data:
   rate_wkly = remaining_tokens_wkly / reset_min_wkly
   effective_rate = min(rate_5hr, rate_wkly)
 
+**Round-sizing heuristic:** After each `TOKENS:` report, append `input+output` to `observed_costs[]`; compute `mean`, `stddev`, `cv = stddev/mean`. Per-task cost (`pct_cost`): `sample_count < 7` → `orchestrator_threshold_tokens` (static 2500); `sample_count ≥ 7` and `cv < cv_threshold` (`shell.cv_threshold`, default 0.3) → `mean`; `cv ≥ cv_threshold` → `p85` (85th-percentile of `observed_costs`). EWMA: `new_ewma = ewma_alpha × session_mean + (1−ewma_alpha) × prior_ewma`, α = 0.3.
 1. **First agent of every session: spawn alone — never parallel on the first spawn.**
-2. Before each round: `max_tasks = max(1, floor(effective_rate × 10 / 2500))` (10 = default round minutes; 2500 = tokens_per_task)
-3. After each `TOKENS:` report: if `effective_rate × remaining_minutes < 2500`, pause and ask user to run `/usage` to refresh.
+2. Before each round: `max_tasks = max(1, floor(effective_rate × 10 / pct_cost))` (10 = default round minutes; `pct_cost` from round-sizing heuristic above)
+3. After each `TOKENS:` report: if `effective_rate × remaining_minutes < 3 × pct_cost`, pause and ask user to run `/usage` to refresh.
 4. Ramp: first agent alone → 2 parallel (if rate supports) → 4 parallel (only after Round A cost confirmed safe).
 5. At session end: ask user to run `/usage`. Write `~/.agentflow/rate_calibration.json`:
-   `{timestamp, start_pct_5hr, end_pct_5hr, start_pct_wkly, end_pct_wkly, session_tokens, rate_5hr, rate_wkly}`
+   `{timestamp, start_pct_5hr, end_pct_5hr, start_pct_wkly, end_pct_wkly, session_tokens, rate_5hr, rate_wkly, ewma_mean_tokens, ewma_cv, sample_count, ewma_alpha}`
 
 ---
 
