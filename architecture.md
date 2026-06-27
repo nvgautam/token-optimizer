@@ -181,10 +181,12 @@ The `/handoff` skill flushes current resolution state to `design_status.md` befo
 - Source of truth for milestone status and task assignments — see `execution_plan.md`
 
 Orchestrator startup:
-1. Read `execution_plan.md` — find first incomplete milestone
-2. Stub-only tasks in current milestone → decompose using milestone's architecture anchor, write to `tasks.json`
-3. Read `tasks.json` — pick up in-flight tasks, spawn pending ones
-4. All milestones `COMPLETE`? → project done
+1. Check `.agentflow/orchestrator.lock` — if exists and process is active, fail with concurrency error. Otherwise write active PID, provider, and timestamp to lock file.
+2. Read `execution_plan.md` — find first incomplete milestone
+3. Stub-only tasks in current milestone → decompose using milestone's architecture anchor, write to `tasks.json`
+4. Read `tasks.json` — pick up in-flight tasks, spawn pending ones
+5. All milestones `COMPLETE`? → project done
+6. On exit or /handoff, delete the lock file.
 
 ---
 

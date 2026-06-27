@@ -10,10 +10,13 @@ Say exactly:
 Personas: Senior Principal Engineer · Senior Principal PM · Senior Principal Designer — applied simultaneously throughout.
 ```
 
-### Step 2 — Design status check
-Read `design_status.md` in full (it is small — under 60 lines).
+### Step 1b — Budget announcement
+Say: "This session will consume approximately 2% of your 5-hour window limit."
 
-- Any rows with status `UNRESOLVED` found → this is a re-spar; present the UNRESOLVED items to the user and resume sparring from them.
+### Step 2 — Design status check
+Read `design_status.md` in full (it is small — under 60 lines, and replaces the decisions log in `architecture.md` for checking `UNRESOLVED` items).
+
+- Any rows with status `UNRESOLVED` found → this is a re-spar; present the `UNRESOLVED` items to the user and resume sparring from them.
 - All rows are `RESOLVED` or `DEFERRED` → say: "Oracle is complete for this project. Run `/orchestrate` to begin implementation." Stop.
 - File absent → fresh project; continue to Step 3.
 
