@@ -291,12 +291,10 @@
       ],
       "reads": [
         "architecture.md#context-bundle",
-        "agentflow/indexer/index_manager.py",
-        "agentflow/config/schema.py"
+        "agentflow/indexer/index_manager.py"
       ],
       "depends_on": [
         "T-001",
-        "T-002",
         "T-029"
       ],
       "contracts": [
