@@ -90,7 +90,7 @@ Compute on receipt of startup data:
      2. For each symbol entry, embed a labelled excerpt:
         ```
         ### <file-path> — <name> (lines <start>–<end>)
-        <Read file-path offset=start-1 limit=(end-start+1)>
+        <Read file-path offset=start limit=(end-start+1)>
         ```
      3. Emit all excerpts in order; do **not** embed the full file
    - If `idx_path` is absent (file < 50 lines or index not yet generated):
