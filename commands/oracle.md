@@ -20,6 +20,9 @@ Read `design_status.md` in full (it is small — under 60 lines, and replaces th
 - All rows are `RESOLVED` or `DEFERRED` → say: "Oracle is complete for this project. Run `/orchestrate` to begin implementation." Stop.
 - File absent → fresh project; continue to Step 3.
 
+### Step 2b — Load CV calibration
+Read `~/.agentflow/rate_calibration.json` if present. If `sample_count >= 7`: store `ewma_cv` and `ewma_mean_tokens` as session context for Phase 3. If absent or `sample_count < 7`, skip; no CV adjustment applied.
+
 ### Step 3 — Opening question
 Ask: "Tell me about your project. What are you building?"
 
@@ -104,6 +107,12 @@ Write five files to the project root: `design_status.md`, `architecture.md`, `CL
 - One idea per bullet; sub-bullets for detail, not continuation
 
 Use the RESOLVED/UNRESOLVED/DEFERRED status format and required sections defined in `generation.md`.
+
+**CV-driven task sizing:** If session context has `ewma_cv >= 0.3` (cv_threshold): cap `estimated_lines` per task to 80% of normal (reduce by ~20%); split any task exceeding 180 lines into two tasks. Say exactly one line:
+```
+CV=<ewma_cv> (high) — sizing tasks more conservatively.
+```
+Do not apply if `sample_count < 7`.
 
 ---
 
