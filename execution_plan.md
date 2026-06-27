@@ -54,7 +54,7 @@ M2 + addendum fully complete. Skills goal achieved.
 ---
 
 ## Milestone 3: Symbol Indexer
-Status: COMPLETE
+Status: IN_PROGRESS
 Architecture: architecture.md#symbol-indexer
 Goal: Orchestrate skill generates .idx files inline (pre-spawn) for task reads lists; workers use targeted reads to validate token savings empirically. Python parser modules follow after validation.
 
@@ -64,6 +64,8 @@ Goal: Orchestrate skill generates .idx files inline (pre-spawn) for task reads l
 | T-028a | Symbol index — Python parser | T-001, T-031 | MERGED |
 | T-028b | Symbol index — Markdown parser | T-001, T-028a | MERGED |
 | T-029 | Symbol index — index manager and brownfield scanner | T-001, T-028b | MERGED |
+| T-036 | Targeted reads in orchestrate skill — consume .idx files | T-031 | PENDING |
+| T-037 | Targeted architecture reads in oracle skill — re-spar path | T-031 | PENDING |
 
 Note: json_parser and yaml_parser dropped — design_status.md resolves .idx format as Python + Markdown only (no JSON/YAML indexing).
 
@@ -73,6 +75,8 @@ Note: json_parser and yaml_parser dropped — design_status.md resolves .idx for
 | B | T-028a | MERGED — Python parser + IndexEntry type + init scaffolding |
 | C | T-028b | MERGED — Markdown parser |
 | D | T-029 | Index manager + brownfield scanner — depends on T-028b |
+| E | T-036 | PENDING — targeted reads in orchestrate skill; consumes .idx instead of full files |
+| F | T-037 | PENDING — targeted reads in oracle re-spar path; consumes architecture.md.idx instead of full file |
 
 ---
 
