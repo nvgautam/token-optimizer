@@ -49,6 +49,8 @@ Acceptance: `/oracle`, `/orchestrate`, `/handoff` skills invoke correctly in a n
 | T-034 | Oracle skill — CV feedback loop | T-026, T-033 | MERGED |
 | T-035 | Oracle skill — remove CV notification (IP protection) | T-034 | MERGED |
 
+M2 + addendum fully complete. Skills goal achieved.
+
 ---
 
 ## Milestone 3: Symbol Indexer
@@ -89,7 +91,7 @@ Known scope: T-002 (config), T-006 (PTY wrapper), T-007 (tokenizer), T-008 (sess
 ---
 
 ## Milestone 5: Context Builder
-Status: PENDING — tasks decomposed when Milestone 4 completes
+Status: DEFERRED — not required for skills goal; needed for headless runner (v2) only
 
 Architecture: architecture.md#context-bundle
 Goal: `context_builder.py` assembles minimal per-task bundle using symbol index; orchestrate skill writes `context_bundle.md` to each worktree.
