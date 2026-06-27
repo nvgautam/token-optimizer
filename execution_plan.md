@@ -26,9 +26,12 @@ Goal: All provider skill files and prompt files exist and are testable via manua
 | T-013 | Oracle prompts | T-001 | MERGED |
 | T-014 | Worker prompts | T-001 | MERGED |
 | T-015 | Reviewer + orchestrator prompts | T-001 | MERGED |
-| T-025 | Handoff skill — provider files | T-001 | MERGED |
+| T-025 | Handoff skill — Claude provider | T-001 | MERGED |
+| T-025g | Handoff skill — Gemini/AGY provider | T-001 | MERGED |
 | T-026 | Oracle skill — provider files | T-013 | MERGED |
-| T-027 | Orchestrator skill — provider files | T-015 | MERGED |
+| T-027 | Orchestrator skill — Claude provider | T-015 | MERGED |
+| T-027g | Orchestrator skill — Gemini/AGY provider | T-015 | MERGED |
+| T-004g | Developer rules — Gemini/AGY provider (AGENTS.md) | T-001 | MERGED |
 
 | Round | Tasks | Note |
 |---|---|---|

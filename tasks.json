@@ -204,6 +204,9 @@
       "status": "complete"
     },
     {"task_id": "T-025", "status": "complete"},
+    {"task_id": "T-025g", "status": "complete"},
+    {"task_id": "T-027g", "status": "complete"},
+    {"task_id": "T-004g", "status": "complete"},
     {"task_id": "T-031", "status": "complete"},
     {"task_id": "T-028a", "status": "complete"},
     {"task_id": "T-028b", "status": "complete"},
