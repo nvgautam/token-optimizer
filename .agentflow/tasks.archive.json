@@ -4,7 +4,7 @@
     "task": {
       "task_id": "T-014",
       "title": "Worker prompts",
-      "description": "Write worker prompt sub-files embedded by commands/orchestrate.md into agent spawn prompts. system.md: implementer persona, no-re-read rule ('Do not use the Read tool on any file listed in your Dependencies section — contents already in context'), section-only loading rule ('Never load full architecture.md — read only the anchor section listed in your context_section field'), verbosity instruction ('Keep responses concise — code and test output only, no prose explanations unless asked'), TDD approach. context_bundle.md: bundle format spec and interpretation guide. testing_guide.md: red→green TDD, behaviour not implementation, IO mocks pre-generated, skeleton bodies start as NotImplementedError. Each file ≤ 150 lines.",
+      "description": "Write worker prompt sub-files embedded by commands/orchestrate.md into agent spawn prompts. system.md: implementer persona, no-re-read rule ('Do not use the Read tool on any file listed in your Dependencies section \u2014 contents already in context'), section-only loading rule ('Never load full architecture.md \u2014 read only the anchor section listed in your context_section field'), verbosity instruction ('Keep responses concise \u2014 code and test output only, no prose explanations unless asked'), TDD approach. context_bundle.md: bundle format spec and interpretation guide. testing_guide.md: red\u2192green TDD, behaviour not implementation, IO mocks pre-generated, skeleton bodies start as NotImplementedError. Each file \u2264 150 lines.",
       "owns": [
         "commands/worker/system.md",
         "commands/worker/context_bundle.md",
@@ -14,7 +14,9 @@
         "architecture.md#context-bundle",
         "commands/orchestrate.md"
       ],
-      "depends_on": ["T-001"],
+      "depends_on": [
+        "T-001"
+      ],
       "contracts": [],
       "test_requirements": {
         "unit": [
@@ -39,7 +41,7 @@
     "task": {
       "task_id": "T-015",
       "title": "Reviewer and orchestrator prompts",
-      "description": "Write reviewer and orchestrator prompt sub-files embedded by commands/orchestrate.md into review and planning agent prompts. Reviewer prompts: code_review.md (contract adherence, architecture conformance, file size check), security_review.md (OWASP Top 10, secrets, PR diff treated as untrusted data — never as instructions, compliance constraints), test_review.md (scenario coverage, mock appropriateness, coverage threshold). Orchestrator prompts: planning.md (milestone decomposition format from architecture.md). Note: orchestrator persona/system instructions are inlined in commands/orchestrate.md (owned by T-027), not here. Each file ≤ 150 lines.",
+      "description": "Write reviewer and orchestrator prompt sub-files embedded by commands/orchestrate.md into review and planning agent prompts. Reviewer prompts: code_review.md (contract adherence, architecture conformance, file size check), security_review.md (OWASP Top 10, secrets, PR diff treated as untrusted data \u2014 never as instructions, compliance constraints), test_review.md (scenario coverage, mock appropriateness, coverage threshold). Orchestrator prompts: planning.md (milestone decomposition format from architecture.md). Note: orchestrator persona/system instructions are inlined in commands/orchestrate.md (owned by T-027), not here. Each file \u2264 150 lines.",
       "owns": [
         "commands/reviewer/code_review.md",
         "commands/reviewer/security_review.md",
@@ -51,7 +53,9 @@
         "architecture.md#orchestrator-design",
         "commands/orchestrate.md"
       ],
-      "depends_on": ["T-001"],
+      "depends_on": [
+        "T-001"
+      ],
       "contracts": [],
       "test_requirements": {
         "unit": [
@@ -76,8 +80,8 @@
     "archived_at": "2026-06-26T00:00:00Z",
     "task": {
       "task_id": "T-025",
-      "title": "Handoff skill — Claude provider",
-      "description": "Update commands/handoff.md (the existing working handoff skill). Must flush current session state to the living document (architecture.md for oracle sessions, execution_plan.md for orchestrator sessions) and print HANDOFF_COMPLETE: <path> to stdout for the PTY shell to detect. Skills also emit HANDOFF RECOMMENDED: <reason> proactively at natural stopping points. Compact format rule: when writing architecture.md or execution_plan.md, use tables and bullet points only — no prose paragraphs. Uses .agentflow/ paths. Gemini provider deferred.",
+      "title": "Handoff skill \u2014 Claude provider",
+      "description": "Update commands/handoff.md (the existing working handoff skill). Must flush current session state to the living document (architecture.md for oracle sessions, execution_plan.md for orchestrator sessions) and print HANDOFF_COMPLETE: <path> to stdout for the PTY shell to detect. Skills also emit HANDOFF RECOMMENDED: <reason> proactively at natural stopping points. Compact format rule: when writing architecture.md or execution_plan.md, use tables and bullet points only \u2014 no prose paragraphs. Uses .agentflow/ paths. Gemini provider deferred.",
       "owns": [
         "commands/handoff.md"
       ],
@@ -85,7 +89,9 @@
         "architecture.md#handoff-flow",
         "architecture.md#state-documents"
       ],
-      "depends_on": ["T-001"],
+      "depends_on": [
+        "T-001"
+      ],
       "contracts": [],
       "test_requirements": {
         "unit": [
@@ -104,17 +110,25 @@
       "context_section": "architecture.md#handoff-flow",
       "status": "merged"
     }
-  }
-,
+  },
   {
     "archived_at": "2026-06-26T17:42:00Z",
     "task": {
       "task_id": "T-026",
-      "title": "Oracle skill — Claude provider",
+      "title": "Oracle skill \u2014 Claude provider",
       "description": "Update commands/oracle.md with full multi-persona design sparring flow: inline persona declaration (Senior PE + PM + Designer), market segment question first, verbosity instruction, HANDOFF RECOMMENDED signals after each checklist batch. Lazy sub-file loading per phase. Reads architecture.md on startup for UNRESOLVED check only. Writes 4 artifacts on completion. Generic across all projects.",
-      "owns": ["commands/oracle.md"],
-      "reads": ["commands/oracle/checklist.md", "commands/oracle/market.md", "commands/oracle/generation.md", "architecture.md#oracle-design"],
-      "depends_on": ["T-013"],
+      "owns": [
+        "commands/oracle.md"
+      ],
+      "reads": [
+        "commands/oracle/checklist.md",
+        "commands/oracle/market.md",
+        "commands/oracle/generation.md",
+        "architecture.md#oracle-design"
+      ],
+      "depends_on": [
+        "T-013"
+      ],
       "contracts": [],
       "test_requirements": {
         "unit": [
@@ -122,7 +136,7 @@
           "commands/oracle.md contains multi-persona persona declaration",
           "commands/oracle.md does not reference any specific project name",
           "commands/oracle.md contains ~2% budget announcement instruction",
-          "commands/oracle.md contains ≤3-sentence verbosity rule for spar phase",
+          "commands/oracle.md contains \u22643-sentence verbosity rule for spar phase",
           "commands/oracle.md contains lazy sub-file loading instruction (per-phase, not at startup)"
         ],
         "integration": [],
@@ -140,7 +154,7 @@
     "task": {
       "task_id": "T-013",
       "title": "Oracle prompts",
-      "description": "Write oracle prompt sub-files loaded by commands/oracle.md at runtime. market.md: consumer/SMB/enterprise question bank with compliance and auth defaults per segment. checklist.md: 23+ NFR items (each as a ## section header) covering the full checklist. generation.md: architecture.md + CLAUDE.md output format with RESOLVED/UNRESOLVED/DEFERRED item format, compact writing rules (tables/bullets/no prose paragraphs for all state document writes). Each file ≤ 150 lines. Note: persona/system instructions are inlined in commands/oracle.md (owned by T-026), not here.",
+      "description": "Write oracle prompt sub-files loaded by commands/oracle.md at runtime. market.md: consumer/SMB/enterprise question bank with compliance and auth defaults per segment. checklist.md: 23+ NFR items (each as a ## section header) covering the full checklist. generation.md: architecture.md + CLAUDE.md output format with RESOLVED/UNRESOLVED/DEFERRED item format, compact writing rules (tables/bullets/no prose paragraphs for all state document writes). Each file \u2264 150 lines. Note: persona/system instructions are inlined in commands/oracle.md (owned by T-026), not here.",
       "owns": [
         "commands/oracle/checklist.md",
         "commands/oracle/market.md",
@@ -150,7 +164,9 @@
         "architecture.md#oracle-design",
         "commands/oracle.md"
       ],
-      "depends_on": ["T-001"],
+      "depends_on": [
+        "T-001"
+      ],
       "contracts": [],
       "test_requirements": {
         "unit": [
@@ -178,10 +194,18 @@
     "task": {
       "task_id": "T-031",
       "title": "Inline .idx generation in orchestrate skill",
-      "description": "Update commands/orchestrate.md pre-spawn section to generate .idx files for every file in each task's reads list: Python files → ast-based symbol extraction (function names, class names, class methods in ClassName.method:start-end format); Markdown files → grep-based H2/H3 header extraction (format: ## Header:start-end). Write .idx files to ~/.agentflow/cache/<sha256-of-project-root>/index/<mirrored-path>.idx. Update commands/worker/system.md to add targeted reads instruction: before reading any file in the reads list, grep the .idx for the needed symbol, then use Read(offset, limit) instead of reading the full file. Fallback: if .idx absent or symbol not found, read full file. Both changes are prompt/instruction additions only — no Python code.",
-      "owns": ["commands/orchestrate.md", "commands/worker/system.md"],
-      "reads": ["architecture.md#symbol-indexer", "commands/worker/context_bundle.md"],
-      "depends_on": ["T-027"],
+      "description": "Update commands/orchestrate.md pre-spawn section to generate .idx files for every file in each task's reads list: Python files \u2192 ast-based symbol extraction (function names, class names, class methods in ClassName.method:start-end format); Markdown files \u2192 grep-based H2/H3 header extraction (format: ## Header:start-end). Write .idx files to ~/.agentflow/cache/<sha256-of-project-root>/index/<mirrored-path>.idx. Update commands/worker/system.md to add targeted reads instruction: before reading any file in the reads list, grep the .idx for the needed symbol, then use Read(offset, limit) instead of reading the full file. Fallback: if .idx absent or symbol not found, read full file. Both changes are prompt/instruction additions only \u2014 no Python code.",
+      "owns": [
+        "commands/orchestrate.md",
+        "commands/worker/system.md"
+      ],
+      "reads": [
+        "architecture.md#symbol-indexer",
+        "commands/worker/context_bundle.md"
+      ],
+      "depends_on": [
+        "T-027"
+      ],
       "contracts": [],
       "test_requirements": {
         "unit": [
@@ -205,8 +229,8 @@
     "archived_at": "2026-06-26T15:45:00Z",
     "task": {
       "task_id": "T-028a",
-      "title": "Symbol index — Python parser",
-      "description": "AST-based parser for Python files. Define IndexEntry dataclass in agentflow/indexer/__init__.py: fields name (str), kind (str), start_line (int), end_line (int), signature (str | None). python_parser.py exposes parse(path: Path) → list[IndexEntry]. Extracts: top-level functions (kind='function'), top-level classes (kind='class'), and class methods in ClassName.method format (kind='method'). Include signature string for functions and methods. Skip files with fewer than 50 lines (return []). No external deps beyond stdlib + ast. Unreadable or unparseable files return [] without raising.",
+      "title": "Symbol index \u2014 Python parser",
+      "description": "AST-based parser for Python files. Define IndexEntry dataclass in agentflow/indexer/__init__.py: fields name (str), kind (str), start_line (int), end_line (int), signature (str | None). python_parser.py exposes parse(path: Path) \u2192 list[IndexEntry]. Extracts: top-level functions (kind='function'), top-level classes (kind='class'), and class methods in ClassName.method format (kind='method'). Include signature string for functions and methods. Skip files with fewer than 50 lines (return []). No external deps beyond stdlib + ast. Unreadable or unparseable files return [] without raising.",
       "owns": [
         "agentflow/indexer/__init__.py",
         "agentflow/indexer/parsers/__init__.py",
@@ -214,9 +238,17 @@
         "tests/indexer/__init__.py",
         "tests/indexer/test_python_parser.py"
       ],
-      "reads": ["architecture.md#symbol-indexer"],
-      "depends_on": ["T-001", "T-031"],
-      "contracts": ["agentflow/indexer/__init__.py", "agentflow/indexer/parsers/python_parser.py"],
+      "reads": [
+        "architecture.md#symbol-indexer"
+      ],
+      "depends_on": [
+        "T-001",
+        "T-031"
+      ],
+      "contracts": [
+        "agentflow/indexer/__init__.py",
+        "agentflow/indexer/parsers/python_parser.py"
+      ],
       "acceptance_criteria": "parse returns correct IndexEntry list for a fixture Python file with functions, classes, and methods; files < 50 lines skipped; no external deps",
       "status": "merged",
       "pr": 12,
@@ -227,16 +259,80 @@
     "archived_at": "2026-06-26T16:00:00Z",
     "task": {
       "task_id": "T-028b",
-      "title": "Symbol index — Markdown parser",
-      "description": "Regex-based parser for Markdown files. markdown_parser.py exposes parse(path: Path) → list[IndexEntry]. Extracts H2 (##) and H3 (###) section headers with line ranges. name includes ## prefix. kind='section'. end_line = line before next header at same/higher level or EOF. Skip files < 50 lines. No external deps beyond stdlib. Unreadable files return [] without raising.",
-      "owns": ["agentflow/indexer/parsers/markdown_parser.py", "tests/indexer/test_markdown_parser.py"],
-      "reads": ["agentflow/indexer/__init__.py", "architecture.md#symbol-indexer"],
-      "depends_on": ["T-001", "T-028a"],
-      "contracts": ["agentflow/indexer/parsers/markdown_parser.py"],
+      "title": "Symbol index \u2014 Markdown parser",
+      "description": "Regex-based parser for Markdown files. markdown_parser.py exposes parse(path: Path) \u2192 list[IndexEntry]. Extracts H2 (##) and H3 (###) section headers with line ranges. name includes ## prefix. kind='section'. end_line = line before next header at same/higher level or EOF. Skip files < 50 lines. No external deps beyond stdlib. Unreadable files return [] without raising.",
+      "owns": [
+        "agentflow/indexer/parsers/markdown_parser.py",
+        "tests/indexer/test_markdown_parser.py"
+      ],
+      "reads": [
+        "agentflow/indexer/__init__.py",
+        "architecture.md#symbol-indexer"
+      ],
+      "depends_on": [
+        "T-001",
+        "T-028a"
+      ],
+      "contracts": [
+        "agentflow/indexer/parsers/markdown_parser.py"
+      ],
       "acceptance_criteria": "parse returns correct IndexEntry list; H2/H3 extracted; end_line correct; files < 50 lines skipped; no external deps",
       "status": "merged",
       "pr": 13,
       "result": "17 tests green, 97% coverage"
+    }
+  },
+  {
+    "archived_at": "2026-06-27T00:15:10Z",
+    "task": {
+      "task_id": "T-029",
+      "title": "Symbol index \u2014 index manager and brownfield scanner",
+      "description": "index_manager.py: manages the cache at ~/.agentflow/cache/<sha256-of-project-root>/index/<mirrored-path>.idx. Exposes update(path, contents) \u2192 None (write index entry), lookup(path, symbol) \u2192 IndexEntry|None (targeted read), get_index(path) \u2192 list[IndexEntry] (all entries for a file). Cache miss regenerates from file contents deterministically. brownfield_scanner.py: walk project tree on first load, index all files meeting type+size thresholds, populate cache. Exposes scan(project_root) \u2192 int (files indexed). Both modules are idempotent \u2014 safe to run twice.",
+      "owns": [
+        "agentflow/indexer/index_manager.py",
+        "agentflow/indexer/brownfield_scanner.py",
+        "tests/indexer/test_index_manager.py",
+        "tests/indexer/test_brownfield_scanner.py"
+      ],
+      "reads": [
+        "architecture.md#symbol-indexer",
+        "agentflow/indexer/__init__.py",
+        "agentflow/indexer/parsers/python_parser.py",
+        "agentflow/indexer/parsers/markdown_parser.py"
+      ],
+      "depends_on": [
+        "T-001",
+        "T-028b"
+      ],
+      "contracts": [
+        "agentflow/indexer/index_manager.py",
+        "agentflow/indexer/brownfield_scanner.py"
+      ],
+      "test_requirements": {
+        "unit": [
+          "update writes .idx file at correct cache path",
+          "lookup returns correct IndexEntry for known symbol",
+          "lookup returns None for unknown symbol",
+          "cache miss triggers regeneration from file contents",
+          "update is idempotent \u2014 running twice produces same result",
+          "brownfield scan returns count of files indexed",
+          "brownfield scan skips files below size threshold",
+          "brownfield scan is idempotent"
+        ],
+        "integration": [
+          "scan project fixture tree, then lookup symbol \u2014 returns correct entry"
+        ],
+        "coverage_threshold": 88
+      },
+      "security_constraints": [
+        "cache path must be outside project tree \u2014 validate it resolves under ~/.agentflow/"
+      ],
+      "acceptance_criteria": "lookup returns correct entry after update; brownfield scan indexes all eligible files; cache path never inside project tree",
+      "estimated_lines": 200,
+      "context_section": "architecture.md#symbol-indexer",
+      "status": "merged",
+      "pr": 14,
+      "result": "All unit and integration tests passing successfully (58 tests passed in total, with 96% coverage on the indexer package)"
     }
   }
 ]

@@ -4,11 +4,14 @@
   "repo": ".",
   "description": "Provider-agnostic multi-agent project management: skills for Claude and Gemini + PTY overlay shell",
   "tasks": [
-    {"task_id": "T-001", "status": "complete"},
+    {
+      "task_id": "T-001",
+      "status": "complete"
+    },
     {
       "task_id": "T-002",
       "title": "Config system",
-      "description": "Pydantic v2 schema for all config fields (models, shell, testing, token_budget, file_limits, parallelism). Layered loader resolving env vars → .agentflow/config.yaml → ~/.agentflow/config.yaml → defaults.yaml. Expose load_config(cwd) → typed Config object. Ship defaults.yaml per architecture.md#config-schema. Shell config must include per-session-type thresholds: shell.oracle_threshold_tokens (default 60000) and shell.orchestrator_threshold_tokens (default 30000) in addition to the global threshold_tokens. Also add shell.tokens_per_task_estimate (default 2500) — used by orchestrator round-sizing heuristic.",
+      "description": "Pydantic v2 schema for all config fields (models, shell, testing, token_budget, file_limits, parallelism). Layered loader resolving env vars \u2192 .agentflow/config.yaml \u2192 ~/.agentflow/config.yaml \u2192 defaults.yaml. Expose load_config(cwd) \u2192 typed Config object. Ship defaults.yaml per architecture.md#config-schema. Shell config must include per-session-type thresholds: shell.oracle_threshold_tokens (default 60000) and shell.orchestrator_threshold_tokens (default 30000) in addition to the global threshold_tokens. Also add shell.tokens_per_task_estimate (default 2500) \u2014 used by orchestrator round-sizing heuristic.",
       "owns": [
         "agentflow/config/loader.py",
         "agentflow/config/schema.py",
@@ -19,7 +22,9 @@
       "reads": [
         "architecture.md#config-schema"
       ],
-      "depends_on": ["T-001"],
+      "depends_on": [
+        "T-001"
+      ],
       "contracts": [
         "agentflow/config/loader.py",
         "agentflow/config/schema.py"
@@ -50,7 +55,7 @@
     {
       "task_id": "T-006",
       "title": "PTY wrapper",
-      "description": "Spawn an AI CLI command (e.g. 'claude', 'gemini') inside a PTY using the pty module. Transparently relay I/O between user terminal and child process. Expose read_output(timeout) → bytes, write_input(text) → None. Detect child process exit and surface ExitCode. All I/O callbacks registered at construction time for interception. stdlib only.",
+      "description": "Spawn an AI CLI command (e.g. 'claude', 'gemini') inside a PTY using the pty module. Transparently relay I/O between user terminal and child process. Expose read_output(timeout) \u2192 bytes, write_input(text) \u2192 None. Detect child process exit and surface ExitCode. All I/O callbacks registered at construction time for interception. stdlib only.",
       "owns": [
         "agentflow/shell/pty_wrapper.py",
         "tests/shell/test_pty_wrapper.py",
@@ -59,7 +64,9 @@
       "reads": [
         "architecture.md#pty-shell-design"
       ],
-      "depends_on": ["T-001"],
+      "depends_on": [
+        "T-001"
+      ],
       "contracts": [
         "agentflow/shell/pty_wrapper.py"
       ],
@@ -84,7 +91,7 @@
     {
       "task_id": "T-007",
       "title": "Local tokenizer",
-      "description": "Per-provider token counting using tiktoken. count_tokens(text, provider) → int. Supported providers: 'claude', 'gemini' (both use cl100k_base approximation). Maintain a running total via accumulate(text, provider) → int (cumulative). reset() clears the accumulator. No API calls. Fallback to whitespace split if tiktoken unavailable (degrade gracefully, log warning).",
+      "description": "Per-provider token counting using tiktoken. count_tokens(text, provider) \u2192 int. Supported providers: 'claude', 'gemini' (both use cl100k_base approximation). Maintain a running total via accumulate(text, provider) \u2192 int (cumulative). reset() clears the accumulator. No API calls. Fallback to whitespace split if tiktoken unavailable (degrade gracefully, log warning).",
       "owns": [
         "agentflow/shell/tokenizer.py",
         "tests/shell/test_tokenizer.py"
@@ -92,7 +99,9 @@
       "reads": [
         "architecture.md#pty-shell-design"
       ],
-      "depends_on": ["T-001"],
+      "depends_on": [
+        "T-001"
+      ],
       "contracts": [
         "agentflow/shell/tokenizer.py"
       ],
@@ -127,7 +136,12 @@
         "agentflow/shell/tokenizer.py",
         "agentflow/config/schema.py"
       ],
-      "depends_on": ["T-001", "T-002", "T-006", "T-007"],
+      "depends_on": [
+        "T-001",
+        "T-002",
+        "T-006",
+        "T-007"
+      ],
       "contracts": [
         "agentflow/shell/session_manager.py"
       ],
@@ -148,19 +162,31 @@
         "coverage_threshold": 85
       },
       "security_constraints": [],
-      "acceptance_criteria": "threshold breach triggers full flow: inject /handoff → detect HANDOFF_COMPLETE → countdown → restart skill",
+      "acceptance_criteria": "threshold breach triggers full flow: inject /handoff \u2192 detect HANDOFF_COMPLETE \u2192 countdown \u2192 restart skill",
       "estimated_lines": 230,
       "context_section": "architecture.md#pty-shell-design",
       "status": "pending"
     },
-    {"task_id": "T-013", "status": "complete"},
-    {"task_id": "T-014", "status": "complete"},
-    {"task_id": "T-015", "status": "complete"},
-    {"task_id": "T-026", "status": "complete"},
+    {
+      "task_id": "T-013",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-014",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-015",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-026",
+      "status": "complete"
+    },
     {
       "task_id": "T-027",
-      "title": "Orchestrator skill — Claude provider",
-      "description": "Update commands/orchestrate.md (the existing working orchestrate skill). Must inline Staff Engineering Lead persona, oracle-complete gate (all design_status.md items RESOLVED or DEFERRED — check design_status.md, NOT architecture.md), HUMAN_APPROVED gate, lazy milestone decomposition, and round-sizing heuristic. Round-sizing heuristic: before each round, calculate max_tasks_in_round = max(1, (orchestrator_threshold_tokens - current_estimated_tokens) / tokens_per_task_estimate). Current tokens tracked from TOKENS: reports of completed agents this session. This prevents orchestrator context from blowing through threshold mid-round. Reads commands/worker/system.md, commands/worker/context_bundle.md, commands/worker/testing_guide.md (embed into agent spawn prompts at spawn time only). Reads commands/reviewer/*.md, commands/orchestrator/planning.md (embed into review agent prompts at review time only). Lazy loading: architecture.md is read anchor-section-only (the section listed for the current milestone), never full doc, never at startup; worker and reviewer prompts are loaded inline at spawn time, not at startup. STARTUP READS: only execution_plan.md and tasks.json — do NOT read architecture.md at startup, do NOT read CLAUDE.md at startup, do NOT read design_status.md at startup. Do NOT embed the .gitignore template in the skill body — write it inline at the moment it is needed (one write, no template stored in context). Rate-pacing protocol: (1) at session start, ask user to run /usage and report 5-hour window % — store as session_start_pct; (2) always spawn the first agent of a session alone — never parallel on the first spawn; (3) after each TOKENS: report, compute pct_cost = tokens / estimated_limit, check remaining > 3 × pct_cost before spawning next; (4) ramp: first agent alone → if data supports, second agent → if two data points support, up to 2 parallel → 4 parallel only after Round A observed cost confirms it is safe; (5) at session end (before /handoff), ask user to run /usage again — compute session_pct_consumed = end_pct - start_pct, write paired reading to ~/.agentflow/rate_calibration.json {timestamp, start_pct, end_pct, session_tokens, estimated_limit} — estimated_limit = session_tokens / session_pct_consumed. Verbosity rules: status updates one line maximum; round reports table format only; no prose between agent spawns; agent spawn prompts must end with 'End your final message with TOKENS: input=N output=N — nothing after that line'. Gemini provider deferred.",
+      "title": "Orchestrator skill \u2014 Claude provider",
+      "description": "Update commands/orchestrate.md (the existing working orchestrate skill). Must inline Staff Engineering Lead persona, oracle-complete gate (all design_status.md items RESOLVED or DEFERRED \u2014 check design_status.md, NOT architecture.md), HUMAN_APPROVED gate, lazy milestone decomposition, and round-sizing heuristic. Round-sizing heuristic: before each round, calculate max_tasks_in_round = max(1, (orchestrator_threshold_tokens - current_estimated_tokens) / tokens_per_task_estimate). Current tokens tracked from TOKENS: reports of completed agents this session. This prevents orchestrator context from blowing through threshold mid-round. Reads commands/worker/system.md, commands/worker/context_bundle.md, commands/worker/testing_guide.md (embed into agent spawn prompts at spawn time only). Reads commands/reviewer/*.md, commands/orchestrator/planning.md (embed into review agent prompts at review time only). Lazy loading: architecture.md is read anchor-section-only (the section listed for the current milestone), never full doc, never at startup; worker and reviewer prompts are loaded inline at spawn time, not at startup. STARTUP READS: only execution_plan.md and tasks.json \u2014 do NOT read architecture.md at startup, do NOT read CLAUDE.md at startup, do NOT read design_status.md at startup. Do NOT embed the .gitignore template in the skill body \u2014 write it inline at the moment it is needed (one write, no template stored in context). Rate-pacing protocol: (1) at session start, ask user to run /usage and report 5-hour window % \u2014 store as session_start_pct; (2) always spawn the first agent of a session alone \u2014 never parallel on the first spawn; (3) after each TOKENS: report, compute pct_cost = tokens / estimated_limit, check remaining > 3 \u00d7 pct_cost before spawning next; (4) ramp: first agent alone \u2192 if data supports, second agent \u2192 if two data points support, up to 2 parallel \u2192 4 parallel only after Round A observed cost confirms it is safe; (5) at session end (before /handoff), ask user to run /usage again \u2014 compute session_pct_consumed = end_pct - start_pct, write paired reading to ~/.agentflow/rate_calibration.json {timestamp, start_pct, end_pct, session_tokens, estimated_limit} \u2014 estimated_limit = session_tokens / session_pct_consumed. Verbosity rules: status updates one line maximum; round reports table format only; no prose between agent spawns; agent spawn prompts must end with 'End your final message with TOKENS: input=N output=N \u2014 nothing after that line'. Gemini provider deferred.",
       "owns": [
         "commands/orchestrate.md"
       ],
@@ -175,7 +201,9 @@
         "architecture.md#orchestrator-design",
         "architecture.md#task-state-machine"
       ],
-      "depends_on": ["T-015"],
+      "depends_on": [
+        "T-015"
+      ],
       "contracts": [],
       "test_requirements": {
         "unit": [
@@ -190,7 +218,7 @@
           "commands/orchestrate.md contains anchor-section-only architecture.md loading rule",
           "commands/orchestrate.md contains one-line status update verbosity rule",
           "commands/orchestrate.md contains TOKENS: sentinel rule for agent prompts",
-          "commands/orchestrate.md startup reads only execution_plan.md and tasks.json — no architecture.md, no CLAUDE.md at startup",
+          "commands/orchestrate.md startup reads only execution_plan.md and tasks.json \u2014 no architecture.md, no CLAUDE.md at startup",
           "commands/orchestrate.md checks design_status.md for oracle-complete gate, not architecture.md",
           "commands/orchestrate.md does not contain an embedded .gitignore template block"
         ],
@@ -203,62 +231,42 @@
       "context_section": "architecture.md#orchestrator-design",
       "status": "complete"
     },
-    {"task_id": "T-025", "status": "complete"},
-    {"task_id": "T-025g", "status": "complete"},
-    {"task_id": "T-027g", "status": "complete"},
-    {"task_id": "T-004g", "status": "complete"},
-    {"task_id": "T-031", "status": "complete"},
-    {"task_id": "T-028a", "status": "complete"},
-    {"task_id": "T-028b", "status": "complete"},
+    {
+      "task_id": "T-025",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-025g",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-027g",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-004g",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-031",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-028a",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-028b",
+      "status": "complete"
+    },
     {
       "task_id": "T-029",
-      "title": "Symbol index — index manager and brownfield scanner",
-      "description": "index_manager.py: manages the cache at ~/.agentflow/cache/<sha256-of-project-root>/index/<mirrored-path>.idx. Exposes update(path, contents) → None (write index entry), lookup(path, symbol) → IndexEntry|None (targeted read), get_index(path) → list[IndexEntry] (all entries for a file). Cache miss regenerates from file contents deterministically. brownfield_scanner.py: walk project tree on first load, index all files meeting type+size thresholds, populate cache. Exposes scan(project_root) → int (files indexed). Both modules are idempotent — safe to run twice.",
-      "owns": [
-        "agentflow/indexer/index_manager.py",
-        "agentflow/indexer/brownfield_scanner.py",
-        "tests/indexer/test_index_manager.py",
-        "tests/indexer/test_brownfield_scanner.py"
-      ],
-      "reads": [
-        "architecture.md#symbol-indexer",
-        "agentflow/indexer/__init__.py",
-        "agentflow/indexer/parsers/python_parser.py",
-        "agentflow/indexer/parsers/markdown_parser.py"
-      ],
-      "depends_on": ["T-001", "T-028b"],
-      "contracts": [
-        "agentflow/indexer/index_manager.py",
-        "agentflow/indexer/brownfield_scanner.py"
-      ],
-      "test_requirements": {
-        "unit": [
-          "update writes .idx file at correct cache path",
-          "lookup returns correct IndexEntry for known symbol",
-          "lookup returns None for unknown symbol",
-          "cache miss triggers regeneration from file contents",
-          "update is idempotent — running twice produces same result",
-          "brownfield scan returns count of files indexed",
-          "brownfield scan skips files below size threshold",
-          "brownfield scan is idempotent"
-        ],
-        "integration": [
-          "scan project fixture tree, then lookup symbol — returns correct entry"
-        ],
-        "coverage_threshold": 88
-      },
-      "security_constraints": [
-        "cache path must be outside project tree — validate it resolves under ~/.agentflow/"
-      ],
-      "acceptance_criteria": "lookup returns correct entry after update; brownfield scan indexes all eligible files; cache path never inside project tree",
-      "estimated_lines": 200,
-      "context_section": "architecture.md#symbol-indexer",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-030",
       "title": "Context builder",
-      "description": "Assembles a minimal context bundle for a task and writes it to context_bundle.md in the task's worktree. Bundle contents (in order): task brief (description + acceptance criteria), owned file list, read-only dependency contents (via index lookup for targeted reads — fall back to full file if no index entry), relevant architecture.md anchor section only (not full doc), test scenarios, security constraints, config snapshot (model, coverage threshold, file size limits). Exposes build(task, project_root, config) → Path (path to written context_bundle.md). Emits telemetry warning if bundle exceeds 50K tokens. Uses index_manager for targeted reads.",
+      "description": "Assembles a minimal context bundle for a task and writes it to context_bundle.md in the task's worktree. Bundle contents (in order): task brief (description + acceptance criteria), owned file list, read-only dependency contents (via index lookup for targeted reads \u2014 fall back to full file if no index entry), relevant architecture.md anchor section only (not full doc), test scenarios, security constraints, config snapshot (model, coverage threshold, file size limits). Exposes build(task, project_root, config) \u2192 Path (path to written context_bundle.md). Emits telemetry warning if bundle exceeds 50K tokens. Uses index_manager for targeted reads.",
       "owns": [
         "agentflow/worker/__init__.py",
         "agentflow/worker/context_builder.py",
@@ -270,7 +278,11 @@
         "agentflow/indexer/index_manager.py",
         "agentflow/config/schema.py"
       ],
-      "depends_on": ["T-001", "T-002", "T-029"],
+      "depends_on": [
+        "T-001",
+        "T-002",
+        "T-029"
+      ],
       "contracts": [
         "agentflow/worker/context_builder.py"
       ],
@@ -283,15 +295,15 @@
           "bundle falls back to full file read when no index entry",
           "bundle includes only anchor section of architecture.md not full doc",
           "build emits warning when bundle exceeds 50K tokens",
-          "build is idempotent — running twice overwrites with same content"
+          "build is idempotent \u2014 running twice overwrites with same content"
         ],
         "integration": [
-          "build with real task fixture and index — verify bundle contains correct symbol excerpts"
+          "build with real task fixture and index \u2014 verify bundle contains correct symbol excerpts"
         ],
         "coverage_threshold": 88
       },
       "security_constraints": [
-        "dependency file contents must not include secrets — validate no env var patterns in bundle output"
+        "dependency file contents must not include secrets \u2014 validate no env var patterns in bundle output"
       ],
       "acceptance_criteria": "bundle written correctly; targeted reads used when index available; 50K warning fires; section-only architecture loading confirmed",
       "estimated_lines": 220,

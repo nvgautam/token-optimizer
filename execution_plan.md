@@ -43,7 +43,7 @@ Acceptance: `/oracle`, `/orchestrate`, `/handoff` skills invoke correctly in a n
 ---
 
 ## Milestone 3: Symbol Indexer
-Status: IN_PROGRESS
+Status: COMPLETE
 Architecture: architecture.md#symbol-indexer
 Goal: Orchestrate skill generates .idx files inline (pre-spawn) for task reads lists; workers use targeted reads to validate token savings empirically. Python parser modules follow after validation.
 
@@ -52,7 +52,7 @@ Goal: Orchestrate skill generates .idx files inline (pre-spawn) for task reads l
 | T-031 | Inline .idx generation in orchestrate skill | T-027 | MERGED |
 | T-028a | Symbol index — Python parser | T-001, T-031 | MERGED |
 | T-028b | Symbol index — Markdown parser | T-001, T-028a | MERGED |
-| T-029 | Symbol index — index manager and brownfield scanner | T-001, T-028b | PENDING |
+| T-029 | Symbol index — index manager and brownfield scanner | T-001, T-028b | MERGED |
 
 Note: json_parser and yaml_parser dropped — design_status.md resolves .idx format as Python + Markdown only (no JSON/YAML indexing).
 
@@ -66,7 +66,7 @@ Note: json_parser and yaml_parser dropped — design_status.md resolves .idx for
 ---
 
 ## Milestone 4: Config + PTY Shell
-Status: PENDING — tasks decomposed when Milestone 3 completes
+Status: IN_PROGRESS
 Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 Goal: PTY overlay shell wraps `claude`/`gemini`, counts tokens locally, injects `/handoff` at threshold, restarts session.
 
