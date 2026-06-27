@@ -76,7 +76,25 @@ Compute on receipt of startup data:
 3. `commands/worker/testing_guide.md` — TDD rules
 4. Full task definitions for this group (from `tasks.json`)
 5. The milestone's architecture anchor section (already loaded in Decomposition step)
-6. Full contents of each file in the group's `reads` list
+6. For each file in the group's `reads` list, embed its content using targeted reads where available:
+
+   **Anchor-qualified reads** (e.g. `architecture.md#symbol-indexer`): use section-only loading as before — load only the named anchor section. Skip the .idx logic for these.
+
+   **Plain file reads** (no `#anchor` suffix):
+   ```
+   HASH = sha256(cwd)
+   idx_path = ~/.agentflow/cache/<HASH>/index/<file-path>.idx
+   ```
+   - If `idx_path` exists:
+     1. Read the `.idx` file — each line is `name:start-end`
+     2. For each symbol entry, embed a labelled excerpt:
+        ```
+        ### <file-path> — <name> (lines <start>–<end>)
+        <Read file-path offset=start-1 limit=(end-start+1)>
+        ```
+     3. Emit all excerpts in order; do **not** embed the full file
+   - If `idx_path` is absent (file < 50 lines or index not yet generated):
+     - Fall back: embed the full file contents (current behaviour)
 
 Close every spawn prompt with:
 > "End your final message with `TOKENS: input=N output=N` — nothing after that line."
