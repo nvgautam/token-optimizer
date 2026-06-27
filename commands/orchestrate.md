@@ -11,8 +11,13 @@ I do not re-prioritize — the oracle sets priorities, I deliver them.
 ```
 
 ### Step 2 — Rate check
-Ask: "Run `/usage` and report your 5-hour window % — I'll use it to pace agent spawns."
-Store as `session_start_pct`. Compute `estimated_limit = session_tokens / session_pct_consumed` after first session ends.
+Ask: "Run `/usage` and report both windows:"
+- `start_pct_5hr` — 5hr window % used
+- `start_pct_wkly` — weekly window % used
+- `reset_min_5hr` — minutes until 5hr window resets
+- `reset_min_wkly` — minutes until weekly window resets
+- `cap_5hr` — total tokens in your 5hr tier (e.g. 1000000; PTY auto-detects in v2)
+- `cap_wkly` — total tokens in your weekly tier (e.g. 5000000; PTY auto-detects in v2)
 
 ### Step 3 — Oracle gate
 Read `design_status.md`. If any row contains `| UNRESOLVED |`, stop:
@@ -34,21 +39,21 @@ Check `.agentflow/state.json`. If present, report resumed state (milestone, comp
 
 ---
 
-## Round-sizing heuristic
-
-Before each round: `max_tasks = max(1, (orchestrator_threshold_tokens - current_tokens) / 2500)`.
-`current_tokens` = sum of all `TOKENS: input=N` values received this session.
-Defer tasks beyond `max_tasks` to a sub-round after the next state save.
-
----
-
 ## Rate-pacing protocol
 
+Compute on receipt of startup data:
+  remaining_tokens_5hr  = cap_5hr  × (1 − start_pct_5hr/100)
+  remaining_tokens_wkly = cap_wkly × (1 − start_pct_wkly/100)
+  rate_5hr  = remaining_tokens_5hr  / reset_min_5hr
+  rate_wkly = remaining_tokens_wkly / reset_min_wkly
+  effective_rate = min(rate_5hr, rate_wkly)
+
 1. **First agent of every session: spawn alone — never parallel on the first spawn.**
-2. After each `TOKENS:` report: `pct_cost = tokens / estimated_limit`. Only spawn next if `remaining > 3 × pct_cost`.
-3. Ramp: alone → 2 parallel (if data supports) → 4 parallel (only after Round A cost confirmed safe).
-4. At session end: ask user to run `/usage`. Write `~/.agentflow/rate_calibration.json`:
-   `{timestamp, start_pct, end_pct, session_tokens, estimated_limit}`
+2. Before each round: `max_tasks = max(1, floor(effective_rate × 10 / 2500))` (10 = default round minutes; 2500 = tokens_per_task)
+3. After each `TOKENS:` report: if `effective_rate × remaining_minutes < 2500`, pause and ask user to run `/usage` to refresh.
+4. Ramp: first agent alone → 2 parallel (if rate supports) → 4 parallel (only after Round A cost confirmed safe).
+5. At session end: ask user to run `/usage`. Write `~/.agentflow/rate_calibration.json`:
+   `{timestamp, start_pct_5hr, end_pct_5hr, start_pct_wkly, end_pct_wkly, session_tokens, rate_5hr, rate_wkly}`
 
 ---
 
