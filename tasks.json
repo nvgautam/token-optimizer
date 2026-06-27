@@ -326,53 +326,11 @@
     },
     {
       "task_id": "T-036",
-      "title": "Targeted reads in orchestrate skill — consume .idx files",
-      "description": "Modify commands/orchestrate.md to replace step 6 in 'Build each agent prompt' (currently: embed full file contents) with targeted reads using .idx files. For each file in the group's reads list: (1) check ~/.agentflow/cache/<sha256(cwd)>/index/<path>.idx; (2) if .idx exists, read it, then embed each symbol as a labelled excerpt using Read with offset+limit per symbol's start-end range; (3) if no .idx (file < 50 lines or index absent), fall back to full file embed (current behaviour). Anchor-qualified reads (e.g. architecture.md#symbol-indexer) already use section-only loading — leave those untouched. .idx format: one entry per line, name:start-end (Python: functions/classes/methods; Markdown: H2/H3 headers).",
-      "owns": [
-        "commands/orchestrate.md"
-      ],
-      "reads": [
-        "design_status.md"
-      ],
-      "depends_on": [
-        "T-031"
-      ],
-      "contracts": [],
-      "test_requirements": {
-        "unit": [],
-        "integration": [],
-        "coverage_threshold": 0
-      },
-      "security_constraints": [],
-      "acceptance_criteria": "orchestrate.md step 6 uses .idx for targeted reads when available; falls back to full file when absent; anchor-qualified reads unchanged; empirically: token count per worker prompt drops vs pre-T-036 baseline on a file with existing .idx",
-      "estimated_lines": 10,
-      "context_section": "design_status.md",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-037",
-      "title": "Targeted architecture reads in oracle skill — re-spar path",
-      "description": "Modify commands/oracle.md re-spar startup (UNRESOLVED items found) to consult architecture.md via .idx rather than skipping it or loading the full file. On re-spar entry: (1) check if ~/.agentflow/cache/<sha256(cwd)>/index/architecture.md.idx exists; (2) if yes, read the .idx to get the full section map (H2/H3 headers with line ranges) — this is the discovery step, cheap since it is only the index; (3) during sparring, when a topic arises (e.g. security, config, module boundaries, PTY design), targeted-read only the matching section(s) using Read with offset+limit from the .idx entry — never load the full architecture.md; (4) if .idx absent, skip architecture.md consultation entirely — do not fall back to full file or named anchor reads (projects pre-implementation will not have an index; post-implementation the index will always exist). Fresh-project path (no architecture.md yet) is unchanged. .idx format: one entry per line, ## Header:start-end or ### Header:start-end.",
-      "owns": [
-        "commands/oracle.md"
-      ],
-      "reads": [
-        "design_status.md"
-      ],
-      "depends_on": [
-        "T-031"
-      ],
-      "contracts": [],
-      "test_requirements": {
-        "unit": [],
-        "integration": [],
-        "coverage_threshold": 0
-      },
-      "security_constraints": [],
-      "acceptance_criteria": "oracle.md re-spar path reads architecture.md.idx on startup when present; targeted-reads relevant sections during sparring; never loads full architecture.md; fresh-project path (no architecture.md) unchanged; empirically: re-spar context stays lean on a project with large architecture.md",
-      "estimated_lines": 15,
-      "context_section": "design_status.md",
-      "status": "pending"
+      "status": "complete"
     }
   ]
 }
