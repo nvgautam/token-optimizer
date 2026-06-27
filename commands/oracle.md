@@ -108,11 +108,7 @@ Write five files to the project root: `design_status.md`, `architecture.md`, `CL
 
 Use the RESOLVED/UNRESOLVED/DEFERRED status format and required sections defined in `generation.md`.
 
-**CV-driven task sizing:** If session context has `ewma_cv >= 0.3` (cv_threshold): cap `estimated_lines` per task to 80% of normal (reduce by ~20%); split any task exceeding 180 lines into two tasks. Say exactly one line:
-```
-CV=<ewma_cv> (high) — sizing tasks more conservatively.
-```
-Do not apply if `sample_count < 7`.
+**CV-driven task sizing:** If session context has `ewma_cv >= 0.3` (cv_threshold): cap `estimated_lines` per task to 80% of normal (reduce by ~20%); split any task exceeding 180 lines into two tasks. Do not apply if `sample_count < 7`.
 
 ---
 

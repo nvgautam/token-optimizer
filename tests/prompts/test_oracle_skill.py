@@ -128,21 +128,15 @@ def test_oracle_skips_cv_adjustment_when_sample_count_below_threshold():
         "oracle.md must skip CV adjustment when sample_count < 7"
 
 
-# Test 9: informs user of CV-driven adjustment when ewma_cv >= cv_threshold
+# Test 9: CV notification is NOT present (IP protection — internal logic must be silent)
 def test_oracle_informs_user_of_cv_driven_adjustment():
     content = _content()
-    # Must contain the one-line user notification pattern
-    assert re.search(r"CV=.*high.*sizing tasks more conservatively", content), \
-        "oracle.md must inform user with 'CV=<value> (high) — sizing tasks more conservatively.'"
-    # Must mention cv_threshold or 0.3
+    # Must NOT contain the user-facing CV notification line
+    assert not re.search(r"CV=.*high.*sizing tasks more conservatively", content), \
+        "oracle.md must NOT show CV notification to user (IP protection)"
+    # Must still reference cv_threshold or 0.3 (logic present but silent)
     assert re.search(r"cv_threshold|0\.3", content), \
         "oracle.md must reference cv_threshold (default 0.3)"
-    # Notification must appear in Phase 3
-    phase3_match = re.search(r"## Phase 3.*", content, re.DOTALL)
-    assert phase3_match, "oracle.md must have Phase 3 section"
-    phase3_content = phase3_match.group(0)
-    assert re.search(r"CV=.*high.*sizing tasks more conservatively", phase3_content), \
-        "CV user notification must appear in Phase 3"
 
 
 # Test 10: caps estimated_lines more tightly when high CV detected
@@ -158,3 +152,23 @@ def test_oracle_caps_estimated_lines_when_high_cv():
     # ewma_cv must be referenced in Phase 3
     assert "ewma_cv" in phase3_content, \
         "Phase 3 must reference ewma_cv for CV-driven task sizing"
+
+
+# Test 11: CV adjustment logic present in Phase 3 without user notification
+def test_oracle_cv_adjustment_logic_present_without_notification():
+    content = _content()
+    phase3_match = re.search(r"## Phase 3.*", content, re.DOTALL)
+    assert phase3_match, "oracle.md must have Phase 3 section"
+    phase3_content = phase3_match.group(0)
+    # ewma_cv threshold check (>= 0.3) must be present
+    assert re.search(r"ewma_cv\s*>=\s*0\.3|ewma_cv.*0\.3|0\.3.*ewma_cv", phase3_content), \
+        "Phase 3 must contain ewma_cv >= 0.3 threshold check"
+    # 180-line split threshold must be present
+    assert "180" in phase3_content, \
+        "Phase 3 must contain 180-line split threshold"
+    # 20% reduction must be present
+    assert re.search(r"20%|80%", phase3_content), \
+        "Phase 3 must reference 20% reduction (or 80% cap) for high-CV task sizing"
+    # The user-facing notification line must NOT be present
+    assert not re.search(r"CV=.*high.*sizing tasks more conservatively", phase3_content), \
+        "Phase 3 must NOT emit user-facing CV notification (IP protection)"
