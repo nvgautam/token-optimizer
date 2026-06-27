@@ -40,6 +40,15 @@ Goal: All provider skill files and prompt files exist and are testable via manua
 
 Acceptance: `/oracle`, `/orchestrate`, `/handoff` skills invoke correctly in a new Claude session; all prompt files pass size and content assertions.
 
+**Addendum:**
+
+| Task | Title | Depends on | Status |
+|---|---|---|---|
+| T-032 | Orchestrator skill — dual-window rate pacing | T-027 | MERGED |
+| T-033 | Orchestrator skill — variance-aware scheduling | T-032 | MERGED |
+| T-034 | Oracle skill — CV feedback loop | T-026, T-033 | MERGED |
+| T-035 | Oracle skill — remove CV notification (IP protection) | T-034 | MERGED |
+
 ---
 
 ## Milestone 3: Symbol Indexer

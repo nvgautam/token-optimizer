@@ -1,5 +1,5 @@
 {
-  "updated": "2026-06-27T00:15:10Z",
+  "updated": "2026-06-27T08:09:57Z",
   "milestone": "Milestone 4: Config + PTY Shell",
   "groups": [
     {
@@ -100,6 +100,42 @@
       "status": "complete",
       "pr": 14,
       "tokens": 35355
+    },
+    {
+      "group_id": 12,
+      "task_ids": [
+        "T-032"
+      ],
+      "status": "complete",
+      "pr": 15,
+      "tokens": 9018
+    },
+    {
+      "group_id": 13,
+      "task_ids": [
+        "T-033"
+      ],
+      "status": "complete",
+      "pr": 16,
+      "tokens": 19900
+    },
+    {
+      "group_id": 14,
+      "task_ids": [
+        "T-034"
+      ],
+      "status": "complete",
+      "pr": 17,
+      "tokens": 39085
+    },
+    {
+      "group_id": 15,
+      "task_ids": [
+        "T-035"
+      ],
+      "status": "complete",
+      "pr": 18,
+      "tokens": 29121
     }
   ]
 }
