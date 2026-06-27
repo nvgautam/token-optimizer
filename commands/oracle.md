@@ -20,6 +20,12 @@ Read `design_status.md` in full (it is small — under 60 lines, and replaces th
 - All rows are `RESOLVED` or `DEFERRED` → say: "Oracle is complete for this project. Run `/orchestrate` to begin implementation." Stop.
 - File absent → fresh project; continue to Step 3.
 
+### Step 2a — Architecture index (re-spar only)
+Compute `HASH = sha256(cwd)` and check for `~/.agentflow/cache/<HASH>/index/architecture.md.idx`.
+
+- **If present:** Read the `.idx` file in full (it is small — one line per header: `## Header:start-end` or `### Header:start-end`). Hold this section map in context for use during Phase 2 sparring.
+- **If absent:** Proceed without architecture context. Do NOT fall back to loading `architecture.md` in full or via named anchors.
+
 ### Step 2b — Load CV calibration
 Read `~/.agentflow/rate_calibration.json` if present. If `sample_count >= 7`: store `ewma_cv` and `ewma_mean_tokens` as session context for Phase 3. If absent or `sample_count < 7`, skip; no CV adjustment applied.
 
@@ -54,6 +60,12 @@ HANDOFF RECOMMENDED: market segment resolved — good stopping point if context 
 **Lazy load:** Read `commands/oracle/checklist.md` now (only when entering this phase — not at startup).
 
 Work through all 24 checklist items silently — never mention the checklist to the user. Challenge vague answers. Do not fill gaps silently. Raise hard questions first: data ownership, failure modes, scale, security, compliance.
+
+**Architecture consultation (re-spar only):** If a section map was loaded in Step 2a, use it when a topic arises (e.g. security, config, module boundaries, PTY design). Match the topic to the closest header in the section map and targeted-read only that section:
+```
+Read(file="architecture.md", offset=<start>, limit=<end - start + 1>)
+```
+Where `start` and `end` come from the `.idx` entry for the matching header. Never load `architecture.md` in full. If no section matches the topic, proceed without architecture context for that topic.
 
 **Verbosity rule:** Responses ≤3 sentences per exchange. If the user asks you to elaborate, you may expand.
 
