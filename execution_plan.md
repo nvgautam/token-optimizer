@@ -66,7 +66,7 @@ Goal: Orchestrate skill generates .idx files inline (pre-spawn) for task reads l
 | T-029 | Symbol index — index manager and brownfield scanner | T-001, T-028b | MERGED |
 | T-036 | Targeted reads in orchestrate skill — consume .idx files | T-031 | MERGED |
 | T-037 | Targeted architecture reads in oracle skill — re-spar path | T-031 | MERGED |
-| T-038 | CLAUDE.md — universal .idx reading protocol | T-036 | PENDING |
+| T-038 | CLAUDE.md — universal .idx reading protocol | T-036 | MERGED |
 
 Note: json_parser and yaml_parser dropped — design_status.md resolves .idx format as Python + Markdown only (no JSON/YAML indexing).
 

@@ -334,34 +334,7 @@
     },
     {
       "task_id": "T-038",
-      "title": "CLAUDE.md — universal .idx reading protocol",
-      "description": "Add a 'Reading protocol' section to CLAUDE.md as a project-wide standing instruction: before reading any file, check for ~/.agentflow/cache/<sha256(cwd)>/index/<path>.idx; if found, use offset=start limit=end-start+1 for the target symbol/section; if absent, file is < 50 lines or not yet indexed — read the full file with no offset/limit. This rule applies to all Claude sessions in this project regardless of which skill is active (oracle, orchestrate, handoff, worker, or none). No per-skill repetition needed — one rule, one place.",
-      "owns": [
-        "CLAUDE.md"
-      ],
-      "reads": [
-        "commands/worker/system.md"
-      ],
-      "depends_on": [
-        "T-036"
-      ],
-      "contracts": [],
-      "test_requirements": {
-        "unit": [
-          "CLAUDE.md contains a Reading protocol section",
-          "CLAUDE.md specifies .idx lookup path using sha256(cwd)",
-          "CLAUDE.md specifies offset=start limit=end-start+1 when .idx found",
-          "CLAUDE.md specifies full read fallback when .idx absent",
-          "CLAUDE.md explains absence means file < 50 lines or not yet indexed"
-        ],
-        "integration": [],
-        "coverage_threshold": 80
-      },
-      "security_constraints": [],
-      "acceptance_criteria": "CLAUDE.md Reading protocol section present; rule applies universally across all skills; consistent with worker/system.md convention",
-      "estimated_lines": 50,
-      "context_section": "commands/worker/system.md",
-      "status": "pending"
+      "status": "complete"
     }
   ]
 }
