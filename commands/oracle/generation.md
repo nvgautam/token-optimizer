@@ -4,11 +4,12 @@
 
 ## Compact writing rules
 
-- **Tables and bullet points only** for all state document writes (architecture.md, CLAUDE.md, tasks.json, execution_plan.md).
-- **No prose paragraphs.** If a sentence begins with "This module..." or "The system will...", rewrite it as a bullet.
-- Target 35–40% smaller than prose equivalent.
+- **Tables and bullets only** — no prose paragraphs in any artifact.
+- **Telegraphic style** — no articles (a/an/the), no transition phrases, no "This module…" / "The system will…" sentences.
+- **≤10 words per bullet or table cell** — split longer ideas into sub-bullets.
 - One idea per bullet; sub-bullets for detail, not continuation.
-- Tables for comparisons, tradeoffs, status matrices, or anything with two or more attributes.
+- Tables for comparisons, tradeoffs, status matrices, or anything with ≥2 attributes.
+- Applies to all generated content: `tasks.json` descriptions, `execution_plan.md` entries, `design_status.md` decisions, `architecture.md` sections, `CLAUDE.md` body.
 
 ---
 
