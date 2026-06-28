@@ -406,8 +406,12 @@
     "archived_at": "2026-06-27T17:35:00Z",
     "task": {
       "task_id": "T-041",
-      "title": "PreToolUse hook — Read tool enforcement",
-      "owns": ["agentflow/hooks/read_check.py", "agentflow/hooks/__init__.py", ".claude/settings.json"],
+      "title": "PreToolUse hook \u2014 Read tool enforcement",
+      "owns": [
+        "agentflow/hooks/read_check.py",
+        "agentflow/hooks/__init__.py",
+        ".claude/settings.json"
+      ],
       "status": "merged",
       "pr": 23,
       "result": "8 tests green; opaque hint fires when .idx exists and offset absent; silent otherwise; registered in .claude/settings.json"
@@ -448,10 +452,17 @@
     "archived_at": "2026-06-27T00:00:00Z",
     "task": {
       "task_id": "T-046",
-      "title": "PostToolUse hook — auto-regenerate .idx on Write/Edit",
-      "description": "Add a PostToolUse hook that fires after Write and Edit tool calls. When the target file is Python or Markdown and ≥50 lines, regenerate its .idx in ~/.agentflow/cache/<hash>/index/. Closes the gap where files written or edited outside an orchestrate pre-spawn cycle are never indexed until the next session. Hook must be silent (no stdout/stderr), exit 0 always, stdlib-only. Register in .claude/settings.json alongside the read_logger hook.",
-      "owns": ["agentflow/hooks/write_indexer.py", ".claude/settings.json"],
-      "reads": ["agentflow/indexer/python_parser.py", "agentflow/indexer/markdown_parser.py", "agentflow/indexer/index_manager.py"],
+      "title": "PostToolUse hook \u2014 auto-regenerate .idx on Write/Edit",
+      "description": "Add a PostToolUse hook that fires after Write and Edit tool calls. When the target file is Python or Markdown and \u226550 lines, regenerate its .idx in ~/.agentflow/cache/<hash>/index/. Closes the gap where files written or edited outside an orchestrate pre-spawn cycle are never indexed until the next session. Hook must be silent (no stdout/stderr), exit 0 always, stdlib-only. Register in .claude/settings.json alongside the read_logger hook.",
+      "owns": [
+        "agentflow/hooks/write_indexer.py",
+        ".claude/settings.json"
+      ],
+      "reads": [
+        "agentflow/indexer/python_parser.py",
+        "agentflow/indexer/markdown_parser.py",
+        "agentflow/indexer/index_manager.py"
+      ],
       "depends_on": [],
       "acceptance_criteria": ".idx regenerated immediately after Write/Edit on qualifying files; no terminal output; shadow_reads.jsonl shows idx_exists=true for edited files in subsequent reads",
       "estimated_lines": 80,
@@ -464,8 +475,11 @@
     "archived_at": "2026-06-27T00:00:00Z",
     "task": {
       "task_id": "T-047",
-      "title": "Oracle generation — telegraphic style rule",
-      "owns": ["commands/oracle/generation.md", "design_status.md"],
+      "title": "Oracle generation \u2014 telegraphic style rule",
+      "owns": [
+        "commands/oracle/generation.md",
+        "design_status.md"
+      ],
       "acceptance_criteria": "generation.md compact writing rules updated; future oracle artifacts use telegraphic style",
       "status": "complete",
       "pr": 28
@@ -476,8 +490,12 @@
     "task": {
       "task_id": "T-048",
       "title": "Compress state docs to telegraphic style",
-      "owns": ["design_status.md", "execution_plan.md", "tasks.json"],
-      "acceptance_criteria": "state docs compressed ≥20%; decisions unambiguous",
+      "owns": [
+        "design_status.md",
+        "execution_plan.md",
+        "tasks.json"
+      ],
+      "acceptance_criteria": "state docs compressed \u226520%; decisions unambiguous",
       "status": "complete",
       "pr": 29
     }
@@ -487,10 +505,45 @@
     "task": {
       "task_id": "T-049",
       "title": "Compress skill files to telegraphic style",
-      "owns": ["commands/oracle.md", "commands/orchestrate.md", "commands/handoff.md"],
-      "acceptance_criteria": "skill files compressed ≥20%; gate logic intact",
+      "owns": [
+        "commands/oracle.md",
+        "commands/orchestrate.md",
+        "commands/handoff.md"
+      ],
+      "acceptance_criteria": "skill files compressed \u226520%; gate logic intact",
       "status": "complete",
       "pr": 29
     }
+  },
+  {
+    "task_id": "T-007",
+    "title": "PTY shell \u2014 local tiktoken tokenizer",
+    "description": "Implement agentflow/shell/tokenizer.py. Three functions matching existing stubs: count_tokens(text: str, provider: str) -> int \u2014 returns tiktoken cl100k_base token count for text (provider param reserved, ignored for now); accumulate(text: str, provider: str) -> int \u2014 adds count_tokens result to module-level running total and returns new total; reset() -> None \u2014 resets running total to 0. Cache tiktoken encoder at module level. No LLM calls, no config reads, no I/O.",
+    "owns": [
+      "agentflow/shell/tokenizer.py",
+      "agentflow/shell/__init__.py"
+    ],
+    "reads": [],
+    "depends_on": [],
+    "contracts": [
+      "agentflow/shell/tokenizer.py"
+    ],
+    "test_requirements": {
+      "unit": [
+        "count_tokens() returns correct token count for known strings",
+        "count_tokens() returns 0 for empty string",
+        "accumulate() returns running total across multiple calls",
+        "reset() sets running total back to 0"
+      ],
+      "integration": [],
+      "coverage_threshold": 90
+    },
+    "security_constraints": [
+      "No network calls \u2014 tiktoken must run fully offline"
+    ],
+    "acceptance_criteria": "count_tokens, accumulate, reset all implemented; accumulate correctly tracks cumulative token count across calls and resets on reset()",
+    "estimated_lines": 25,
+    "context_section": "architecture.md#pty-shell-design",
+    "status": "complete"
   }
 ]

@@ -189,36 +189,12 @@
     },
     {
       "task_id": "T-007",
-      "title": "PTY shell \u2014 local tiktoken tokenizer",
-      "description": "Implement agentflow/shell/tokenizer.py. Single public function count(text: str) -> int using tiktoken cl100k_base encoding. Cache encoder at module level. No config reads, no LLM calls \u2014 pure function. Also create agentflow/shell/__init__.py (empty).",
-      "owns": [
-        "agentflow/shell/tokenizer.py",
-        "agentflow/shell/__init__.py"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "contracts": [],
-      "test_requirements": {
-        "unit": [
-          "count() returns correct token count for known strings",
-          "count() returns 0 for empty string",
-          "count() handles unicode and multi-line code snippets"
-        ],
-        "integration": [],
-        "coverage_threshold": 90
-      },
-      "security_constraints": [
-        "No network calls \u2014 tiktoken must run fully offline"
-      ],
-      "acceptance_criteria": "count(text) returns tiktoken cl100k_base token count for any string input without network access",
-      "estimated_lines": 25,
-      "context_section": "architecture.md#pty-shell-design",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-006",
       "title": "PTY shell \u2014 I/O interception wrapper",
-      "description": "Implement agentflow/shell/pty_wrapper.py. Fork child process under a PTY using pty.fork(). I/O loop: relay bytes between parent stdout/stdin and child PTY fd using os.read/os.write + select.select. On each stdout chunk call tokenizer.count(chunk) and accumulate into self.accumulated_tokens. Handle SIGWINCH to resize PTY. Expose: PTYWrapper(command: list[str]); start() -> None; stop() -> None; accumulated_tokens: int property. Raise PTYError(message) on fork failure. stdlib-only: pty, os, select, signal, fcntl.",
+      "description": "Implement agentflow/shell/pty_wrapper.py. Class PTYWrapper(command: list, on_output=None, on_exit=None) matching existing stub. Methods: read_output(timeout: float = 1.0) -> bytes \u2014 reads available bytes from child PTY fd with timeout via select.select; write_input(text: str) -> None \u2014 writes UTF-8 encoded text to child PTY stdin fd. Constructor forks child under PTY using pty.fork(), stores master_fd and child_pid, sets fd non-blocking, registers SIGWINCH handler to forward terminal resize. on_output callback called with each bytes chunk from read_output. on_exit callback called with exit code when child exits. Raise PTYError on fork failure. stdlib-only: pty, os, select, signal, fcntl, termios.",
       "owns": [
         "agentflow/shell/pty_wrapper.py"
       ],
@@ -228,15 +204,17 @@
       "depends_on": [
         "T-007"
       ],
-      "contracts": [],
+      "contracts": [
+        "agentflow/shell/pty_wrapper.py"
+      ],
       "test_requirements": {
         "unit": [
-          "accumulated_tokens increments after stdout chunk processed",
-          "PTYError raised when pty.fork fails",
-          "stop() sends SIGTERM to child and closes fd"
+          "PTYError raised when pty.fork fails (mock pty.fork)",
+          "write_input encodes text as UTF-8 and writes to master_fd",
+          "read_output returns empty bytes on timeout"
         ],
         "integration": [
-          "wrap echo command \u2014 verify stdout relayed and accumulated_tokens > 0"
+          "wrap echo command \u2014 on_output callback receives output bytes"
         ],
         "coverage_threshold": 85
       },
@@ -244,7 +222,7 @@
         "No shell=True \u2014 command must be list[str]",
         "No LLM calls from this module"
       ],
-      "acceptance_criteria": "PTYWrapper wraps a subprocess bidirectionally, relays I/O to terminal, and exposes accurate accumulated token count",
+      "acceptance_criteria": "PTYWrapper forks child under PTY, relays I/O via read_output/write_input, fires on_output and on_exit callbacks correctly",
       "estimated_lines": 160,
       "context_section": "architecture.md#pty-shell-design",
       "status": "pending"
@@ -252,9 +230,10 @@
     {
       "task_id": "T-008",
       "title": "PTY session manager \u2014 handoff, countdown, idx injection",
-      "description": "Implement agentflow/shell/session_manager.py. Wraps PTYWrapper with session logic. Config: read ~/.agentflow/config.toml via tomllib (Python 3.11+); fall back to hardcoded defaults if absent. Config keys read: shell.oracle_threshold_tokens (default 60000), shell.orchestrator_threshold_tokens (default 30000), shell.threshold_pct (default 0.30), shell.restart_delay_seconds (default 5). Responsibilities: (1) session_type detection \u2014 scan stdin for first /oracle or /orchestrate token; set session_type accordingly; (2) turn counter \u2014 increment on each assistant response boundary (detect by HANDOFF_RECOMMENDED or double-newline heuristic); (3) idx reminder injection \u2014 every 3 turns, write single-line idx banner to child stdin before next user input: '[IDX] Before next Read: check ~/.agentflow/cache/<hash>/index/<file>.idx \u2014 grep name:start-end, then Read(offset, limit).'; hash pre-computed via hashlib.sha256(cwd) at startup; (4) threshold check \u2014 after each turn check accumulated_tokens > session_threshold OR accumulated_tokens > window_size * threshold_pct; if either fires trigger handoff flow; (5) handoff flow \u2014 write '/handoff\\n' to stdin, scan stdout for HANDOFF_COMPLETE (timeout 120s), write '/clear\\n', countdown restart_delay_seconds with per-second stderr output (Ctrl+C cancels and exits cleanly), write session command ('/oracle\\n' or '/orchestrate\\n'); (6) manual passthrough \u2014 if /handoff detected in user stdin before threshold, suppress auto-restart after handoff completes. Entrypoint: run(command: list[str]) -> None.",
+      "description": "Implement agentflow/shell/session_manager.py and agentflow/shell/countdown.py. SessionManager(pty_wrapper, tokenizer, config) matching existing stub. Config is a dict with keys: oracle_threshold_tokens (60000), orchestrator_threshold_tokens (30000), threshold_pct (0.30), restart_delay_seconds (5). Method trigger_handoff() -> None: write '/handoff\\n' to pty_wrapper.write_input(), scan on_output stream for 'HANDOFF_COMPLETE' (timeout 120s), write '/clear\\n', call countdown(restart_delay_seconds, on_complete=restart_session). Additional responsibilities wired via on_output callback registered in __init__: (1) session_type detection \u2014 scan first chunks for '/oracle' or '/orchestrate' in stdin mirror; (2) turn counter \u2014 increment on response boundary; (3) idx reminder injection \u2014 every 3 turns call write_input(idx_banner) before next user input; idx_banner uses hash=hashlib.sha256(cwd).hexdigest() pre-computed at init; (4) threshold check \u2014 after each accumulate() call check total > threshold or total > window_size * threshold_pct; if fired and not manual_handoff: call trigger_handoff(). countdown.py: countdown(seconds: int, on_complete, message: str = '') -> None \u2014 prints per-second countdown to stderr, calls on_complete() when done; KeyboardInterrupt exits cleanly. Config read: open ~/.agentflow/config.toml via tomllib if present; merge over defaults.",
       "owns": [
-        "agentflow/shell/session_manager.py"
+        "agentflow/shell/session_manager.py",
+        "agentflow/shell/countdown.py"
       ],
       "reads": [
         "agentflow/shell/pty_wrapper.py",
@@ -263,30 +242,31 @@
       "depends_on": [
         "T-006"
       ],
-      "contracts": [],
+      "contracts": [
+        "agentflow/shell/session_manager.py",
+        "agentflow/shell/countdown.py"
+      ],
       "test_requirements": {
         "unit": [
-          "session_type set to 'oracle' when /oracle seen in stdin stream",
-          "session_type set to 'orchestrate' when /orchestrate seen in stdin stream",
-          "session_type remains None when no skill command seen",
-          "idx banner written to stdin every 3 turns",
-          "threshold check fires when accumulated_tokens exceeds oracle_threshold_tokens",
-          "threshold check fires when accumulated_tokens exceeds window_size * threshold_pct",
-          "manual /handoff in stdin suppresses auto-restart",
-          "countdown prints per-second output and can be interrupted with KeyboardInterrupt"
+          "session_type set to 'oracle' when /oracle detected in input stream",
+          "session_type set to 'orchestrate' when /orchestrate detected",
+          "idx banner written via write_input every 3 turns",
+          "trigger_handoff() writes /handoff then /clear to pty_wrapper",
+          "threshold fires when tokenizer total exceeds oracle_threshold_tokens",
+          "manual_handoff flag suppresses auto-restart",
+          "countdown() prints per-second output and calls on_complete",
+          "countdown() exits cleanly on KeyboardInterrupt"
         ],
-        "integration": [
-          "run() wraps a no-op subprocess and exits cleanly"
-        ],
+        "integration": [],
         "coverage_threshold": 85
       },
       "security_constraints": [
-        "No shell=True anywhere",
+        "No shell=True",
         "No LLM calls",
-        "config.toml path restricted to ~/.agentflow/ \u2014 validate before open"
+        "config.toml path validated to ~/.agentflow/ before open"
       ],
-      "acceptance_criteria": "session_manager.run() wraps a CLI process, detects session type, injects idx banner every 3 turns, and executes full handoff+restart flow when token threshold is exceeded",
-      "estimated_lines": 230,
+      "acceptance_criteria": "SessionManager detects session type, injects idx banner every 3 turns, triggers handoff+countdown+restart when threshold exceeded; countdown callable works standalone",
+      "estimated_lines": 220,
       "context_section": "architecture.md#pty-shell-design",
       "status": "pending"
     }
