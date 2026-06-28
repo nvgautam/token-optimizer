@@ -334,5 +334,72 @@
       "pr": 14,
       "result": "All unit and integration tests passing successfully (58 tests passed in total, with 96% coverage on the indexer package)"
     }
+  },
+  {
+    "archived_at": "2026-06-27T07:00:00Z",
+    "task": {
+      "task_id": "T-032",
+      "title": "Orchestrator skill \u2014 dual-window rate pacing",
+      "pr": 15,
+      "status": "merged"
+    }
+  },
+  {
+    "archived_at": "2026-06-27T07:19:00Z",
+    "task": {
+      "task_id": "T-033",
+      "title": "Orchestrator skill \u2014 variance-aware scheduling",
+      "pr": 16,
+      "status": "merged"
+    }
+  },
+  {
+    "archived_at": "2026-06-27T08:10:06.684644Z",
+    "task": {
+      "task_id": "T-034",
+      "title": "Oracle skill \u2014 CV feedback loop",
+      "pr": 17,
+      "status": "merged"
+    }
+  },
+  {
+    "archived_at": "2026-06-27T08:10:06.684913Z",
+    "task": {
+      "task_id": "T-035",
+      "title": "Oracle skill \u2014 remove CV notification (IP protection)",
+      "pr": 18,
+      "status": "merged"
+    }
+  },
+  {
+    "task_id": "T-038",
+    "title": "CLAUDE.md \u2014 universal .idx reading protocol",
+    "description": "Add a 'Reading protocol' section to CLAUDE.md as a project-wide standing instruction: before reading any file, check for ~/.agentflow/cache/<sha256(cwd)>/index/<path>.idx; if found, use offset=start limit=end-start+1 for the target symbol/section; if absent, file is < 50 lines or not yet indexed \u2014 read the full file with no offset/limit. This rule applies to all Claude sessions in this project regardless of which skill is active (oracle, orchestrate, handoff, worker, or none). No per-skill repetition needed \u2014 one rule, one place.",
+    "owns": [
+      "CLAUDE.md"
+    ],
+    "reads": [
+      "commands/worker/system.md"
+    ],
+    "depends_on": [
+      "T-036"
+    ],
+    "contracts": [],
+    "test_requirements": {
+      "unit": [
+        "CLAUDE.md contains a Reading protocol section",
+        "CLAUDE.md specifies .idx lookup path using sha256(cwd)",
+        "CLAUDE.md specifies offset=start limit=end-start+1 when .idx found",
+        "CLAUDE.md specifies full read fallback when .idx absent",
+        "CLAUDE.md explains absence means file < 50 lines or not yet indexed"
+      ],
+      "integration": [],
+      "coverage_threshold": 80
+    },
+    "security_constraints": [],
+    "acceptance_criteria": "CLAUDE.md Reading protocol section present; rule applies universally across all skills; consistent with worker/system.md convention",
+    "estimated_lines": 50,
+    "context_section": "commands/worker/system.md",
+    "status": "pending"
   }
 ]

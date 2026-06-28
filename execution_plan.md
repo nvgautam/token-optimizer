@@ -40,6 +40,17 @@ Goal: All provider skill files and prompt files exist and are testable via manua
 
 Acceptance: `/oracle`, `/orchestrate`, `/handoff` skills invoke correctly in a new Claude session; all prompt files pass size and content assertions.
 
+**Addendum:**
+
+| Task | Title | Depends on | Status |
+|---|---|---|---|
+| T-032 | Orchestrator skill — dual-window rate pacing | T-027 | MERGED |
+| T-033 | Orchestrator skill — variance-aware scheduling | T-032 | MERGED |
+| T-034 | Oracle skill — CV feedback loop | T-026, T-033 | MERGED |
+| T-035 | Oracle skill — remove CV notification (IP protection) | T-034 | MERGED |
+
+M2 + addendum fully complete. Skills goal achieved.
+
 ---
 
 ## Milestone 3: Symbol Indexer
@@ -53,6 +64,9 @@ Goal: Orchestrate skill generates .idx files inline (pre-spawn) for task reads l
 | T-028a | Symbol index — Python parser | T-001, T-031 | MERGED |
 | T-028b | Symbol index — Markdown parser | T-001, T-028a | MERGED |
 | T-029 | Symbol index — index manager and brownfield scanner | T-001, T-028b | MERGED |
+| T-036 | Targeted reads in orchestrate skill — consume .idx files | T-031 | MERGED |
+| T-037 | Targeted architecture reads in oracle skill — re-spar path | T-031 | MERGED |
+| T-038 | CLAUDE.md — universal .idx reading protocol | T-036 | MERGED |
 
 Note: json_parser and yaml_parser dropped — design_status.md resolves .idx format as Python + Markdown only (no JSON/YAML indexing).
 
@@ -62,6 +76,9 @@ Note: json_parser and yaml_parser dropped — design_status.md resolves .idx for
 | B | T-028a | MERGED — Python parser + IndexEntry type + init scaffolding |
 | C | T-028b | MERGED — Markdown parser |
 | D | T-029 | Index manager + brownfield scanner — depends on T-028b |
+| E | T-036 | MERGED — targeted reads in orchestrate skill; consumes .idx instead of full files |
+| F | T-037 | MERGED — targeted reads in oracle re-spar path; consumes architecture.md.idx instead of full file |
+| G | T-038 | CLAUDE.md universal .idx reading protocol — one rule for all sessions; absent .idx = file < 50L, read in full |
 
 ---
 
@@ -70,17 +87,22 @@ Status: IN_PROGRESS
 Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 Goal: PTY overlay shell wraps `claude`/`gemini`, counts tokens locally, injects `/handoff` at threshold, restarts session.
 
-Known scope: T-002 (config), T-006 (PTY wrapper), T-007 (tokenizer), T-008 (session manager + countdown)
+Known scope: T-002 (config), T-006 (PTY wrapper), T-007 (tokenizer), T-008 (session manager + countdown), T-039 (ledger-anchored cap derivation), T-040 (oracle .idx protocol), T-041 (PreToolUse hook — Read enforcement)
 
 | Round | Tasks | Note |
 |---|---|---|
-| A | T-002, T-006, T-007 | All unblocked — run in parallel |
+| A | T-002, T-006, T-007, T-041 | All unblocked — run in parallel |
 | B | T-008 | After Round A — depends on T-002, T-006, T-007 |
+
+| Task | Title | Status |
+|---|---|---|
+| T-039 | Orchestrate skill — ledger-anchored rate cap | MERGED |
+| T-040 | Oracle skill — general .idx protocol | MERGED |
 
 ---
 
 ## Milestone 5: Context Builder
-Status: PENDING — tasks decomposed when Milestone 4 completes
+Status: DEFERRED — not required for skills goal; needed for headless runner (v2) only
 
 Architecture: architecture.md#context-bundle
 Goal: `context_builder.py` assembles minimal per-task bundle using symbol index; orchestrate skill writes `context_bundle.md` to each worktree.

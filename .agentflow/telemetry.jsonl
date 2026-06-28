@@ -115,3 +115,5 @@
 {"trace_id": "4e60b972-6799-4508-bc1e-2f0c914a9a23", "span": "worker.context_built", "timestamp": "2026-06-27T00:00:26.299579+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
 {"trace_id": "c17232bc-a1ec-460f-a96c-99f71b53a41a", "span": "worker.context_built", "timestamp": "2026-06-27T00:00:26.305693+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
 {"trace_id": "08b57af9-72cb-45f5-8242-5ec30990f5c8", "span": "worker.context_built", "timestamp": "2026-06-27T00:00:26.313051+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
+{"event": "handoff", "timestamp": "2026-06-27T08:30:00Z", "session_type": "orchestrator", "agent_tokens_in": 19684, "agent_tokens_out": 4512, "agents": 2}
+{"event": "handoff", "timestamp": "2026-06-27T15:13:37Z", "session_type": "orchestrator", "agent_tokens_in": 6842, "agent_tokens_out": 1052, "agents": 2}
