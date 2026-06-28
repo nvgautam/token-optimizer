@@ -83,39 +83,37 @@ Note: json_parser and yaml_parser dropped — design_status.md resolves .idx for
 ---
 
 ## Milestone 4: Config + PTY Shell
-Status: IN_PROGRESS
+Status: PARTIAL — skill tasks complete; Python CLI tasks deferred to backlog.json
 Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
-Goal: PTY overlay shell wraps `claude`/`gemini`, counts tokens locally, injects `/handoff` at threshold, restarts session.
-
-Known scope: T-002 (config), T-006 (PTY wrapper), T-007 (tokenizer), T-008 (session manager + countdown), T-039 (ledger-anchored cap derivation), T-040 (oracle .idx protocol), T-041 (PreToolUse hook — Read enforcement)
-
-| Round | Tasks | Note |
-|---|---|---|
-| A | T-002, T-006, T-007, T-041 | All unblocked — run in parallel |
-| B | T-008 | After Round A — depends on T-002, T-006, T-007 |
 
 | Task | Title | Status |
 |---|---|---|
 | T-039 | Orchestrate skill — ledger-anchored rate cap | MERGED |
 | T-040 | Oracle skill — general .idx protocol | MERGED |
+| T-041 | PreToolUse hook — Read enforcement | MERGED |
+| T-042 | Orchestrate skill — 5hr cap tz fix + low-n guard | MERGED |
+| T-043 | Defer Python CLI tasks to backlog | MERGED |
+| T-044 | orchestrate.md — startup index refresh + targeted reads rule | MERGED |
+| T-045 | Shadow cost measurement (read_logger + analyzer) | MERGED |
+| T-046 | PostToolUse hook — auto-regenerate .idx on Write/Edit | PENDING |
+| T-002 | Config system (Python) | DEFERRED → backlog.json |
+| T-006 | PTY wrapper (Python) | DEFERRED → backlog.json |
+| T-007 | Local tokenizer (Python) | DEFERRED → backlog.json |
+| T-008 | PTY session manager + countdown (Python) | DEFERRED → backlog.json |
 
 ---
 
 ## Milestone 5: Context Builder
-Status: DEFERRED — not required for skills goal; needed for headless runner (v2) only
+Status: DEFERRED — Python CLI out of scope for v1; task moved to backlog.json
 
-Architecture: architecture.md#context-bundle
-Goal: `context_builder.py` assembles minimal per-task bundle using symbol index; orchestrate skill writes `context_bundle.md` to each worktree.
-
-Known scope: T-030 (context builder)
-
-| Round | Tasks | Note |
+| Task | Title | Status |
 |---|---|---|
-| A | T-030 | Depends on T-002, T-029 |
+| T-030 | Context builder (Python) | DEFERRED → backlog.json |
 
 ---
 
 ## Deferred
+- AgentFlow Python CLI package (config, PTY shell, tokenizer, session manager, context builder): backlog.json
 - Headless automation layer (agent_runner, write_file_tool, reviewer pipeline code): v2
 - Codex provider: v2
 - Brownfield file refactoring: v2
