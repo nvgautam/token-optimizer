@@ -443,5 +443,21 @@
     "context_section": "commands/orchestrate.md",
     "status": "complete",
     "pr": 22
+  },
+  {
+    "archived_at": "2026-06-27T00:00:00Z",
+    "task": {
+      "task_id": "T-046",
+      "title": "PostToolUse hook — auto-regenerate .idx on Write/Edit",
+      "description": "Add a PostToolUse hook that fires after Write and Edit tool calls. When the target file is Python or Markdown and ≥50 lines, regenerate its .idx in ~/.agentflow/cache/<hash>/index/. Closes the gap where files written or edited outside an orchestrate pre-spawn cycle are never indexed until the next session. Hook must be silent (no stdout/stderr), exit 0 always, stdlib-only. Register in .claude/settings.json alongside the read_logger hook.",
+      "owns": ["agentflow/hooks/write_indexer.py", ".claude/settings.json"],
+      "reads": ["agentflow/indexer/python_parser.py", "agentflow/indexer/markdown_parser.py", "agentflow/indexer/index_manager.py"],
+      "depends_on": [],
+      "acceptance_criteria": ".idx regenerated immediately after Write/Edit on qualifying files; no terminal output; shadow_reads.jsonl shows idx_exists=true for edited files in subsequent reads",
+      "estimated_lines": 80,
+      "context_section": "agentflow/indexer/index_manager.py",
+      "status": "complete",
+      "pr": 27
+    }
   }
 ]
