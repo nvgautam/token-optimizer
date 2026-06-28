@@ -1,58 +1,57 @@
 # AgentFlow — Design Decisions
 
-Oracle state: RESOLVED / UNRESOLVED / DEFERRED items. Oracle reads this file on startup (not architecture.md).
-Handoff writes updates here. Architecture.md is the design reference — read by workers, not oracle.
+Oracle reads on startup. Handoff writes updates. Architecture.md = workers only.
 
 | Item | Status | Decision |
 |---|---|---|
-| Primary artifact | RESOLVED | Skills-first: .md files for Claude, SKILL.md + scripts for Gemini |
+| Primary artifact | RESOLVED | Skills-first: .md for Claude, SKILL.md + scripts for Gemini |
 | PTY LLM usage | RESOLVED | Zero LLM calls in PTY shell — fully deterministic |
 | Token counting | RESOLVED | Local tiktoken, ~95% accuracy, acceptable for threshold detection |
-| Handoff threshold | RESOLVED | Hybrid: absolute 40K floor OR 30% of window ceiling — whichever fires first |
-| Semantic handoff trigger | DEFERRED | Task completion (TASK_COMPLETE signal) as primary trigger; token threshold as safety net — v2 |
-| Velocity-based trigger | DEFERRED | Track turn-over-turn input delta; trigger on accelerating growth (second derivative positive over 3-turn window) — v2 |
-| Structured PTY signals | DEFERRED | Skills emit TASK_COMPLETE:<id> and CHECKLIST_ITEM_RESOLVED:<id> to stdout for PTY consumption — prerequisite for semantic trigger — v2 |
-| Handoff state | RESOLVED | Living documents (design_status.md, execution_plan.md) — no separate handoff files |
-| Session resume | RESOLVED | Oracle: UNRESOLVED items in design_status.md. Orchestrator: incomplete milestones in execution_plan.md |
-| execution_plan.md owner | RESOLVED | Oracle creates milestone structure + full tasks for Milestone 1; orchestrator lazily fills tasks for each subsequent milestone when prior milestone completes |
-| tasks.json owner | RESOLVED | Oracle writes full task definitions for Milestone 1 only; stubs for future milestones; orchestrator extends lazily at milestone boundaries |
+| Handoff threshold | RESOLVED | 40K floor OR 30% ceiling — whichever fires first |
+| Semantic handoff trigger | DEFERRED | TASK_COMPLETE signal primary; token threshold safety net — v2 |
+| Velocity-based trigger | DEFERRED | Turn-delta tracking; trigger on accelerating growth (2nd derivative, 3-turn window) — v2 |
+| Structured PTY signals | DEFERRED | TASK_COMPLETE:<id>, CHECKLIST_ITEM_RESOLVED:<id> to stdout — prerequisite for semantic trigger — v2 |
+| Handoff state | RESOLVED | Living docs (design_status.md, execution_plan.md); no separate handoff files |
+| Session resume | RESOLVED | Oracle: UNRESOLVED in design_status.md. Orchestrator: incomplete milestones in execution_plan.md |
+| execution_plan.md owner | RESOLVED | Oracle: M1 full tasks + milestone stubs; orchestrator fills lazily at milestone completion |
+| tasks.json owner | RESOLVED | Oracle: M1 full defs + stubs; orchestrator extends lazily at milestone boundaries |
 | Staleness detection | RESOLVED | Document state, not timestamps |
 | Symbol index location | RESOLVED | ~/.agentflow/cache/<hash>/index/ — never in project tree |
 | Index update trigger | RESOLVED | write_file tool side-effect; worker unaware |
 | Brownfield support | RESOLVED | Index generation v1; file refactoring v2 |
-| Prompt injection | RESOLVED | Oracle asks user; generates tasks if applicable; AgentFlow itself sanitises oracle input |
+| Prompt injection | RESOLVED | Oracle asks user; generates tasks if applicable; AgentFlow sanitises oracle input |
 | Human PR review | RESOLVED | HUMAN_APPROVED enforced gate before any merge |
-| Idempotency | RESOLVED | Cross-cutting constraint; all operations safe to run twice |
+| Idempotency | RESOLVED | Cross-cutting; all operations safe to run twice |
 | PTY countdown | RESOLVED | 5s default; configurable by tier (Free: fixed; Pro: user; Enterprise: admin) |
 | Providers v1 | RESOLVED | Claude Code + Gemini CLI |
-| Tier/licensing | DEFERRED | To be designed; compiled binary + server-side components likely |
-| Naming/branding | DEFERRED | PTY shell needs a distinct product name |
+| Tier/licensing | DEFERRED | Compiled binary + server-side components likely — design pending |
+| Naming/branding | DEFERRED | PTY shell needs distinct product name |
 | Codex provider | DEFERRED | v2 |
 | Brownfield refactoring | DEFERRED | v2 — requires existing test suite, per-file human approval |
 | OTel exporter | DEFERRED | v2 — JSONL schema already OTel-compatible |
 | Merge sequencer | DEFERRED | v1 manual merge acceptable; automated sequencer v2 |
-| PTY sequencing | RESOLVED | PTY is built alongside skills in v1 — the product IS skills + PTY shell. Headless automation layer is v2. |
-| v1 milestone order | RESOLVED | 1: skill files → 2: symbol indexer (via orchestrate skill inline) → 3: PTY shell → v2: headless automation layer |
-| Headless automation layer | DEFERRED | v2 — see Module boundaries for full list. PTY approach validated in v1 first before building headless runners. |
-| Symbol indexer | RESOLVED | v1 — standalone CLI tool; PTY shell runs on session start; skills instruct Claude to read .idx before full files. Highest-leverage read optimisation (~65% per targeted read). |
-| Context builder | RESOLVED | v1 — context_builder.py assembles minimal bundle; orchestrate skill writes context_bundle.md per task to disk; workers read only that file on session start. |
-| Oracle state doc | RESOLVED | design_status.md (this file) — oracle reads on startup, handoff writes on flush. Replaces decisions log embedded in architecture.md. |
-| Compact state docs | RESOLVED | v1 — handoff skill writes design_status.md and execution_plan.md in dense structured format (tables/bullets, no prose). Prompt instruction only, no code. |
-| Verbosity control | RESOLVED | v1 — all skill system prompts instruct Claude to keep responses concise. Extends sessions by ~25% before threshold fires. |
-| Section-only loading | RESOLVED | v1 — task reads fields use anchors (already enforced); skill prompts explicitly forbid loading full architecture.md. |
-| Per-session thresholds | RESOLVED | v1 — config adds oracle_threshold_tokens and orchestrator_threshold_tokens; session_manager reads per-type threshold on session detection. |
-| Orchestrator persona | RESOLVED | Staff Engineering Lead — executes plan faithfully, manages parallelism and failure, escalates to human when authority exceeded. Does not re-prioritize. Oracle (Senior PE + PM + Designer) sets priority; orchestrator delivers it. |
-| Skill IP protection | DEFERRED | `.md` skill files on disk are readable — not IP-protected. PTY binary protects shell mechanics only. Prerequisite for commercial distribution. |
-| Skill distribution mechanism | DEFERRED | Two options: (1) embed+inject — PTY binary carries compiled skill content, unpacks to `~/.claude/commands/` on install/update; (2) server-side delivery — PTY fetches skills from server at runtime, never writes to disk (strongest IP protection, requires connectivity). Decision blocked on tier/licensing design. Determines both install flow and update mechanism. |
-| Skill file location | RESOLVED | `commands/` directory at project root (git-tracked). Users copy to `~/.claude/commands/` (global) or `.claude/commands/` (project-scoped). No pip package distribution of skill content — IP protection mechanism deferred. |
-| Gemini provider | RESOLVED | Built and verified equivalent agy skills (orchestrate, handoff, and AGENTS.md), enabling Gemini/AGY to serve as an orchestrator. |
-| Orchestrator round-sizing | RESOLVED | Before each round: `max_tasks = max(1, (orchestrator_threshold_tokens - current_tokens) / tokens_per_task_estimate)`. Prevents context blowout mid-round. Config: `shell.tokens_per_task_estimate` default 2500. Encoded in commands/orchestrate.md skill logic. |
-| Token savings validation | RESOLVED | Root cause of missing savings identified 2026-06-26: deployed skills were pre-T-026/T-027 stale versions (oracle 232L vs 126L; orchestrate 422L vs 140L). Synced. Empirically confirmed 2026-06-26: re-spar context ≤15% with new skills (vs 24% with stale). Hypothesis validated. |
-| Architecture drift detection | DEFERRED | Explore low-cost deterministic sync check between architecture.md and implementation (skills + code). Hypothesis: every line in architecture.md should be traceable to a skill file or source file. Handoff owns the sync enforced path; this is for catching drift from direct edits. Prerequisite: validate token savings hypothesis first. |
-| .idx index format | RESOLVED | Plaintext, one symbol per line: name:start-end. Python: top-level functions, classes, and class methods (ClassName.method:start-end). Markdown: H2/H3 headers (## Header:start-end). Files < 50 lines skipped. No JSON/YAML indexing. |
-| Inline indexing approach | RESOLVED | Orchestrate skill generates .idx files during pre-spawn (ast for Python, grep for Markdown). No standalone CLI tool needed to validate token savings. Python CLI modules (T-028, T-029) deferred until inline approach empirically validated. |
-| Concurrent orchestrator prevention | RESOLVED | Serial execution lock: PTY shell / orchestrator uses a lock file (`.agentflow/orchestrator.lock`) containing active PID, provider, and timestamp to prevent concurrent orchestrator runs on the same project repository. |
-| Rate cap derivation | RESOLVED | Ledger-anchored: cap = total_billable_tokens_since_window_start / (current_pct / 100). More accurate than single-session delta (session_tokens / delta_pct) — full window base reduces variance. Ledger timestamps are local time (datetime.now(), no tz). 5hr window start = reset_time - 5h; weekly window start = reset_time - 7d. Unbilled current-session tokens (not yet flushed to ledger) are a known gap — correct by adding current-session delta explicitly. |
-| Read hook enforcement | DEFERRED | PreToolUse hook stdout is not surfaced to Claude in a way that changes behavior; exit non-zero does not block the tool. Hook is ineffective as enforcement. Removed. Targeted read protocol enforced via skill files (CLAUDE.md, orchestrate.md, oracle.md) only. Compiled hook binary revisit deferred to v2 when PTY shell ships. |
-| Hook IP protection | DEFERRED | Moot until hook enforcement is revisited in v2. |
-| Telegraphic artifact style | RESOLVED | All artifacts (tasks.json, execution_plan.md, design_status.md, skill files) use LLM-optimized prose: no articles, bullets over prose, ≤10 words per idea. Oracle generation.md enforces for new output; existing artifacts compressed retroactively via T-048/T-049. Expected: 20–30% input token reduction per session. |
+| PTY sequencing | RESOLVED | PTY built alongside skills in v1 — product IS skills + PTY shell. Headless layer v2. |
+| v1 milestone order | RESOLVED | M1: skill files → M2: symbol indexer (inline) → M3: PTY shell → v2: headless |
+| Headless automation layer | DEFERRED | v2 — PTY approach validated in v1 first |
+| Symbol indexer | RESOLVED | Standalone CLI; PTY runs on session start; skills read .idx before full files (~65% per targeted read) |
+| Context builder | RESOLVED | context_builder.py assembles minimal bundle; orchestrate writes context_bundle.md per task; workers read only that |
+| Oracle state doc | RESOLVED | design_status.md — oracle reads on startup, handoff writes on flush. Replaces decisions log in architecture.md. |
+| Compact state docs | RESOLVED | Handoff writes design_status.md + execution_plan.md as tables/bullets; no prose. Prompt instruction only. |
+| Verbosity control | RESOLVED | Skill prompts instruct concise responses; extends sessions ~25% before threshold fires |
+| Section-only loading | RESOLVED | Task reads use anchors; skill prompts forbid full architecture.md load |
+| Per-session thresholds | RESOLVED | oracle_threshold_tokens + orchestrator_threshold_tokens in config; session_manager reads per-type |
+| Orchestrator persona | RESOLVED | Staff Eng Lead — executes, manages parallelism, escalates. No re-prioritization; oracle sets priority |
+| Skill IP protection | DEFERRED | .md files readable — not IP-protected. PTY binary protects shell only. Prerequisite for commercial distribution. |
+| Skill distribution mechanism | DEFERRED | Options: (1) embed+inject in binary; (2) server-side delivery at runtime. Blocked on tier/licensing. |
+| Skill file location | RESOLVED | commands/ at project root (git-tracked). Copy to ~/.claude/commands/ or .claude/commands/. No pip dist of skill content. |
+| Gemini provider | RESOLVED | AGY skills (orchestrate, handoff, AGENTS.md) built and verified; Gemini serves as orchestrator |
+| Orchestrator round-sizing | RESOLVED | max_tasks = max(1, remaining_tokens / pct_cost). Default pct_cost=2500. Encoded in orchestrate.md. |
+| Token savings validation | RESOLVED | Stale skills caused missing savings 2026-06-26 (oracle 232L→126L; orchestrate 422L→140L). Re-spar ≤15% confirmed. |
+| Architecture drift detection | DEFERRED | Low-cost sync check: every architecture.md line traceable to skill/code. Blocked on token savings validation. |
+| .idx index format | RESOLVED | Plaintext name:start-end. Python: functions, classes, methods (ClassName.method). Markdown: H2/H3. <50 lines skipped. |
+| Inline indexing approach | RESOLVED | Orchestrate generates .idx in pre-spawn (ast for .py, grep for .md). No standalone CLI for validation. |
+| Concurrent orchestrator prevention | RESOLVED | Lock file .agentflow/orchestrator.lock with PID, provider, timestamp — prevents concurrent runs |
+| Rate cap derivation | RESOLVED | Ledger-anchored: cap = total_window_tokens / (pct/100). Local time only (no tz). Gap: add unbilled current session. Weekly derived first. |
+| Read hook enforcement | DEFERRED | PreToolUse stdout not surfaced; exit non-zero doesn't block. Hook removed. Skill files enforce protocol. Binary hook revisit v2. |
+| Hook IP protection | DEFERRED | Moot until hook enforcement revisited in v2 |
+| Telegraphic artifact style | RESOLVED | All artifacts: no articles, bullets over prose, ≤10 words per idea. generation.md enforces; existing compressed via T-048/T-049. ~20–30% token reduction. |
