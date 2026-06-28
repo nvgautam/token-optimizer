@@ -221,30 +221,7 @@
     },
     {
       "task_id": "T-047",
-      "title": "Oracle generation — telegraphic style rule",
-      "description": "Update commands/oracle/generation.md compact writing rules: enforce LLM-optimized prose for all generated artifacts. Rules: no articles, no 'This module…' sentences, bullets over prose, ≤10 words per idea. Add RESOLVED row to design_status.md.",
-      "owns": [
-        "commands/oracle/generation.md",
-        "design_status.md"
-      ],
-      "reads": [
-        "commands/oracle/generation.md"
-      ],
-      "depends_on": [],
-      "contracts": [],
-      "test_requirements": {
-        "unit": [
-          "commands/oracle/generation.md contains telegraphic style rule",
-          "design_status.md contains RESOLVED row for telegraphic artifact style"
-        ],
-        "integration": [],
-        "coverage_threshold": 0
-      },
-      "security_constraints": [],
-      "acceptance_criteria": "generation.md compact writing rules updated; future oracle artifacts use telegraphic style",
-      "estimated_lines": 20,
-      "context_section": "commands/oracle/generation.md",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-048",

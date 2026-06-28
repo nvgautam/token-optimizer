@@ -459,5 +459,16 @@
       "status": "complete",
       "pr": 27
     }
+  },
+  {
+    "archived_at": "2026-06-27T00:00:00Z",
+    "task": {
+      "task_id": "T-047",
+      "title": "Oracle generation — telegraphic style rule",
+      "owns": ["commands/oracle/generation.md", "design_status.md"],
+      "acceptance_criteria": "generation.md compact writing rules updated; future oracle artifacts use telegraphic style",
+      "status": "complete",
+      "pr": 28
+    }
   }
 ]

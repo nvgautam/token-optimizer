@@ -190,6 +190,15 @@
       "status": "complete",
       "pr": 27,
       "tokens": null
+    },
+    {
+      "group_id": 22,
+      "task_ids": [
+        "T-047"
+      ],
+      "status": "complete",
+      "pr": 28,
+      "tokens": null
     }
   ]
 }
