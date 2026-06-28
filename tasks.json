@@ -197,46 +197,72 @@
     },
     {
       "task_id": "T-008",
-      "title": "PTY session manager \u2014 handoff, countdown, idx injection",
-      "description": "Implement agentflow/shell/session_manager.py and agentflow/shell/countdown.py. SessionManager(pty_wrapper, tokenizer, config) matching existing stub. Config is a dict with keys: oracle_threshold_tokens (60000), orchestrator_threshold_tokens (30000), threshold_pct (0.30), restart_delay_seconds (5). Method trigger_handoff() -> None: write '/handoff\\n' to pty_wrapper.write_input(), scan on_output stream for 'HANDOFF_COMPLETE' (timeout 120s), write '/clear\\n', call countdown(restart_delay_seconds, on_complete=restart_session). Additional responsibilities wired via on_output callback registered in __init__: (1) session_type detection \u2014 scan first chunks for '/oracle' or '/orchestrate' in stdin mirror; (2) turn counter \u2014 increment on response boundary; (3) idx reminder injection \u2014 every 3 turns call write_input(idx_banner) before next user input; idx_banner uses hash=hashlib.sha256(cwd).hexdigest() pre-computed at init; (4) threshold check \u2014 after each accumulate() call check total > threshold or total > window_size * threshold_pct; if fired and not manual_handoff: call trigger_handoff(). countdown.py: countdown(seconds: int, on_complete, message: str = '') -> None \u2014 prints per-second countdown to stderr, calls on_complete() when done; KeyboardInterrupt exits cleanly. Config read: open ~/.agentflow/config.toml via tomllib if present; merge over defaults.",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-009",
+      "title": "CLI cmd_shell \u2014 PTY I/O relay loop",
+      "description": "Implement cmd_shell in agentflow/cli.py. Replace the stub with a working PTY relay: (1) save terminal settings with termios.tcgetattr, enter raw mode with tty.setraw; (2) instantiate PTYWrapper([args.command]) and Tokenizer module; (3) instantiate SessionManager(wrapper, tokenizer_module, config={}); (4) run a select() loop on [sys.stdin.fileno(), wrapper.master_fd] \u2014 stdin ready: os.read then os.write to master_fd; master_fd ready: call wrapper.read_output() (fires SessionManager callback) then os.write chunk to stdout; (5) exit loop when wrapper._exited; (6) restore terminal settings in finally block and sys.exit(wrapper._exit_code or 0). PTYWrapper already handles SIGWINCH. SessionManager already handles IDX injection, handoff threshold, and session restart.",
       "owns": [
-        "agentflow/shell/session_manager.py",
-        "agentflow/shell/countdown.py"
+        "agentflow/cli.py"
       ],
       "reads": [
         "agentflow/shell/pty_wrapper.py",
-        "agentflow/shell/tokenizer.py"
-      ],
-      "depends_on": [
-        "T-006"
-      ],
-      "contracts": [
         "agentflow/shell/session_manager.py",
+        "agentflow/shell/tokenizer.py",
         "agentflow/shell/countdown.py"
       ],
+      "depends_on": [
+        "T-008"
+      ],
+      "contracts": [],
       "test_requirements": {
         "unit": [
-          "session_type set to 'oracle' when /oracle detected in input stream",
-          "session_type set to 'orchestrate' when /orchestrate detected",
-          "idx banner written via write_input every 3 turns",
-          "trigger_handoff() writes /handoff then /clear to pty_wrapper",
-          "threshold fires when tokenizer total exceeds oracle_threshold_tokens",
-          "manual_handoff flag suppresses auto-restart",
-          "countdown() prints per-second output and calls on_complete",
-          "countdown() exits cleanly on KeyboardInterrupt"
+          "cmd_shell enters raw mode before forking PTY",
+          "select() loop reads from stdin and writes to master_fd",
+          "select() loop reads master_fd via read_output() and writes to stdout",
+          "terminal settings restored in finally block on normal and error exit",
+          "sys.exit called with child exit code"
         ],
         "integration": [],
-        "coverage_threshold": 85
+        "coverage_threshold": 80
       },
-      "security_constraints": [
-        "No shell=True",
-        "No LLM calls",
-        "config.toml path validated to ~/.agentflow/ before open"
+      "security_constraints": [],
+      "acceptance_criteria": "agentflow shell --command claude launches claude under PTY; IDX banners appear every 3 turns; handoff fires at token threshold; terminal restored cleanly on exit",
+      "estimated_lines": 60,
+      "context_section": "agentflow/cli.py#cmd_shell",
+      "status": "PENDING"
+    },
+    {
+      "task_id": "T-010",
+      "title": "PTY \u2014 per-turn output token tracking + verbosity compliance signal",
+      "description": "Extend SessionManager in agentflow/shell/session_manager.py to track output tokens per turn. In _handle_output, accumulate output bytes between turn boundaries (existing turn counter logic) and compute output tokens via tokenizer at each turn boundary. Store per-turn output token counts in a rolling list (last 10 turns). After each turn, if output tokens exceed a configurable threshold (default: 800 tokens), inject a verbosity reminder banner to stdin: \"[VERBOSITY] Last response: {n} tokens \u2014 target \u22643 sentences (~150 tokens) for sparring exchanges.\". At session end (on_exit callback), write per-turn stats to .agentflow/verbosity_log.jsonl: {ts, session_type, turn, output_tokens}. This enables the shadow analyzer to compute mean/p90 output tokens per turn and compare against the 150-token target.",
+      "owns": [
+        "agentflow/shell/session_manager.py"
       ],
-      "acceptance_criteria": "SessionManager detects session type, injects idx banner every 3 turns, triggers handoff+countdown+restart when threshold exceeded; countdown callable works standalone",
-      "estimated_lines": 220,
-      "context_section": "architecture.md#pty-shell-design",
-      "status": "pending"
+      "reads": [
+        "agentflow/shell/tokenizer.py",
+        "agentflow/shell/pty_wrapper.py"
+      ],
+      "depends_on": [
+        "T-009"
+      ],
+      "contracts": [],
+      "test_requirements": {
+        "unit": [
+          "output token count resets at each turn boundary",
+          "verbosity banner injected when output tokens exceed threshold",
+          "verbosity banner not injected for artifact-heavy turns (threshold configurable)",
+          "per-turn stats written to .agentflow/verbosity_log.jsonl on session exit"
+        ],
+        "integration": [],
+        "coverage_threshold": 80
+      },
+      "security_constraints": [],
+      "acceptance_criteria": "verbosity_log.jsonl accumulates per-turn output token counts across sessions; shadow/analyzer.py can read it and report mean/p90 output tokens per turn vs 150-token target; banner fires on verbose turns",
+      "estimated_lines": 50,
+      "context_section": "agentflow/shell/session_manager.py#_handle_output",
+      "status": "PENDING"
     }
   ]
 }

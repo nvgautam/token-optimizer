@@ -81,7 +81,7 @@ Note: json/yaml parsers dropped — .idx format is Python + Markdown only.
 ---
 
 ## Milestone 4: Config + PTY Shell
-Status: PARTIAL — skill tasks complete; PTY shell (Python) active
+Status: IN PROGRESS (T-009 pending)
 Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 
 | Task | Title | Status |
@@ -99,13 +99,17 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-049 | Compress skill files (oracle.md, orchestrate.md, handoff.md) | MERGED |
 | T-007 | Local tokenizer — tiktoken cl100k_base | MERGED |
 | T-006 | PTY wrapper — stdlib pty, I/O interception | MERGED |
-| T-008 | PTY session manager — handoff, countdown, idx injection | PENDING |
+| T-008 | PTY session manager — handoff, countdown, idx injection | MERGED |
+| T-009 | CLI cmd_shell — PTY I/O relay loop | PENDING |
+| T-010 | PTY — per-turn output tracking + verbosity signal | PENDING |
 
 | Round | Tasks | Note |
 |---|---|---|
 | A | T-007 | No deps — first spawn alone |
 | B | T-006 | Depends on T-007 |
 | C | T-008 | Depends on T-006 |
+| D | T-009 | Depends on T-008 |
+| E | T-010 | Depends on T-009 |
 
 ---
 

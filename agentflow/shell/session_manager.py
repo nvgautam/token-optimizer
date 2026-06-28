@@ -29,7 +29,8 @@ _DEFAULTS: dict = {
 }
 
 _IDX_BANNER = (
-    "[IDX] Before next Read: check ~/.agentflow/cache/{hash}/index/<file>.idx"
+    "[IDX] Before any Read: for each file, check"
+    " ~/.agentflow/cache/{hash}/index/<that-file>.idx first"
     " — grep name:start-end, then Read(offset, limit).\n"
 )
 
