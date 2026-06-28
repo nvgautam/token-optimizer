@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 agentflow/hooks/read_check.py"
+            "command": "python3 agentflow/hooks/read_logger.py"
           }
         ]
       }
