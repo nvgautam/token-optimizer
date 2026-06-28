@@ -5,167 +5,57 @@
   "description": "Provider-agnostic multi-agent project management: skills for Claude and Gemini + PTY overlay shell",
   "tasks": [
     {
-      "task_id": "T-001",
+      "task_id": "T-042",
       "status": "complete"
     },
     {
-      "task_id": "T-002",
-      "title": "Config system",
-      "description": "Pydantic v2 schema for all config fields (models, shell, testing, token_budget, file_limits, parallelism). Layered loader resolving env vars \u2192 .agentflow/config.yaml \u2192 ~/.agentflow/config.yaml \u2192 defaults.yaml. Expose load_config(cwd) \u2192 typed Config object. Ship defaults.yaml per architecture.md#config-schema. Shell config must include per-session-type thresholds: shell.oracle_threshold_tokens (default 60000) and shell.orchestrator_threshold_tokens (default 30000) in addition to the global threshold_tokens. Also add shell.tokens_per_task_estimate (default 2500) \u2014 used by orchestrator round-sizing heuristic.",
-      "owns": [
-        "agentflow/config/loader.py",
-        "agentflow/config/schema.py",
-        "agentflow/config/defaults.yaml",
-        "tests/config/test_loader.py",
-        "tests/config/__init__.py"
-      ],
-      "reads": [
-        "architecture.md#config-schema"
-      ],
-      "depends_on": [
-        "T-001"
-      ],
-      "contracts": [
-        "agentflow/config/loader.py",
-        "agentflow/config/schema.py"
-      ],
-      "test_requirements": {
-        "unit": [
-          "env var overrides project config",
-          "project config overrides user config",
-          "user config overrides defaults",
-          "invalid config raises ValidationError with field name",
-          "missing config files fall through to defaults cleanly",
-          "load_config returns typed Config with correct precedence",
-          "oracle_threshold_tokens defaults to 60000",
-          "orchestrator_threshold_tokens defaults to 30000",
-          "per-session thresholds can be overridden independently"
-        ],
-        "integration": [],
-        "coverage_threshold": 90
-      },
-      "security_constraints": [
-        "never log config values that may contain API keys"
-      ],
-      "acceptance_criteria": "all unit tests green; load_config returns typed Config with correct precedence",
-      "estimated_lines": 180,
-      "context_section": "architecture.md#config-schema",
-      "status": "pending"
+      "task_id": "T-043",
+      "status": "complete"
     },
     {
-      "task_id": "T-006",
-      "title": "PTY wrapper",
-      "description": "Spawn an AI CLI command (e.g. 'claude', 'gemini') inside a PTY using the pty module. Transparently relay I/O between user terminal and child process. Expose read_output(timeout) \u2192 bytes, write_input(text) \u2192 None. Detect child process exit and surface ExitCode. All I/O callbacks registered at construction time for interception. stdlib only.",
-      "owns": [
-        "agentflow/shell/pty_wrapper.py",
-        "tests/shell/test_pty_wrapper.py",
-        "tests/shell/__init__.py"
-      ],
-      "reads": [
-        "architecture.md#pty-shell-design"
-      ],
-      "depends_on": [
-        "T-001"
-      ],
-      "contracts": [
-        "agentflow/shell/pty_wrapper.py"
-      ],
-      "test_requirements": {
-        "unit": [
-          "write_input sends bytes to child stdin",
-          "read_output returns bytes from child stdout",
-          "child exit triggers exit callback with code",
-          "I/O callbacks receive all bytes passing through"
-        ],
-        "integration": [
-          "spawn echo process in PTY, verify output relayed correctly"
-        ],
-        "coverage_threshold": 85
-      },
-      "security_constraints": [],
-      "acceptance_criteria": "integration test passes with real PTY; I/O transparent to child process",
-      "estimated_lines": 180,
-      "context_section": "architecture.md#pty-shell-design",
-      "status": "pending"
+      "task_id": "T-044",
+      "status": "complete"
     },
     {
-      "task_id": "T-007",
-      "title": "Local tokenizer",
-      "description": "Per-provider token counting using tiktoken. count_tokens(text, provider) \u2192 int. Supported providers: 'claude', 'gemini' (both use cl100k_base approximation). Maintain a running total via accumulate(text, provider) \u2192 int (cumulative). reset() clears the accumulator. No API calls. Fallback to whitespace split if tiktoken unavailable (degrade gracefully, log warning).",
-      "owns": [
-        "agentflow/shell/tokenizer.py",
-        "tests/shell/test_tokenizer.py"
-      ],
-      "reads": [
-        "architecture.md#pty-shell-design"
-      ],
-      "depends_on": [
-        "T-001"
-      ],
-      "contracts": [
-        "agentflow/shell/tokenizer.py"
-      ],
-      "test_requirements": {
-        "unit": [
-          "count_tokens returns positive int for non-empty text",
-          "accumulate adds to running total correctly",
-          "reset sets total to zero",
-          "both providers return same tokenizer (cl100k_base)",
-          "unknown provider raises ValueError"
-        ],
-        "integration": [],
-        "coverage_threshold": 88
-      },
-      "security_constraints": [],
-      "acceptance_criteria": "token counts within 5% of Anthropic API reported counts on sample prompts; no API calls made",
-      "estimated_lines": 100,
-      "context_section": "architecture.md#pty-shell-design",
-      "status": "pending"
+      "task_id": "T-045",
+      "status": "complete"
     },
     {
-      "task_id": "T-008",
-      "title": "PTY session manager and countdown",
-      "description": "Session manager: wraps PTYWrapper and Tokenizer. Watches I/O for session_type detection (first /oracle or /orchestrate in stdin). Accumulates tokens. On threshold breach: calls trigger_handoff() which injects /handoff, scans stdout for HANDOFF_COMPLETE, then passes to countdown. Suppresses auto-restart if /handoff came from user (not injected). countdown.py: prints '...restarting in Ns (Ctrl+C to cancel)', handles SIGINT, calls restart callback on expiry. Threshold is per-session-type: use config.shell.oracle_threshold_tokens for oracle sessions, config.shell.orchestrator_threshold_tokens for orchestrator sessions, config.shell.threshold_tokens as fallback when session type is None.",
+      "task_id": "T-046",
+      "title": "PostToolUse hook — auto-regenerate .idx on Write/Edit",
+      "description": "Add a PostToolUse hook that fires after Write and Edit tool calls. When the target file is Python or Markdown and ≥50 lines, regenerate its .idx in ~/.agentflow/cache/<hash>/index/. Closes the gap where files written or edited outside an orchestrate pre-spawn cycle are never indexed until the next session. Hook must be silent (no stdout/stderr), exit 0 always, stdlib-only. Register in .claude/settings.json alongside the read_logger hook.",
       "owns": [
-        "agentflow/shell/session_manager.py",
-        "agentflow/shell/countdown.py",
-        "tests/shell/test_session_manager.py"
+        "agentflow/hooks/write_indexer.py",
+        ".claude/settings.json"
       ],
       "reads": [
-        "agentflow/shell/pty_wrapper.py",
-        "agentflow/shell/tokenizer.py",
-        "agentflow/config/schema.py"
+        "agentflow/indexer/python_parser.py",
+        "agentflow/indexer/markdown_parser.py",
+        "agentflow/indexer/index_manager.py"
       ],
-      "depends_on": [
-        "T-001",
-        "T-002",
-        "T-006",
-        "T-007"
-      ],
-      "contracts": [
-        "agentflow/shell/session_manager.py"
-      ],
+      "depends_on": [],
+      "contracts": [],
       "test_requirements": {
         "unit": [
-          "session_type set to oracle on /oracle in stdin",
-          "session_type set to orchestrator on /orchestrate in stdin",
-          "threshold breach triggers handoff injection",
-          "user-initiated /handoff suppresses auto-restart",
-          "HANDOFF_COMPLETE pattern parsed correctly from stdout",
-          "countdown fires restart callback after delay",
-          "SIGINT during countdown cancels restart",
-          "oracle session uses oracle_threshold_tokens not global threshold",
-          "orchestrator session uses orchestrator_threshold_tokens not global threshold",
-          "unknown session type falls back to global threshold_tokens"
+          "writes .idx after editing a Python file ≥50 lines",
+          "writes .idx after editing a Markdown file ≥50 lines",
+          "skips files <50 lines",
+          "skips non-Python non-Markdown files",
+          "exits 0 silently with no stdout or stderr",
+          "is idempotent — running twice produces same .idx"
         ],
         "integration": [],
         "coverage_threshold": 85
       },
       "security_constraints": [],
-      "acceptance_criteria": "threshold breach triggers full flow: inject /handoff \u2192 detect HANDOFF_COMPLETE \u2192 countdown \u2192 restart skill",
-      "estimated_lines": 230,
-      "context_section": "architecture.md#pty-shell-design",
+      "acceptance_criteria": ".idx regenerated immediately after Write/Edit on qualifying files; no terminal output; shadow_reads.jsonl shows idx_exists=true for edited files in subsequent reads",
+      "estimated_lines": 80,
+      "context_section": "agentflow/indexer/index_manager.py",
       "status": "pending"
+    },
+    {
+      "task_id": "T-001",
+      "status": "complete"
     },
     {
       "task_id": "T-013",
@@ -280,51 +170,6 @@
       "status": "complete"
     },
     {
-      "task_id": "T-030",
-      "title": "Context builder",
-      "description": "Assembles a minimal context bundle for a task and writes it to context_bundle.md in the task's worktree. Bundle contents (in order): task brief (description + acceptance criteria), owned file list, read-only dependency contents (via index lookup for targeted reads \u2014 fall back to full file if no index entry), relevant architecture.md anchor section only (not full doc), test scenarios, security constraints, config snapshot (model, coverage threshold, file size limits). Exposes build(task, project_root, config) \u2192 Path (path to written context_bundle.md). Emits telemetry warning if bundle exceeds 50K tokens. Uses index_manager for targeted reads.",
-      "owns": [
-        "agentflow/worker/__init__.py",
-        "agentflow/worker/context_builder.py",
-        "tests/worker/__init__.py",
-        "tests/worker/test_context_builder.py"
-      ],
-      "reads": [
-        "architecture.md#context-bundle",
-        "agentflow/indexer/index_manager.py"
-      ],
-      "depends_on": [
-        "T-001",
-        "T-029"
-      ],
-      "contracts": [
-        "agentflow/worker/context_builder.py"
-      ],
-      "test_requirements": {
-        "unit": [
-          "build writes context_bundle.md at expected path",
-          "bundle contains task brief section",
-          "bundle contains owned file list",
-          "bundle uses index lookup for dependency reads when index exists",
-          "bundle falls back to full file read when no index entry",
-          "bundle includes only anchor section of architecture.md not full doc",
-          "build emits warning when bundle exceeds 50K tokens",
-          "build is idempotent \u2014 running twice overwrites with same content"
-        ],
-        "integration": [
-          "build with real task fixture and index \u2014 verify bundle contains correct symbol excerpts"
-        ],
-        "coverage_threshold": 88
-      },
-      "security_constraints": [
-        "dependency file contents must not include secrets \u2014 validate no env var patterns in bundle output"
-      ],
-      "acceptance_criteria": "bundle written correctly; targeted reads used when index available; 50K warning fires; section-only architecture loading confirmed",
-      "estimated_lines": 220,
-      "context_section": "architecture.md#context-bundle",
-      "status": "pending"
-    },
-    {
       "task_id": "T-036",
       "status": "complete"
     },
@@ -338,8 +183,8 @@
     },
     {
       "task_id": "T-039",
-      "title": "Orchestrate skill — ledger-anchored rate cap derivation",
-      "description": "Update the rate calibration logic in commands/orchestrate.md. Replace single-session delta method (cap = session_tokens / delta_pct) with ledger-anchored method: at session end, read agentflow_ledger.json, filter sessions where start_time >= window_start (local time; datetime.now() no tz), sum billable tokens (uncached_input + cache_creation + output per session), then cap_5hr = total_5hr_tokens / (end_pct_5hr / 100) and cap_wkly = total_wkly_tokens / (end_pct_wkly / 100). Window starts: 5hr = reset_time_5hr - 5h; weekly = reset_time_wkly - 7d. Gap: current session tokens not yet flushed to ledger — correct by adding (end_pct - start_pct) * prior_cap_estimate as current-session delta if ledger read returns fewer tokens than expected. Write updated cap estimates to ~/.agentflow/rate_calibration.json alongside existing EWMA fields.",
+      "title": "Orchestrate skill \u2014 ledger-anchored rate cap derivation",
+      "description": "Update the rate calibration logic in commands/orchestrate.md. Replace single-session delta method (cap = session_tokens / delta_pct) with ledger-anchored method: at session end, read agentflow_ledger.json, filter sessions where start_time >= window_start (local time; datetime.now() no tz), sum billable tokens (uncached_input + cache_creation + output per session), then cap_5hr = total_5hr_tokens / (end_pct_5hr / 100) and cap_wkly = total_wkly_tokens / (end_pct_wkly / 100). Window starts: 5hr = reset_time_5hr - 5h; weekly = reset_time_wkly - 7d. Gap: current session tokens not yet flushed to ledger \u2014 correct by adding (end_pct - start_pct) * prior_cap_estimate as current-session delta if ledger read returns fewer tokens than expected. Write updated cap estimates to ~/.agentflow/rate_calibration.json alongside existing EWMA fields.",
       "owns": [
         "commands/orchestrate.md"
       ],
@@ -370,8 +215,8 @@
     },
     {
       "task_id": "T-040",
-      "title": "Oracle skill — general .idx reading protocol",
-      "description": "Add a general Targeted Reads Rule section to commands/oracle.md. Currently oracle only checks .idx for architecture.md (Step 2a). All other file reads (lazy-loaded phase files: market.md 63L, checklist.md 113L, generation.md 133L; any future reads) have no .idx protocol. Add a 'Targeted Reads Rule' section matching the structure in commands/worker/system.md lines 51-78: compute HASH, check IDX path, grep for symbol, Read with offset+limit, fallback to full read if absent. Note: oracle's phase files (market.md, checklist.md, generation.md) are intentionally read in full when entering each phase — the rule applies to any targeted symbol/section lookup oracle makes outside of those full-phase loads.",
+      "title": "Oracle skill \u2014 general .idx reading protocol",
+      "description": "Add a general Targeted Reads Rule section to commands/oracle.md. Currently oracle only checks .idx for architecture.md (Step 2a). All other file reads (lazy-loaded phase files: market.md 63L, checklist.md 113L, generation.md 133L; any future reads) have no .idx protocol. Add a 'Targeted Reads Rule' section matching the structure in commands/worker/system.md lines 51-78: compute HASH, check IDX path, grep for symbol, Read with offset+limit, fallback to full read if absent. Note: oracle's phase files (market.md, checklist.md, generation.md) are intentionally read in full when entering each phase \u2014 the rule applies to any targeted symbol/section lookup oracle makes outside of those full-phase loads.",
       "owns": [
         "commands/oracle.md"
       ],
@@ -401,44 +246,7 @@
     },
     {
       "task_id": "T-041",
-      "title": "PreToolUse hook — Read tool enforcement",
-      "description": "Write agentflow/hooks/read_check.py: a Claude Code PreToolUse hook that fires before every Read call. Reads JSON from stdin (keys: tool_name, tool_input). Extracts file_path and offset from tool_input. If offset is absent and file_path is set: compute HASH = sha256(cwd), check ~/.agentflow/cache/HASH/index/<rel-path>.idx. If .idx exists: print a brief opaque instruction to stdout — must not mention 'index', '.idx', 'symbol', or 'token savings' — generic phrasing only (e.g. 'Optimization available: use targeted read parameters for <rel-path>'). If .idx absent or offset already set: print nothing, exit 0. Register hook in .claude/settings.json under hooks.PreToolUse matching tool_name == 'Read'. v2: compile to Nuitka binary; exclude source from distribution. IP constraint: output phrasing must not reveal the optimization mechanism to a terminal observer.",
-      "owns": [
-        "agentflow/hooks/read_check.py",
-        "agentflow/hooks/__init__.py",
-        ".claude/settings.json"
-      ],
-      "reads": [
-        "agentflow/indexer/index_manager.py"
-      ],
-      "depends_on": [
-        "T-029"
-      ],
-      "contracts": [
-        "agentflow/hooks/read_check.py"
-      ],
-      "test_requirements": {
-        "unit": [
-          "prints nothing when offset is already set",
-          "prints nothing when .idx is absent",
-          "prints opaque instruction when .idx exists and offset absent",
-          "output contains no mention of 'index', '.idx', 'symbol', or 'token'",
-          "exits 0 in all cases",
-          "handles missing file_path gracefully (no crash)"
-        ],
-        "integration": [
-          "hook registered in .claude/settings.json fires on Read tool call"
-        ],
-        "coverage_threshold": 85
-      },
-      "security_constraints": [
-        "output must not reveal optimization strategy — opaque phrasing only",
-        "no file contents written to stdout — only the instruction hint"
-      ],
-      "acceptance_criteria": "hook fires on Read calls; opaque hint printed when .idx exists and no offset; silent otherwise; registered in .claude/settings.json",
-      "estimated_lines": 60,
-      "context_section": "agentflow/hooks/read_check.py",
-      "status": "pending"
+      "status": "complete"
     }
   ]
 }
