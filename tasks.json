@@ -46,50 +46,6 @@
     },
     {
       "task_id": "T-027",
-      "title": "Orchestrator skill \u2014 Claude provider",
-      "description": "Update commands/orchestrate.md (the existing working orchestrate skill). Must inline Staff Engineering Lead persona, oracle-complete gate (all design_status.md items RESOLVED or DEFERRED \u2014 check design_status.md, NOT architecture.md), HUMAN_APPROVED gate, lazy milestone decomposition, and round-sizing heuristic. Round-sizing heuristic: before each round, calculate max_tasks_in_round = max(1, (orchestrator_threshold_tokens - current_estimated_tokens) / tokens_per_task_estimate). Current tokens tracked from TOKENS: reports of completed agents this session. This prevents orchestrator context from blowing through threshold mid-round. Reads commands/worker/system.md, commands/worker/context_bundle.md, commands/worker/testing_guide.md (embed into agent spawn prompts at spawn time only). Reads commands/reviewer/*.md, commands/orchestrator/planning.md (embed into review agent prompts at review time only). Lazy loading: architecture.md is read anchor-section-only (the section listed for the current milestone), never full doc, never at startup; worker and reviewer prompts are loaded inline at spawn time, not at startup. STARTUP READS: only execution_plan.md and tasks.json \u2014 do NOT read architecture.md at startup, do NOT read CLAUDE.md at startup, do NOT read design_status.md at startup. Do NOT embed the .gitignore template in the skill body \u2014 write it inline at the moment it is needed (one write, no template stored in context). Rate-pacing protocol: (1) at session start, ask user to run /usage and report 5-hour window % \u2014 store as session_start_pct; (2) always spawn the first agent of a session alone \u2014 never parallel on the first spawn; (3) after each TOKENS: report, compute pct_cost = tokens / estimated_limit, check remaining > 3 \u00d7 pct_cost before spawning next; (4) ramp: first agent alone \u2192 if data supports, second agent \u2192 if two data points support, up to 2 parallel \u2192 4 parallel only after Round A observed cost confirms it is safe; (5) at session end (before /handoff), ask user to run /usage again \u2014 compute session_pct_consumed = end_pct - start_pct, write paired reading to ~/.agentflow/rate_calibration.json {timestamp, start_pct, end_pct, session_tokens, estimated_limit} \u2014 estimated_limit = session_tokens / session_pct_consumed. Verbosity rules: status updates one line maximum; round reports table format only; no prose between agent spawns; agent spawn prompts must end with 'End your final message with TOKENS: input=N output=N \u2014 nothing after that line'. Gemini provider deferred.",
-      "owns": [
-        "commands/orchestrate.md"
-      ],
-      "reads": [
-        "commands/worker/system.md",
-        "commands/worker/context_bundle.md",
-        "commands/worker/testing_guide.md",
-        "commands/reviewer/code_review.md",
-        "commands/reviewer/security_review.md",
-        "commands/reviewer/test_review.md",
-        "commands/orchestrator/planning.md",
-        "architecture.md#orchestrator-design",
-        "architecture.md#task-state-machine"
-      ],
-      "depends_on": [
-        "T-015"
-      ],
-      "contracts": [],
-      "test_requirements": {
-        "unit": [
-          "commands/orchestrate.md contains oracle-complete gate check",
-          "commands/orchestrate.md contains HUMAN_APPROVED gate instruction",
-          "commands/orchestrate.md contains lazy milestone decomposition instruction",
-          "commands/orchestrate.md contains round-sizing heuristic",
-          "commands/orchestrate.md contains /usage prompt at session start instruction",
-          "commands/orchestrate.md contains sequential-first spawning rule (first agent always alone)",
-          "commands/orchestrate.md contains ramp-up rule referencing 3x pct_cost threshold",
-          "commands/orchestrate.md contains /usage prompt at session end and rate_calibration.json write instruction",
-          "commands/orchestrate.md contains anchor-section-only architecture.md loading rule",
-          "commands/orchestrate.md contains one-line status update verbosity rule",
-          "commands/orchestrate.md contains TOKENS: sentinel rule for agent prompts",
-          "commands/orchestrate.md startup reads only execution_plan.md and tasks.json \u2014 no architecture.md, no CLAUDE.md at startup",
-          "commands/orchestrate.md checks design_status.md for oracle-complete gate, not architecture.md",
-          "commands/orchestrate.md does not contain an embedded .gitignore template block"
-        ],
-        "integration": [],
-        "coverage_threshold": 80
-      },
-      "security_constraints": [],
-      "acceptance_criteria": "skill file contains oracle-complete check (via design_status.md), HUMAN_APPROVED gate, lazy decomposition, round-sizing heuristic, rate-pacing protocol, verbosity rules, lazy loading rules; startup reads only execution_plan.md and tasks.json; no embedded .gitignore template",
-      "estimated_lines": 130,
-      "context_section": "architecture.md#orchestrator-design",
       "status": "complete"
     },
     {
