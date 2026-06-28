@@ -19,12 +19,19 @@ Ask: "Run `/usage` and report both windows:"
 - `cap_5hr` — total tokens in your 5hr tier (e.g. 1000000; PTY auto-detects in v2)
 - `cap_wkly` — total tokens in your weekly tier (e.g. 5000000; PTY auto-detects in v2)
 
+### Step 2b — Index startup files
+Before reading startup files, generate or refresh their `.idx` if absent or stale:
+```
+HASH=$(python3 -c "import hashlib,os; print(hashlib.sha256(os.getcwd().encode()).hexdigest())")
+```
+For `design_status.md` and `execution_plan.md`: if `~/.agentflow/cache/<HASH>/index/<file>.idx` is absent OR older than the source file, regenerate it. Same format as pre-spawn: Markdown H2/H3 headers, `## Header:start-end`, one per line.
+
 ### Step 3 — Oracle gate
-Read `design_status.md`. If any row contains `| UNRESOLVED |`, stop:
+Read `design_status.md` (use `.idx` if present — see Targeted Reads Rule below). If any row contains `| UNRESOLVED |`, stop:
 > "Design has unresolved items. Run `/oracle` to resolve them first."
 
 ### Step 4 — Load execution state
-Read `execution_plan.md` and `tasks.json`. **Do not read `architecture.md` or `CLAUDE.md` at startup.**
+Read `execution_plan.md` (use `.idx` if present — see Targeted Reads Rule below) and `tasks.json`. **Do not read `architecture.md` or `CLAUDE.md` at startup.**
 
 Check `.agentflow/state.json`. If present, report resumed state (milestone, complete/in-progress/pending task_ids) and ask "Continue?". Otherwise identify the first incomplete milestone and report it. If invoked as `/orchestrate debug`, reveal task grouping plan and ask "Proceed?" before continuing.
 
@@ -155,6 +162,18 @@ Emit: `HANDOFF RECOMMENDED: PR #N open for [task_ids] — good stopping point be
 4. If milestone complete: mark `COMPLETE`, decompose next milestone lazily, report to user
 5. Save `.agentflow/state.json`
 6. Emit: `HANDOFF RECOMMENDED: [task_id] merged — state saved, good stopping point before next round`
+
+---
+
+## Targeted Reads Rule
+
+Before reading any file (other than agent-prompt embeds which are read in full), check for a `.idx`:
+```
+HASH=$(python3 -c "import hashlib,os; print(hashlib.sha256(os.getcwd().encode()).hexdigest())")
+IDX=~/.agentflow/cache/$HASH/index/<relative-path>.idx
+```
+- If `.idx` exists: `grep "^<section>:" "$IDX"` → `section:start-end` → `Read(offset=start, limit=end-start+1)`
+- If absent (file < 50 lines or not yet indexed): read the full file without `offset`/`limit`
 
 ---
 
