@@ -1,7 +1,11 @@
 """CLI entry point for agentflow."""
 
 import argparse
+import os
+import select
 import sys
+import termios
+import tty
 from pathlib import Path
 
 _PROJECT_CONFIG_TEMPLATE = """\
@@ -89,8 +93,40 @@ def cmd_scan(args: argparse.Namespace) -> int:
 
 
 def cmd_shell(args: argparse.Namespace) -> int:
-    print("agentflow shell — not yet implemented")
-    return 0
+    from agentflow.shell.pty_wrapper import PTYWrapper
+    from agentflow.shell.session_manager import SessionManager
+    from agentflow.shell import tokenizer as tokenizer_module
+
+    fd = sys.stdin.fileno()
+    old_settings = termios.tcgetattr(fd)
+    try:
+        tty.setraw(fd)
+        wrapper = PTYWrapper([args.command])
+        SessionManager(wrapper, tokenizer_module, config={})
+
+        while not wrapper._exited:
+            try:
+                ready, _, _ = select.select([fd, wrapper.master_fd], [], [], 0.05)
+            except (ValueError, OSError):
+                break
+
+            if fd in ready:
+                try:
+                    chunk = os.read(fd, 1024)
+                    if chunk:
+                        os.write(wrapper.master_fd, chunk)
+                except OSError:
+                    break
+
+            if wrapper.master_fd in ready:
+                chunk = wrapper.read_output()
+                if chunk:
+                    os.write(1, chunk)
+
+    finally:
+        termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+
+    sys.exit(wrapper._exit_code or 0)
 
 
 def build_parser() -> argparse.ArgumentParser:
