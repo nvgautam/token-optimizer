@@ -193,39 +193,7 @@
     },
     {
       "task_id": "T-006",
-      "title": "PTY shell \u2014 I/O interception wrapper",
-      "description": "Implement agentflow/shell/pty_wrapper.py. Class PTYWrapper(command: list, on_output=None, on_exit=None) matching existing stub. Methods: read_output(timeout: float = 1.0) -> bytes \u2014 reads available bytes from child PTY fd with timeout via select.select; write_input(text: str) -> None \u2014 writes UTF-8 encoded text to child PTY stdin fd. Constructor forks child under PTY using pty.fork(), stores master_fd and child_pid, sets fd non-blocking, registers SIGWINCH handler to forward terminal resize. on_output callback called with each bytes chunk from read_output. on_exit callback called with exit code when child exits. Raise PTYError on fork failure. stdlib-only: pty, os, select, signal, fcntl, termios.",
-      "owns": [
-        "agentflow/shell/pty_wrapper.py"
-      ],
-      "reads": [
-        "agentflow/shell/tokenizer.py"
-      ],
-      "depends_on": [
-        "T-007"
-      ],
-      "contracts": [
-        "agentflow/shell/pty_wrapper.py"
-      ],
-      "test_requirements": {
-        "unit": [
-          "PTYError raised when pty.fork fails (mock pty.fork)",
-          "write_input encodes text as UTF-8 and writes to master_fd",
-          "read_output returns empty bytes on timeout"
-        ],
-        "integration": [
-          "wrap echo command \u2014 on_output callback receives output bytes"
-        ],
-        "coverage_threshold": 85
-      },
-      "security_constraints": [
-        "No shell=True \u2014 command must be list[str]",
-        "No LLM calls from this module"
-      ],
-      "acceptance_criteria": "PTYWrapper forks child under PTY, relays I/O via read_output/write_input, fires on_output and on_exit callbacks correctly",
-      "estimated_lines": 160,
-      "context_section": "architecture.md#pty-shell-design",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-008",

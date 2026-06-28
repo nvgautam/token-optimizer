@@ -98,7 +98,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-048 | Compress state docs (design_status.md, execution_plan.md, tasks.json) | MERGED |
 | T-049 | Compress skill files (oracle.md, orchestrate.md, handoff.md) | MERGED |
 | T-007 | Local tokenizer — tiktoken cl100k_base | MERGED |
-| T-006 | PTY wrapper — stdlib pty, I/O interception | PENDING |
+| T-006 | PTY wrapper — stdlib pty, I/O interception | MERGED |
 | T-008 | PTY session manager — handoff, countdown, idx injection | PENDING |
 
 | Round | Tasks | Note |
