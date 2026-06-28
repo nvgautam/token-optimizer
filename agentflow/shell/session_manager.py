@@ -1,6 +1,146 @@
+"""PTY session manager — handoff, countdown, idx injection.
+
+Stdlib-only. Zero LLM calls. Fully deterministic.
+"""
+from __future__ import annotations
+
+import hashlib
+import os
+import pathlib
+import time
+from typing import Optional
+
+try:
+    import tomllib  # Python 3.11+
+except ImportError:
+    try:
+        import tomli as tomllib  # type: ignore[no-redef]
+    except ImportError:
+        tomllib = None  # type: ignore[assignment]
+
+from agentflow.shell.countdown import countdown
+
+_DEFAULTS: dict = {
+    "oracle_threshold_tokens": 60_000,
+    "orchestrator_threshold_tokens": 30_000,
+    "threshold_pct": 0.30,
+    "restart_delay_seconds": 5,
+}
+
+_IDX_BANNER = (
+    "[IDX] Before next Read: check ~/.agentflow/cache/{hash}/index/<file>.idx"
+    " — grep name:start-end, then Read(offset, limit).\n"
+)
+
+
 class SessionManager:
-    def __init__(self, pty_wrapper, tokenizer, config):
-        raise NotImplementedError
+    """Monitors PTY I/O; injects IDX banners and triggers handoff on threshold."""
+
+    def __init__(self, pty_wrapper, tokenizer, config: dict) -> None:
+        cfg: dict = dict(_DEFAULTS)
+
+        # Merge ~/.agentflow/config.toml [shell] section if available
+        if tomllib is not None:
+            config_path = pathlib.Path.home() / ".agentflow" / "config.toml"
+            try:
+                with open(config_path, "rb") as fh:
+                    toml_data = tomllib.load(fh)
+                cfg.update(toml_data.get("shell", {}))
+            except Exception:  # noqa: BLE001 — absent or malformed; use defaults
+                pass
+
+        cfg.update(config or {})
+        self._config = cfg
+
+        self._pty = pty_wrapper
+        self._tokenizer = tokenizer
+
+        self.session_type: Optional[str] = None
+        self._turn_count: int = 0
+        self._manual_handoff: bool = False
+        self._injecting: bool = False        # suppress manual-handoff detect while we write
+        self._handoff_in_progress: bool = False  # guard against reentrant trigger
+        self._last_had_content: bool = False
+
+        cwd = os.getcwd()
+        self._cwd_hash = hashlib.sha256(cwd.encode()).hexdigest()
+
+        # Register ourselves as the output handler
+        pty_wrapper._on_output = self._handle_output
+
+    # ------------------------------------------------------------------
+    # Output handler
+    # ------------------------------------------------------------------
+
+    def _handle_output(self, chunk: bytes) -> None:
+        text = chunk.decode("utf-8", errors="replace")
+
+        # 1. Session-type detection — first occurrence wins
+        if self.session_type is None:
+            if "/oracle" in text:
+                self.session_type = "oracle"
+            elif "/orchestrate" in text:
+                self.session_type = "orchestrator"
+
+        # 2. Manual /handoff detection (user-initiated, not injected by us)
+        if not self._injecting and "/handoff" in text:
+            self._manual_handoff = True
+
+        # 3. Turn counter — boundary: \n\n following non-empty content
+        if self._last_had_content and "\n\n" in text:
+            self._turn_count += 1
+            self._last_had_content = False
+            if self._turn_count % 3 == 0:
+                self._inject_idx_banner()
+
+        if text.strip():
+            self._last_had_content = True
+
+        # 4. Tokenizer accumulation + threshold check
+        total = self._tokenizer.accumulate(text, "claude")
+        if not self._manual_handoff and not self._handoff_in_progress:
+            threshold = (
+                self._config["oracle_threshold_tokens"]
+                if self.session_type == "oracle"
+                else self._config["orchestrator_threshold_tokens"]
+            )
+            window_size = threshold
+            threshold_pct = self._config["threshold_pct"]
+            if total > threshold or total > window_size * threshold_pct:
+                self._handoff_in_progress = True
+                self.trigger_handoff()
+                self._handoff_in_progress = False
+
+    def _inject_idx_banner(self) -> None:
+        banner = _IDX_BANNER.format(hash=self._cwd_hash)
+        self._pty.write_input(banner)
+
+    # ------------------------------------------------------------------
+    # Handoff
+    # ------------------------------------------------------------------
 
     def trigger_handoff(self) -> None:
-        raise NotImplementedError
+        """Write /handoff, wait up to 120 s for HANDOFF_COMPLETE, clear, countdown."""
+        self._injecting = True
+        self._pty.write_input("/handoff\n")
+        self._injecting = False
+
+        deadline = time.monotonic() + 120
+        while time.monotonic() < deadline:
+            chunk = self._pty.read_output(timeout=1.0)
+            text = chunk.decode("utf-8", errors="replace") if chunk else ""
+            if "HANDOFF_COMPLETE" in text:
+                break
+
+        self._pty.write_input("/clear\n")
+        countdown(
+            self._config["restart_delay_seconds"],
+            on_complete=self._restart_session,
+        )
+
+    def _restart_session(self) -> None:
+        """Re-invoke the original skill after a successful handoff."""
+        if self.session_type == "oracle":
+            self._pty.write_input("/oracle\n")
+        elif self.session_type == "orchestrator":
+            self._pty.write_input("/orchestrate\n")
