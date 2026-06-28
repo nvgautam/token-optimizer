@@ -470,5 +470,27 @@
       "status": "complete",
       "pr": 28
     }
+  },
+  {
+    "archived_at": "2026-06-28T00:00:00Z",
+    "task": {
+      "task_id": "T-048",
+      "title": "Compress state docs to telegraphic style",
+      "owns": ["design_status.md", "execution_plan.md", "tasks.json"],
+      "acceptance_criteria": "state docs compressed ≥20%; decisions unambiguous",
+      "status": "complete",
+      "pr": 29
+    }
+  },
+  {
+    "archived_at": "2026-06-28T00:00:00Z",
+    "task": {
+      "task_id": "T-049",
+      "title": "Compress skill files to telegraphic style",
+      "owns": ["commands/oracle.md", "commands/orchestrate.md", "commands/handoff.md"],
+      "acceptance_criteria": "skill files compressed ≥20%; gate logic intact",
+      "status": "complete",
+      "pr": 29
+    }
   }
 ]
