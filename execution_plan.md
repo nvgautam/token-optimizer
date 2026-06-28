@@ -81,7 +81,7 @@ Note: json/yaml parsers dropped — .idx format is Python + Markdown only.
 ---
 
 ## Milestone 4: Config + PTY Shell
-Status: PARTIAL — skill tasks complete; Python CLI deferred to backlog.json
+Status: PARTIAL — skill tasks complete; PTY shell (Python) active
 Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 
 | Task | Title | Status |
@@ -97,10 +97,15 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-047 | Oracle generation — telegraphic style rule | MERGED |
 | T-048 | Compress state docs (design_status.md, execution_plan.md, tasks.json) | MERGED |
 | T-049 | Compress skill files (oracle.md, orchestrate.md, handoff.md) | MERGED |
-| T-002 | Config system (Python) | DEFERRED → backlog.json |
-| T-006 | PTY wrapper (Python) | DEFERRED → backlog.json |
-| T-007 | Local tokenizer (Python) | DEFERRED → backlog.json |
-| T-008 | PTY session manager + countdown (Python) | DEFERRED → backlog.json |
+| T-007 | Local tokenizer — tiktoken cl100k_base | PENDING |
+| T-006 | PTY wrapper — stdlib pty, I/O interception | PENDING |
+| T-008 | PTY session manager — handoff, countdown, idx injection | PENDING |
+
+| Round | Tasks | Note |
+|---|---|---|
+| A | T-007 | No deps — first spawn alone |
+| B | T-006 | Depends on T-007 |
+| C | T-008 | Depends on T-006 |
 
 ---
 
@@ -114,8 +119,10 @@ Status: DEFERRED — Python CLI out of scope for v1
 ---
 
 ## Deferred
-- AgentFlow Python CLI (config, PTY shell, tokenizer, session manager, context builder): backlog.json
+- AgentFlow user-facing CLI (subcommands for config management, T-002): backlog.json
 - Headless automation layer: v2
+- Headroom CacheAligner integration: v2 — KV cache prefix stabilization; evaluate after PTY validated
+- Headroom ContentRouter integration: v2 — tool output compression; plug into PTY I/O interception layer
 - Codex provider: v2
 - Brownfield refactoring: v2
 - Automated merge sequencer: v2
