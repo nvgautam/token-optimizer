@@ -10,6 +10,26 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 agentflow/hooks/write_indexer.py"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 agentflow/hooks/write_indexer.py"
+          }
+        ]
+      }
     ]
   }
 }
