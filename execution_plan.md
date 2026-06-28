@@ -96,6 +96,9 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-044 | orchestrate.md — startup index refresh + targeted reads rule | MERGED |
 | T-045 | Shadow cost measurement (read_logger + analyzer) | MERGED |
 | T-046 | PostToolUse hook — auto-regenerate .idx on Write/Edit | PENDING |
+| T-047 | Oracle generation — telegraphic style rule | PENDING |
+| T-048 | Compress state docs (design_status.md, execution_plan.md, tasks.json) | PENDING |
+| T-049 | Compress skill files (oracle.md, orchestrate.md, handoff.md) | PENDING |
 | T-002 | Config system (Python) | DEFERRED → backlog.json |
 | T-006 | PTY wrapper (Python) | DEFERRED → backlog.json |
 | T-007 | Local tokenizer (Python) | DEFERRED → backlog.json |

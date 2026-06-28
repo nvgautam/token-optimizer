@@ -401,5 +401,47 @@
     "estimated_lines": 50,
     "context_section": "commands/worker/system.md",
     "status": "pending"
+  },
+  {
+    "archived_at": "2026-06-27T17:35:00Z",
+    "task": {
+      "task_id": "T-041",
+      "title": "PreToolUse hook — Read tool enforcement",
+      "owns": ["agentflow/hooks/read_check.py", "agentflow/hooks/__init__.py", ".claude/settings.json"],
+      "status": "merged",
+      "pr": 23,
+      "result": "8 tests green; opaque hint fires when .idx exists and offset absent; silent otherwise; registered in .claude/settings.json"
+    }
+  },
+  {
+    "task_id": "T-042",
+    "title": "Orchestrate skill \u2014 5hr cap tz fix + low-n confidence guard",
+    "description": "Bug fix for ledger-anchored cap derivation in commands/orchestrate.md (introduced in T-039). Two changes: (1) Tz alignment \u2014 all timestamp math must use naive local time; the rate_calibration.json timestamp must be written as naive local (datetime.now().isoformat(), no 'Z'); win_5hr and win_wkly must be derived from local datetime arithmetic, never UTC. Root cause: calibration timestamp written as UTC ('Z' suffix) while ledger start_time values are naive local; mixed comparison causes sessions to be excluded from the window filter, leaving only the gap-correction session_tokens in the numerator and producing inflated cap estimates. (2) Low-n confidence guard \u2014 if sessions_in_window < 3, do not derive cap_5hr from the formula; instead set cap_5hr = cap_wkly (use the weekly cap as proxy) and add note 'low-confidence \u2014 fewer than 3 sessions in window; using cap_wkly as proxy'. The weekly cap is authoritative when n is small. Write both fixes as prompt-level instruction changes to orchestrate.md only \u2014 no Python code changes needed.",
+    "owns": [
+      "commands/orchestrate.md"
+    ],
+    "reads": [
+      "agentflow_ledger.json",
+      "~/.agentflow/rate_calibration.json"
+    ],
+    "depends_on": [
+      "T-039"
+    ],
+    "contracts": [],
+    "test_requirements": {
+      "unit": [],
+      "integration": [
+        "cap_5hr computed correctly when 3+ sessions in window (tz-aligned naive local times)",
+        "cap_5hr falls back to cap_wkly when sessions_in_window < 3",
+        "rate_calibration.json timestamp has no 'Z' suffix after write"
+      ],
+      "coverage_threshold": 0
+    },
+    "security_constraints": [],
+    "acceptance_criteria": "orchestrate.md cap derivation uses naive local timestamps throughout; sessions_in_window < 3 triggers cap_wkly fallback with note; rate_calibration.json timestamp written without 'Z'",
+    "estimated_lines": 20,
+    "context_section": "commands/orchestrate.md",
+    "status": "complete",
+    "pr": 22
   }
 ]
