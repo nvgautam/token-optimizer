@@ -57,12 +57,14 @@ Compute on receipt of startup data:
 3. After each `TOKENS:` report: if `effective_rate × remaining_minutes < 3 × pct_cost`, pause and ask user to run `/usage` to refresh.
 4. Ramp: first agent alone → 2 parallel (if rate supports) → 4 parallel (only after Round A cost confirmed safe).
 5. At session end: ask user to run `/usage` (report `end_pct_5hr`, `end_pct_wkly`). Derive caps ledger-anchored:
-   - Window starts (local time): `win_5hr = reset_time_5hr − 5h`; `win_wkly = reset_time_wkly − 7d`
-   - Read `agentflow_ledger.json`; filter `sessions[]` where `start_time ≥ window_start`
+   - Window boundaries use naive local time only: `reset_time_5hr = datetime.now() + timedelta(minutes=reset_min_5hr)`; `win_5hr = reset_time_5hr − 5h`. Same pattern for weekly. Never use UTC or timezone-aware datetimes — ledger `start_time` values are naive local; mixing UTC with naive causes sessions to be excluded from the filter.
+   - Read `agentflow_ledger.json`; filter `sessions[]` where `start_time ≥ window_start` (naive local comparison)
+   - Count `sessions_in_window_5hr` and `sessions_in_window_wkly` (number of sessions passing the filter)
    - Sum billable per session: `uncached_input + cache_creation + output`
-   - `cap_5hr = total_5hr_tokens / (end_pct_5hr / 100)`; `cap_wkly = total_wkly_tokens / (end_pct_wkly / 100)`
+   - `cap_wkly = total_wkly_tokens / (end_pct_wkly / 100)` (derive weekly cap first — it has more sessions and is more reliable)
+   - If `sessions_in_window_5hr >= 3`: `cap_5hr = total_5hr_tokens / (end_pct_5hr / 100)`; else: `cap_5hr = cap_wkly`; note: `cap_5hr_note = 'low-confidence — fewer than 3 sessions in window; using cap_wkly as proxy'`
    - Gap: current session not yet in ledger — add `(end_pct − start_pct) × prior_cap_estimate` to totals if ledger sum is visibly low
-   - Write `~/.agentflow/rate_calibration.json`: `{timestamp, start_pct_5hr, end_pct_5hr, start_pct_wkly, end_pct_wkly, session_tokens, cap_5hr, cap_wkly, rate_5hr, rate_wkly, ewma_mean_tokens, ewma_cv, sample_count, ewma_alpha}`
+   - Write `~/.agentflow/rate_calibration.json`: `{timestamp: datetime.now().isoformat(), start_pct_5hr, end_pct_5hr, start_pct_wkly, end_pct_wkly, session_tokens, cap_5hr, cap_5hr_note (if low-confidence), cap_wkly, cap_wkly_note, rate_5hr, rate_wkly, ewma_mean_tokens, ewma_cv, sample_count, ewma_alpha}` — `timestamp` must be naive local (no 'Z' suffix)
 
 ---
 
