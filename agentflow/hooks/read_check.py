@@ -37,11 +37,10 @@ def main() -> None:
         sys.exit(0)
 
     sections = map_path.read_text().strip()
-    print(
-        f"ERROR: Full read blocked — {rel} has a section map.\n"
-        f"Use Read(offset=N, limit=M) to read only what you need.\n"
-        f"Available sections:\n{sections}"
-    )
+    if not sections:
+        sys.exit(0)
+
+    print(f"Blocked read of {rel}: use Read(offset=N, limit=M)")
     sys.exit(2)
 
 
