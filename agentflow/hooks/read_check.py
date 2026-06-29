@@ -42,7 +42,7 @@ def main() -> None:
         f"Use Read(offset=N, limit=M) to read only what you need.\n"
         f"Available sections:\n{sections}"
     )
-    sys.exit(1)
+    sys.exit(2)
 
 
 if __name__ == "__main__":

@@ -37,7 +37,7 @@ Oracle reads on startup. Handoff writes updates. Architecture.md = workers only.
 | Context builder | RESOLVED | context_builder.py assembles minimal bundle; orchestrate writes context_bundle.md per task; workers read only that |
 | Oracle state doc | RESOLVED | design_status.md — oracle reads on startup, handoff writes on flush. Replaces decisions log in architecture.md. |
 | Compact state docs | RESOLVED | Handoff writes design_status.md + execution_plan.md as tables/bullets; no prose. Prompt instruction only. |
-| Verbosity control | RESOLVED | Skill prompts instruct concise responses; extends sessions ~25% before threshold fires |
+| Verbosity control | DEFERRED | v2 — motivation is output token cost (3-5x input rate), not context accumulation (ContentRouter handles that). Injection via ContentRouter system prompt modifier. Not a v1 necessity. |
 | Section-only loading | RESOLVED | Task reads use anchors; skill prompts forbid full architecture.md load |
 | Per-session thresholds | RESOLVED | oracle_threshold_tokens + orchestrator_threshold_tokens in config; session_manager reads per-type |
 | Orchestrator persona | RESOLVED | Staff Eng Lead — executes, manages parallelism, escalates. No re-prioritization; oracle sets priority |
@@ -55,8 +55,8 @@ Oracle reads on startup. Handoff writes updates. Architecture.md = workers only.
 | Read hook enforcement | RESOLVED | PTY stream detection: strip ANSI, regex-match Read + file path, inject targeted [IDX] banner if .idx exists. Event-driven, no Claude Code hook dependency. T-052. |
 | Hook IP protection | DEFERRED | PTY approach has no IP surface; hook binary approach moot. Revisit v2 only if distribution model requires it. |
 | Telegraphic artifact style | RESOLVED | All artifacts: no articles, bullets over prose, ≤10 words per idea. generation.md enforces; existing compressed via T-048/T-049. ~20–30% token reduction. |
-| PTY idx reminder injection | RESOLVED | Session manager counts turns; every 3 turns injects idx banner to stdin (~15 tokens). Recency effect recalibrates compliance lost to context growth. Part of T-008. |
+| PTY idx reminder injection | RESOLVED | Stdin injection disruptive — visible in user input field. Move to UserPromptSubmit hook: fires invisibly before each user turn, turn-conditioned (every 3 turns), recency preserved. ContentRouter wrong layer — system prompt has no recency advantage. |
 | CacheAligner integration | DEFERRED | v2 — Headroom library; stabilizes prefixes for KV cache discount (~24% input token savings). Additive with all strategies. Evaluate after PTY validated. |
-| ContentRouter integration | DEFERRED | v2 — Headroom library; compresses tool outputs before context ingestion (60-95% per output). Plugs into PTY I/O interception layer. |
+| ContentRouter integration | DEFERRED | v2 — Headroom library; uses ANTHROPIC_BASE_URL as interception point — IS the proxy layer. PTY sets ANTHROPIC_BASE_URL at launch; ContentRouter handles compression + system prompt injection. No separate PTY proxy needed. |
 | Mid-session /compact | DEFERRED | Not worth at current 30-60K handoff thresholds — sessions hand off before compaction helps. Revisit if thresholds raised significantly. |
 | Verbosity compliance tracking | RESOLVED | Per-turn output token tracking in PTY (T-010) — writes verbosity_log.jsonl; shadow analyzer reports mean/p90 vs 150-token target. |

@@ -71,7 +71,7 @@ def test_blocks_when_idx_exists(tmp_path):
     _make_idx(home, str(project), "module.py")
     payload = {"tool_name": "Read", "tool_input": {"file_path": str(target)}}
     code, out = _run(payload, cwd=str(project), home=str(home))
-    assert code == 1
+    assert code == 2
     assert out != ""
     assert "module.py" in out
     assert "Read(offset=" in out

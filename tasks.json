@@ -320,7 +320,7 @@
       "status": "complete"
     },
     {
-      "task_id": "T-058",
+      "task_id": "T-058g",
       "title": "Align Gemini orchestrate and handoff skills with Claude equivalents",
       "description": "Establish parity between Gemini skills under commands/gemini/skills/ and their Claude equivalents under commands/claude/. (1) Port the advanced ledger-anchored rate cap derivation logic (T-039/T-042) to commands/gemini/skills/orchestrate/SKILL.md, replacing the single-session delta heuristic. (2) Align targeted reads index rules, heuristics, and prompt boundaries in the Gemini orchestrate skill, compressing/refactoring where needed to respect prompt line limits. (3) Sync step details, worktree cleanup checks, and output formats in commands/gemini/skills/handoff/SKILL.md.",
       "owns": [
@@ -350,6 +350,19 @@
       "description": "Add a consistent verbosity target to oracle.md and orchestrate.md as a permanent standing instruction, not an optional argument. oracle.md: promote the Phase 2 verbosity note (\"\u22643 sentences per exchange\") to a top-level instruction visible before any phase executes \u2014 add \"\u22643 sentences (~150 tokens) per response; expand only if user asks\" near the opening. Remove the duplicate in Phase 2. orchestrate.md: extend the existing \"## Verbosity rules\" section to include the token target \u2014 \"\u22643 sentences (~150 tokens) per orchestrator status message\". Both changes must survive context growth (instruction must appear early in the file, not only in a late section). No changes to handoff.md, drift.md, or worker prompts \u2014 those are single-purpose and do not have multi-turn verbosity risk.",
       "owns": [
         "commands/claude/oracle.md",
+        "commands/claude/orchestrate.md"
+      ],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-061",
+      "title": "Explore Gemini CLI hook equivalents for .idx reminder injection",
+      "description": "Investigate whether Gemini CLI has hook mechanisms equivalent to Claude Code's UserPromptSubmit hook, for invisible turn-conditioned .idx reminder injection. Desired properties: fires before each user turn, invisible to user (not written to stdin/input field), turn-conditioned (every 3 turns), preserves recency effect in conversation context. Explore: (1) Gemini CLI hook/plugin system — any pre-turn or pre-request event hooks; (2) GEMINI_API_BASE_URL or equivalent env var for local proxy interception as fallback; (3) Gemini AGENTS.md or system prompt injection mechanism. Document findings in design_status.md as a new row: 'Gemini idx injection mechanism' — RESOLVED with chosen approach or DEFERRED if no clean equivalent exists.",
+      "owns": [
+        "design_status.md"
+      ],
+      "reads": [
+        "commands/gemini/skills/orchestrate/SKILL.md",
         "commands/claude/orchestrate.md"
       ],
       "status": "pending"
