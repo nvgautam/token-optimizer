@@ -7,6 +7,7 @@ from __future__ import annotations
 import hashlib
 import os
 import pathlib
+import re
 import time
 from typing import Optional
 
@@ -30,6 +31,13 @@ _DEFAULTS: dict = {
 _IDX_BANNER = (
     "[IDX] Before next Read: check ~/.agentflow/cache/{hash}/index/<file>.idx"
     " — grep name:start-end, then Read(offset, limit).\n"
+)
+
+_VERBOSITY_STATIC_BANNER = "[VERBOSITY] Target <=3 sentences (~150 tokens) per response.\n"
+
+_ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;]*[mGKHF]")
+_READ_PATH_RE = re.compile(
+    r"[Rr]ead(?:\s+tool)?\s+[\"']?([^\s\"']+\.(?:py|md|json|toml|yaml|yml|txt))[\"']?"
 )
 
 
@@ -72,12 +80,31 @@ class SessionManager:
         pty_wrapper._on_output = self._handle_output
         pty_wrapper._on_exit = self._on_session_exit
 
+        # T-052: proactive verbosity banner at session start
+        self._verbosity_last_inject: float = time.monotonic()
+        pty_wrapper.write_input(_VERBOSITY_STATIC_BANNER)
+
     # ------------------------------------------------------------------
     # Output handler
     # ------------------------------------------------------------------
 
     def _handle_output(self, chunk: bytes) -> None:
         text = chunk.decode("utf-8", errors="replace")
+
+        # T-052: targeted idx injection — check for Read calls in clean text
+        clean = self._ansi_strip(text)
+        detected_path = self._detect_read_path(clean)
+        if detected_path:
+            idx_path = (
+                pathlib.Path.home()
+                / ".agentflow" / "cache" / self._cwd_hash
+                / "index" / (detected_path + ".idx")
+            )
+            if idx_path.exists():
+                self._pty.write_input(
+                    f"[IDX] {detected_path}.idx exists"
+                    " — use Read(offset=N, limit=M) for targeted reads.\n"
+                )
 
         # 1. Session-type detection — first occurrence wins
         if self.session_type is None:
@@ -127,6 +154,25 @@ class SessionManager:
                 self._handoff_in_progress = True
                 self.trigger_handoff()
                 self._handoff_in_progress = False
+
+        # T-052: proactive verbosity tick (fires on every chunk; timer guards rate)
+        self.tick()
+
+    def _ansi_strip(self, text: str) -> str:
+        """Strip ANSI escape sequences; leave plain text unchanged."""
+        return _ANSI_ESCAPE_RE.sub("", text)
+
+    def _detect_read_path(self, text: str) -> str | None:
+        """Return file path if a Read pattern is present in text; else None."""
+        m = _READ_PATH_RE.search(text)
+        return m.group(1) if m else None
+
+    def tick(self) -> None:
+        """Inject verbosity banner if >= 60s have elapsed since last injection."""
+        now = time.monotonic()
+        if now - self._verbosity_last_inject >= 60.0:
+            self._pty.write_input(_VERBOSITY_STATIC_BANNER)
+            self._verbosity_last_inject = now
 
     def _inject_idx_banner(self) -> None:
         banner = _IDX_BANNER.format(hash=self._cwd_hash)
