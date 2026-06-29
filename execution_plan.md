@@ -81,7 +81,7 @@ Note: json/yaml parsers dropped — .idx format is Python + Markdown only.
 ---
 
 ## Milestone 4: Config + PTY Shell
-Status: PARTIAL — skill tasks complete; Python CLI deferred to backlog.json
+Status: IN_PROGRESS
 Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 
 | Task | Title | Status |
@@ -97,10 +97,22 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-047 | Oracle generation — telegraphic style rule | MERGED |
 | T-048 | Compress state docs (design_status.md, execution_plan.md, tasks.json) | MERGED |
 | T-049 | Compress skill files (oracle.md, orchestrate.md, handoff.md) | MERGED |
-| T-002 | Config system (Python) | DEFERRED → backlog.json |
-| T-006 | PTY wrapper (Python) | DEFERRED → backlog.json |
-| T-007 | Local tokenizer (Python) | DEFERRED → backlog.json |
-| T-008 | PTY session manager + countdown (Python) | DEFERRED → backlog.json |
+| T-007 | Local tokenizer — tiktoken cl100k_base | MERGED |
+| T-006 | PTY wrapper — stdlib pty, I/O interception | MERGED |
+| T-008 | PTY session manager — handoff, countdown, idx injection | MERGED |
+| T-009 | CLI cmd_shell — PTY I/O relay loop | MERGED |
+| T-010 | PTY — per-turn output tracking + verbosity signal | MERGED |
+| T-052 | PTY session manager — Read-event idx injection + proactive verbosity banners | MERGED |
+
+| Round | Tasks | Note |
+|---|---|---|
+| A | T-007 | No deps — first spawn alone |
+| B | T-006 | Depends on T-007 |
+| C | T-008 | Depends on T-006 |
+| D | T-009 | Depends on T-008 |
+| E | T-010 | Depends on T-009 |
+| F | T-052 | Depends on T-008 — extends session_manager.py |
+| G | T-051, T-054, T-055 | T-051: CLI integration tests; T-054: read_check.py enforcement; T-055: _pending_banner turn guard |
 
 ---
 
@@ -114,8 +126,10 @@ Status: DEFERRED — Python CLI out of scope for v1
 ---
 
 ## Deferred
-- AgentFlow Python CLI (config, PTY shell, tokenizer, session manager, context builder): backlog.json
+- AgentFlow user-facing CLI (subcommands for config management, T-002): backlog.json
 - Headless automation layer: v2
+- Headroom CacheAligner integration: v2 — KV cache prefix stabilization; evaluate after PTY validated
+- Headroom ContentRouter integration: v2 — tool output compression; plug into PTY I/O interception layer
 - Codex provider: v2
 - Brownfield refactoring: v2
 - Automated merge sequencer: v2

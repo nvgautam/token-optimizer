@@ -15,7 +15,9 @@ Say: "This session will consume approximately 2% of your 5-hour window limit."
 Read `design_status.md` in full.
 
 - `| UNRESOLVED |` rows found → re-spar; present items and resume.
-- All `RESOLVED` / `DEFERRED` → say: "Oracle is complete for this project. Run `/orchestrate` to begin implementation." Stop.
+- All `RESOLVED` / `DEFERRED` → say: "All design decisions are resolved or deferred. Is there a specific topic you want to spar on — a new concern, a decision to revisit, or an architecture question?" Wait for the user.
+  - User raises a topic → load architecture index (Step 2a), then enter Phase 2 focused on that topic.
+  - User has nothing → say: "Run `/orchestrate` to begin implementation."
 - File absent → fresh project; continue to Step 3.
 
 ### Step 2a — Architecture index (re-spar only)

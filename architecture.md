@@ -269,6 +269,16 @@ New session:
 
 **Pre-PTY operation (v1 manual mode)**: Until the PTY shell is built, the handoff skill itself signals the user when a handoff is recommended — printing `HANDOFF RECOMMENDED: <reason>` at natural stopping points (task complete, checklist batch resolved, context growing heavy). The user triggers `/handoff` manually. PTY automates this in the final v1 milestone.
 
+### IDX reminder injection
+
+PTY counts assistant turns. Every 3 turns, injects single-line banner to PTY stdin before next user message:
+```
+[IDX] Before next Read: check ~/.agentflow/cache/<hash>/index/<file>.idx — grep name:start-end, then Read(offset, limit).
+```
+- Hash pre-computed at session start
+- ~15 tokens/injection; recency effect recalibrates instruction weight lost to context growth
+- Implemented in session_manager.py (turn counter + stdin injection)
+
 ### Countdown config (tier-based)
 - Default: 5 seconds
 - Free tier: fixed, not configurable
@@ -450,6 +460,33 @@ All savings figures are modelled, not measured. **Combined effect: with all stra
 
 ---
 
+### 11. CacheAligner (Headroom — v2)
+
+**Mechanism:** Stabilizes message prefix structure to maximize provider KV cache hits. Claude KV cache read discount = ~90% — a cache hit on a 4K-token prefix costs ~400 tokens instead of 4K. CacheAligner ensures prefixes are byte-identical across turns to maximize hit rate.
+
+**Model:** If 60% of input tokens are cacheable and hit rate improves from 40% → 85%: savings ≈ 0.6 × (0.85 − 0.40) × 90% ≈ **~24% of total input tokens** per session. Multiplicatively additive with all other strategies.
+
+**v1 status:** v2 — integrate via Headroom library in PTY post-interception layer. Evaluate library stability after PTY shell validated.
+
+---
+
+### 12. ContentRouter (Headroom — v2)
+
+**Mechanism:** Compresses tool outputs (JSON, logs, code) before they enter context. AST-aware for 6 languages. Operates on PTY stdout after tool call responses, before token counting.
+
+**Model:** Tool outputs 60-95% compressible per Headroom benchmarks. If tool outputs = 30% of session tokens, ContentRouter reduces total tokens by **~18–28%**. Additive with symbol index — idx reduces what is read; ContentRouter compresses what is read.
+
+**v1 status:** v2 — plug into PTY I/O interception layer after CacheAligner evaluated.
+
+---
+
+| Strategy | Layer | Est. savings | v1 or v2 | Testable now? |
+|---|---|---|---|---|
+| CacheAligner | PTY I/O layer | ~24% input tokens | v2 | No — post PTY |
+| ContentRouter | PTY I/O layer | ~18–28% per session | v2 | No — post PTY |
+
+---
+
 ## Task state machine
 
 ```
@@ -498,6 +535,8 @@ If yes, the oracle probes: which entry points, what sensitivity level, what outp
 | GitHub REST API | tools/github.py | `GITHUB_TOKEN` env var | retry 3× with backoff, then surface error | None |
 | Anthropic API | worker/agent_runner.py | `ANTHROPIC_API_KEY` env var | budget exhaustion → compress + restart (max 2); escalate on 3rd | None |
 | Gemini API | worker/agent_runner.py | `GEMINI_API_KEY` env var | same as Anthropic | None |
+| Headroom CacheAligner | pty/session_manager.py (v2) | None | Disable if import fails — savings optional | None |
+| Headroom ContentRouter | pty/io_interceptor.py (v2) | None | Disable if import fails — savings optional | None |
 
 ---
 

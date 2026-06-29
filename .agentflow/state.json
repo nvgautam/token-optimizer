@@ -1,214 +1,23 @@
 {
-  "updated": "2026-06-27T17:18:13Z",
+  "updated": "2026-06-28T22:35:00",
   "milestone": "Milestone 4: Config + PTY Shell",
+  "status": "IN_PROGRESS",
   "groups": [
     {
-      "group_id": 1,
-      "task_ids": [
-        "T-001"
-      ],
-      "status": "complete",
-      "pr": null,
-      "tokens": 32907
+      "round": "D",
+      "tasks": ["T-009"],
+      "status": "MERGED"
     },
     {
-      "group_id": 2,
-      "task_ids": [
-        "T-013"
-      ],
-      "status": "complete",
-      "pr": 6,
-      "tokens": 27226
+      "round": "E",
+      "tasks": ["T-010"],
+      "status": "MERGED"
     },
     {
-      "group_id": 3,
-      "task_ids": [
-        "T-014"
-      ],
-      "status": "complete",
-      "pr": 7,
-      "tokens": 37099
-    },
-    {
-      "group_id": 4,
-      "task_ids": [
-        "T-015"
-      ],
-      "status": "complete",
-      "pr": 8,
-      "tokens": 29563
-    },
-    {
-      "group_id": 5,
-      "task_ids": [
-        "T-025"
-      ],
-      "status": "complete",
-      "pr": 9,
-      "tokens": 35713
-    },
-    {
-      "group_id": 6,
-      "task_ids": [
-        "T-026"
-      ],
-      "status": "complete",
-      "pr": 10,
-      "tokens": 32140
-    },
-    {
-      "group_id": 7,
-      "task_ids": [
-        "T-027"
-      ],
-      "status": "complete",
-      "pr": 11,
-      "tokens": 47617
-    },
-    {
-      "group_id": 8,
-      "task_ids": [
-        "T-031"
-      ],
-      "status": "complete",
-      "pr": null,
-      "tokens": 47617
-    },
-    {
-      "group_id": 9,
-      "task_ids": [
-        "T-028a"
-      ],
-      "status": "complete",
-      "pr": 12,
-      "tokens": 35355
-    },
-    {
-      "group_id": 10,
-      "task_ids": [
-        "T-028b"
-      ],
-      "status": "complete",
-      "pr": 13,
-      "tokens": 30468
-    },
-    {
-      "group_id": 11,
-      "task_ids": [
-        "T-029"
-      ],
-      "status": "complete",
-      "pr": 14,
-      "tokens": 35355
-    },
-    {
-      "group_id": 12,
-      "task_ids": [
-        "T-032"
-      ],
-      "status": "complete",
-      "pr": 15,
-      "tokens": 9018
-    },
-    {
-      "group_id": 13,
-      "task_ids": [
-        "T-033"
-      ],
-      "status": "complete",
-      "pr": 16,
-      "tokens": 19900
-    },
-    {
-      "group_id": 14,
-      "task_ids": [
-        "T-034"
-      ],
-      "status": "complete",
-      "pr": 17,
-      "tokens": 39085
-    },
-    {
-      "group_id": 15,
-      "task_ids": [
-        "T-035"
-      ],
-      "status": "complete",
-      "pr": 18,
-      "tokens": 29121
-    },
-    {
-      "group_id": 16,
-      "task_ids": [
-        "T-036"
-      ],
-      "status": "complete",
-      "pr": 19,
-      "tokens": 20467
-    },
-    {
-      "group_id": 17,
-      "task_ids": [
-        "T-037"
-      ],
-      "status": "complete",
-      "pr": 20,
-      "tokens": 21095
-    },
-    {
-      "group_id": 18,
-      "task_ids": [
-        "T-038"
-      ],
-      "status": "complete",
-      "pr": 21,
-      "tokens": 11573
-    },
-    {
-      "group_id": 19,
-      "task_ids": [
-        "T-042"
-      ],
-      "status": "complete",
-      "pr": 22,
-      "tokens": 14270
-    },
-    {
-      "group_id": 20,
-      "task_ids": [
-        "T-041"
-      ],
-      "status": "complete",
-      "pr": 23,
-      "tokens": null
-    },
-    {
-      "group_id": 21,
-      "task_ids": [
-        "T-046"
-      ],
-      "status": "complete",
-      "pr": 27,
-      "tokens": null
-    },
-    {
-      "group_id": 22,
-      "task_ids": [
-        "T-047"
-      ],
-      "status": "complete",
-      "pr": 28,
-      "tokens": null
-    },
-    {
-      "group_id": 23,
-      "task_ids": [
-        "T-048",
-        "T-049"
-      ],
-      "status": "complete",
-      "pr": 29,
-      "tokens": null
+      "round": "F",
+      "tasks": ["T-052"],
+      "status": "MERGED"
     }
-  ]
+  ],
+  "pending": ["T-051"]
 }

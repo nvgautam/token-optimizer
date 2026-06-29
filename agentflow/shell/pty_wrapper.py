@@ -44,7 +44,7 @@ class PTYWrapper:
             raise PTYError(str(exc)) from exc
 
         if child_pid == 0:
-            # Child process — exec the command (no shell=True)
+            os.environ["AGENTFLOW_PTY"] = "1"
             os.execvp(command[0], command)
             # execvp replaces the process; reaching here means exec failed
             os._exit(127)
@@ -59,28 +59,30 @@ class PTYWrapper:
 
         # Forward terminal resize (SIGWINCH) to child
         signal.signal(signal.SIGWINCH, self._handle_sigwinch)
+        # Sync actual terminal size immediately so child doesn't start with OS default
+        self._sync_winsize()
 
     # ------------------------------------------------------------------
     # Signal handler
     # ------------------------------------------------------------------
 
-    def _handle_sigwinch(self, signum: int, frame) -> None:  # noqa: ARG002
-        """Forward terminal window resize to child PTY."""
+    def _sync_winsize(self) -> None:
+        """Push the outer terminal's current window size into the PTY master."""
         try:
             packed = termios.tcgetwinsize(0) if hasattr(termios, "tcgetwinsize") else None
             if packed is None:
-                # Fallback: query terminal size via TIOCGWINSZ on stdout
                 buf = b"\x00" * 8
-                import fcntl as _fcntl
-                import termios as _termios
-                result = _fcntl.ioctl(1, _termios.TIOCGWINSZ, buf)
+                result = fcntl.ioctl(1, termios.TIOCGWINSZ, buf)
                 rows, cols, _, _ = struct.unpack("HHHH", result)
             else:
                 rows, cols = packed
-            winsize = struct.pack("HHHH", rows, cols, 0, 0)
-            fcntl.ioctl(self.master_fd, termios.TIOCSWINSZ, winsize)
+            fcntl.ioctl(self.master_fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
         except Exception:  # noqa: BLE001
             pass
+
+    def _handle_sigwinch(self, signum: int, frame) -> None:  # noqa: ARG002
+        """Forward terminal window resize to child PTY."""
+        self._sync_winsize()
 
     # ------------------------------------------------------------------
     # I/O methods

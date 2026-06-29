@@ -7,6 +7,10 @@
           {
             "type": "command",
             "command": "python3 agentflow/hooks/read_logger.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 agentflow/hooks/read_check.py"
           }
         ]
       }

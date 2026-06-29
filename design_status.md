@@ -52,6 +52,11 @@ Oracle reads on startup. Handoff writes updates. Architecture.md = workers only.
 | Inline indexing approach | RESOLVED | Orchestrate generates .idx in pre-spawn (ast for .py, grep for .md). No standalone CLI for validation. |
 | Concurrent orchestrator prevention | RESOLVED | Lock file .agentflow/orchestrator.lock with PID, provider, timestamp — prevents concurrent runs |
 | Rate cap derivation | RESOLVED | Ledger-anchored: cap = total_window_tokens / (pct/100). Local time only (no tz). Gap: add unbilled current session. Weekly derived first. |
-| Read hook enforcement | DEFERRED | PreToolUse stdout not surfaced; exit non-zero doesn't block. Hook removed. Skill files enforce protocol. Binary hook revisit v2. |
-| Hook IP protection | DEFERRED | Moot until hook enforcement revisited in v2 |
+| Read hook enforcement | RESOLVED | PTY stream detection: strip ANSI, regex-match Read + file path, inject targeted [IDX] banner if .idx exists. Event-driven, no Claude Code hook dependency. T-052. |
+| Hook IP protection | DEFERRED | PTY approach has no IP surface; hook binary approach moot. Revisit v2 only if distribution model requires it. |
 | Telegraphic artifact style | RESOLVED | All artifacts: no articles, bullets over prose, ≤10 words per idea. generation.md enforces; existing compressed via T-048/T-049. ~20–30% token reduction. |
+| PTY idx reminder injection | RESOLVED | Session manager counts turns; every 3 turns injects idx banner to stdin (~15 tokens). Recency effect recalibrates compliance lost to context growth. Part of T-008. |
+| CacheAligner integration | DEFERRED | v2 — Headroom library; stabilizes prefixes for KV cache discount (~24% input token savings). Additive with all strategies. Evaluate after PTY validated. |
+| ContentRouter integration | DEFERRED | v2 — Headroom library; compresses tool outputs before context ingestion (60-95% per output). Plugs into PTY I/O interception layer. |
+| Mid-session /compact | DEFERRED | Not worth at current 30-60K handoff thresholds — sessions hand off before compaction helps. Revisit if thresholds raised significantly. |
+| Verbosity compliance tracking | RESOLVED | Per-turn output token tracking in PTY (T-010) — writes verbosity_log.jsonl; shadow analyzer reports mean/p90 vs 150-token target. |
