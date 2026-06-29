@@ -22,6 +22,11 @@
       "round": "G",
       "tasks": ["T-051", "T-054", "T-055"],
       "status": "MERGED"
+    },
+    {
+      "round": "H",
+      "tasks": ["T-056"],
+      "status": "IN_PROGRESS"
     }
   ],
   "pending": []

@@ -6,7 +6,6 @@ REPO = Path(__file__).parent.parent.parent
 HANDOFF_FILES = [
     REPO / "commands" / "claude" / "handoff.md",
     REPO / "commands" / "gemini" / "skills" / "handoff" / "SKILL.md",
-    REPO / ".agents" / "skills" / "handoff" / "SKILL.md"
 ]
 
 

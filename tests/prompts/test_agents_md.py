@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 
 REPO = Path(__file__).parent.parent.parent
-AGENTS_MD = REPO / ".agents" / "AGENTS.md"
+AGENTS_MD = REPO / "commands" / "gemini" / "AGENTS.md"
 
 
 def test_agents_md_exists():
