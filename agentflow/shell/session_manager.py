@@ -62,11 +62,15 @@ class SessionManager:
         self._handoff_in_progress: bool = False  # guard against reentrant trigger
         self._last_had_content: bool = False
 
+        self._current_turn_output_tokens: int = 0
+        self._turn_output_history: list[int] = []
+
         cwd = os.getcwd()
         self._cwd_hash = hashlib.sha256(cwd.encode()).hexdigest()
 
-        # Register ourselves as the output handler
+        # Register ourselves as the output and exit handlers
         pty_wrapper._on_output = self._handle_output
+        pty_wrapper._on_exit = self._on_session_exit
 
     # ------------------------------------------------------------------
     # Output handler
@@ -90,11 +94,24 @@ class SessionManager:
         if self._last_had_content and "\n\n" in text:
             self._turn_count += 1
             self._last_had_content = False
+
+            # T-010: save per-turn count, check verbosity, reset
+            turn_tokens = self._current_turn_output_tokens
+            self._turn_output_history.append(turn_tokens)
+            if len(self._turn_output_history) > 10:
+                self._turn_output_history = self._turn_output_history[-10:]
+            self._current_turn_output_tokens = 0
+            if turn_tokens > self._config.get("verbosity_threshold", 800):
+                self._inject_verbosity_banner(turn_tokens)
+
             if self._turn_count % 3 == 0:
                 self._inject_idx_banner()
 
         if text.strip():
             self._last_had_content = True
+
+        # T-010: accumulate chunk tokens into current turn counter
+        self._current_turn_output_tokens += self._tokenizer.count_tokens(text, "claude")
 
         # 4. Tokenizer accumulation + threshold check
         total = self._tokenizer.accumulate(text, "claude")
@@ -114,6 +131,36 @@ class SessionManager:
     def _inject_idx_banner(self) -> None:
         banner = _IDX_BANNER.format(hash=self._cwd_hash)
         self._pty.write_input(banner)
+
+    def _inject_verbosity_banner(self, n: int) -> None:
+        banner = (
+            f"[VERBOSITY] Last response: {n} tokens"
+            " — target ≤3 sentences (~150 tokens) for sparring exchanges.\n"
+        )
+        self._pty.write_input(banner)
+
+    # ------------------------------------------------------------------
+    # Session exit
+    # ------------------------------------------------------------------
+
+    def _on_session_exit(self, exit_code: int) -> None:  # noqa: ARG002
+        import datetime
+        import json
+
+        log_path = pathlib.Path.cwd() / ".agentflow" / "verbosity_log.jsonl"
+        if not log_path.parent.exists():
+            return
+        ts = datetime.datetime.now().isoformat()
+        with open(log_path, "a", encoding="utf-8") as fh:
+            for i, output_tokens in enumerate(self._turn_output_history, start=1):
+                fh.write(
+                    json.dumps({
+                        "ts": ts,
+                        "session_type": self.session_type,
+                        "turn": i,
+                        "output_tokens": output_tokens,
+                    }) + "\n"
+                )
 
     # ------------------------------------------------------------------
     # Handoff
