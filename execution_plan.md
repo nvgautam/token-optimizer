@@ -81,7 +81,7 @@ Note: json/yaml parsers dropped — .idx format is Python + Markdown only.
 ---
 
 ## Milestone 4: Config + PTY Shell
-Status: IN_PROGRESS
+Status: COMPLETE
 Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 
 | Task | Title | Status |
@@ -105,6 +105,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-052 | PTY session manager — Read-event idx injection + proactive verbosity banners | MERGED |
 | T-051 | CLI integration tests — argparse round-trip, main() dispatch, __main__ smoke | MERGED |
 | T-054 | Enforce IDX targeted reads — read_check.py exit 1 blocker | MERGED |
+| T-055 | Verbosity banner — generation-turn guard (should_inject_banner) | MERGED |
 
 | Round | Tasks | Note |
 |---|---|---|
