@@ -349,6 +349,12 @@ def test_detect_read_path_returns_none_when_absent():
     assert sm._detect_read_path("no read call here at all") is None
 
 
+def test_detect_read_path_natural_language_returns_none():
+    """Lowercase natural-language 'read the file.py' does not trigger idx injection."""
+    sm, pty, _ = make_manager()
+    assert sm._detect_read_path("read the config.py file for details") is None
+
+
 def test_handle_output_injects_idx_banner_when_idx_exists(tmp_path):
     """_handle_output injects a targeted [IDX] banner when the .idx file exists."""
     sm, pty, _ = make_manager()

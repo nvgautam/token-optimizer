@@ -35,9 +35,11 @@ _IDX_BANNER = (
 
 _VERBOSITY_STATIC_BANNER = "[VERBOSITY] Target <=3 sentences (~150 tokens) per response.\n"
 
-_ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;]*[mGKHF]")
+_ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;]*[mGKHFABCDhJlsu]")
 _READ_PATH_RE = re.compile(
-    r"[Rr]ead(?:\s+tool)?\s+[\"']?([^\s\"']+\.(?:py|md|json|toml|yaml|yml|txt))[\"']?"
+    r"(?:^|\b)Read\s+tool\s+[\"']?([^\s\"']+\.(?:py|md|json|toml|yaml|yml|txt))[\"']?"
+    r"|Read\([\"']?([^\s\"')]+\.(?:py|md|json|toml|yaml|yml|txt))[\"']?\)",
+    re.MULTILINE,
 )
 
 
@@ -75,6 +77,7 @@ class SessionManager:
 
         cwd = os.getcwd()
         self._cwd_hash = hashlib.sha256(cwd.encode()).hexdigest()
+        self._last_idx_injected: str | None = None
 
         # Register ourselves as the output and exit handlers
         pty_wrapper._on_output = self._handle_output
@@ -94,7 +97,7 @@ class SessionManager:
         # T-052: targeted idx injection — check for Read calls in clean text
         clean = self._ansi_strip(text)
         detected_path = self._detect_read_path(clean)
-        if detected_path:
+        if detected_path and not detected_path.startswith("/") and detected_path != self._last_idx_injected:
             idx_path = (
                 pathlib.Path.home()
                 / ".agentflow" / "cache" / self._cwd_hash
@@ -105,6 +108,7 @@ class SessionManager:
                     f"[IDX] {detected_path}.idx exists"
                     " — use Read(offset=N, limit=M) for targeted reads.\n"
                 )
+                self._last_idx_injected = detected_path
 
         # 1. Session-type detection — first occurrence wins
         if self.session_type is None:
@@ -128,6 +132,7 @@ class SessionManager:
             if len(self._turn_output_history) > 10:
                 self._turn_output_history = self._turn_output_history[-10:]
             self._current_turn_output_tokens = 0
+            self._last_idx_injected = None  # reset dedup guard at turn boundary
             if turn_tokens > self._config.get("verbosity_threshold", 800):
                 self._inject_verbosity_banner(turn_tokens)
 
@@ -163,9 +168,9 @@ class SessionManager:
         return _ANSI_ESCAPE_RE.sub("", text)
 
     def _detect_read_path(self, text: str) -> str | None:
-        """Return file path if a Read pattern is present in text; else None."""
+        """Return file path if a Claude Code Read invocation is present; else None."""
         m = _READ_PATH_RE.search(text)
-        return m.group(1) if m else None
+        return (m.group(1) or m.group(2)) if m else None
 
     def tick(self) -> None:
         """Inject verbosity banner if >= 60s have elapsed since last injection."""
