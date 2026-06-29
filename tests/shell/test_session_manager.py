@@ -20,6 +20,7 @@ class FakePTY:
 
     def __init__(self):
         self._on_output = None
+        self._on_exit = None
         self.inputs: list[str] = []
 
     def write_input(self, text: str) -> None:
@@ -35,6 +36,12 @@ class FakeTokenizer:
     def __init__(self, fixed_return: int | None = None):
         self._total = 0
         self._fixed = fixed_return
+
+    def count_tokens(self, text: str, provider: str = "claude") -> int:
+        """Pure token count — no side effects."""
+        if self._fixed is not None:
+            return self._fixed
+        return 1  # 1 token per call
 
     def accumulate(self, text: str, provider: str = "claude") -> int:
         if self._fixed is not None:
@@ -203,3 +210,105 @@ def test_countdown_keyboard_interrupt():
         countdown(3, on_complete=callback)  # must not propagate the interrupt
 
     callback.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# T-010. Per-turn output token tracking + verbosity compliance signal
+# ---------------------------------------------------------------------------
+
+
+def test_output_tokens_reset_at_turn_boundary():
+    """Per-turn token count is captured in history and counter restarts at boundary."""
+    sm, pty, _ = make_manager()
+    # Fire 3 content chunks so pre_boundary > 1 (boundary chunk contributes only 1)
+    for _ in range(3):
+        fire_output(sm, pty, "some response content")
+    pre_boundary = sm._current_turn_output_tokens
+    assert pre_boundary > 1
+    fire_output(sm, pty, "\n\n")
+    # turn tokens captured in history; counter restarted (only boundary chunk tokens remain)
+    assert sm._turn_output_history == [pre_boundary]
+    assert sm._current_turn_output_tokens < pre_boundary
+
+
+def test_turn_output_history_appended_at_boundary():
+    """Each turn's token count is appended to _turn_output_history."""
+    sm, pty, _ = make_manager()
+    for _ in range(3):
+        fire_output(sm, pty, "response")
+        fire_output(sm, pty, "\n\n")
+    assert len(sm._turn_output_history) == 3
+
+
+def test_turn_output_history_max_10():
+    """_turn_output_history holds at most 10 entries."""
+    sm, pty, _ = make_manager()
+    for _ in range(15):
+        fire_output(sm, pty, "response")
+        fire_output(sm, pty, "\n\n")
+    assert len(sm._turn_output_history) == 10
+
+
+def test_verbosity_banner_injected_when_over_threshold():
+    """Verbosity banner fires when turn output tokens exceed threshold."""
+    sm, pty, _ = make_manager(config={"verbosity_threshold": 0})
+    fire_output(sm, pty, "some response content")
+    fire_output(sm, pty, "\n\n")
+    verbosity_writes = [x for x in pty.inputs if "[VERBOSITY]" in x]
+    assert len(verbosity_writes) == 1
+    assert "tokens" in verbosity_writes[0]
+
+
+def test_verbosity_banner_not_injected_when_under_threshold():
+    """Verbosity banner is silent when turn output tokens are below threshold."""
+    sm, pty, _ = make_manager(config={"verbosity_threshold": 9999})
+    fire_output(sm, pty, "short")
+    fire_output(sm, pty, "\n\n")
+    verbosity_writes = [x for x in pty.inputs if "[VERBOSITY]" in x]
+    assert len(verbosity_writes) == 0
+
+
+def test_on_session_exit_writes_verbosity_log(tmp_path):
+    """_on_session_exit writes per-turn stats to .agentflow/verbosity_log.jsonl."""
+    import json
+    import pathlib
+
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+
+    sm, pty, _ = make_manager()
+    sm._turn_output_history = [10, 20, 30]
+    sm.session_type = "oracle"
+
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+        sm._on_session_exit(0)
+
+    log_path = agentflow_dir / "verbosity_log.jsonl"
+    assert log_path.exists()
+    lines = log_path.read_text(encoding="utf-8").strip().split("\n")
+    assert len(lines) == 3
+    records = [json.loads(line) for line in lines]
+    assert records[0]["turn"] == 1
+    assert records[0]["output_tokens"] == 10
+    assert records[0]["session_type"] == "oracle"
+    assert records[2]["turn"] == 3
+    assert records[2]["output_tokens"] == 30
+
+
+def test_on_session_exit_skips_when_no_agentflow_dir(tmp_path):
+    """_on_session_exit does not create .agentflow/ if it does not exist."""
+    import pathlib
+
+    sm, pty, _ = make_manager()
+    sm._turn_output_history = [5]
+
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+        sm._on_session_exit(0)  # must not raise
+
+    assert not (tmp_path / ".agentflow").exists()
+
+
+def test_on_session_exit_registered_on_pty():
+    """_on_session_exit is registered as pty_wrapper._on_exit in __init__."""
+    sm, pty, _ = make_manager()
+    assert pty._on_exit == sm._on_session_exit
