@@ -456,3 +456,30 @@ def test_every_3_turns_idx_injection_regression():
     # Generic banner contains "grep" (the lookup instruction); targeted banner does not
     assert "[IDX]" in sm._pending_banner and "grep" in sm._pending_banner
     assert sm._pending_banner.count("grep") == 1
+
+
+# ---------------------------------------------------------------------------
+# T-055. should_inject_banner — generation-turn guard
+# ---------------------------------------------------------------------------
+
+
+class TestShouldInjectBanner:
+    def test_returns_false_for_generate_keyword(self):
+        sm, pty, _ = make_manager()
+        assert sm.should_inject_banner("please generate a function") is False
+
+    def test_returns_false_for_proceed_keyword(self):
+        sm, pty, _ = make_manager()
+        assert sm.should_inject_banner("proceed") is False
+
+    def test_returns_false_for_long_message(self):
+        sm, pty, _ = make_manager()
+        assert sm.should_inject_banner("x" * 81) is False
+
+    def test_returns_true_for_short_sparring(self):
+        sm, pty, _ = make_manager()
+        assert sm.should_inject_banner("what does this do?") is True
+
+    def test_returns_false_for_yes(self):
+        sm, pty, _ = make_manager()
+        assert sm.should_inject_banner("yes") is False
