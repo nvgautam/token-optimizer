@@ -63,9 +63,9 @@ def test_orchestrate_skills_contain_rate_pacing_protocol():
 def test_orchestrate_skills_contain_prompt_assembly_rules():
     for f in SKILL_FILES:
         content = f.read_text(encoding="utf-8")
-        assert "commands/worker/system.md" in content, f"{f.name} must embed worker system prompt"
-        assert "commands/worker/context_bundle.md" in content, f"{f.name} must embed context bundle format"
-        assert "commands/worker/testing_guide.md" in content, f"{f.name} must embed testing guide"
+        assert "worker/system.md" in content, f"{f.name} must embed worker system prompt"
+        assert "worker/context_bundle.md" in content, f"{f.name} must embed context bundle format"
+        assert "worker/testing_guide.md" in content, f"{f.name} must embed testing guide"
         assert "TOKENS: input=N output=N" in content, f"{f.name} must require workers to end with TOKENS: input=N output=N"
 
 

@@ -29,7 +29,7 @@ unless asked. When reporting progress, one line per completed file is enough.
 Follow red→green TDD: write the test first (it will fail), then implement to
 make it pass. Never write implementation before the test exists.
 
-See `commands/worker/testing_guide.md` for full TDD rules.
+See `commands/claude/worker/testing_guide.md` for full TDD rules.
 
 ### 5. Scope Constraint
 

@@ -53,7 +53,7 @@ Argument provided (`/oracle "desc"`) → use it and skip.
 
 ## Phase 1 — Market Segment
 
-**Lazy load:** Read `commands/oracle/market.md` now.
+**Lazy load:** Read `commands/claude/oracle/market.md` now.
 
 Ask:
 ```
@@ -72,7 +72,7 @@ HANDOFF RECOMMENDED: market segment resolved — good stopping point if context 
 
 ## Phase 2 — Design Sparring
 
-**Lazy load:** Read `commands/oracle/checklist.md` now.
+**Lazy load:** Read `commands/claude/oracle/checklist.md` now.
 
 Work 24 items silently — never mention checklist. Challenge vague answers. Don't fill gaps. Lead with hard questions: data ownership, failure modes, scale, security, compliance.
 
@@ -105,7 +105,7 @@ Don't generate until user confirms.
 
 ## Phase 3 — Generate Artifacts
 
-**Lazy load:** Read `commands/oracle/generation.md` now.
+**Lazy load:** Read `commands/claude/oracle/generation.md` now.
 
 Write five files to project root: `design_status.md`, `architecture.md`, `CLAUDE.md`, `execution_plan.md`, `tasks.json`.
 

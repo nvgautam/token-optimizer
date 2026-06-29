@@ -39,7 +39,7 @@ Load `~/.agentflow/rate_calibration.json`; init EWMA: `ewma_mean_tokens=2500, ew
 
 ## Decomposition (lazy — stubs only)
 
-1. Read `commands/orchestrator/planning.md`
+1. Read `commands/claude/orchestrator/planning.md`
 2. Read milestone's `Architecture:` anchor from `execution_plan.md`
 3. Load only that anchor section from `architecture.md`
 4. Write full task definitions to `tasks.json`; add parallelism rounds to `execution_plan.md`
@@ -85,9 +85,9 @@ effective_rate = min(rate_5hr, rate_wkly)
 - Generate `.idx` for each `reads` file ≥50 lines (skip if `.idx` newer than source)
 
 **Build each agent prompt:**
-1. `commands/worker/system.md`
-2. `commands/worker/context_bundle.md`
-3. `commands/worker/testing_guide.md`
+1. `commands/claude/worker/system.md`
+2. `commands/claude/worker/context_bundle.md`
+3. `commands/claude/worker/testing_guide.md`
 4. Full task definitions for this group
 5. Milestone architecture anchor section
 6. For each `reads` file:
@@ -121,7 +121,7 @@ grep -nE "(password|secret|api_key|token)\s*=\s*['\"][^'\"]{8,}" $(cat /tmp/rf.t
 CRITICAL: hardcoded secrets, signal injection. WARNING: bare except, size > 250 lines.
 
 **Pass 2 — LLM (fresh haiku agent):**
-Embed `commands/reviewer/code_review.md`, `commands/reviewer/security_review.md`, `commands/reviewer/test_review.md`. Include pre-filter findings, changed files, diff (max 300 lines).
+Embed `commands/claude/reviewer/code_review.md`, `commands/claude/reviewer/security_review.md`, `commands/claude/reviewer/test_review.md`. Include pre-filter findings, changed files, diff (max 300 lines).
 
 - `CRITICAL` → rework (one retry; escalate on second failure)
 - `DRIFT` → surface at human gate; update `architecture.md` before merging if approved

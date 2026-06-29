@@ -331,7 +331,7 @@
         "commands/claude/orchestrate.md",
         "commands/claude/handoff.md"
       ],
-      "status": "pending"
+      "status": "complete"
     }
   ]
 }
