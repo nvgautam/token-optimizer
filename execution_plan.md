@@ -104,6 +104,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-010 | PTY — per-turn output tracking + verbosity signal | MERGED |
 | T-052 | PTY session manager — Read-event idx injection + proactive verbosity banners | MERGED |
 | T-051 | CLI integration tests — argparse round-trip, main() dispatch, __main__ smoke | MERGED |
+| T-054 | Enforce IDX targeted reads — read_check.py exit 1 blocker | MERGED |
 
 | Round | Tasks | Note |
 |---|---|---|

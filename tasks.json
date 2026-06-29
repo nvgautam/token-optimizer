@@ -286,28 +286,7 @@
     },
     {
       "task_id": "T-054",
-      "title": "Enforce IDX targeted reads: read_check.py exit 1 blocker",
-      "description": "Change agentflow/hooks/read_check.py from advisory (print hint, exit 0) to enforcement (exit 1) when a full Read is attempted on a file that has a .idx section map and no offset/limit provided. Exit 1 blocks the tool call, forcing Claude to retry with targeted params. Print a clear error message explaining what to do. Update tests in tests/hooks/test_read_check.py to assert exit code 1 and correct message. Ensure exit 0 still fires for: no .idx present, offset already provided, path outside cwd.",
-      "status": "PENDING",
-      "owns": [
-        "agentflow/hooks/read_check.py"
-      ],
-      "reads": [
-        "agentflow/hooks/read_check.py",
-        "tests/hooks/test_read_check.py"
-      ],
-      "depends_on": [],
-      "test_requirements": {
-        "unit": [
-          "exits 1 when .idx exists and no offset provided",
-          "exits 0 when .idx exists and offset is provided",
-          "exits 0 when no .idx exists",
-          "exits 0 when file path is outside cwd",
-          "printed message instructs use of Read(offset=N, limit=M)"
-        ]
-      },
-      "acceptance_criteria": "pytest tests/hooks/test_read_check.py passes; full Read on indexed file is blocked; targeted Read (with offset) is allowed through",
-      "estimated_lines": 15
+      "status": "complete"
     },
     {
       "task_id": "T-055",

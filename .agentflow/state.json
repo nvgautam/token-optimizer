@@ -1,5 +1,5 @@
 {
-  "updated": "2026-06-29T08:30:00",
+  "updated": "2026-06-29T08:45:00",
   "milestone": "Milestone 4: Config + PTY Shell",
   "status": "IN_PROGRESS",
   "groups": [
@@ -22,8 +22,8 @@
       "round": "G",
       "tasks": ["T-051", "T-054", "T-055"],
       "status": "IN_PROGRESS",
-      "merged": ["T-051"]
+      "merged": ["T-051", "T-054"]
     }
   ],
-  "pending": ["T-054", "T-055"]
+  "pending": ["T-055"]
 }
