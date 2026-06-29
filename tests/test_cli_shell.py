@@ -346,3 +346,41 @@ class TestDunderMain:
         _sys.modules.pop("agentflow.__main__", None)
         with patch("agentflow.cli.main"):
             importlib.import_module("agentflow.__main__")
+
+
+# ---------------------------------------------------------------------------
+# 9. T-055 regression — banner guard sees data before newline in combined chunk
+# ---------------------------------------------------------------------------
+
+
+def test_banner_guard_receives_data_before_newline_in_combined_chunk():
+    """When data+newline arrive in one chunk, should_inject_banner gets the data, not ''."""
+    wrapper = _wrapper(exited=False)
+    call_count = [0]
+
+    def select_fn(r, w, x, timeout=None):
+        if call_count[0] == 0:
+            call_count[0] += 1
+            return ([_STDIN_FD], [], [])
+        wrapper._exited = True
+        return ([], [], [])
+
+    from agentflow.cli import cmd_shell
+
+    sm_mock = MagicMock()
+    sm_mock.should_inject_banner.return_value = False
+
+    with ExitStack() as stack:
+        stack.enter_context(patch.object(sys.stdin, "fileno", return_value=_STDIN_FD))
+        stack.enter_context(patch("termios.tcgetattr", return_value=[]))
+        stack.enter_context(patch("tty.setraw"))
+        stack.enter_context(patch("termios.tcsetattr"))
+        stack.enter_context(patch(_PTY_CLS, return_value=wrapper))
+        stack.enter_context(patch(_SM_CLS, return_value=sm_mock))
+        stack.enter_context(patch("select.select", side_effect=select_fn))
+        stack.enter_context(patch("os.read", return_value=b"generate\n"))
+        stack.enter_context(patch("os.write"))
+        stack.enter_context(patch("sys.exit"))
+        cmd_shell(_args())
+
+    sm_mock.should_inject_banner.assert_called_once_with("generate")
