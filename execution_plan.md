@@ -81,7 +81,7 @@ Note: json/yaml parsers dropped — .idx format is Python + Markdown only.
 ---
 
 ## Milestone 4: Config + PTY Shell
-Status: COMPLETE
+Status: IN_PROGRESS
 Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 
 | Task | Title | Status |
@@ -102,6 +102,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-008 | PTY session manager — handoff, countdown, idx injection | MERGED |
 | T-009 | CLI cmd_shell — PTY I/O relay loop | MERGED |
 | T-010 | PTY — per-turn output tracking + verbosity signal | MERGED |
+| T-052 | PTY session manager — Read-event idx injection + proactive verbosity banners | MERGED |
 
 | Round | Tasks | Note |
 |---|---|---|
@@ -110,6 +111,8 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | C | T-008 | Depends on T-006 |
 | D | T-009 | Depends on T-008 |
 | E | T-010 | Depends on T-009 |
+| F | T-052 | Depends on T-008 — extends session_manager.py |
+| G | T-051, T-054, T-055 | T-051: CLI integration tests; T-054: read_check.py enforcement; T-055: _pending_banner turn guard |
 
 ---
 

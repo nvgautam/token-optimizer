@@ -31,15 +31,19 @@ _DEFAULTS: dict = {
 _IDX_BANNER = (
     "[IDX] Before any Read: for each file, check"
     " ~/.agentflow/cache/{hash}/index/<that-file>.idx first"
-    " — grep name:start-end, then Read(offset, limit).\r"
+    " — grep name:start-end, then Read(offset, limit).\n"
 )
 
-_VERBOSITY_STATIC_BANNER = "[VERBOSITY] Target <=3 sentences (~150 tokens) per response.\r"
+_VERBOSITY_STATIC_BANNER = "[VERBOSITY] Target <=3 sentences (~150 tokens) per response.\n"
 
 _ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;]*[mGKHFABCDhJlsu]")
 _READ_PATH_RE = re.compile(
-    r"(?:^|\b)Read\s+tool\s+[\"']?([^\s\"']+\.(?:py|md|json|toml|yaml|yml|txt))[\"']?"
-    r"|Read\([\"']?([^\s\"')]+\.(?:py|md|json|toml|yaml|yml|txt))[\"']?\)",
+    # keyword-arg form: Read(file_path="...") — actual Claude Code tool display
+    r"Read\([^)]*?file_path\s*=\s*[\"']([^\"']+\.(?:py|md|json|toml|yaml|yml|txt))[\"']"
+    # positional form: Read("/path/file.ext")
+    r"|Read\([\"']([^\s\"')]+\.(?:py|md|json|toml|yaml|yml|txt))[\"']\)"
+    # natural-language form: Read tool path.ext
+    r"|(?:^|\b)Read\s+tool\s+[\"']?([^\s\"']+\.(?:py|md|json|toml|yaml|yml|txt))[\"']?",
     re.MULTILINE,
 )
 
@@ -85,28 +89,50 @@ class SessionManager:
         pty_wrapper._on_exit = self._on_session_exit
 
         self._verbosity_last_inject: float = time.monotonic()
-        pty_wrapper.write_input(_VERBOSITY_STATIC_BANNER)
+        self._initial_banner_sent: bool = False
+        self._last_output_time: float = time.monotonic()
+        self._pending_banner: str = ""
+        self._quiet_period_seconds: float = float(
+            cfg.get("startup_quiet_period_seconds", 1.5)
+        )
 
     # ------------------------------------------------------------------
     # Output handler
     # ------------------------------------------------------------------
 
+    def on_idle_tick(self) -> None:
+        """Called by the PTY loop each iteration when no PTY output arrives.
+
+        Injects startup banners once the TUI has been quiet long enough to
+        guarantee Claude is idle and readline is ready to accept input.
+        """
+        if self._initial_banner_sent:
+            return
+        if time.monotonic() - self._last_output_time >= self._quiet_period_seconds:
+            self._initial_banner_sent = True
+            self._pending_banner += _VERBOSITY_STATIC_BANNER
+            self._pending_banner += _IDX_BANNER.format(hash=self._cwd_hash)
+
     def _handle_output(self, chunk: bytes) -> None:
         text = chunk.decode("utf-8", errors="replace")
+        self._last_output_time = time.monotonic()
 
         # T-052: targeted idx injection — check for Read calls in clean text
         clean = self._ansi_strip(text)
         detected_path = self._detect_read_path(clean)
-        if detected_path and not detected_path.startswith("/") and detected_path != self._last_idx_injected:
+        if detected_path and detected_path.startswith("/"):
+            cwd = os.getcwd() + "/"
+            detected_path = detected_path[len(cwd):] if detected_path.startswith(cwd) else None
+        if detected_path and detected_path != self._last_idx_injected:
             idx_path = (
                 pathlib.Path.home()
                 / ".agentflow" / "cache" / self._cwd_hash
                 / "index" / (detected_path + ".idx")
             )
             if idx_path.exists():
-                self._pty.write_input(
+                self._pending_banner += (
                     f"[IDX] {detected_path}.idx exists"
-                    " — use Read(offset=N, limit=M) for targeted reads.\r"
+                    " — use Read(offset=N, limit=M) for targeted reads.\n"
                 )
                 self._last_idx_injected = detected_path
 
@@ -167,22 +193,26 @@ class SessionManager:
     def _detect_read_path(self, text: str) -> str | None:
         """Return file path if a Claude Code Read invocation is present; else None."""
         m = _READ_PATH_RE.search(text)
-        return (m.group(1) or m.group(2)) if m else None
+        return next((g for g in m.groups() if g), None) if m else None
 
     def _inject_idx_banner(self) -> None:
-        banner = _IDX_BANNER.format(hash=self._cwd_hash)
-        self._pty.write_input(banner)
+        self._pending_banner += _IDX_BANNER.format(hash=self._cwd_hash)
 
     def _inject_verbosity_banner(self, n: int) -> None:
         now = time.monotonic()
         if now - self._verbosity_last_inject < 30.0:
             return
-        banner = (
+        self._pending_banner += (
             f"[VERBOSITY] Last response: {n} tokens"
-            " — target ≤3 sentences (~150 tokens) for sparring exchanges.\r"
+            " — target ≤3 sentences (~150 tokens) for sparring exchanges.\n"
         )
-        self._pty.write_input(banner)
         self._verbosity_last_inject = now
+
+    def pop_pending_banner(self) -> str:
+        """Return accumulated banner text and clear the queue."""
+        banner = self._pending_banner
+        self._pending_banner = ""
+        return banner
 
     # ------------------------------------------------------------------
     # Session exit

@@ -206,6 +206,163 @@
     {
       "task_id": "T-010",
       "status": "complete"
+    },
+    {
+      "task_id": "T-050",
+      "title": "Add agentflow/__main__.py so `python -m agentflow` is executable",
+      "description": "Create agentflow/__main__.py as a thin shim that imports and calls agentflow.cli.main(). Currently `python -m agentflow shell` (and all subcommands) fail with 'No module named agentflow.__main__; agentflow is a package and cannot be directly executed'. The fix is a 2-line __main__.py: `from agentflow.cli import main; main()`. No logic \u2014 delegate entirely to cli.main().",
+      "owns": [
+        "agentflow/__main__.py"
+      ],
+      "reads": [
+        "agentflow/cli.py"
+      ],
+      "depends_on": [],
+      "contracts": [],
+      "test_requirements": {
+        "unit": [
+          "python -m agentflow --help exits 0 and prints usage",
+          "python -m agentflow shell --help exits 0 and includes 'PTY overlay shell'",
+          "__main__.py contains no logic beyond import + main() call"
+        ],
+        "integration": [],
+        "coverage_threshold": 80
+      },
+      "security_constraints": [],
+      "acceptance_criteria": "`python -m agentflow --help` and `python -m agentflow shell` work without error",
+      "estimated_lines": 5,
+      "context_section": "agentflow/__main__.py",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-051",
+      "title": "Add CLI integration tests: argparse round-trip, main() dispatch, __main__ smoke",
+      "description": "Three test gaps in tests/test_cli_shell.py allowed two bugs to ship undetected: (1) no test calls build_parser().parse_args(['shell']) \u2014 so the dest='command' collision that set args.command='claude' instead of 'shell' was invisible; (2) no test calls main() directly \u2014 so the KeyError in handlers[args.command] was never exercised; (3) no test checks that python -m agentflow is executable \u2014 so the missing __main__.py was never caught. Add tests for all three: (a) parse_args(['shell']) asserts args.command == 'shell' and args.shell_command == 'claude'; (b) parse_args(['shell', '--command', 'gemini']) asserts args.shell_command == 'gemini'; (c) a main() dispatch test that patches cmd_shell and asserts it is called when argv=['shell']; (d) an import smoke test: import agentflow.__main__ succeeds without error.",
+      "owns": [
+        "tests/test_cli_shell.py"
+      ],
+      "reads": [
+        "agentflow/cli.py",
+        "agentflow/__main__.py"
+      ],
+      "depends_on": [],
+      "contracts": [],
+      "test_requirements": {
+        "unit": [
+          "build_parser().parse_args(['shell']) sets args.command == 'shell'",
+          "build_parser().parse_args(['shell']) sets args.shell_command == 'claude' (default)",
+          "build_parser().parse_args(['shell', '--command', 'gemini']) sets args.shell_command == 'gemini'",
+          "main() with argv=['shell'] calls cmd_shell (not KeyError)",
+          "import agentflow.__main__ succeeds"
+        ],
+        "integration": [],
+        "coverage_threshold": 80
+      },
+      "security_constraints": [],
+      "acceptance_criteria": "pytest tests/test_cli_shell.py passes; all five assertions above covered; no existing tests broken",
+      "estimated_lines": 60,
+      "context_section": "tests/test_cli_shell.py",
+      "status": "PENDING"
+    },
+    {
+      "task_id": "T-052",
+      "status": "complete",
+      "title": "PTY session manager \u2014 Read-event idx injection + proactive verbosity banners",
+      "description": "Two additions to SessionManager, no new files. (1) Read-event idx injection: in _handle_output, strip ANSI codes (re.sub), regex-match for Read + file path pattern, check if ~/.agentflow/cache/<hash>/index/<file>.idx exists, inject targeted [IDX] <file>.idx banner immediately if found. Add _ansi_strip(text) and _detect_read_path(text) as private helpers. Existing every-3-turns injection kept as fallback. (2) Proactive verbosity injection: inject verbosity constraint banner once at session start (write to PTY stdin before first user input); re-inject every ~60s via time.monotonic() timer checked in the relay loop \u2014 no turn counting, no output parsing. Banner text: \"[VERBOSITY] Target <=3 sentences (~150 tokens) per response.\" Timer state held in SessionManager; relay loop calls session_manager.tick() each iteration.",
+      "owns": [
+        "agentflow/shell/session_manager.py"
+      ],
+      "reads": [
+        "agentflow/shell/session_manager.py",
+        "agentflow/shell/pty_wrapper.py",
+        "agentflow/cli.py"
+      ],
+      "depends_on": [
+        "T-008"
+      ],
+      "contracts": [],
+      "test_requirements": {
+        "unit": [
+          "_ansi_strip strips standard ANSI escape sequences, leaves plain text unchanged",
+          "_detect_read_path returns file path when Read <path> pattern present in clean text",
+          "_detect_read_path returns None when no Read pattern found",
+          "_handle_output injects targeted [IDX] banner when .idx exists for detected file",
+          "_handle_output does not inject banner when no .idx exists for detected file",
+          "tick() injects verbosity banner when elapsed >= 60s",
+          "tick() does not inject when elapsed < 60s",
+          "existing every-3-turns idx injection still fires at turn boundaries"
+        ],
+        "integration": [],
+        "coverage_threshold": 80
+      },
+      "security_constraints": [],
+      "acceptance_criteria": "pytest tests/ passes; Read tool call for indexed file triggers targeted [IDX] banner; verbosity banner injected at session start and every ~60s; session_manager.py stays under 250 lines",
+      "estimated_lines": 45,
+      "context_section": "agentflow/shell/session_manager.py",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-053",
+      "title": "Bug fixes: verbosity banner timing + absolute-path IDX guard",
+      "description": "Two bugs found and fixed in session_manager.py. (1) Static verbosity banner fired at __init__ time before child process was live — landed in input field on restart. Fixed by deferring injection to first _handle_output chunk. Added _initial_banner_sent flag. (2) T-052 IDX reactive banner never fired for real Read calls because _handle_output filtered out paths starting with '/' — but Read always uses absolute paths. Fixed by stripping cwd prefix from absolute paths before idx lookup; paths outside cwd silently dropped. Three pre-existing test failures fixed (verbosity threshold test missing 30s cooldown bypass; two tick() tests referencing removed method replaced with banner-timing tests).",
+      "owns": [
+        "agentflow/shell/session_manager.py",
+        "tests/shell/test_session_manager.py"
+      ],
+      "status": "complete"
+    },
+    {
+      "task_id": "T-054",
+      "title": "Enforce IDX targeted reads: read_check.py exit 1 blocker",
+      "description": "Change agentflow/hooks/read_check.py from advisory (print hint, exit 0) to enforcement (exit 1) when a full Read is attempted on a file that has a .idx section map and no offset/limit provided. Exit 1 blocks the tool call, forcing Claude to retry with targeted params. Print a clear error message explaining what to do. Update tests in tests/hooks/test_read_check.py to assert exit code 1 and correct message. Ensure exit 0 still fires for: no .idx present, offset already provided, path outside cwd.",
+      "status": "PENDING",
+      "owns": [
+        "agentflow/hooks/read_check.py"
+      ],
+      "reads": [
+        "agentflow/hooks/read_check.py",
+        "tests/hooks/test_read_check.py"
+      ],
+      "depends_on": [],
+      "test_requirements": {
+        "unit": [
+          "exits 1 when .idx exists and no offset provided",
+          "exits 0 when .idx exists and offset is provided",
+          "exits 0 when no .idx exists",
+          "exits 0 when file path is outside cwd",
+          "printed message instructs use of Read(offset=N, limit=M)"
+        ]
+      },
+      "acceptance_criteria": "pytest tests/hooks/test_read_check.py passes; full Read on indexed file is blocked; targeted Read (with offset) is allowed through",
+      "estimated_lines": 15
+    },
+    {
+      "task_id": "T-055",
+      "title": "Verbosity banner: _pending_banner delivery with generation-turn guard",
+      "description": "The _pending_banner mechanism in session_manager.py appends the verbosity reminder to the next user message at Enter time (cli.py). Problem: generation turns must not be suppressed. Add a turn-type guard: if the pending user message (buffered in cli.py before Enter) contains generation-intent keywords ('generate', 'write', 'create', 'proceed', 'implement', 'yes') OR exceeds 80 chars, skip banner injection for that turn. Short sparring messages (<= 80 chars, no generation keywords) get the banner appended. Also guard against oracle Phase 3 by detecting '/oracle' session type + 'proceed'/'yes' messages. Files: agentflow/shell/session_manager.py (add should_inject_banner(message) method), agentflow/cli.py (pass buffered message to guard before injecting), tests/shell/test_session_manager.py.",
+      "status": "PENDING",
+      "owns": [
+        "agentflow/shell/session_manager.py",
+        "agentflow/cli.py"
+      ],
+      "reads": [
+        "agentflow/shell/session_manager.py",
+        "agentflow/cli.py",
+        "tests/shell/test_session_manager.py"
+      ],
+      "depends_on": [],
+      "test_requirements": {
+        "unit": [
+          "should_inject_banner returns False for messages containing 'generate'",
+          "should_inject_banner returns False for messages containing 'proceed'",
+          "should_inject_banner returns False for messages longer than 80 chars",
+          "should_inject_banner returns True for short sparring messages",
+          "banner not appended when guard returns False",
+          "banner appended when guard returns True"
+        ]
+      },
+      "acceptance_criteria": "pytest tests/shell/test_session_manager.py passes; verbosity banner not injected on generation turns; injected on short sparring turns; no input-field echo of banner text",
+      "estimated_lines": 30
     }
   ]
 }

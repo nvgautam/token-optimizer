@@ -1,6 +1,7 @@
 """Tests for agentflow.shell.session_manager and agentflow.shell.countdown."""
 from __future__ import annotations
 
+import os
 import sys
 from unittest.mock import MagicMock, patch
 
@@ -99,8 +100,9 @@ def test_idx_banner_every_3_turns():
     for _ in range(3):
         fire_output(sm, pty, "assistant response text")
         fire_output(sm, pty, "\n\n")
-    banner_writes = [x for x in pty.inputs if "[IDX]" in x]
-    assert len(banner_writes) == 1, f"Expected 1 banner, got {len(banner_writes)}"
+    assert sm._pending_banner.count("[IDX]") == 1, (
+        f"Expected 1 IDX banner in pending, got: {sm._pending_banner!r}"
+    )
 
 
 def test_idx_banner_not_written_before_3_turns():
@@ -108,8 +110,7 @@ def test_idx_banner_not_written_before_3_turns():
     for _ in range(2):
         fire_output(sm, pty, "content")
         fire_output(sm, pty, "\n\n")
-    banner_writes = [x for x in pty.inputs if "[IDX]" in x]
-    assert len(banner_writes) == 0
+    assert "[IDX]" not in sm._pending_banner
 
 
 # ---------------------------------------------------------------------------
@@ -252,12 +253,11 @@ def test_turn_output_history_max_10():
 def test_verbosity_banner_injected_when_over_threshold():
     """Verbosity banner fires when turn output tokens exceed threshold."""
     sm, pty, _ = make_manager(config={"verbosity_threshold": 0})
+    sm._verbosity_last_inject = 0.0  # push past the 30s cooldown guard
     fire_output(sm, pty, "some response content")
     fire_output(sm, pty, "\n\n")
-    # Filter for the per-turn banner specifically (contains "Last response:")
-    per_turn_writes = [x for x in pty.inputs if "[VERBOSITY]" in x and "Last response:" in x]
-    assert len(per_turn_writes) == 1
-    assert "tokens" in per_turn_writes[0]
+    assert "[VERBOSITY]" in sm._pending_banner and "Last response:" in sm._pending_banner
+    assert "tokens" in sm._pending_banner
 
 
 def test_verbosity_banner_not_injected_when_under_threshold():
@@ -265,9 +265,7 @@ def test_verbosity_banner_not_injected_when_under_threshold():
     sm, pty, _ = make_manager(config={"verbosity_threshold": 9999})
     fire_output(sm, pty, "short")
     fire_output(sm, pty, "\n\n")
-    # Filter for the per-turn banner specifically (contains "Last response:")
-    per_turn_writes = [x for x in pty.inputs if "[VERBOSITY]" in x and "Last response:" in x]
-    assert len(per_turn_writes) == 0
+    assert not ("[VERBOSITY]" in sm._pending_banner and "Last response:" in sm._pending_banner)
 
 
 def test_on_session_exit_writes_verbosity_log(tmp_path):
@@ -343,6 +341,22 @@ def test_detect_read_path_returns_path():
     assert result == "agentflow/config/settings.py"
 
 
+def test_detect_read_path_keyword_arg_form():
+    """_detect_read_path matches the Claude Code tool display format Read(file_path=...)."""
+    sm, pty, _ = make_manager()
+    text = 'Read(file_path="/Users/gautam/code/token-optimizer/design_status.md")'
+    result = sm._detect_read_path(text)
+    assert result == "/Users/gautam/code/token-optimizer/design_status.md"
+
+
+def test_detect_read_path_positional_form():
+    """_detect_read_path matches the positional form Read('/path/file.md')."""
+    sm, pty, _ = make_manager()
+    text = 'Read("/Users/gautam/code/token-optimizer/design_status.md")'
+    result = sm._detect_read_path(text)
+    assert result == "/Users/gautam/code/token-optimizer/design_status.md"
+
+
 def test_detect_read_path_returns_none_when_absent():
     """_detect_read_path returns None when no Read pattern is present."""
     sm, pty, _ = make_manager()
@@ -356,9 +370,8 @@ def test_detect_read_path_natural_language_returns_none():
 
 
 def test_handle_output_injects_idx_banner_when_idx_exists(tmp_path):
-    """_handle_output injects a targeted [IDX] banner when the .idx file exists."""
+    """_handle_output queues a targeted [IDX] banner when the .idx file exists."""
     sm, pty, _ = make_manager()
-    # Build the expected idx path under tmp_path as fake home
     idx_dir = tmp_path / ".agentflow" / "cache" / sm._cwd_hash / "index"
     (idx_dir / "agentflow" / "config").mkdir(parents=True)
     (idx_dir / "agentflow" / "config" / "settings.py.idx").touch()
@@ -366,49 +379,80 @@ def test_handle_output_injects_idx_banner_when_idx_exists(tmp_path):
     with patch("pathlib.Path.home", return_value=tmp_path):
         fire_output(sm, pty, "Read tool agentflow/config/settings.py to get config")
 
-    targeted = [x for x in pty.inputs if "[IDX]" in x and "exists" in x]
-    assert len(targeted) >= 1
+    assert "[IDX]" in sm._pending_banner and "exists" in sm._pending_banner
 
 
 def test_handle_output_no_idx_banner_when_idx_absent(tmp_path):
-    """_handle_output does not inject a targeted [IDX] banner when no .idx file found."""
+    """_handle_output does not queue a targeted [IDX] banner when no .idx file found."""
     sm, pty, _ = make_manager()
-    # No idx files created under tmp_path
     with patch("pathlib.Path.home", return_value=tmp_path):
         fire_output(sm, pty, "Read tool agentflow/config/settings.py to get config")
 
-    targeted = [x for x in pty.inputs if "[IDX]" in x and "exists" in x]
-    assert len(targeted) == 0
+    assert not ("[IDX]" in sm._pending_banner and "exists" in sm._pending_banner)
 
 
-def test_tick_injects_verbosity_banner_after_60s():
-    """tick() writes the verbosity banner when >= 60s have elapsed."""
-    import time as _time
-
+def test_handle_output_injects_idx_banner_for_absolute_path(tmp_path):
+    """Absolute paths inside cwd are stripped to relative before idx lookup."""
     sm, pty, _ = make_manager()
-    pre_count = len([x for x in pty.inputs if "[VERBOSITY]" in x])
-    sm._verbosity_last_inject = _time.monotonic() - 61.0  # simulate 61s elapsed
-    sm.tick()
-    post_count = len([x for x in pty.inputs if "[VERBOSITY]" in x])
-    assert post_count > pre_count
+    idx_dir = tmp_path / ".agentflow" / "cache" / sm._cwd_hash / "index"
+    (idx_dir / "agentflow" / "config").mkdir(parents=True)
+    (idx_dir / "agentflow" / "config" / "settings.py.idx").touch()
+
+    abs_path = os.path.join(os.getcwd(), "agentflow/config/settings.py")
+    with patch("pathlib.Path.home", return_value=tmp_path):
+        fire_output(sm, pty, f'Read("{abs_path}")')
+
+    assert "[IDX]" in sm._pending_banner and "exists" in sm._pending_banner
 
 
-def test_tick_no_injection_before_60s():
-    """tick() does not write when less than 60s have elapsed."""
+def test_handle_output_no_idx_banner_for_path_outside_cwd(tmp_path):
+    """Absolute paths outside the project root are silently ignored."""
     sm, pty, _ = make_manager()
-    pre_count = len([x for x in pty.inputs if "[VERBOSITY]" in x])
-    # _verbosity_last_inject was just set in __init__ — well under 60s
-    sm.tick()
-    post_count = len([x for x in pty.inputs if "[VERBOSITY]" in x])
-    assert post_count == pre_count
+    with patch("pathlib.Path.home", return_value=tmp_path):
+        fire_output(sm, pty, 'Read("/etc/passwd")')
+
+    assert not ("[IDX]" in sm._pending_banner and "exists" in sm._pending_banner)
+
+
+def test_static_verbosity_banner_not_at_init():
+    """Static verbosity banner must NOT be queued at __init__ time."""
+    sm, pty, _ = make_manager()
+    assert not ("[VERBOSITY]" in sm._pending_banner and "Target" in sm._pending_banner)
+
+
+def test_static_verbosity_banner_not_before_quiet_period():
+    """Static banner is not queued immediately after output (TUI still generating)."""
+    sm, pty, _ = make_manager(config={"startup_quiet_period_seconds": 9999.0})
+    fire_output(sm, pty, "x" * 2048)
+    sm.on_idle_tick()
+    assert not ("[VERBOSITY]" in sm._pending_banner and "Target" in sm._pending_banner)
+
+
+def test_static_verbosity_banner_fires_after_quiet_period():
+    """Static verbosity and IDX banners both queue once quiet period has elapsed."""
+    sm, pty, _ = make_manager(config={"startup_quiet_period_seconds": 0.0})
+    fire_output(sm, pty, "x" * 100)
+    sm.on_idle_tick()
+    assert "[VERBOSITY]" in sm._pending_banner and "Target" in sm._pending_banner
+    assert "[IDX]" in sm._pending_banner and "grep" in sm._pending_banner
+
+
+def test_static_verbosity_banner_fires_only_once():
+    """Static banner queued exactly once regardless of repeated idle ticks."""
+    sm, pty, _ = make_manager(config={"startup_quiet_period_seconds": 0.0})
+    fire_output(sm, pty, "x" * 100)
+    for _ in range(5):
+        sm.on_idle_tick()
+    assert sm._pending_banner.count("[VERBOSITY] Target") == 1
+
 
 
 def test_every_3_turns_idx_injection_regression():
-    """Generic every-3-turns IDX banner still fires alongside new Read-detection logic."""
+    """Generic every-3-turns IDX banner still queues alongside new Read-detection logic."""
     sm, pty, _ = make_manager()
     for _ in range(3):
         fire_output(sm, pty, "assistant response text")
         fire_output(sm, pty, "\n\n")
     # Generic banner contains "grep" (the lookup instruction); targeted banner does not
-    generic_idx = [x for x in pty.inputs if "[IDX]" in x and "grep" in x]
-    assert len(generic_idx) == 1
+    assert "[IDX]" in sm._pending_banner and "grep" in sm._pending_banner
+    assert sm._pending_banner.count("grep") == 1

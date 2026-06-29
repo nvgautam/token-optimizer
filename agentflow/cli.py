@@ -102,7 +102,7 @@ def cmd_shell(args: argparse.Namespace) -> int:
     try:
         tty.setraw(fd)
         wrapper = PTYWrapper([args.shell_command])
-        SessionManager(wrapper, tokenizer_module, config={})
+        session_manager = SessionManager(wrapper, tokenizer_module, config={})
 
         while not wrapper._exited:
             try:
@@ -114,6 +114,11 @@ def cmd_shell(args: argparse.Namespace) -> int:
                 try:
                     chunk = os.read(fd, 1024)
                     if chunk:
+                        if b'\r' in chunk or b'\n' in chunk:
+                            pending = session_manager.pop_pending_banner()
+                            if pending:
+                                flat = pending.replace('\n', ' ').rstrip()
+                                os.write(wrapper.master_fd, flat.encode("utf-8"))
                         os.write(wrapper.master_fd, chunk)
                 except OSError:
                     break
@@ -122,6 +127,8 @@ def cmd_shell(args: argparse.Namespace) -> int:
                 chunk = wrapper.read_output()
                 if chunk:
                     os.write(1, chunk)
+            else:
+                session_manager.on_idle_tick()
 
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
