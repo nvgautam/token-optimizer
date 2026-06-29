@@ -236,33 +236,7 @@
     },
     {
       "task_id": "T-051",
-      "title": "Add CLI integration tests: argparse round-trip, main() dispatch, __main__ smoke",
-      "description": "Three test gaps in tests/test_cli_shell.py allowed two bugs to ship undetected: (1) no test calls build_parser().parse_args(['shell']) \u2014 so the dest='command' collision that set args.command='claude' instead of 'shell' was invisible; (2) no test calls main() directly \u2014 so the KeyError in handlers[args.command] was never exercised; (3) no test checks that python -m agentflow is executable \u2014 so the missing __main__.py was never caught. Add tests for all three: (a) parse_args(['shell']) asserts args.command == 'shell' and args.shell_command == 'claude'; (b) parse_args(['shell', '--command', 'gemini']) asserts args.shell_command == 'gemini'; (c) a main() dispatch test that patches cmd_shell and asserts it is called when argv=['shell']; (d) an import smoke test: import agentflow.__main__ succeeds without error.",
-      "owns": [
-        "tests/test_cli_shell.py"
-      ],
-      "reads": [
-        "agentflow/cli.py",
-        "agentflow/__main__.py"
-      ],
-      "depends_on": [],
-      "contracts": [],
-      "test_requirements": {
-        "unit": [
-          "build_parser().parse_args(['shell']) sets args.command == 'shell'",
-          "build_parser().parse_args(['shell']) sets args.shell_command == 'claude' (default)",
-          "build_parser().parse_args(['shell', '--command', 'gemini']) sets args.shell_command == 'gemini'",
-          "main() with argv=['shell'] calls cmd_shell (not KeyError)",
-          "import agentflow.__main__ succeeds"
-        ],
-        "integration": [],
-        "coverage_threshold": 80
-      },
-      "security_constraints": [],
-      "acceptance_criteria": "pytest tests/test_cli_shell.py passes; all five assertions above covered; no existing tests broken",
-      "estimated_lines": 60,
-      "context_section": "tests/test_cli_shell.py",
-      "status": "PENDING"
+      "status": "complete"
     },
     {
       "task_id": "T-052",
@@ -298,13 +272,12 @@
       "security_constraints": [],
       "acceptance_criteria": "pytest tests/ passes; Read tool call for indexed file triggers targeted [IDX] banner; verbosity banner injected at session start and every ~60s; session_manager.py stays under 250 lines",
       "estimated_lines": 45,
-      "context_section": "agentflow/shell/session_manager.py",
-      "status": "complete"
+      "context_section": "agentflow/shell/session_manager.py"
     },
     {
       "task_id": "T-053",
       "title": "Bug fixes: verbosity banner timing + absolute-path IDX guard",
-      "description": "Two bugs found and fixed in session_manager.py. (1) Static verbosity banner fired at __init__ time before child process was live — landed in input field on restart. Fixed by deferring injection to first _handle_output chunk. Added _initial_banner_sent flag. (2) T-052 IDX reactive banner never fired for real Read calls because _handle_output filtered out paths starting with '/' — but Read always uses absolute paths. Fixed by stripping cwd prefix from absolute paths before idx lookup; paths outside cwd silently dropped. Three pre-existing test failures fixed (verbosity threshold test missing 30s cooldown bypass; two tick() tests referencing removed method replaced with banner-timing tests).",
+      "description": "Two bugs found and fixed in session_manager.py. (1) Static verbosity banner fired at __init__ time before child process was live \u2014 landed in input field on restart. Fixed by deferring injection to first _handle_output chunk. Added _initial_banner_sent flag. (2) T-052 IDX reactive banner never fired for real Read calls because _handle_output filtered out paths starting with '/' \u2014 but Read always uses absolute paths. Fixed by stripping cwd prefix from absolute paths before idx lookup; paths outside cwd silently dropped. Three pre-existing test failures fixed (verbosity threshold test missing 30s cooldown bypass; two tick() tests referencing removed method replaced with banner-timing tests).",
       "owns": [
         "agentflow/shell/session_manager.py",
         "tests/shell/test_session_manager.py"

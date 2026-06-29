@@ -103,6 +103,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-009 | CLI cmd_shell — PTY I/O relay loop | MERGED |
 | T-010 | PTY — per-turn output tracking + verbosity signal | MERGED |
 | T-052 | PTY session manager — Read-event idx injection + proactive verbosity banners | MERGED |
+| T-051 | CLI integration tests — argparse round-trip, main() dispatch, __main__ smoke | MERGED |
 
 | Round | Tasks | Note |
 |---|---|---|
