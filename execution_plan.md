@@ -107,6 +107,16 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-054 | Enforce IDX targeted reads — read_check.py exit 1 blocker | MERGED |
 | T-055 | Verbosity banner — generation-turn guard (should_inject_banner) | MERGED |
 
+**Addendum:**
+
+| Task | Title | Status |
+|---|---|---|
+| T-056 | read_check.py: skip block on empty idx + compress output message | PENDING |
+| T-058 | PostToolUse hook: block Write/Edit when file exceeds line limit | PENDING |
+| T-059 | Bake verbosity target into skill prompts as standing instruction | PENDING |
+| T-060 | Provider-keyed rate calibration files: Claude vs Gemini | MERGED |
+
+
 | Round | Tasks | Note |
 |---|---|---|
 | A | T-007 | No deps — first spawn alone |

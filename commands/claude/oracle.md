@@ -29,7 +29,7 @@ Compute `HASH = sha256(cwd)`. Check `~/.agentflow/cache/<HASH>/index/architectur
 
 
 ### Step 2b — Load CV calibration
-Read `~/.agentflow/rate_calibration.json`. `sample_count >= 7` → store `ewma_cv`, `ewma_mean_tokens`. Else skip.
+Read `~/.agentflow/rate_calibration_claude.json` (if absent and `~/.agentflow/rate_calibration.json` exists, load `~/.agentflow/rate_calibration.json` as a one-time compat fallback). `sample_count >= 7` → store `ewma_cv`, `ewma_mean_tokens`. Else skip.
 
 ### Step 3 — Opening question
 Ask: "Tell me about your project. What are you building?"

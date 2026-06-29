@@ -33,7 +33,8 @@ Read `execution_plan.md` (use `.idx`) and `tasks.json`. **No `architecture.md` o
 Check `.agentflow/state.json`. Present → report resumed state and ask "Continue?". Absent → identify first incomplete milestone. `/orchestrate debug` → reveal grouping plan and ask "Proceed?".
 
 ### Step 5 — Load prior calibration
-Load `~/.agentflow/rate_calibration.json`; init EWMA: `ewma_mean_tokens=2500, ewma_cv=0.0, sample_count=0, ewma_alpha=0.3` if absent.
+Load `~/.agentflow/rate_calibration_claude.json` (if absent and `~/.agentflow/rate_calibration.json` exists, load `~/.agentflow/rate_calibration.json` as a one-time compat fallback); init EWMA: `ewma_mean_tokens=2500, ewma_cv=0.0, sample_count=0, ewma_alpha=0.3` if generic also absent.
+
 
 ---
 
@@ -72,7 +73,7 @@ effective_rate = min(rate_5hr, rate_wkly)
    - `cap_wkly = total_wkly_tokens / (end_pct_wkly / 100)` — derive weekly first (more sessions, more reliable)
    - `sessions_in_window_5hr >= 3` → `cap_5hr = total_5hr_tokens / (end_pct_5hr / 100)`; else `cap_5hr = cap_wkly` with low-confidence note
    - Gap: add `(end_pct − start_pct) × prior_cap` if ledger sum is low
-   - Write `~/.agentflow/rate_calibration.json`: `{timestamp (naive local, no Z), start_pct_5hr, end_pct_5hr, start_pct_wkly, end_pct_wkly, session_tokens, cap_5hr, cap_5hr_note, cap_wkly, cap_wkly_note, rate_5hr, rate_wkly, ewma_mean_tokens, ewma_cv, sample_count, ewma_alpha}`
+   - Write `~/.agentflow/rate_calibration_claude.json`: `{timestamp (naive local, no Z), start_pct_5hr, end_pct_5hr, start_pct_wkly, end_pct_wkly, session_tokens, cap_5hr, cap_5hr_note, cap_wkly, cap_wkly_note, rate_5hr, rate_wkly, ewma_mean_tokens, ewma_cv, sample_count, ewma_alpha}`
 
 ---
 

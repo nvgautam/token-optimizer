@@ -353,6 +353,19 @@
         "commands/claude/orchestrate.md"
       ],
       "status": "pending"
+    },
+    {
+      "task_id": "T-060",
+      "title": "Provider-keyed rate calibration files: rate_calibration_claude.json / rate_calibration_gemini.json",
+      "description": "rate_calibration.json is a single shared file \u2014 Gemini sessions overwrite Claude EWMA and caps, making round-sizing and rate-pacing wrong for whichever provider runs next. Fix: each provider reads and writes its own file. (1) commands/claude/orchestrate.md: replace both references to rate_calibration.json with rate_calibration_claude.json (Step 5 load and end-of-session write). (2) commands/claude/oracle.md: same replacement (Step 2b load). (3) commands/gemini/skills/orchestrate/SKILL.md: replace with rate_calibration_gemini.json. (4) Migration: on load, if provider-specific file is absent but rate_calibration.json exists, read the generic file as fallback (one-time compat shim; do not write back to generic file). (5) Update tests/prompts/test_oracle_skill.py and test_orchestrate_skill.py: assert rate_calibration_claude.json (not rate_calibration.json) in Claude skill content.",
+      "owns": [
+        "commands/claude/orchestrate.md",
+        "commands/claude/oracle.md",
+        "commands/gemini/skills/orchestrate/SKILL.md",
+        "tests/prompts/test_oracle_skill.py",
+        "tests/prompts/test_orchestrate_skill.py"
+      ],
+      "status": "complete"
     }
   ]
 }

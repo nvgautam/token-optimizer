@@ -33,6 +33,18 @@
       "estimated_lines": 50,
       "status": "complete",
       "pr": 34
+    },
+    {
+      "task_id": "T-060",
+      "title": "Provider-keyed rate calibration files: rate_calibration_claude.json / rate_calibration_gemini.json",
+      "owns": [
+        "commands/claude/orchestrate.md",
+        "commands/claude/oracle.md",
+        "commands/gemini/skills/orchestrate/SKILL.md",
+        "tests/prompts/test_oracle_skill.py",
+        "tests/prompts/test_orchestrate_skill.py"
+      ],
+      "status": "complete"
     }
   ]
 }

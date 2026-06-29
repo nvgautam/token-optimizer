@@ -119,24 +119,25 @@ def test_orchestrate_uses_p85_when_cv_high():
 
 
 def test_orchestrate_loads_prior_ewma_at_startup():
-    """T-033: orchestrate.md loads prior EWMA from rate_calibration.json at startup."""
+    """T-033: orchestrate.md loads prior EWMA from rate_calibration_claude.json at startup."""
     content = CLAUDE_ORCHESTRATE.read_text(encoding="utf-8")
     assert "ewma" in content.lower(), \
         "orchestrate.md must reference EWMA"
-    assert "rate_calibration.json" in content, \
-        "orchestrate.md must reference rate_calibration.json"
+    assert "rate_calibration_claude.json" in content, \
+        "orchestrate.md must reference rate_calibration_claude.json"
     assert "ewma_mean_tokens" in content, \
-        "orchestrate.md must load ewma_mean_tokens from rate_calibration.json"
+        "orchestrate.md must load ewma_mean_tokens from rate_calibration_claude.json"
 
 
 def test_orchestrate_writes_ewma_to_rate_calibration():
-    """T-033: orchestrate.md writes ewma_mean_tokens, ewma_cv, sample_count, ewma_alpha to rate_calibration.json."""
+    """T-033: orchestrate.md writes ewma_mean_tokens, ewma_cv, sample_count, ewma_alpha to rate_calibration_claude.json."""
     content = CLAUDE_ORCHESTRATE.read_text(encoding="utf-8")
     assert "ewma_mean_tokens" in content, \
-        "orchestrate.md must write ewma_mean_tokens to rate_calibration.json"
+        "orchestrate.md must write ewma_mean_tokens to rate_calibration_claude.json"
     assert "ewma_cv" in content, \
-        "orchestrate.md must write ewma_cv to rate_calibration.json"
+        "orchestrate.md must write ewma_cv to rate_calibration_claude.json"
     assert "sample_count" in content, \
-        "orchestrate.md must write sample_count to rate_calibration.json"
+        "orchestrate.md must write sample_count to rate_calibration_claude.json"
     assert "ewma_alpha" in content, \
-        "orchestrate.md must write ewma_alpha to rate_calibration.json"
+        "orchestrate.md must write ewma_alpha to rate_calibration_claude.json"
+

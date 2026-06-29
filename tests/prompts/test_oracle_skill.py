@@ -101,20 +101,21 @@ def test_oracle_skill_uses_lazy_subfile_loading():
         "oracle.md must contain lazy loading instruction (e.g. 'Lazy load' or 'only when entering')"
 
 
-# Test 7: oracle reads rate_calibration.json after oracle-complete check
+# Test 7: oracle reads rate_calibration_claude.json after oracle-complete check
 def test_oracle_reads_rate_calibration_after_oracle_complete_check():
     content = _content()
-    assert "rate_calibration.json" in content, \
-        "oracle.md must reference rate_calibration.json"
+    assert "rate_calibration_claude.json" in content, \
+        "oracle.md must reference rate_calibration_claude.json"
     # Must appear in startup section (before Phase 1)
     startup_section = content.split("## Phase")[0]
-    assert "rate_calibration.json" in startup_section, \
-        "rate_calibration.json must be read in the startup section (before Phase 1)"
+    assert "rate_calibration_claude.json" in startup_section, \
+        "rate_calibration_claude.json must be read in the startup section (before Phase 1)"
     # Must appear after Step 2 (oracle-complete check)
     step2_idx = content.find("### Step 2")
-    cal_idx = content.find("rate_calibration.json")
+    cal_idx = content.find("rate_calibration_claude.json")
     assert cal_idx > step2_idx, \
-        "rate_calibration.json read must appear after Step 2 (oracle-complete check)"
+        "rate_calibration_claude.json read must appear after Step 2 (oracle-complete check)"
+
 
 
 # Test 8: skips CV adjustment when sample_count < 7
