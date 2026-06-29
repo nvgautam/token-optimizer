@@ -326,6 +326,23 @@ class TestArgparseRoundTrip:
         args = build_parser().parse_args(["shell", "--command", "gemini"])
         assert args.shell_command == "gemini"
 
+    def test_cmd_shell_maps_gemini_to_agy(self):
+        from agentflow.cli import cmd_shell
+        wrapper_mock = _wrapper()
+        with ExitStack() as stack:
+            stack.enter_context(patch.object(sys.stdin, "fileno", return_value=_STDIN_FD))
+            stack.enter_context(patch("termios.tcgetattr", return_value=[0] * 6))
+            stack.enter_context(patch("tty.setraw"))
+            stack.enter_context(patch("termios.tcsetattr"))
+            pty_mock = stack.enter_context(patch(_PTY_CLS, return_value=wrapper_mock))
+            stack.enter_context(patch(_SM_CLS))
+            stack.enter_context(patch("select.select", return_value=([], [], [])))
+            stack.enter_context(patch("sys.exit"))
+
+            cmd_shell(_args("gemini"))
+
+            pty_mock.assert_called_once_with(["agy"])
+
 
 class TestMainDispatch:
     def test_main_calls_cmd_shell_for_shell_argv(self):

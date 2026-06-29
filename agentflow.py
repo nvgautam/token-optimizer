@@ -447,7 +447,9 @@ def update_shadow(ledger: dict, usage: dict) -> dict:
 
 def cmd_start(args):
     print("\n── AgentFlow Session Start ──────────────────────────────")
-    agent    = input("Agent backend  (claude / gemini / other): ").strip() or "claude"
+    agent    = input("Agent backend  (claude / agy / other): ").strip() or "claude"
+    if agent == "gemini":
+        agent = "agy"
     task_ids = input("Task IDs being worked on (e.g. C-024, G-091): ").strip()
     session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -527,9 +529,9 @@ def cmd_handoff(args):
     if forced_agent == "claude":
         usage = read_jsonl_usage()
         detected_agent = "claude"
-    elif forced_agent == "gemini":
+    elif forced_agent in ("gemini", "agy"):
         usage = read_gemini_db_usage()
-        detected_agent = "gemini"
+        detected_agent = "agy"
     else:
         # Auto-detect: pick whichever session file was modified most recently
         claude_usage = read_jsonl_usage()
@@ -549,7 +551,7 @@ def cmd_handoff(args):
 
         if gemini_usage and (gemini_mtime > claude_mtime or not claude_usage):
             usage = gemini_usage
-            detected_agent = "gemini"
+            detected_agent = "agy"
         else:
             usage = claude_usage
             detected_agent = "claude"
@@ -623,9 +625,19 @@ def cmd_status(args):
 def cmd_report(args):
     ledger   = load_ledger()
     agent_filter = getattr(args, "agent", None)
+    if agent_filter == "gemini":
+        agent_filter = "agy"
+
+    if agent_filter == "agy":
+        match_agents = {"gemini", "agy"}
+    elif agent_filter is not None:
+        match_agents = {agent_filter}
+    else:
+        match_agents = None
+
     sessions = [s for s in ledger["sessions"]
                 if s.get("status") == "closed"
-                and (agent_filter is None or s.get("agent") == agent_filter)]
+                and (match_agents is None or s.get("agent") in match_agents)]
 
     if not sessions:
         suffix = f" for agent '{agent_filter}'" if agent_filter else ""
@@ -922,11 +934,11 @@ Commands:
   end                End the current session (auto-reads JSONL)
   handoff            Record a session without a prior start
   handoff --agent claude   Force Claude JSONL reader
-  handoff --agent gemini   Force Gemini DB reader
+  handoff --agent agy      Force agy/Gemini DB reader
   status             Show current open session
   report             Show cumulative savings report
   report --agent claude    Report for Claude sessions only
-  report --agent gemini    Report for Gemini sessions only
+  report --agent agy       Report for agy/Gemini sessions only
   classify [subject ...]   Classify tasks as mechanical or exploratory
   batch-check "subject"    Should next task batch into current session or start fresh?
     --ctx N                Override current context token count
@@ -942,7 +954,7 @@ Global flags:
     parser.add_argument("command",
                         choices=["start", "end", "handoff", "status", "report",
                                  "classify", "batch-check", "ctx-watch"])
-    parser.add_argument("--agent", choices=["claude", "gemini"], default=None,
+    parser.add_argument("--agent", choices=["claude", "gemini", "agy"], default=None,
                         help="Force agent backend (handoff) or filter by agent (report)")
     parser.add_argument("subjects", nargs="*",
                         help="Task subjects (classify / batch-check commands)")

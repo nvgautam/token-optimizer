@@ -57,8 +57,8 @@ def cmd_init(args: argparse.Namespace) -> int:
 
 
 def cmd_oracle(args: argparse.Namespace) -> int:
-    print("agentflow oracle — start the oracle skill in your AI CLI (claude or gemini)")
-    print("  Use /oracle in Claude Code or the Gemini CLI.")
+    print("agentflow oracle — start the oracle skill in your AI CLI (claude or agy)")
+    print("  Use /oracle in Claude Code or the agy CLI.")
     return 0
 
 
@@ -101,7 +101,10 @@ def cmd_shell(args: argparse.Namespace) -> int:
     old_settings = termios.tcgetattr(fd)
     try:
         tty.setraw(fd)
-        wrapper = PTYWrapper([args.shell_command])
+        cmd = args.shell_command
+        if cmd == "gemini":
+            cmd = "agy"
+        wrapper = PTYWrapper([cmd])
         session_manager = SessionManager(wrapper, tokenizer_module, config={})
         input_buffer = bytearray()
 
@@ -175,7 +178,7 @@ def build_parser() -> argparse.ArgumentParser:
     scan.add_argument("path", nargs="?", default=".", metavar="PATH",
                       help="Project root to scan (default: current directory)")
 
-    shell = sub.add_parser("shell", help="Start the PTY overlay shell (wraps claude or gemini)")
+    shell = sub.add_parser("shell", help="Start the PTY overlay shell (wraps claude or agy)")
     shell.add_argument("--command", dest="shell_command", default="claude",
                        help="AI CLI command to wrap (default: claude)")
 

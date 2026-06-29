@@ -332,6 +332,27 @@
         "commands/claude/handoff.md"
       ],
       "status": "complete"
+    },
+    {
+      "task_id": "T-058",
+      "title": "PostToolUse hook: block Write/Edit when file exceeds line limit",
+      "description": "New hook agentflow/hooks/size_check.py \u2014 PostToolUse on Write and Edit. After each write, read the modified file and check line count against per-category limits: tests/ \u2192 350, commands/ \u2192 150, all other .py \u2192 250. Stubs excluded: files whose content is >50% pass/ellipsis lines skip the check. On violation: print single telegraphic message and exit(1) to block next tool call \u2014 \"FILE TOO LARGE: <rel_path> is <N> lines (limit <L>) \u2014 split by responsibility boundary before proceeding.\" On pass: exit(0), no output. Register under PostToolUse for both Write and Edit matchers in .claude/settings.json alongside write_indexer. Add tests/hooks/test_size_check.py covering: under-limit passes, over-limit blocks, correct limit per category, stub exemption, non-.py files skipped.",
+      "owns": [
+        "agentflow/hooks/size_check.py",
+        "tests/hooks/test_size_check.py",
+        ".claude/settings.json"
+      ],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-059",
+      "title": "Bake verbosity target into skill prompts as standing instruction",
+      "description": "Add a consistent verbosity target to oracle.md and orchestrate.md as a permanent standing instruction, not an optional argument. oracle.md: promote the Phase 2 verbosity note (\"\u22643 sentences per exchange\") to a top-level instruction visible before any phase executes \u2014 add \"\u22643 sentences (~150 tokens) per response; expand only if user asks\" near the opening. Remove the duplicate in Phase 2. orchestrate.md: extend the existing \"## Verbosity rules\" section to include the token target \u2014 \"\u22643 sentences (~150 tokens) per orchestrator status message\". Both changes must survive context growth (instruction must appear early in the file, not only in a late section). No changes to handoff.md, drift.md, or worker prompts \u2014 those are single-purpose and do not have multi-turn verbosity risk.",
+      "owns": [
+        "commands/claude/oracle.md",
+        "commands/claude/orchestrate.md"
+      ],
+      "status": "pending"
     }
   ]
 }

@@ -95,14 +95,12 @@ def test_session_type_orchestrate():
 
 
 def test_idx_banner_every_3_turns():
+    # banners disabled — no injection expected
     sm, pty, _ = make_manager()
-    # Simulate 3 turns: non-empty content followed by blank line
     for _ in range(3):
         fire_output(sm, pty, "assistant response text")
         fire_output(sm, pty, "\n\n")
-    assert sm._pending_banner.count("[IDX]") == 1, (
-        f"Expected 1 IDX banner in pending, got: {sm._pending_banner!r}"
-    )
+    assert sm._pending_banner.count("[IDX]") == 0
 
 
 def test_idx_banner_not_written_before_3_turns():
@@ -251,13 +249,12 @@ def test_turn_output_history_max_10():
 
 
 def test_verbosity_banner_injected_when_over_threshold():
-    """Verbosity banner fires when turn output tokens exceed threshold."""
+    # banners disabled — no injection expected even when over threshold
     sm, pty, _ = make_manager(config={"verbosity_threshold": 0})
-    sm._verbosity_last_inject = 0.0  # push past the 30s cooldown guard
+    sm._verbosity_last_inject = 0.0
     fire_output(sm, pty, "some response content")
     fire_output(sm, pty, "\n\n")
-    assert "[VERBOSITY]" in sm._pending_banner and "Last response:" in sm._pending_banner
-    assert "tokens" in sm._pending_banner
+    assert "[VERBOSITY]" not in sm._pending_banner
 
 
 def test_verbosity_banner_not_injected_when_under_threshold():
@@ -370,7 +367,7 @@ def test_detect_read_path_natural_language_returns_none():
 
 
 def test_handle_output_injects_idx_banner_when_idx_exists(tmp_path):
-    """_handle_output queues a targeted [IDX] banner when the .idx file exists."""
+    # banners disabled — no injection expected even when .idx exists
     sm, pty, _ = make_manager()
     idx_dir = tmp_path / ".agentflow" / "cache" / sm._cwd_hash / "index"
     (idx_dir / "agentflow" / "config").mkdir(parents=True)
@@ -379,7 +376,7 @@ def test_handle_output_injects_idx_banner_when_idx_exists(tmp_path):
     with patch("pathlib.Path.home", return_value=tmp_path):
         fire_output(sm, pty, "Read tool agentflow/config/settings.py to get config")
 
-    assert "[IDX]" in sm._pending_banner and "exists" in sm._pending_banner
+    assert "[IDX]" not in sm._pending_banner
 
 
 def test_handle_output_no_idx_banner_when_idx_absent(tmp_path):
@@ -392,7 +389,7 @@ def test_handle_output_no_idx_banner_when_idx_absent(tmp_path):
 
 
 def test_handle_output_injects_idx_banner_for_absolute_path(tmp_path):
-    """Absolute paths inside cwd are stripped to relative before idx lookup."""
+    # banners disabled — no injection expected for absolute paths either
     sm, pty, _ = make_manager()
     idx_dir = tmp_path / ".agentflow" / "cache" / sm._cwd_hash / "index"
     (idx_dir / "agentflow" / "config").mkdir(parents=True)
@@ -402,7 +399,7 @@ def test_handle_output_injects_idx_banner_for_absolute_path(tmp_path):
     with patch("pathlib.Path.home", return_value=tmp_path):
         fire_output(sm, pty, f'Read("{abs_path}")')
 
-    assert "[IDX]" in sm._pending_banner and "exists" in sm._pending_banner
+    assert "[IDX]" not in sm._pending_banner
 
 
 def test_handle_output_no_idx_banner_for_path_outside_cwd(tmp_path):
@@ -429,33 +426,32 @@ def test_static_verbosity_banner_not_before_quiet_period():
 
 
 def test_static_verbosity_banner_fires_after_quiet_period():
-    """Static verbosity and IDX banners both queue once quiet period has elapsed."""
+    # banners disabled — quiet period still marks initial_banner_sent but queues nothing
     sm, pty, _ = make_manager(config={"startup_quiet_period_seconds": 0.0})
     fire_output(sm, pty, "x" * 100)
     sm.on_idle_tick()
-    assert "[VERBOSITY]" in sm._pending_banner and "Target" in sm._pending_banner
-    assert "[IDX]" in sm._pending_banner and "grep" in sm._pending_banner
+    assert sm._initial_banner_sent is True
+    assert "[VERBOSITY]" not in sm._pending_banner
+    assert "[IDX]" not in sm._pending_banner
 
 
 def test_static_verbosity_banner_fires_only_once():
-    """Static banner queued exactly once regardless of repeated idle ticks."""
+    # banners disabled — _initial_banner_sent still gates to exactly one idle_tick transition
     sm, pty, _ = make_manager(config={"startup_quiet_period_seconds": 0.0})
     fire_output(sm, pty, "x" * 100)
     for _ in range(5):
         sm.on_idle_tick()
-    assert sm._pending_banner.count("[VERBOSITY] Target") == 1
+    assert sm._pending_banner.count("[VERBOSITY] Target") == 0
 
 
 
 def test_every_3_turns_idx_injection_regression():
-    """Generic every-3-turns IDX banner still queues alongside new Read-detection logic."""
+    # banners disabled — no IDX injection at turn 3
     sm, pty, _ = make_manager()
     for _ in range(3):
         fire_output(sm, pty, "assistant response text")
         fire_output(sm, pty, "\n\n")
-    # Generic banner contains "grep" (the lookup instruction); targeted banner does not
-    assert "[IDX]" in sm._pending_banner and "grep" in sm._pending_banner
-    assert sm._pending_banner.count("grep") == 1
+    assert "[IDX]" not in sm._pending_banner
 
 
 # ---------------------------------------------------------------------------

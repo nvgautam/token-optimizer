@@ -114,8 +114,6 @@ class SessionManager:
             return
         if time.monotonic() - self._last_output_time >= self._quiet_period_seconds:
             self._initial_banner_sent = True
-            self._pending_banner += _VERBOSITY_STATIC_BANNER
-            self._pending_banner += _IDX_BANNER.format(hash=self._cwd_hash)
 
     def _handle_output(self, chunk: bytes) -> None:
         text = chunk.decode("utf-8", errors="replace")
@@ -128,17 +126,7 @@ class SessionManager:
             cwd = os.getcwd() + "/"
             detected_path = detected_path[len(cwd):] if detected_path.startswith(cwd) else None
         if detected_path and detected_path != self._last_idx_injected:
-            idx_path = (
-                pathlib.Path.home()
-                / ".agentflow" / "cache" / self._cwd_hash
-                / "index" / (detected_path + ".idx")
-            )
-            if idx_path.exists():
-                self._pending_banner += (
-                    f"[IDX] {detected_path}.idx exists"
-                    " — use Read(offset=N, limit=M) for targeted reads.\n"
-                )
-                self._last_idx_injected = detected_path
+            self._last_idx_injected = detected_path
 
         # 1. Session-type detection — first occurrence wins
         if self.session_type is None:
@@ -163,11 +151,7 @@ class SessionManager:
                 self._turn_output_history = self._turn_output_history[-10:]
             self._current_turn_output_tokens = 0
             self._last_idx_injected = None  # reset dedup guard at turn boundary
-            if turn_tokens > self._config.get("verbosity_threshold", 800):
-                self._inject_verbosity_banner(turn_tokens)
-
-            if self._turn_count % 3 == 0:
-                self._inject_idx_banner()
+            _ = turn_tokens  # verbosity banner disabled; token history still tracked above
 
         if text.strip():
             self._last_had_content = True

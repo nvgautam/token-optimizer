@@ -57,7 +57,8 @@ rate_wkly = remaining_tokens_wkly / reset_min_wkly
 effective_rate = min(rate_5hr, rate_wkly)
 ```
 
-**Round-sizing:** After each `TOKENS:` report, append `input+output` to `observed_costs[]`. Per-task cost (`pct_cost`): `sample_count < 7` → 2500; `sample_count ≥ 7` and `cv < 0.3` → `mean`; `cv ≥ 0.3` → p85. EWMA: `new_ewma = 0.3 × session_mean + 0.7 × prior_ewma`.
+**Round-sizing heuristic:** After each `TOKENS:` report, append `input+output` to `observed_costs[]`. Compare remaining token budget (based on `orchestrator_threshold_tokens` config) to ensure rate-pacing limits are not breached. Per-task cost (`pct_cost`): `sample_count < 7` → 2500; `sample_count ≥ 7` and `cv < cv_threshold` (default 0.3) → `mean` as the cost estimate when CV (coefficient of variation) is low; `cv ≥ cv_threshold` (default 0.3) → p85 (85th percentile) when CV is high. EWMA: `new_ewma = 0.3 × session_mean + 0.7 × prior_ewma`.
+
 
 1. **First agent of every session: alone — never parallel on first spawn.**
 2. Before each round: `max_tasks = max(1, floor(effective_rate × 10 / pct_cost))`
@@ -82,7 +83,8 @@ effective_rate = min(rate_5hr, rate_wkly)
 - No GitHub remote → `gh repo create --source=. --remote=origin --push`
 - Stub every `owns` path (`raise NotImplementedError`)
 - `.gitignore` absent → generate for project tech stack
-- Generate `.idx` for each `reads` file ≥50 lines (skip if `.idx` newer than source)
+- Generate `.idx` for each `reads` file ≥50 lines (skip if `.idx` newer than source). For Python files, use `ast` to parse classes, functions, and methods. For Markdown files, grep for H2/H3 headers.
+
 
 **Build each agent prompt:**
 1. `commands/claude/worker/system.md`

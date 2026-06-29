@@ -20,7 +20,7 @@ Format: `HANDOFF RECOMMENDED: <reason>` — PTY and manual mode use as context b
 
 ### Step 2 — Flush state
 
-Compact format: tables and bullets only; no prose.
+Compact format: tables and bullets only; no prose. (Note: oracle sessions flush to design_status.md, not architecture.md.)
 
 | Session type | Action |
 |---|---|
