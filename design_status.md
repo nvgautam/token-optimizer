@@ -43,7 +43,7 @@ Oracle reads on startup. Handoff writes updates. Architecture.md = workers only.
 | Orchestrator persona | RESOLVED | Staff Eng Lead — executes, manages parallelism, escalates. No re-prioritization; oracle sets priority |
 | Skill IP protection | DEFERRED | .md files readable — not IP-protected. PTY binary protects shell only. Prerequisite for commercial distribution. |
 | Skill distribution mechanism | DEFERRED | Options: (1) embed+inject in binary; (2) server-side delivery at runtime. Blocked on tier/licensing. |
-| Skill file location | RESOLVED | commands/ at project root (git-tracked). Copy to ~/.claude/commands/ or .claude/commands/. No pip dist of skill content. |
+| Skill file location | RESOLVED | commands/claude/ (Claude) and commands/gemini/ (Gemini) at project root (git-tracked). Copy to ~/.claude/commands/ or .claude/commands/ from commands/claude/. No pip dist of skill content. |
 | Gemini provider | RESOLVED | AGY skills (orchestrate, handoff, AGENTS.md) built and verified; Gemini serves as orchestrator |
 | Orchestrator round-sizing | RESOLVED | max_tasks = max(1, remaining_tokens / pct_cost). Default pct_cost=2500. Encoded in orchestrate.md. |
 | Token savings validation | RESOLVED | Stale skills caused missing savings 2026-06-26 (oracle 232L→126L; orchestrate 422L→140L). Re-spar ≤15% confirmed. |

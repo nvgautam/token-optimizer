@@ -2,7 +2,7 @@
 import re
 from pathlib import Path
 
-ORACLE_DIR = Path("commands/oracle")
+ORACLE_DIR = Path("commands/claude/oracle")
 
 # Test 1: all files valid UTF-8
 def test_all_oracle_prompt_files_valid_utf8():

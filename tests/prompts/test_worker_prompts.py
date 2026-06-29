@@ -2,7 +2,7 @@
 import re
 from pathlib import Path
 
-WORKER_DIR = Path("commands/worker")
+WORKER_DIR = Path("commands/claude/worker")
 
 def test_all_worker_prompt_files_valid_utf8():
     for f in ["system.md", "context_bundle.md", "testing_guide.md"]:

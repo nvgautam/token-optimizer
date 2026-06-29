@@ -2,8 +2,8 @@
 import pathlib
 
 REPO = pathlib.Path(__file__).parent.parent.parent
-ORCHESTRATE = REPO / "commands" / "orchestrate.md"
-WORKER_SYSTEM = REPO / "commands" / "worker" / "system.md"
+ORCHESTRATE = REPO / "commands" / "claude" / "orchestrate.md"
+WORKER_SYSTEM = REPO / "commands" / "claude" / "worker" / "system.md"
 
 
 def test_orchestrate_idx_python_ast():

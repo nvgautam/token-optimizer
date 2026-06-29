@@ -2,8 +2,8 @@
 import re
 from pathlib import Path
 
-REVIEWER_DIR = Path("commands/reviewer")
-ORCHESTRATOR_DIR = Path("commands/orchestrator")
+REVIEWER_DIR = Path("commands/claude/reviewer")
+ORCHESTRATOR_DIR = Path("commands/claude/orchestrator")
 
 def test_all_reviewer_prompt_files_valid_utf8():
     for f in [REVIEWER_DIR / "code_review.md", REVIEWER_DIR / "security_review.md",

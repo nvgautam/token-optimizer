@@ -1,6 +1,6 @@
-# AgentFlow
+# AgentFlow — Project Guidelines & Rules
 
-Provider-agnostic multi-agent project management: skills for Claude and Gemini + PTY overlay shell that manages context lifecycle transparently. Reduces token consumption by cycling agent context at task boundaries and enabling targeted file reads via a local symbol index.
+Project guide for Antigravity (AGY) sessions in the Token Optimizer / AgentFlow workspace.
 
 ## Commands
 - Test:  `pytest tests/`
@@ -34,7 +34,7 @@ tasks.json           → Task state: individual task lifecycle PENDING → MERGE
 ## Integrations
 ```
 PTY shell: none — stdlib-only, no direct API calls
-Skills execute via Claude Code / Gemini CLI
+Skills execute via Claude Code / Gemini CLI (agy)
 ```
 
 ## Constraints
@@ -52,30 +52,9 @@ Skills execute via Claude Code / Gemini CLI
 - Tier/licensing model: deferred
 - Naming/branding: deferred
 
-## Reading protocol
-
-Before reading any file, check for a `.idx` symbol index:
-
-```bash
-HASH=$(python3 -c "import hashlib,os; print(hashlib.sha256(os.getcwd().encode()).hexdigest())")
-IDX=~/.agentflow/cache/$HASH/index/<relative-path>.idx
-```
-
-If the `.idx` exists:
-- Grep for the symbol/section you need: `grep "^<name>:" "$IDX"`
-- Result is `name:start-end` — call `Read(file, offset=start, limit=end-start+1)`
-
-If the `.idx` is absent: the file is < 50 lines or not yet indexed — read the full file without `offset`/`limit`. No special handling needed.
-
 ## Tech stack
 Python 3.11+, Pydantic v2, tiktoken
 PTY shell deps: stdlib only (pty, subprocess, signal, time, re, pathlib, hashlib)
 
 ## Deployment
 Compiled binary for PTY shell (Nuitka) + pip-installable package (runtime modules)
-
-## Reference
-- Design decisions:  design_status.md
-- Full architecture: architecture.md
-- Milestone plan:    execution_plan.md
-- Task status:       tasks.json

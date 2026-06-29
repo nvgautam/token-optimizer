@@ -62,24 +62,31 @@ User types: claude / gemini                   ← existing AI CLI, unchanged
 ## Module boundaries
 
 ```
-commands/                           # Claude Code skill files (git-tracked; copy to .claude/commands/)
-  oracle.md                       # Claude oracle skill — lazy-loads oracle/ sub-files per phase
-  orchestrate.md                  # Claude orchestrate skill
-  handoff.md                      # Claude handoff skill
-  oracle/
-    market.md                     # market segment branching (loaded in Phase 1 only)
-    checklist.md                  # NFR question bank (loaded in Phase 2 only)
-    generation.md                 # artifact format spec (loaded in Phase 3 only)
-  worker/
-    system.md                     # worker persona + no-re-read rule (embedded in spawn prompts)
-    context_bundle.md             # bundle format interpretation guide
-    testing_guide.md              # TDD rules for workers
-  reviewer/
-    code_review.md                # code review checks (embedded in review prompts)
-    security_review.md            # security review checks
-    test_review.md                # test quality checks
-  orchestrator/
-    planning.md                   # milestone decomposition format guide
+commands/                           # Canonical skill files (git-tracked)
+  claude/                           # Claude Code skill files (copy to .claude/commands/)
+    oracle.md                       # Claude oracle skill — lazy-loads oracle/ sub-files per phase
+    orchestrate.md                  # Claude orchestrate skill
+    handoff.md                      # Claude handoff skill
+    oracle/
+      market.md                     # market segment branching (loaded in Phase 1 only)
+      checklist.md                  # NFR question bank (loaded in Phase 2 only)
+      generation.md                 # artifact format spec (loaded in Phase 3 only)
+    worker/
+      system.md                     # worker persona + no-re-read rule (embedded in spawn prompts)
+      context_bundle.md             # bundle format interpretation guide
+      testing_guide.md              # TDD rules for workers
+    reviewer/
+      code_review.md                # code review checks (embedded in review prompts)
+      security_review.md            # security review checks
+      test_review.md                # test quality checks
+    orchestrator/
+      planning.md                   # milestone decomposition format guide
+  gemini/                           # Gemini / Antigravity skill files
+    AGENTS.md                       # Developer guidelines and agent rules
+    skills/
+      drift/                        # drift detection skill
+      handoff/                      # handoff skill
+      orchestrate/                  # orchestration lifecycle skill
 agentflow/
   cli.py                          # entry points, arg dispatch
   shell/
@@ -150,13 +157,13 @@ pyproject.toml
 
 | Provider | Skill format | Handoff command | Tokenizer |
 |---|---|---|---|
-| Claude Code | `.md` in `commands/` (git-tracked source → copy to `~/.claude/commands/` or `.claude/commands/`) | `/handoff` | `tiktoken` cl100k_base |
-| Gemini CLI | `SKILL.md` + scripts | `/handoff` | `tiktoken` cl100k_base (approx) | — deferred |
+| Claude Code | `.md` in `commands/claude/` (git-tracked source → copy to `~/.claude/commands/` or `.claude/commands/`) | `/handoff` | `tiktoken` cl100k_base |
+| Gemini CLI | `SKILL.md` + scripts under `commands/gemini/skills/` | `/handoff` | `tiktoken` cl100k_base (approx) | — deferred |
 | Codex | — | — | — v2 |
 
 Token counting uses `tiktoken` for all providers. ~95% accuracy is sufficient for a 40% threshold trigger.
 
-Skill file location: `commands/` is the canonical source in the repo. IP distribution mechanism is UNRESOLVED — `.md` files are human-readable. PTY binary protects shell mechanics; skill content protection deferred to commercial distribution design.
+Skill file location: `commands/claude/` (Claude) and `commands/gemini/` (Gemini) are the canonical sources in the repo. IP distribution mechanism is UNRESOLVED — `.md` files are human-readable. PTY binary protects shell mechanics; skill content protection deferred to commercial distribution design.
 
 ---
 
@@ -427,7 +434,7 @@ Nine strategies, applied at different layers. Savings are modelled estimates —
 
 **Model:** `max_tasks_in_round = max(1, (orchestrator_threshold_tokens - current_estimated_tokens) / tokens_per_task_estimate)`. Current tokens estimated from accumulated `TOKENS:` reports of completed agents this session. If the round has more tasks than `max_tasks_in_round`, excess tasks deferred to a sub-round after the next state save.
 
-**v1 status:** v1. Encoded in `commands/orchestrate.md` skill logic. Config adds `shell.tokens_per_task_estimate` (default 2500). No code required.
+**v1 status:** v1. Encoded in `commands/claude/orchestrate.md` skill logic. Config adds `shell.tokens_per_task_estimate` (default 2500). No code required.
 
 ---
 
@@ -454,7 +461,7 @@ Nine strategies, applied at different layers. Savings are modelled estimates —
 | Verbosity control | All sessions | ~20% slower growth | v1 | Yes — update skill prompts |
 | Section-only loading | Architecture reads | ~40K tokens/project | v1 | Yes — enforce in tasks.json |
 | Per-session thresholds | PTY shell | ~10–15% efficiency | v1 | Once session_manager built |
-| Orchestrator round-sizing | Orchestrator skill | Prevents wasted handoff mid-round | v1 | Yes — in commands/orchestrate.md |
+| Orchestrator round-sizing | Orchestrator skill | Prevents wasted handoff mid-round | v1 | Yes — in commands/claude/orchestrate.md |
 
 All savings figures are modelled, not measured. **Combined effect: with all strategies active, estimated 2× more work per session vs baseline** (same threshold gets through ~80 turns instead of ~40). Manual testing priority: handoff + verbosity + compact docs first (zero implementation cost, testable today).
 

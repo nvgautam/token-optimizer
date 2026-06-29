@@ -3,7 +3,7 @@
 import re
 from pathlib import Path
 
-ORACLE_SKILL = Path("commands/oracle.md")
+ORACLE_SKILL = Path("commands/claude/oracle.md")
 
 
 def _content() -> str:

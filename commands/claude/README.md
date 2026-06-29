@@ -17,13 +17,13 @@ Commands must be placed in one of two locations depending on scope:
 
 **Global** — available in every project:
 ```bash
-cp commands/*.md ~/.claude/commands/
+cp commands/claude/*.md ~/.claude/commands/
 ```
 
 **Project-local** — available only in this project:
 ```bash
 mkdir -p .claude/commands
-cp commands/*.md .claude/commands/
+cp commands/claude/*.md .claude/commands/
 ```
 
 Claude Code picks up both locations automatically. Project-local commands take precedence over global ones with the same name.
@@ -33,8 +33,8 @@ Claude Code picks up both locations automatically. Project-local commands take p
 After editing a command file here, re-copy it to wherever you installed it:
 ```bash
 # global
-cp commands/orchestrate.md ~/.claude/commands/orchestrate.md
+cp commands/claude/orchestrate.md ~/.claude/commands/orchestrate.md
 
 # project-local
-cp commands/orchestrate.md .claude/commands/orchestrate.md
+cp commands/claude/orchestrate.md .claude/commands/orchestrate.md
 ```

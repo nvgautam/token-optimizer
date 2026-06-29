@@ -5,11 +5,12 @@ import pytest
 from pathlib import Path
 
 REPO = Path(__file__).parent.parent.parent
-CLAUDE_ORCHESTRATE = REPO / "commands" / "orchestrate.md"
+CLAUDE_ORCHESTRATE = REPO / "commands" / "claude" / "orchestrate.md"
+GEMINI_ORCHESTRATE = REPO / "commands" / "gemini" / "skills" / "orchestrate" / "SKILL.md"
 AGY_ORCHESTRATE = REPO / ".agents" / "skills" / "orchestrate" / "SKILL.md"
 
 # Only include files that exist — AGY SKILL.md is optional (created separately)
-SKILL_FILES = [f for f in [CLAUDE_ORCHESTRATE, AGY_ORCHESTRATE] if f.exists()]
+SKILL_FILES = [f for f in [CLAUDE_ORCHESTRATE, GEMINI_ORCHESTRATE, AGY_ORCHESTRATE] if f.exists()]
 
 
 def test_orchestrate_skills_exist():
