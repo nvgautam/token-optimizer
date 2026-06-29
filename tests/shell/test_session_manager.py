@@ -254,9 +254,10 @@ def test_verbosity_banner_injected_when_over_threshold():
     sm, pty, _ = make_manager(config={"verbosity_threshold": 0})
     fire_output(sm, pty, "some response content")
     fire_output(sm, pty, "\n\n")
-    verbosity_writes = [x for x in pty.inputs if "[VERBOSITY]" in x]
-    assert len(verbosity_writes) == 1
-    assert "tokens" in verbosity_writes[0]
+    # Filter for the per-turn banner specifically (contains "Last response:")
+    per_turn_writes = [x for x in pty.inputs if "[VERBOSITY]" in x and "Last response:" in x]
+    assert len(per_turn_writes) == 1
+    assert "tokens" in per_turn_writes[0]
 
 
 def test_verbosity_banner_not_injected_when_under_threshold():
@@ -264,8 +265,9 @@ def test_verbosity_banner_not_injected_when_under_threshold():
     sm, pty, _ = make_manager(config={"verbosity_threshold": 9999})
     fire_output(sm, pty, "short")
     fire_output(sm, pty, "\n\n")
-    verbosity_writes = [x for x in pty.inputs if "[VERBOSITY]" in x]
-    assert len(verbosity_writes) == 0
+    # Filter for the per-turn banner specifically (contains "Last response:")
+    per_turn_writes = [x for x in pty.inputs if "[VERBOSITY]" in x and "Last response:" in x]
+    assert len(per_turn_writes) == 0
 
 
 def test_on_session_exit_writes_verbosity_log(tmp_path):
@@ -312,3 +314,101 @@ def test_on_session_exit_registered_on_pty():
     """_on_session_exit is registered as pty_wrapper._on_exit in __init__."""
     sm, pty, _ = make_manager()
     assert pty._on_exit == sm._on_session_exit
+
+
+# ---------------------------------------------------------------------------
+# T-052. Read-event idx injection + proactive verbosity banners
+# ---------------------------------------------------------------------------
+
+
+def test_ansi_strip_removes_sequences():
+    """_ansi_strip removes standard ANSI escape sequences from text."""
+    sm, pty, _ = make_manager()
+    raw = "\x1b[32mGreen text\x1b[0m and \x1b[1mBold\x1b[0m"
+    assert sm._ansi_strip(raw) == "Green text and Bold"
+
+
+def test_ansi_strip_leaves_plain_text():
+    """_ansi_strip does not modify text that contains no ANSI sequences."""
+    sm, pty, _ = make_manager()
+    plain = "Read tool agentflow/config/settings.py"
+    assert sm._ansi_strip(plain) == plain
+
+
+def test_detect_read_path_returns_path():
+    """_detect_read_path extracts a file path when a Read pattern is present."""
+    sm, pty, _ = make_manager()
+    text = "Read tool agentflow/config/settings.py for configuration"
+    result = sm._detect_read_path(text)
+    assert result == "agentflow/config/settings.py"
+
+
+def test_detect_read_path_returns_none_when_absent():
+    """_detect_read_path returns None when no Read pattern is present."""
+    sm, pty, _ = make_manager()
+    assert sm._detect_read_path("no read call here at all") is None
+
+
+def test_detect_read_path_natural_language_returns_none():
+    """Lowercase natural-language 'read the file.py' does not trigger idx injection."""
+    sm, pty, _ = make_manager()
+    assert sm._detect_read_path("read the config.py file for details") is None
+
+
+def test_handle_output_injects_idx_banner_when_idx_exists(tmp_path):
+    """_handle_output injects a targeted [IDX] banner when the .idx file exists."""
+    sm, pty, _ = make_manager()
+    # Build the expected idx path under tmp_path as fake home
+    idx_dir = tmp_path / ".agentflow" / "cache" / sm._cwd_hash / "index"
+    (idx_dir / "agentflow" / "config").mkdir(parents=True)
+    (idx_dir / "agentflow" / "config" / "settings.py.idx").touch()
+
+    with patch("pathlib.Path.home", return_value=tmp_path):
+        fire_output(sm, pty, "Read tool agentflow/config/settings.py to get config")
+
+    targeted = [x for x in pty.inputs if "[IDX]" in x and "exists" in x]
+    assert len(targeted) >= 1
+
+
+def test_handle_output_no_idx_banner_when_idx_absent(tmp_path):
+    """_handle_output does not inject a targeted [IDX] banner when no .idx file found."""
+    sm, pty, _ = make_manager()
+    # No idx files created under tmp_path
+    with patch("pathlib.Path.home", return_value=tmp_path):
+        fire_output(sm, pty, "Read tool agentflow/config/settings.py to get config")
+
+    targeted = [x for x in pty.inputs if "[IDX]" in x and "exists" in x]
+    assert len(targeted) == 0
+
+
+def test_tick_injects_verbosity_banner_after_60s():
+    """tick() writes the verbosity banner when >= 60s have elapsed."""
+    import time as _time
+
+    sm, pty, _ = make_manager()
+    pre_count = len([x for x in pty.inputs if "[VERBOSITY]" in x])
+    sm._verbosity_last_inject = _time.monotonic() - 61.0  # simulate 61s elapsed
+    sm.tick()
+    post_count = len([x for x in pty.inputs if "[VERBOSITY]" in x])
+    assert post_count > pre_count
+
+
+def test_tick_no_injection_before_60s():
+    """tick() does not write when less than 60s have elapsed."""
+    sm, pty, _ = make_manager()
+    pre_count = len([x for x in pty.inputs if "[VERBOSITY]" in x])
+    # _verbosity_last_inject was just set in __init__ — well under 60s
+    sm.tick()
+    post_count = len([x for x in pty.inputs if "[VERBOSITY]" in x])
+    assert post_count == pre_count
+
+
+def test_every_3_turns_idx_injection_regression():
+    """Generic every-3-turns IDX banner still fires alongside new Read-detection logic."""
+    sm, pty, _ = make_manager()
+    for _ in range(3):
+        fire_output(sm, pty, "assistant response text")
+        fire_output(sm, pty, "\n\n")
+    # Generic banner contains "grep" (the lookup instruction); targeted banner does not
+    generic_idx = [x for x in pty.inputs if "[IDX]" in x and "grep" in x]
+    assert len(generic_idx) == 1
