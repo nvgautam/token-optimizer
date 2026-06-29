@@ -1,4 +1,4 @@
-"""Tests for T-041: PreToolUse Read hook."""
+"""Tests for T-054: PreToolUse Read hook — enforcement mode."""
 
 from __future__ import annotations
 
@@ -61,7 +61,7 @@ def test_silent_when_idx_absent(tmp_path):
     assert out == ""
 
 
-def test_prints_hint_when_idx_exists(tmp_path):
+def test_blocks_when_idx_exists(tmp_path):
     project = tmp_path / "project"
     project.mkdir()
     home = tmp_path / "home"
@@ -71,9 +71,10 @@ def test_prints_hint_when_idx_exists(tmp_path):
     _make_idx(home, str(project), "module.py")
     payload = {"tool_name": "Read", "tool_input": {"file_path": str(target)}}
     code, out = _run(payload, cwd=str(project), home=str(home))
-    assert code == 0
+    assert code == 1
     assert out != ""
     assert "module.py" in out
+    assert "Read(offset=" in out
 
 
 def test_hint_output_is_opaque(tmp_path):
@@ -107,7 +108,6 @@ def test_exits_zero_when_file_outside_cwd(tmp_path):
     project.mkdir()
     home = tmp_path / "home"
     home.mkdir()
-    # file_path outside of cwd
     payload = {"tool_name": "Read", "tool_input": {"file_path": "/etc/hosts"}}
     code, out = _run(payload, cwd=str(project), home=str(home))
     assert code == 0
@@ -115,7 +115,6 @@ def test_exits_zero_when_file_outside_cwd(tmp_path):
 
 
 def test_silent_when_offset_is_zero(tmp_path):
-    # offset=0 is still "set" — should suppress hint
     payload = {"tool_name": "Read", "tool_input": {"file_path": "/some/file.py", "offset": 0}}
     code, out = _run(payload, cwd=str(tmp_path))
     assert code == 0
