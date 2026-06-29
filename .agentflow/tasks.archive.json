@@ -11,6 +11,28 @@
       "context_section": "architecture.md#pty-shell-design",
       "status": "complete",
       "pr": 32
+    },
+    {
+      "task_id": "T-009",
+      "title": "CLI cmd_shell — PTY I/O relay loop",
+      "owns": ["agentflow/cli.py"],
+      "reads": ["agentflow/shell/pty_wrapper.py", "agentflow/shell/session_manager.py", "agentflow/shell/tokenizer.py", "agentflow/shell/countdown.py"],
+      "depends_on": ["T-008"],
+      "acceptance_criteria": "agentflow shell --command claude launches claude under PTY; IDX banners every 3 turns; handoff fires at threshold; terminal restored on exit",
+      "estimated_lines": 60,
+      "status": "complete",
+      "pr": 33
+    },
+    {
+      "task_id": "T-010",
+      "title": "PTY — per-turn output token tracking + verbosity compliance signal",
+      "owns": ["agentflow/shell/session_manager.py"],
+      "reads": ["agentflow/shell/tokenizer.py", "agentflow/shell/pty_wrapper.py"],
+      "depends_on": ["T-009"],
+      "acceptance_criteria": "verbosity_log.jsonl accumulates per-turn output token counts; banner fires on verbose turns; shadow analyzer reads mean/p90 vs 150-token target",
+      "estimated_lines": 50,
+      "status": "complete",
+      "pr": 34
     }
   ]
 }

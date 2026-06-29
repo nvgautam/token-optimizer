@@ -81,7 +81,7 @@ Note: json/yaml parsers dropped — .idx format is Python + Markdown only.
 ---
 
 ## Milestone 4: Config + PTY Shell
-Status: IN PROGRESS (T-009 pending)
+Status: COMPLETE
 Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 
 | Task | Title | Status |
@@ -100,8 +100,8 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-007 | Local tokenizer — tiktoken cl100k_base | MERGED |
 | T-006 | PTY wrapper — stdlib pty, I/O interception | MERGED |
 | T-008 | PTY session manager — handoff, countdown, idx injection | MERGED |
-| T-009 | CLI cmd_shell — PTY I/O relay loop | PENDING |
-| T-010 | PTY — per-turn output tracking + verbosity signal | PENDING |
+| T-009 | CLI cmd_shell — PTY I/O relay loop | MERGED |
+| T-010 | PTY — per-turn output tracking + verbosity signal | MERGED |
 
 | Round | Tasks | Note |
 |---|---|---|
