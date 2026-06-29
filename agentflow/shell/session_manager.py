@@ -31,10 +31,10 @@ _DEFAULTS: dict = {
 _IDX_BANNER = (
     "[IDX] Before any Read: for each file, check"
     " ~/.agentflow/cache/{hash}/index/<that-file>.idx first"
-    " — grep name:start-end, then Read(offset, limit).\n"
+    " — grep name:start-end, then Read(offset, limit).\r"
 )
 
-_VERBOSITY_STATIC_BANNER = "[VERBOSITY] Target <=3 sentences (~150 tokens) per response.\n"
+_VERBOSITY_STATIC_BANNER = "[VERBOSITY] Target <=3 sentences (~150 tokens) per response.\r"
 
 _ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;]*[mGKHFABCDhJlsu]")
 _READ_PATH_RE = re.compile(
@@ -84,7 +84,6 @@ class SessionManager:
         pty_wrapper._on_output = self._handle_output
         pty_wrapper._on_exit = self._on_session_exit
 
-        # T-052: proactive verbosity banner at session start
         self._verbosity_last_inject: float = time.monotonic()
         pty_wrapper.write_input(_VERBOSITY_STATIC_BANNER)
 
@@ -107,7 +106,7 @@ class SessionManager:
             if idx_path.exists():
                 self._pty.write_input(
                     f"[IDX] {detected_path}.idx exists"
-                    " — use Read(offset=N, limit=M) for targeted reads.\n"
+                    " — use Read(offset=N, limit=M) for targeted reads.\r"
                 )
                 self._last_idx_injected = detected_path
 
@@ -161,9 +160,6 @@ class SessionManager:
                 self.trigger_handoff()
                 self._handoff_in_progress = False
 
-        # T-052: proactive verbosity tick (fires on every chunk; timer guards rate)
-        self.tick()
-
     def _ansi_strip(self, text: str) -> str:
         """Strip ANSI escape sequences; leave plain text unchanged."""
         return _ANSI_ESCAPE_RE.sub("", text)
@@ -173,23 +169,20 @@ class SessionManager:
         m = _READ_PATH_RE.search(text)
         return (m.group(1) or m.group(2)) if m else None
 
-    def tick(self) -> None:
-        """Inject verbosity banner if >= 60s have elapsed since last injection."""
-        now = time.monotonic()
-        if now - self._verbosity_last_inject >= 60.0:
-            self._pty.write_input(_VERBOSITY_STATIC_BANNER)
-            self._verbosity_last_inject = now
-
     def _inject_idx_banner(self) -> None:
         banner = _IDX_BANNER.format(hash=self._cwd_hash)
         self._pty.write_input(banner)
 
     def _inject_verbosity_banner(self, n: int) -> None:
+        now = time.monotonic()
+        if now - self._verbosity_last_inject < 30.0:
+            return
         banner = (
             f"[VERBOSITY] Last response: {n} tokens"
-            " — target ≤3 sentences (~150 tokens) for sparring exchanges.\n"
+            " — target ≤3 sentences (~150 tokens) for sparring exchanges.\r"
         )
         self._pty.write_input(banner)
+        self._verbosity_last_inject = now
 
     # ------------------------------------------------------------------
     # Session exit
