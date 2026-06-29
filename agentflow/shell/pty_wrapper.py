@@ -44,7 +44,7 @@ class PTYWrapper:
             raise PTYError(str(exc)) from exc
 
         if child_pid == 0:
-            # Child process — exec the command (no shell=True)
+            os.environ["AGENTFLOW_PTY"] = "1"
             os.execvp(command[0], command)
             # execvp replaces the process; reaching here means exec failed
             os._exit(127)
