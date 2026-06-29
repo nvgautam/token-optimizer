@@ -101,7 +101,7 @@ def cmd_shell(args: argparse.Namespace) -> int:
     old_settings = termios.tcgetattr(fd)
     try:
         tty.setraw(fd)
-        wrapper = PTYWrapper([args.command])
+        wrapper = PTYWrapper([args.shell_command])
         SessionManager(wrapper, tokenizer_module, config={})
 
         while not wrapper._exited:
@@ -159,7 +159,7 @@ def build_parser() -> argparse.ArgumentParser:
                       help="Project root to scan (default: current directory)")
 
     shell = sub.add_parser("shell", help="Start the PTY overlay shell (wraps claude or gemini)")
-    shell.add_argument("--command", default="claude",
+    shell.add_argument("--command", dest="shell_command", default="claude",
                        help="AI CLI command to wrap (default: claude)")
 
     return parser
