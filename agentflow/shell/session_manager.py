@@ -47,6 +47,10 @@ _READ_PATH_RE = re.compile(
     re.MULTILINE,
 )
 
+_GENERATION_KEYWORDS = frozenset({
+    "generate", "write", "create", "proceed", "implement", "yes",
+})
+
 
 class SessionManager:
     """Monitors PTY I/O; injects IDX banners and triggers handoff on threshold."""
@@ -207,6 +211,20 @@ class SessionManager:
             " — target ≤3 sentences (~150 tokens) for sparring exchanges.\n"
         )
         self._verbosity_last_inject = now
+
+    def should_inject_banner(self, message: str) -> bool:
+        """Return True only for short sparring messages that don't trigger generation.
+
+        Injection is skipped when:
+        - message exceeds 80 chars (likely a multi-line generation prompt)
+        - message contains any generation-intent keyword
+        """
+        if len(message) > 80:
+            return False
+        lower = message.lower()
+        if any(kw in lower for kw in _GENERATION_KEYWORDS):
+            return False
+        return True
 
     def pop_pending_banner(self) -> str:
         """Return accumulated banner text and clear the queue."""
