@@ -494,7 +494,7 @@
       "title": "Evaluate headroom-ai library — integration feasibility for PTY + M5",
       "description": "Research spike: determine what headroom-ai actually does before designing integration. (1) pip install headroom-ai[all]; run `headroom wrap claude --help` and explore CLI flags. (2) Determine mechanism: subprocess wrapper, HTTP proxy, ANTHROPIC_BASE_URL intercept, or other — and whether it conflicts with PTY stdin/stdout interception. (3) Understand compress(): what algorithm, lossless or lossy, token savings estimate. (4) Understand SharedContext: in-memory or persistent? Cross-process? How does cross-provider sharing work? (5) Check whether headroom exposes per-session compression metrics readable by a report generator. (6) Write findings to .agentflow/headroom_eval.md: mechanism, composability verdict, savings estimate, SharedContext design implications for M5, recommended integration approach or DEFER if incompatible.",
       "owns": [".agentflow/headroom_eval.md"],
-      "status": "pending"
+      "status": "complete"
     }
   ]
 }
