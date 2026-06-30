@@ -336,7 +336,7 @@
         "tests/hooks/test_size_check.py",
         ".claude/settings.json"
       ],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-059",

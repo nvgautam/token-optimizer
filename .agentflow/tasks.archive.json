@@ -70,6 +70,17 @@
         "agentflow/hooks/read_check.py"
       ],
       "status": "complete"
+    },
+    {
+      "task_id": "T-058",
+      "title": "PostToolUse hook: block Write/Edit when file exceeds line limit",
+      "description": "New hook agentflow/hooks/size_check.py \u2014 PostToolUse on Write and Edit. After each write, read the modified file and check line count against per-category limits: tests/ \u2192 350, commands/ \u2192 150, all other .py \u2192 250. Stubs excluded: files whose content is >50% pass/ellipsis lines skip the check. On violation: print single telegraphic message and exit(1) to block next tool call \u2014 \"FILE TOO LARGE: <rel_path> is <N> lines (limit <L>) \u2014 split by responsibility boundary before proceeding.\" On pass: exit(0), no output. Register under PostToolUse for both Write and Edit matchers in .claude/settings.json alongside write_indexer. Add tests/hooks/test_size_check.py covering: under-limit passes, over-limit blocks, correct limit per category, stub exemption, non-.py files skipped.",
+      "owns": [
+        "agentflow/hooks/size_check.py",
+        "tests/hooks/test_size_check.py",
+        ".claude/settings.json"
+      ],
+      "status": "complete"
     }
   ]
 }

@@ -116,7 +116,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-056 | read_check.py: skip block on empty idx + compress output message | MERGED |
 | T-057 | Reorganise skill dirs: commands/claude/ + commands/gemini/ | MERGED |
 | T-058g | Align Gemini orchestrate and handoff skills with Claude equivalents | MERGED |
-| T-058 | PostToolUse hook: block Write/Edit when file exceeds line limit | PENDING |
+| T-058 | PostToolUse hook: block Write/Edit when file exceeds line limit | MERGED |
 | T-059 | Bake verbosity target into skill prompts as standing instruction | PENDING |
 | T-060 | Provider-keyed rate calibration files: Claude vs Gemini | MERGED |
 | T-061 | Explore Gemini CLI hook equivalents for .idx reminder injection | PENDING |
