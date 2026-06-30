@@ -431,19 +431,7 @@
     },
     {
       "task_id": "T-066",
-      "title": "PTY session_manager — ROUND_COMPLETE detection + token-floor handoff",
-      "description": "Replace pure token-threshold handoff with deterministic round-boundary handoff. (1) session_manager.py: scan stdout for AGENTFLOW_ROUND_COMPLETE. On detection: (a) read .agentflow/current_round.json to confirm round closed, (b) check accumulated_tokens vs configurable floor (shell.handoff_token_floor_pct, default 0.30 of threshold). (2) If above floor: call trigger_handoff() — clean boundary, no mid-task interrupt. (3) If below floor: log round-complete-low-tokens event to verbosity_log.jsonl, reset round state, continue. Token threshold remains as a safety net if ROUND_COMPLETE is never emitted. (4) Tests: test_session_manager.py — mock ROUND_COMPLETE in PTY stdout; assert handoff triggered when tokens above floor; assert handoff skipped and continued when below floor.",
-      "owns": [
-        "agentflow/shell/session_manager.py",
-        "tests/shell/test_session_manager.py"
-      ],
-      "reads": [
-        ".agentflow/current_round.json"
-      ],
-      "depends_on": [
-        "T-065"
-      ],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-067",
