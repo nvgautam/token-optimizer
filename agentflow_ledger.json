@@ -1921,10 +1921,78 @@
         }
       },
       "status": "closed"
+    },
+    {
+      "session_id": "20260630_115232",
+      "agent": "agy",
+      "task_ids": "",
+      "start_time": "2026-06-30T11:52:32.800031",
+      "end_time": "2026-06-30T11:52:32.800047",
+      "context_at_start": 21057,
+      "input_tokens": 5272736,
+      "output_tokens": 30134,
+      "token_detail": {
+        "uncached_input": 364465,
+        "cache_creation": 0,
+        "cache_read": 4908271,
+        "output": 30134,
+        "n_turns": 72,
+        "initial_ctx": 21057,
+        "final_ctx": 120320
+      },
+      "n_turns": 72,
+      "final_ctx": 120320,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 9048108,
+        "shadow_output": 82593,
+        "shadow_extra": 3625488,
+        "compaction": {
+          "before": 149884,
+          "after": 52459,
+          "cost_tokens": 52459
+        }
+      },
+      "status": "closed"
+    },
+    {
+      "session_id": "20260630_115606",
+      "agent": "agy",
+      "task_ids": "",
+      "start_time": "2026-06-30T11:56:06.161409",
+      "end_time": "2026-06-30T11:56:06.161427",
+      "context_at_start": 21057,
+      "input_tokens": 7050596,
+      "output_tokens": 35989,
+      "token_detail": {
+        "uncached_input": 420736,
+        "cache_creation": 0,
+        "cache_read": 6629860,
+        "output": 35989,
+        "n_turns": 85,
+        "initial_ctx": 21057,
+        "final_ctx": 135723
+      },
+      "n_turns": 85,
+      "final_ctx": 135723,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 11677071,
+        "shadow_output": 94599,
+        "shadow_extra": 4459015,
+        "compaction": {
+          "before": 167460,
+          "after": 58610,
+          "cost_tokens": 58610
+        }
+      },
+      "status": "closed"
     }
   ],
   "shadow_state": {
-    "accumulated_context": 50354,
-    "compaction_events": 38
+    "accumulated_context": 58610,
+    "compaction_events": 40
   }
 }
