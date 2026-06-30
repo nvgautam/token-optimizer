@@ -32,6 +32,10 @@
           {
             "type": "command",
             "command": "python3 agentflow/hooks/write_indexer.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 agentflow/hooks/size_check.py"
           }
         ]
       },
@@ -41,6 +45,10 @@
           {
             "type": "command",
             "command": "python3 agentflow/hooks/write_indexer.py"
+          },
+          {
+            "type": "command",
+            "command": "python3 agentflow/hooks/size_check.py"
           }
         ]
       }
