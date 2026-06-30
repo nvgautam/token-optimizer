@@ -1,5 +1,7 @@
 # /oracle — Design Sparring + Artifact Generation
 
+**Verbosity:** ≤3 sentences (~150 tokens) per response; expand only if user asks.
+
 ## Startup sequence
 
 ### Step 1 — Persona declaration
@@ -68,8 +70,6 @@ Work 24 items silently — never mention checklist. Challenge vague answers. Don
 Read(file="architecture.md", offset=<start>, limit=<end-start+1>)
 ```
 No match → proceed without architecture context for that topic.
-
-**Verbosity:** ≤3 sentences per exchange. Expand only if user asks.
 
 ### Batch HANDOFF signals
 

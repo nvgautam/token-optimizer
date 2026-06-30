@@ -66,18 +66,17 @@ def test_oracle_skill_contains_budget_announcement():
         "Budget announcement must appear before Phase 1"
 
 
-# Test 5: ≤3-sentence verbosity rule for spar phase
+# Test 5: ≤3-sentence verbosity rule near the opening
 def test_oracle_skill_contains_three_sentence_verbosity_rule():
     content = _content()
     # Must specify ≤3 sentences per exchange
     assert re.search(r"≤\s*3\s*sentence|3\s*sentence|three\s*sentence", content, re.IGNORECASE), \
         "oracle.md must specify ≤3 sentences per exchange verbosity rule"
-    # Must appear in the sparring/checklist phase, not just generation
-    phase2_match = re.search(r"## Phase 2.*?## Phase 3", content, re.DOTALL)
-    assert phase2_match, "oracle.md must have Phase 2 and Phase 3 sections"
-    phase2_content = phase2_match.group(0)
-    assert re.search(r"≤\s*3\s*sentence|3\s*sentence|three\s*sentence", phase2_content, re.IGNORECASE), \
-        "Verbosity rule must appear in the sparring phase (Phase 2)"
+    # Must appear near the opening (before Phase 1)
+    idx_first_phase = content.find("## Phase 1")
+    idx_verbosity = content.find("Verbosity")
+    assert idx_verbosity != -1 and idx_verbosity < idx_first_phase, \
+        "Verbosity rule must appear near the opening of the file, before Phase 1"
 
 
 # Test 6: lazy sub-file loading (per phase, not at startup)
