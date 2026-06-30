@@ -138,7 +138,7 @@ PR #N ready — [task_ids] ([module])
   ✓ Code  ✓ Security  [⚠ Drift: X if any]
 git diff main...<branch>
 Worktree: <absolute path>
-PR: <URL>
+PR: <URL> (always push branch to remote and show PR URL, or PR creation link)
 Reply: yes → merge | no [reason] → rework | skip → continue
 ```
 Emit: `HANDOFF RECOMMENDED: PR #N open for [task_ids] — good stopping point before you review`
