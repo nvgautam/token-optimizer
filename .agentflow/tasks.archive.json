@@ -81,6 +81,16 @@
         ".claude/settings.json"
       ],
       "status": "complete"
+    },
+    {
+      "task_id": "T-059",
+      "title": "Bake verbosity target into skill prompts as standing instruction",
+      "description": "Add a consistent verbosity target to oracle.md and orchestrate.md as a permanent standing instruction, not an optional argument. oracle.md: promote the Phase 2 verbosity note (\"\u22643 sentences per exchange\") to a top-level instruction visible before any phase executes \u2014 add \"\u22643 sentences (~150 tokens) per response; expand only if user asks\" near the opening. Remove the duplicate in Phase 2. orchestrate.md: extend the existing \"## Verbosity rules\" section to include the token target \u2014 \"\u22643 sentences (~150 tokens) per orchestrator status message\". Both changes must survive context growth (instruction must appear early in the file, not only in a late section). No changes to handoff.md, drift.md, or worker prompts \u2014 those are single-purpose and do not have multi-turn verbosity risk.",
+      "owns": [
+        "commands/claude/oracle.md",
+        "commands/claude/orchestrate.md"
+      ],
+      "status": "complete"
     }
   ]
 }
