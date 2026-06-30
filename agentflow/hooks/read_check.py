@@ -19,10 +19,6 @@ def main() -> None:
     if not file_path:
         sys.exit(0)
 
-    # Already a targeted read — allow through.
-    if tool_input.get("offset") is not None:
-        sys.exit(0)
-
     cwd = os.getcwd()
     try:
         rel = str(Path(file_path).relative_to(cwd))
@@ -33,6 +29,59 @@ def main() -> None:
     map_path = (
         Path.home() / ".agentflow" / "cache" / cwd_hash / "index" / f"{rel}.idx"
     )
+
+    offset = tool_input.get("offset")
+    limit = tool_input.get("limit")
+
+    if offset is not None and limit is not None:
+        if not map_path.exists():
+            sys.exit(0)
+        sections = map_path.read_text().strip()
+        if not sections:
+            sys.exit(0)
+
+        # Count total lines in file (stdlib only)
+        try:
+            p = Path(file_path)
+            if not p.is_absolute():
+                p = Path(cwd) / p
+            with open(p, "r", encoding="utf-8", errors="ignore") as f:
+                total_lines = sum(1 for _ in f)
+        except Exception:
+            sys.exit(0)
+
+        # If file < 50 lines → skip check
+        if total_lines < 50:
+            sys.exit(0)
+
+        # Compute coverage = limit / (total_lines - offset)
+        try:
+            offset_val = int(offset)
+            limit_val = int(limit)
+        except (ValueError, TypeError):
+            sys.exit(0)
+
+        denom = total_lines - offset_val
+        coverage = limit_val / denom if denom > 0 else 0.0
+
+        # Threshold configurable via AGENTFLOW_READ_COVERAGE_THRESHOLD env var
+        threshold_str = os.environ.get("AGENTFLOW_READ_COVERAGE_THRESHOLD")
+        try:
+            threshold = float(threshold_str) if threshold_str is not None else 0.60
+        except ValueError:
+            threshold = 0.60
+
+        # If coverage > threshold AND idx exists → exit 1
+        if coverage > threshold:
+            pct = int(round(coverage * 100))
+            print(f"Large-range read ({limit_val}/{total_lines} lines, {pct}%) — use idx to target specific sections")
+            sys.exit(1)
+
+        sys.exit(0)
+
+    elif offset is not None:
+        sys.exit(0)
+
     if not map_path.exists():
         sys.exit(0)
 

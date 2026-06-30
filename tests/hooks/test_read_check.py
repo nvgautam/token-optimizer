@@ -221,3 +221,108 @@ def test_in_process_all_branches(tmp_path, monkeypatch, capsys):
     assert "\n" not in out
     assert "module.py" in out
     assert "Read(offset=" in out
+
+
+def test_new_logic_subprocess(tmp_path):
+    project = tmp_path / "project"
+    project.mkdir()
+    home = tmp_path / "home"
+    home.mkdir()
+    target = project / "module.py"
+    target.write_text("\n" * 100)
+    _make_idx(home, str(project), "module.py")
+
+    # exit 1 on large-range
+    payload = {"tool_name": "Read", "tool_input": {"file_path": str(target), "offset": 0, "limit": 80}}
+    code, out = _run(payload, cwd=str(project), home=str(home))
+    assert code == 1
+    assert "Large-range read (80/100 lines, 80%)" in out
+
+    # exit 0 on targeted read
+    payload["tool_input"]["limit"] = 20
+    code, out = _run(payload, cwd=str(project), home=str(home))
+    assert code == 0
+
+    # exit 0 on small file
+    target.write_text("\n" * 40)
+    payload["tool_input"]["limit"] = 35
+    code, out = _run(payload, cwd=str(project), home=str(home))
+    assert code == 0
+
+    # exit 0 on no idx
+    target.write_text("\n" * 100)
+    no_idx_project = tmp_path / "no_idx"
+    no_idx_project.mkdir()
+    target_no_idx = no_idx_project / "module.py"
+    target_no_idx.write_text("\n" * 100)
+    payload["tool_input"]["file_path"] = str(target_no_idx)
+    code, out = _run(payload, cwd=str(no_idx_project), home=str(home))
+    assert code == 0
+
+
+def test_in_process_new_logic(tmp_path, monkeypatch, capsys):
+    project = tmp_path / "project"
+    project.mkdir()
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setattr(os, "getcwd", lambda: str(project))
+    target = project / "module.py"
+    target.write_text("\n" * 100)
+
+    cwd_hash = hashlib.sha256(str(project).encode()).hexdigest()
+    idx_path = home / ".agentflow" / "cache" / cwd_hash / "index" / "module.py.idx"
+    idx_path.parent.mkdir(parents=True, exist_ok=True)
+    idx_path.write_text("some_func:1-10\n")
+
+    def run_assert(payload, expected_code):
+        monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(payload)))
+        with pytest.raises(SystemExit) as exc_info:
+            read_check.main()
+        assert exc_info.value.code == expected_code
+
+    # 1. Exit 1 on large-range read with idx
+    run_assert({"tool_input": {"file_path": str(target), "offset": 0, "limit": 80}}, 1)
+    assert "Large-range read (80/100 lines, 80%)" in capsys.readouterr().out
+
+    # 2. Exit 0 on targeted read
+    run_assert({"tool_input": {"file_path": str(target), "offset": 0, "limit": 20}}, 0)
+
+    # 3. Small file
+    small = project / "small.py"
+    small.write_text("\n" * 40)
+    (idx_path.parent / "small.py.idx").write_text("some_func:1-10\n")
+    run_assert({"tool_input": {"file_path": "small.py", "offset": 0, "limit": 35}}, 0)
+
+    # 4. No idx exists
+    no_idx = project / "no_idx.py"
+    no_idx.write_text("\n" * 100)
+    run_assert({"tool_input": {"file_path": str(no_idx), "offset": 0, "limit": 80}}, 0)
+
+    # 5. Config threshold
+    monkeypatch.setenv("AGENTFLOW_READ_COVERAGE_THRESHOLD", "0.90")
+    run_assert({"tool_input": {"file_path": str(target), "offset": 0, "limit": 80}}, 0)
+
+    monkeypatch.setenv("AGENTFLOW_READ_COVERAGE_THRESHOLD", "0.30")
+    run_assert({"tool_input": {"file_path": str(target), "offset": 0, "limit": 40}}, 1)
+    assert "Large-range read (40/100 lines, 40%)" in capsys.readouterr().out
+
+    monkeypatch.setenv("AGENTFLOW_READ_COVERAGE_THRESHOLD", "invalid")
+    run_assert({"tool_input": {"file_path": str(target), "offset": 0, "limit": 80}}, 1)
+    capsys.readouterr()
+
+    # 6. Cover missing branches (line 41 empty sections, line 83 only offset present)
+    empty_idx = project / "empty.py"
+    empty_idx.write_text("\n" * 100)
+    (idx_path.parent / "empty.py.idx").write_text("")
+    run_assert({"tool_input": {"file_path": str(empty_idx), "offset": 0, "limit": 80}}, 0)
+
+    run_assert({"tool_input": {"file_path": str(target), "offset": 5}}, 0)
+
+    # Invalid limit/offset types
+    run_assert({"tool_input": {"file_path": str(target), "offset": "invalid", "limit": 80}}, 0)
+
+    # File read error
+    (idx_path.parent / "nonexistent.py.idx").write_text("some_func:1-10\n")
+    run_assert({"tool_input": {"file_path": "nonexistent.py", "offset": 0, "limit": 80}}, 0)
+
