@@ -4,7 +4,9 @@ Stdlib-only. Zero LLM calls. Fully deterministic.
 """
 from __future__ import annotations
 
+import datetime
 import hashlib
+import json
 import os
 import pathlib
 import re
@@ -26,6 +28,7 @@ _DEFAULTS: dict = {
     "orchestrator_threshold_tokens": 30_000,
     "threshold_pct": 0.30,
     "restart_delay_seconds": 5,
+    "handoff_token_floor_pct": 0.30,
 }
 
 
@@ -152,14 +155,31 @@ class SessionManager:
         # 4. Tokenizer accumulation + threshold check
         total = self._tokenizer.accumulate(text, "claude")
         if not self._manual_handoff and not self._handoff_in_progress:
-            threshold = (
-                self._config["oracle_threshold_tokens"]
-                if self.session_type == "oracle"
-                else self._config["orchestrator_threshold_tokens"]
-            )
-            window_size = threshold
-            threshold_pct = self._config["threshold_pct"]
-            if total > threshold or total > window_size * threshold_pct:
+            st = self.session_type
+            thresh = self._config["oracle_threshold_tokens" if st == "oracle" else "orchestrator_threshold_tokens"]
+            floor = thresh * self._config.get("handoff_token_floor_pct", 0.30)
+            
+            triggered = False
+            if "AGENTFLOW_ROUND_COMPLETE" in text:
+                rp = pathlib.Path.cwd() / ".agentflow" / "current_round.json"
+                try:
+                    with open(rp, "r", encoding="utf-8") as f:
+                        d = json.load(f)
+                    if d.get("closed") is True or d.get("status") == "closed":
+                        if total >= floor:
+                            self._handoff_in_progress = True
+                            self.trigger_handoff()
+                            self._handoff_in_progress = False
+                            triggered = True
+                        else:
+                            lp = pathlib.Path.cwd() / ".agentflow" / "verbosity_log.jsonl"
+                            if lp.parent.exists():
+                                with open(lp, "a", encoding="utf-8") as f:
+                                    f.write(json.dumps({"ts": datetime.datetime.now().isoformat(), "event": "round-complete-low-tokens", "session_type": st, "accumulated_tokens": total, "floor": floor}) + "\n")
+                            rp.unlink(missing_ok=True)
+                except Exception:
+                    pass
+            if not triggered and (total > thresh or total > thresh * self._config["threshold_pct"]):
                 self._handoff_in_progress = True
                 self.trigger_handoff()
                 self._handoff_in_progress = False
@@ -180,9 +200,6 @@ class SessionManager:
     # ------------------------------------------------------------------
 
     def _on_session_exit(self, exit_code: int) -> None:  # noqa: ARG002
-        import datetime
-        import json
-
         log_path = pathlib.Path.cwd() / ".agentflow" / "verbosity_log.jsonl"
         if not log_path.parent.exists():
             return

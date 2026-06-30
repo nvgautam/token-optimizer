@@ -276,53 +276,61 @@ def test_on_session_exit_registered_on_pty():
 # ---------------------------------------------------------------------------
 
 
-def test_ansi_strip_removes_sequences():
-    """_ansi_strip removes standard ANSI escape sequences from text."""
-    sm, pty, _ = make_manager()
-    raw = "\x1b[32mGreen text\x1b[0m and \x1b[1mBold\x1b[0m"
-    assert sm._ansi_strip(raw) == "Green text and Bold"
+def test_ansi_strip():
+    sm, _, _ = make_manager()
+    assert sm._ansi_strip("\x1b[32mGreen text\x1b[0m and \x1b[1mBold\x1b[0m") == "Green text and Bold"
+    assert sm._ansi_strip("Read tool agentflow/config/settings.py") == "Read tool agentflow/config/settings.py"
 
 
-def test_ansi_strip_leaves_plain_text():
-    """_ansi_strip does not modify text that contains no ANSI sequences."""
-    sm, pty, _ = make_manager()
-    plain = "Read tool agentflow/config/settings.py"
-    assert sm._ansi_strip(plain) == plain
-
-
-def test_detect_read_path_returns_path():
-    """_detect_read_path extracts a file path when a Read pattern is present."""
-    sm, pty, _ = make_manager()
-    text = "Read tool agentflow/config/settings.py for configuration"
-    result = sm._detect_read_path(text)
-    assert result == "agentflow/config/settings.py"
-
-
-def test_detect_read_path_keyword_arg_form():
-    """_detect_read_path matches the Claude Code tool display format Read(file_path=...)."""
-    sm, pty, _ = make_manager()
-    text = 'Read(file_path="/Users/gautam/code/token-optimizer/design_status.md")'
-    result = sm._detect_read_path(text)
-    assert result == "/Users/gautam/code/token-optimizer/design_status.md"
-
-
-def test_detect_read_path_positional_form():
-    """_detect_read_path matches the positional form Read('/path/file.md')."""
-    sm, pty, _ = make_manager()
-    text = 'Read("/Users/gautam/code/token-optimizer/design_status.md")'
-    result = sm._detect_read_path(text)
-    assert result == "/Users/gautam/code/token-optimizer/design_status.md"
-
-
-def test_detect_read_path_returns_none_when_absent():
-    """_detect_read_path returns None when no Read pattern is present."""
-    sm, pty, _ = make_manager()
+def test_detect_read_path():
+    sm, _, _ = make_manager()
+    assert sm._detect_read_path("Read tool agentflow/config/settings.py for configuration") == "agentflow/config/settings.py"
+    assert sm._detect_read_path('Read(file_path="/Users/gautam/code/token-optimizer/design_status.md")') == "/Users/gautam/code/token-optimizer/design_status.md"
+    assert sm._detect_read_path('Read("/Users/gautam/code/token-optimizer/design_status.md")') == "/Users/gautam/code/token-optimizer/design_status.md"
     assert sm._detect_read_path("no read call here at all") is None
-
-
-def test_detect_read_path_natural_language_returns_none():
-    """Lowercase natural-language 'read the file.py' does not trigger idx injection."""
-    sm, pty, _ = make_manager()
     assert sm._detect_read_path("read the config.py file for details") is None
+
+
+def test_round_complete_above_floor(tmp_path):
+    import json
+    from pathlib import Path
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+    round_file = agentflow_dir / "current_round.json"
+    round_file.write_text(json.dumps({"closed": True}), encoding="utf-8")
+    tok = FakeTokenizer(fixed_return=10_000)
+    sm, pty, _ = make_manager(
+        config={"orchestrator_threshold_tokens": 30_000, "handoff_token_floor_pct": 0.30},
+        tokenizer=tok,
+    )
+    sm.session_type = "orchestrator"
+    with patch.object(sm, "trigger_handoff") as mock_hf, patch.object(Path, "cwd", return_value=tmp_path):
+        fire_output(sm, pty, "AGENTFLOW_ROUND_COMPLETE")
+        mock_hf.assert_called_once()
+
+
+def test_round_complete_below_floor(tmp_path):
+    import json
+    from pathlib import Path
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+    round_file = agentflow_dir / "current_round.json"
+    round_file.write_text(json.dumps({"closed": True}), encoding="utf-8")
+    tok = FakeTokenizer(fixed_return=5000)
+    sm, pty, _ = make_manager(
+        config={"orchestrator_threshold_tokens": 30_000, "handoff_token_floor_pct": 0.30},
+        tokenizer=tok,
+    )
+    sm.session_type = "orchestrator"
+    with patch.object(sm, "trigger_handoff") as mock_hf, patch.object(Path, "cwd", return_value=tmp_path):
+        fire_output(sm, pty, "AGENTFLOW_ROUND_COMPLETE")
+        mock_hf.assert_not_called()
+        log_path = agentflow_dir / "verbosity_log.jsonl"
+        assert log_path.exists()
+        lines = log_path.read_text(encoding="utf-8").strip().split("\n")
+        assert len(lines) == 1
+        record = json.loads(lines[0])
+        assert record["event"] == "round-complete-low-tokens"
+        assert not round_file.exists()
 
 

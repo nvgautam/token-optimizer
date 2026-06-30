@@ -158,6 +158,7 @@ Embed `commands/claude/reviewer/code_review.md`, `commands/claude/reviewer/secur
 ```
 PR #N ready — [task_ids] ([module])
   ✓ Code  ✓ Security  [⚠ Drift: X if any]
+  Description: <brief description of changes>
 git diff main...<branch>
 Worktree: <absolute path>
 PR: <URL> (always push branch to remote and show PR URL, or PR creation link)
