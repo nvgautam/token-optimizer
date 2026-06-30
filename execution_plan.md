@@ -113,12 +113,14 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 |---|---|---|
 | T-050 | Add agentflow/__main__.py — `python -m agentflow` entrypoint | MERGED |
 | T-053 | Bug fixes: verbosity banner timing + absolute-path IDX guard | MERGED |
-| T-056 | read_check.py: skip block on empty idx + compress output message | PENDING |
+| T-056 | read_check.py: skip block on empty idx + compress output message | MERGED |
 | T-057 | Reorganise skill dirs: commands/claude/ + commands/gemini/ | MERGED |
 | T-058g | Align Gemini orchestrate and handoff skills with Claude equivalents | MERGED |
 | T-058 | PostToolUse hook: block Write/Edit when file exceeds line limit | PENDING |
 | T-059 | Bake verbosity target into skill prompts as standing instruction | PENDING |
 | T-060 | Provider-keyed rate calibration files: Claude vs Gemini | MERGED |
+| T-061 | Explore Gemini CLI hook equivalents for .idx reminder injection | PENDING |
+| T-062 | UserPromptSubmit hook — .idx reminder injection (replaces PTY stdin) | PENDING |
 
 
 | Round | Tasks | Note |
@@ -133,7 +135,25 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 
 ---
 
-## Milestone 5: Context Builder
+## Milestone 5: Multi-Provider Coordination
+Status: PENDING
+Goal: Simultaneous Claude + Gemini orchestrators on the same project; each rate-aware; no task collision.
+
+| Task | Title | Depends on | Status |
+|---|---|---|---|
+| T-063 | Cross-provider atomic task claiming — claimed_by + file lock | T-060 | PENDING |
+| T-064 | Rate headroom check before claiming — skip if <10% window remaining | T-063, T-060 | PENDING |
+
+| Round | Tasks | Note |
+|---|---|---|
+| A | T-063 | First — establishes claim protocol |
+| B | T-064 | Depends on T-063 |
+
+Acceptance: two simultaneous /orchestrate sessions (one Claude, one Gemini) on same tasks.json complete without duplicate task execution; rate-limited provider yields to the other.
+
+---
+
+## Milestone 6: Context Builder
 Status: DEFERRED — Python CLI out of scope for v1
 
 | Task | Title | Status |

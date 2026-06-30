@@ -294,13 +294,7 @@
     },
     {
       "task_id": "T-056",
-      "title": "read_check.py: skip block on empty idx + compress output message",
-      "description": "Two fixes to read_check.py PreToolUse hook. (1) False-positive block: when .idx exists but is 0 bytes (file <50 lines or no indexable sections), hook still fires sys.exit(1) \u2014 add short-circuit after strip() so empty idx allows full read through. (2) Verbose output: current 3-line error message (~50 tokens) fires into model context on every blocked read; compress to single telegraphic line.",
-      "owns": [
-        "agentflow/hooks/read_check.py",
-        "tests/hooks/test_read_check.py"
-      ],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-057",
@@ -364,6 +358,50 @@
       "reads": [
         "commands/gemini/skills/orchestrate/SKILL.md",
         "commands/claude/orchestrate.md"
+      ],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-062",
+      "title": "UserPromptSubmit hook — .idx reminder injection (replaces PTY stdin)",
+      "description": "Wire up agentflow/hooks/idx_reminder.py as a UserPromptSubmit hook in .claude/settings.json. Hook fires after user submits each message (input field already cleared — injection invisible). Every 3rd turn outputs [IDX] reminder text; Claude receives it as context without user seeing it in the input field. Add tests/hooks/test_idx_reminder.py covering: counter increments on each call, reminder output on turn 3/6/9, no output on turns 1/2/4, counter file created if absent, counter resets gracefully on corrupt file. Remove PTY stdin .idx injection from session_manager.py (_inject_idx_banner call site in the every-3-turns path) — hook supersedes it. PTY Read-event detection (T-052) stays: it is reactive (fires on detected Read calls), hook is proactive (periodic recalibration). Both complement; stdin injection is the only part removed.",
+      "owns": [
+        "agentflow/hooks/idx_reminder.py",
+        ".claude/settings.json",
+        "agentflow/shell/session_manager.py",
+        "tests/hooks/test_idx_reminder.py"
+      ],
+      "reads": [
+        "agentflow/hooks/read_check.py"
+      ],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-063",
+      "title": "Cross-provider atomic task claiming — claimed_by field + claim protocol",
+      "description": "Enable simultaneous Claude + Gemini orchestrators on the same tasks.json without task collision. (1) Add claimed_by field to task schema (null = unclaimed, 'claude'/'gemini' = in use). (2) commands/claude/orchestrate.md: before spawning a worker for a task, read tasks.json, check status=pending AND claimed_by=null, write claimed_by='claude' under a file lock (.agentflow/tasks.lock), then spawn. On task complete/failed, clear claimed_by. (3) commands/gemini/skills/orchestrate/SKILL.md: same protocol with claimed_by='gemini'. (4) Both providers skip tasks where claimed_by is already set. File lock ensures atomic read-modify-write; lock held <100ms. Tests: test_orchestrate_skill.py — assert claim protocol present in both Claude and Gemini skill content.",
+      "owns": [
+        "commands/claude/orchestrate.md",
+        "commands/gemini/skills/orchestrate/SKILL.md",
+        "tests/prompts/test_orchestrate_skill.py"
+      ],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-064",
+      "title": "Cross-provider rate headroom check before task claiming",
+      "description": "Before claiming a task, each provider checks its own rate_calibration_<provider>.json for remaining 5hr window headroom. If remaining headroom < 10% of cap_5hr, skip claiming this round and log 'Rate headroom low — skipping claim (<provider>)'. This prevents a nearly-rate-limited provider from grabbing tasks it cannot complete before the window resets, allowing the other provider to continue. (1) commands/claude/orchestrate.md: add headroom check step before claim in the task loop; read rate_calibration_claude.json, compute remaining = cap_5hr * (1 - end_pct_5hr/100), skip if remaining < cap_5hr * 0.10. (2) commands/gemini/skills/orchestrate/SKILL.md: same with rate_calibration_gemini.json. Depends on T-063 (claimed_by protocol) and T-060 (provider-keyed files).",
+      "owns": [
+        "commands/claude/orchestrate.md",
+        "commands/gemini/skills/orchestrate/SKILL.md"
+      ],
+      "reads": [
+        "~/.agentflow/rate_calibration_claude.json",
+        "~/.agentflow/rate_calibration_gemini.json"
+      ],
+      "depends_on": [
+        "T-063",
+        "T-060"
       ],
       "status": "pending"
     },

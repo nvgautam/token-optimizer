@@ -45,6 +45,16 @@
         "tests/prompts/test_orchestrate_skill.py"
       ],
       "status": "complete"
+    },
+    {
+      "task_id": "T-056",
+      "title": "read_check.py: skip block on empty idx + compress output message",
+      "description": "Two fixes to read_check.py PreToolUse hook. (1) False-positive block: when .idx exists but is 0 bytes (file <50 lines or no indexable sections), hook still fires sys.exit(1) — add short-circuit after strip() so empty idx allows full read through. (2) Verbose output: current 3-line error message (~50 tokens) fires into model context on every blocked read; compress to single telegraphic line.",
+      "owns": [
+        "agentflow/hooks/read_check.py",
+        "tests/hooks/test_read_check.py"
+      ],
+      "status": "complete"
     }
   ]
 }
