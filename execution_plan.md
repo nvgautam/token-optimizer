@@ -81,7 +81,7 @@ Note: json/yaml parsers dropped — .idx format is Python + Markdown only.
 ---
 
 ## Milestone 4: Config + PTY Shell
-Status: COMPLETE
+Status: IN_PROGRESS (addendum pending)
 Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 
 | Task | Title | Status |
@@ -121,7 +121,10 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-060 | Provider-keyed rate calibration files: Claude vs Gemini | MERGED |
 | T-061 | Explore Gemini CLI hook equivalents for .idx reminder injection | PENDING |
 | T-062 | UserPromptSubmit hook — .idx reminder injection (replaces PTY stdin) | MERGED |
-
+| T-065 | Orchestrate skill — structured PTY signals + current_round.json | PENDING |
+| T-066 | PTY session_manager — ROUND_COMPLETE detection + token-floor handoff | PENDING |
+| T-067 | PTY session_manager — per-task token bracketing → task_token_log.jsonl | PENDING |
+| T-070 | read_check.py — block large-range reads that bypass idx enforcement | PENDING |
 
 | Round | Tasks | Note |
 |---|---|---|
@@ -132,6 +135,14 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | E | T-010 | Depends on T-009 |
 | F | T-052 | Depends on T-008 — extends session_manager.py |
 | G | T-051, T-054, T-055 | T-051: CLI integration tests; T-054: read_check.py enforcement; T-055: _pending_banner turn guard |
+
+**Addendum rounds (pending):**
+
+| Round | Tasks | Note |
+|---|---|---|
+| A | T-065, T-070 | Independent — T-065 unblocks PTY measurement layer; T-070 closes large-range read bypass |
+| B | T-066, T-067 | Depend on T-065 — round-boundary handoff + per-task token bracketing |
+| Anytime | T-061 | Research spike — Gemini hook exploration, no hard dep |
 
 ---
 
@@ -153,7 +164,25 @@ Acceptance: two simultaneous /orchestrate sessions (one Claude, one Gemini) on s
 
 ---
 
-## Milestone 6: Context Builder
+## Milestone 6: Parallel Execution
+Status: PENDING
+Goal: Orchestrate spawns N workers in parallel per round, bounded by per-task token estimates; data collected from PTY task bracketing.
+
+| Task | Title | Depends on | Status |
+|---|---|---|---|
+| T-068 | Per-task token estimator — regression model from task_token_log.jsonl | T-067 | PENDING |
+| T-069 | Orchestrate — parallel worker scheduling using token estimator | T-068, T-065 | PENDING |
+
+| Round | Tasks | Note |
+|---|---|---|
+| A | T-068 | Estimator first — needed by orchestrate skill |
+| B | T-069 | Parallel scheduling; depends on estimator + signals |
+
+Acceptance: orchestrate spawns multiple workers in one round without blowing session budget; owns fields verified disjoint; token estimator improves on 2500 constant after N≥5 samples.
+
+---
+
+## Milestone 7: Context Builder
 Status: DEFERRED — Python CLI out of scope for v1
 
 | Task | Title | Status |
@@ -165,8 +194,9 @@ Status: DEFERRED — Python CLI out of scope for v1
 ## Deferred
 - AgentFlow user-facing CLI (subcommands for config management, T-002): backlog.json
 - Headless automation layer: v2
+- Local API observation proxy: v2 — stdlib HTTP proxy; ANTHROPIC_BASE_URL swap; logs exact usage fields from API responses; foundation for Caveman/Headroom integration
 - Headroom CacheAligner integration: v2 — KV cache prefix stabilization; evaluate after PTY validated
-- Headroom ContentRouter integration: v2 — tool output compression; plug into PTY I/O interception layer
+- Headroom ContentRouter / Caveman integration: v2 — tool output compression; plug into PTY I/O interception layer (same ANTHROPIC_BASE_URL intercept as observation proxy)
 - Codex provider: v2
 - Brownfield refactoring: v2
 - Automated merge sequencer: v2

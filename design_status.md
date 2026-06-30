@@ -8,9 +8,12 @@ Oracle reads on startup. Handoff writes updates. Architecture.md = workers only.
 | PTY LLM usage | RESOLVED | Zero LLM calls in PTY shell — fully deterministic |
 | Token counting | RESOLVED | Local tiktoken, ~95% accuracy, acceptable for threshold detection |
 | Handoff threshold | RESOLVED | 40K floor OR 30% ceiling — whichever fires first |
-| Semantic handoff trigger | DEFERRED | TASK_COMPLETE signal primary; token threshold safety net — v2 |
+| Semantic handoff trigger | RESOLVED | Round-boundary handoff: ROUND_COMPLETE signal primary; token threshold safety net. Handoff fires only if accumulated_tokens > floor (shell.handoff_token_floor_pct, default 0.30 of threshold) — T-066 |
 | Velocity-based trigger | DEFERRED | Turn-delta tracking; trigger on accelerating growth (2nd derivative, 3-turn window) — v2 |
-| Structured PTY signals | DEFERRED | TASK_COMPLETE:<id>, CHECKLIST_ITEM_RESOLVED:<id> to stdout — prerequisite for semantic trigger — v2 |
+| Structured PTY signals | RESOLVED | AGENTFLOW_TASK_START:<id>, AGENTFLOW_TASK_COMPLETE:<id>, AGENTFLOW_ROUND_COMPLETE to stdout; current_round.json written at round start — T-065 |
+| Per-task token tracking | RESOLVED | PTY brackets TASK_START/COMPLETE signals; accumulates token delta per task; writes task_token_log.jsonl — T-067 |
+| Parallel worker scheduling | RESOLVED | Orchestrate spawns N workers per round; N = max(1, floor(remaining/estimated_per_task)); estimated from task_estimator.json (≥5 samples) or 2500 fallback; owns disjoint check enforced — T-068, T-069 |
+| Local observation proxy | DEFERRED | v2 — stdlib HTTP proxy at ANTHROPIC_BASE_URL; logs exact API usage fields; foundation for Caveman/Headroom compression integration |
 | Handoff state | RESOLVED | Living docs (design_status.md, execution_plan.md); no separate handoff files |
 | Session resume | RESOLVED | Oracle: UNRESOLVED in design_status.md. Orchestrator: incomplete milestones in execution_plan.md |
 | execution_plan.md owner | RESOLVED | Oracle: M1 full tasks + milestone stubs; orchestrator fills lazily at milestone completion |

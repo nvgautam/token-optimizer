@@ -17,9 +17,11 @@ Say: "This session will consume approximately 2% of your 5-hour window limit."
 Read `design_status.md` in full.
 
 - `| UNRESOLVED |` rows found → re-spar; present items and resume.
-- All `RESOLVED` / `DEFERRED` → say: "All design decisions are resolved or deferred. Is there a specific topic you want to spar on — a new concern, a decision to revisit, or an architecture question?" Wait for the user.
-  - User raises a topic → load architecture index (Step 2a), then enter Phase 2 focused on that topic.
-  - User has nothing → say: "Run `/orchestrate` to begin implementation."
+- All `RESOLVED` / `DEFERRED` → read `tasks.json`; count PENDING tasks.
+  - PENDING tasks found → Step 2c (prioritization spar).
+  - No PENDING tasks → say: "All design decisions are resolved or deferred. Is there a specific topic you want to spar on — a new concern, a decision to revisit, or an architecture question?" Wait for the user.
+    - User raises a topic → load architecture index (Step 2a), then enter Phase 2 focused on that topic.
+    - User has nothing → say: "Run `/orchestrate` to begin implementation."
 - File absent → fresh project; continue to Step 3.
 
 ### Step 2a — Architecture index (re-spar only)
@@ -32,6 +34,25 @@ Compute `HASH = sha256(cwd)`. Check `~/.agentflow/cache/<HASH>/index/architectur
 
 ### Step 2b — Load CV calibration
 Read `~/.agentflow/rate_calibration_claude.json` (if absent and `~/.agentflow/rate_calibration.json` exists, load `~/.agentflow/rate_calibration.json` as a one-time compat fallback). `sample_count >= 7` → store `ewma_cv`, `ewma_mean_tokens`. Else skip.
+
+### Step 2c — Prioritization Spar (pending tasks found)
+
+Read `execution_plan.md` (use `.idx`). Group PENDING tasks into **value tiers** — what each group unlocks (e.g., "handoff precision", "parallel throughput", "multi-provider"). Identify independent tasks (no pending deps) as Round A candidates; chain dependents into subsequent rounds.
+
+Lead with:
+- Recommended round table (A / B / C…) + dominant rationale (one line per round: what ships)
+- The key trade-off driving the order (e.g., "shortest path to token savings vs. differentiator features")
+
+Spar on — ≤3 sentences per exchange; challenge vague answers:
+1. **Delivery context**: internal validation or external audience? → shifts differentiator weight
+2. **Next increment**: what's the next meaningful demo or handoff point?
+3. **Constraints**: deadlines, blocked deps, team limits?
+
+On agreement: write the round table into `execution_plan.md` for each milestone with PENDING tasks. Emit:
+```
+HANDOFF RECOMMENDED: task prioritization resolved — good stopping point
+```
+Say: "Run `/orchestrate` to begin implementation."
 
 ### Step 3 — Opening question
 Ask: "Tell me about your project. What are you building?"
@@ -80,8 +101,11 @@ No match → proceed without architecture context for that topic.
 | Integrations (external, ownership, creds, failure) | `HANDOFF RECOMMENDED: integrations checklist items resolved — good stopping point if context is growing` |
 | Security (trust, data flows, auth, secrets) | `HANDOFF RECOMMENDED: security checklist items resolved — good stopping point if context is growing` |
 | Quality gates (size limits, ownership, stubs, injection) | `HANDOFF RECOMMENDED: quality gates checklist items resolved — good stopping point if context is growing` |
+| Delivery priority (audience, milestone sequence, constraints) | `HANDOFF RECOMMENDED: delivery priorities resolved — good stopping point if context is growing` |
 
-All 24 resolved → say exactly:
+All 24 resolved → spar on delivery priority: who is the first audience (internal/external)? What ships in M1 vs M2? Any ordering constraints? Bake answers into milestone sequencing before generating.
+
+Then say exactly:
 ```
 I have enough to generate the architecture and task plan. Shall I proceed, or is there more to discuss?
 ```

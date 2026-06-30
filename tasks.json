@@ -351,7 +351,7 @@
     {
       "task_id": "T-061",
       "title": "Explore Gemini CLI hook equivalents for .idx reminder injection",
-      "description": "Investigate whether Gemini CLI has hook mechanisms equivalent to Claude Code's UserPromptSubmit hook, for invisible turn-conditioned .idx reminder injection. Desired properties: fires before each user turn, invisible to user (not written to stdin/input field), turn-conditioned (every 3 turns), preserves recency effect in conversation context. Explore: (1) Gemini CLI hook/plugin system — any pre-turn or pre-request event hooks; (2) GEMINI_API_BASE_URL or equivalent env var for local proxy interception as fallback; (3) Gemini AGENTS.md or system prompt injection mechanism. Document findings in design_status.md as a new row: 'Gemini idx injection mechanism' — RESOLVED with chosen approach or DEFERRED if no clean equivalent exists.",
+      "description": "Investigate whether Gemini CLI has hook mechanisms equivalent to Claude Code's UserPromptSubmit hook, for invisible turn-conditioned .idx reminder injection. Desired properties: fires before each user turn, invisible to user (not written to stdin/input field), turn-conditioned (every 3 turns), preserves recency effect in conversation context. Explore: (1) Gemini CLI hook/plugin system \u2014 any pre-turn or pre-request event hooks; (2) GEMINI_API_BASE_URL or equivalent env var for local proxy interception as fallback; (3) Gemini AGENTS.md or system prompt injection mechanism. Document findings in design_status.md as a new row: 'Gemini idx injection mechanism' \u2014 RESOLVED with chosen approach or DEFERRED if no clean equivalent exists.",
       "owns": [
         "design_status.md"
       ],
@@ -363,8 +363,8 @@
     },
     {
       "task_id": "T-062",
-      "title": "UserPromptSubmit hook — .idx reminder injection (replaces PTY stdin)",
-      "description": "Wire up agentflow/hooks/idx_reminder.py as a UserPromptSubmit hook in .claude/settings.json. Hook fires after user submits each message (input field already cleared — injection invisible). Every 3rd turn outputs [IDX] reminder text; Claude receives it as context without user seeing it in the input field. Add tests/hooks/test_idx_reminder.py covering: counter increments on each call, reminder output on turn 3/6/9, no output on turns 1/2/4, counter file created if absent, counter resets gracefully on corrupt file. Remove PTY stdin .idx injection from session_manager.py (_inject_idx_banner call site in the every-3-turns path) — hook supersedes it. PTY Read-event detection (T-052) stays: it is reactive (fires on detected Read calls), hook is proactive (periodic recalibration). Both complement; stdin injection is the only part removed.",
+      "title": "UserPromptSubmit hook \u2014 .idx reminder injection (replaces PTY stdin)",
+      "description": "Wire up agentflow/hooks/idx_reminder.py as a UserPromptSubmit hook in .claude/settings.json. Hook fires after user submits each message (input field already cleared \u2014 injection invisible). Every 3rd turn outputs [IDX] reminder text; Claude receives it as context without user seeing it in the input field. Add tests/hooks/test_idx_reminder.py covering: counter increments on each call, reminder output on turn 3/6/9, no output on turns 1/2/4, counter file created if absent, counter resets gracefully on corrupt file. Remove PTY stdin .idx injection from session_manager.py (_inject_idx_banner call site in the every-3-turns path) \u2014 hook supersedes it. PTY Read-event detection (T-052) stays: it is reactive (fires on detected Read calls), hook is proactive (periodic recalibration). Both complement; stdin injection is the only part removed.",
       "owns": [
         "agentflow/hooks/idx_reminder.py",
         ".claude/settings.json",
@@ -378,8 +378,8 @@
     },
     {
       "task_id": "T-063",
-      "title": "Cross-provider atomic task claiming — claimed_by field + claim protocol",
-      "description": "Enable simultaneous Claude + Gemini orchestrators on the same tasks.json without task collision. (1) Add claimed_by field to task schema (null = unclaimed, 'claude'/'gemini' = in use). (2) commands/claude/orchestrate.md: before spawning a worker for a task, read tasks.json, check status=pending AND claimed_by=null, write claimed_by='claude' under a file lock (.agentflow/tasks.lock), then spawn. On task complete/failed, clear claimed_by. (3) commands/gemini/skills/orchestrate/SKILL.md: same protocol with claimed_by='gemini'. (4) Both providers skip tasks where claimed_by is already set. File lock ensures atomic read-modify-write; lock held <100ms. Tests: test_orchestrate_skill.py — assert claim protocol present in both Claude and Gemini skill content.",
+      "title": "Cross-provider atomic task claiming \u2014 claimed_by field + claim protocol",
+      "description": "Enable simultaneous Claude + Gemini orchestrators on the same tasks.json without task collision. (1) Add claimed_by field to task schema (null = unclaimed, 'claude'/'gemini' = in use). (2) commands/claude/orchestrate.md: before spawning a worker for a task, read tasks.json, check status=pending AND claimed_by=null, write claimed_by='claude' under a file lock (.agentflow/tasks.lock), then spawn. On task complete/failed, clear claimed_by. (3) commands/gemini/skills/orchestrate/SKILL.md: same protocol with claimed_by='gemini'. (4) Both providers skip tasks where claimed_by is already set. File lock ensures atomic read-modify-write; lock held <100ms. Tests: test_orchestrate_skill.py \u2014 assert claim protocol present in both Claude and Gemini skill content.",
       "owns": [
         "commands/claude/orchestrate.md",
         "commands/gemini/skills/orchestrate/SKILL.md",
@@ -390,7 +390,7 @@
     {
       "task_id": "T-064",
       "title": "Cross-provider rate headroom check before task claiming",
-      "description": "Before claiming a task, each provider checks its own rate_calibration_<provider>.json for remaining 5hr window headroom. If remaining headroom < 10% of cap_5hr, skip claiming this round and log 'Rate headroom low — skipping claim (<provider>)'. This prevents a nearly-rate-limited provider from grabbing tasks it cannot complete before the window resets, allowing the other provider to continue. (1) commands/claude/orchestrate.md: add headroom check step before claim in the task loop; read rate_calibration_claude.json, compute remaining = cap_5hr * (1 - end_pct_5hr/100), skip if remaining < cap_5hr * 0.10. (2) commands/gemini/skills/orchestrate/SKILL.md: same with rate_calibration_gemini.json. Depends on T-063 (claimed_by protocol) and T-060 (provider-keyed files).",
+      "description": "Before claiming a task, each provider checks its own rate_calibration_<provider>.json for remaining 5hr window headroom. If remaining headroom < 10% of cap_5hr, skip claiming this round and log 'Rate headroom low \u2014 skipping claim (<provider>)'. This prevents a nearly-rate-limited provider from grabbing tasks it cannot complete before the window resets, allowing the other provider to continue. (1) commands/claude/orchestrate.md: add headroom check step before claim in the task loop; read rate_calibration_claude.json, compute remaining = cap_5hr * (1 - end_pct_5hr/100), skip if remaining < cap_5hr * 0.10. (2) commands/gemini/skills/orchestrate/SKILL.md: same with rate_calibration_gemini.json. Depends on T-063 (claimed_by protocol) and T-060 (provider-keyed files).",
       "owns": [
         "commands/claude/orchestrate.md",
         "commands/gemini/skills/orchestrate/SKILL.md"
@@ -417,6 +417,95 @@
         "tests/prompts/test_orchestrate_skill.py"
       ],
       "status": "complete"
+    },
+    {
+      "task_id": "T-065",
+      "title": "Orchestrate skill \u2014 structured PTY signals + current_round.json",
+      "description": "Enable PTY to track task lifecycle deterministically. (1) commands/claude/orchestrate.md: at round start, write .agentflow/current_round.json with {round_id, task_ids, estimated_lines_per_task, file_counts_per_task, timestamp}. (2) Before spawning each worker, print AGENTFLOW_TASK_START:<task_id> to stdout. (3) After each worker completes, print AGENTFLOW_TASK_COMPLETE:<task_id>. (4) After all round tasks complete, print AGENTFLOW_ROUND_COMPLETE. (5) commands/gemini/skills/orchestrate/SKILL.md: same four signals. (6) Tests: test_orchestrate_skill.py \u2014 assert all four signal strings present in Claude and Gemini skill content; assert current_round.json write step present.",
+      "owns": [
+        "commands/claude/orchestrate.md",
+        "commands/gemini/skills/orchestrate/SKILL.md",
+        "tests/prompts/test_orchestrate_skill.py"
+      ],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-066",
+      "title": "PTY session_manager \u2014 ROUND_COMPLETE detection + token-floor handoff",
+      "description": "Replace pure token-threshold handoff with deterministic round-boundary handoff. (1) session_manager.py: scan stdout for AGENTFLOW_ROUND_COMPLETE. On detection: (a) read .agentflow/current_round.json to confirm round closed, (b) check accumulated_tokens vs configurable floor (shell.handoff_token_floor_pct, default 0.30 of threshold). (2) If above floor: call trigger_handoff() \u2014 clean boundary, no mid-task interrupt. (3) If below floor: log round-complete-low-tokens event to verbosity_log.jsonl, reset round state, continue. Token threshold remains as a safety net if ROUND_COMPLETE is never emitted. (4) Tests: test_session_manager.py \u2014 mock ROUND_COMPLETE in PTY stdout; assert handoff triggered when tokens above floor; assert handoff skipped and continued when below floor.",
+      "owns": [
+        "agentflow/shell/session_manager.py",
+        "tests/shell/test_session_manager.py"
+      ],
+      "reads": [
+        ".agentflow/current_round.json"
+      ],
+      "depends_on": [
+        "T-065"
+      ],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-067",
+      "title": "PTY session_manager \u2014 per-task token bracketing \u2192 task_token_log.jsonl",
+      "description": "Collect empirical per-task token data to power the future estimator. (1) session_manager.py: on AGENTFLOW_TASK_START:<task_id>, snapshot tokenizer accumulator value as task_start_tokens. (2) On AGENTFLOW_TASK_COMPLETE:<task_id>, compute delta = current_accumulated - task_start_tokens; read estimated_lines and file_count for this task_id from current_round.json. (3) Append to ~/.agentflow/task_token_log.jsonl: {task_id, session_type, token_delta, estimated_lines, file_count, timestamp}. File created if absent. (4) Tests: test_session_manager.py \u2014 emit TASK_START + TASK_COMPLETE signals; assert task_token_log.jsonl entry written with correct delta and metadata.",
+      "owns": [
+        "agentflow/shell/session_manager.py",
+        "tests/shell/test_session_manager.py"
+      ],
+      "reads": [
+        ".agentflow/current_round.json",
+        "~/.agentflow/task_token_log.jsonl"
+      ],
+      "depends_on": [
+        "T-065",
+        "T-066"
+      ],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-068",
+      "title": "Per-task token estimator \u2014 regression model from task_token_log.jsonl",
+      "description": "Build empirical estimator to replace the 2500-token constant in round-sizing. (1) New file agentflow/shadow/task_estimator.py: reads ~/.agentflow/task_token_log.jsonl. (2) Requires sample_count >= 5; else returns fallback constant 2500. (3) Fits linear regression: tokens ~ intercept + slope_lines * estimated_lines + slope_files * file_count using least squares (stdlib only \u2014 no numpy; implement normal equations directly). (4) Writes model to ~/.agentflow/task_estimator.json: {slope_lines, slope_files, intercept, r2, sample_count, updated_at}. (5) Exposes estimate(estimated_lines, file_count) -> int. (6) Tests: test_task_estimator.py \u2014 synthetic log entries; assert model written; assert fallback on low sample count; assert estimate() output reasonable.",
+      "owns": [
+        "agentflow/shadow/task_estimator.py",
+        "tests/shadow/test_task_estimator.py"
+      ],
+      "reads": [
+        "~/.agentflow/task_token_log.jsonl"
+      ],
+      "depends_on": [
+        "T-067"
+      ],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-069",
+      "title": "Orchestrate skill \u2014 parallel worker scheduling using token estimator",
+      "description": "Replace sequential per-round task execution with parallel scheduling bounded by token budget. (1) commands/claude/orchestrate.md: at round start, load ~/.agentflow/task_estimator.json (fallback 2500 if absent or sample_count < 5). (2) Compute N = max(1, floor(remaining_tokens / estimated_tokens_per_task)). (3) Filter candidate tasks: exclude any task whose owns fields overlap with another selected task (disjoint owns required to prevent write conflicts). (4) Spawn up to N workers in parallel Agent calls within the same orchestrate session. (5) commands/gemini/skills/orchestrate/SKILL.md: same parallel scheduling logic with task_estimator.json load. (6) Tests: test_orchestrate_skill.py \u2014 assert parallel scheduling logic, estimator load step, and owns-disjoint check present in both Claude and Gemini skill content.",
+      "owns": [
+        "commands/claude/orchestrate.md",
+        "commands/gemini/skills/orchestrate/SKILL.md",
+        "tests/prompts/test_orchestrate_skill.py"
+      ],
+      "reads": [
+        "~/.agentflow/task_estimator.json"
+      ],
+      "depends_on": [
+        "T-068",
+        "T-065"
+      ],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-070",
+      "title": "read_check.py \u2014 block large-range reads that bypass idx enforcement",
+      "description": "read_check.py currently blocks reads with no offset/limit when an idx exists. Gap: reads with offset\u22480 + large limit (e.g. offset=7, limit=168 on a 174-line file) pass unblocked despite covering nearly the full file. Fix: (1) When offset and limit are both present, count total lines in file (stdlib only). (2) Compute coverage = limit / (total_lines - offset). (3) If coverage > threshold (default 0.60) AND idx exists \u2192 exit 1 with message: \"Large-range read (N/M lines, X%) \u2014 use idx to target specific sections\". (4) If file < 50 lines (no idx expected) \u2192 skip check. (5) Threshold configurable via AGENTFLOW_READ_COVERAGE_THRESHOLD env var. (6) Tests: tests/hooks/test_read_check.py \u2014 assert exit 1 on large-range read with idx present; assert exit 0 on targeted read (small limit); assert exit 0 on file < 50 lines; assert exit 0 when no idx exists regardless of range.",
+      "owns": [
+        "agentflow/hooks/read_check.py",
+        "tests/hooks/test_read_check.py"
+      ],
+      "status": "pending"
     }
   ]
 }
