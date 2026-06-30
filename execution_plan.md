@@ -125,6 +125,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-066 | PTY session_manager — ROUND_COMPLETE detection + token-floor handoff | MERGED |
 | T-067 | PTY session_manager — per-task token bracketing → task_token_log.jsonl | PENDING |
 | T-070 | read_check.py — block large-range reads that bypass idx enforcement | MERGED |
+| T-071 | Evaluate headroom-ai library — integration feasibility for PTY + M5 | PENDING |
 
 | Round | Tasks | Note |
 |---|---|---|
@@ -140,9 +141,9 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 
 | Round | Tasks | Note |
 |---|---|---|
-| A | T-065, T-070 | Independent — T-065 unblocks PTY measurement layer; T-070 closes large-range read bypass |
-| B | T-066, T-067 | Depend on T-065 — round-boundary handoff + per-task token bracketing |
-| Anytime | T-061 | Research spike — Gemini hook exploration, no hard dep |
+| A | T-067, T-063, T-061, T-071 | T-067: unblocked (T-065/T-066 merged); T-063: independent; T-061/T-071: research spikes |
+| B | T-068, T-064 | T-068 depends on T-067; T-064 depends on T-063 |
+| C | T-069 | Depends on T-068 + T-065 (merged) |
 
 ---
 
