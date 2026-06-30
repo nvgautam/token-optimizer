@@ -55,6 +55,21 @@
         "tests/hooks/test_read_check.py"
       ],
       "status": "complete"
+    },
+    {
+      "task_id": "T-062",
+      "title": "UserPromptSubmit hook — .idx reminder injection (replaces PTY stdin)",
+      "description": "Wire up agentflow/hooks/idx_reminder.py as a UserPromptSubmit hook in .claude/settings.json. Hook fires after user submits each message (input field already cleared — injection invisible). Every 3rd turn outputs [IDX] reminder text; Claude receives it as context without user seeing it in the input field. Add tests/hooks/test_idx_reminder.py covering: counter increments on each call, reminder output on turn 3/6/9, no output on turns 1/2/4, counter file created if absent, counter resets gracefully on corrupt file. Remove PTY stdin .idx injection from session_manager.py (_inject_idx_banner call site in the every-3-turns path) — hook supersedes it. PTY Read-event detection (T-052) stays: it is reactive (fires on detected Read calls), hook is proactive (periodic recalibration). Both complement; stdin injection is the only part removed.",
+      "owns": [
+        "agentflow/hooks/idx_reminder.py",
+        ".claude/settings.json",
+        "agentflow/shell/session_manager.py",
+        "tests/hooks/test_idx_reminder.py"
+      ],
+      "reads": [
+        "agentflow/hooks/read_check.py"
+      ],
+      "status": "complete"
     }
   ]
 }

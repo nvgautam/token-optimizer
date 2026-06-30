@@ -106,7 +106,6 @@ def cmd_shell(args: argparse.Namespace) -> int:
             cmd = "agy"
         wrapper = PTYWrapper([cmd])
         session_manager = SessionManager(wrapper, tokenizer_module, config={})
-        input_buffer = bytearray()
 
         while not wrapper._exited:
             try:
@@ -118,20 +117,6 @@ def cmd_shell(args: argparse.Namespace) -> int:
                 try:
                     chunk = os.read(fd, 1024)
                     if chunk:
-                        if b'\r' in chunk or b'\n' in chunk:
-                            newline_pos = next(
-                                (i for i, c in enumerate(chunk) if c in (13, 10)), len(chunk)
-                            )
-                            input_buffer += chunk[:newline_pos]
-                            message = input_buffer.decode("utf-8", errors="replace")
-                            input_buffer.clear()
-                            if session_manager.should_inject_banner(message):
-                                pending = session_manager.pop_pending_banner()
-                                if pending:
-                                    flat = pending.replace('\n', ' ').rstrip()
-                                    os.write(wrapper.master_fd, flat.encode("utf-8"))
-                        else:
-                            input_buffer += chunk
                         os.write(wrapper.master_fd, chunk)
                 except OSError:
                     break

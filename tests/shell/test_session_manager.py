@@ -1,11 +1,8 @@
 """Tests for agentflow.shell.session_manager and agentflow.shell.countdown."""
 from __future__ import annotations
 
-import os
-import sys
 from unittest.mock import MagicMock, patch
 
-import pytest
 
 from agentflow.shell.session_manager import SessionManager
 from agentflow.shell.countdown import countdown
@@ -88,27 +85,6 @@ def test_session_type_orchestrate():
     fire_output(sm, pty, "/orchestrate\r\n")
     assert sm.session_type == "orchestrator"
 
-
-# ---------------------------------------------------------------------------
-# 3. idx banner written via write_input every 3 turns
-# ---------------------------------------------------------------------------
-
-
-def test_idx_banner_every_3_turns():
-    # banners disabled — no injection expected
-    sm, pty, _ = make_manager()
-    for _ in range(3):
-        fire_output(sm, pty, "assistant response text")
-        fire_output(sm, pty, "\n\n")
-    assert sm._pending_banner.count("[IDX]") == 0
-
-
-def test_idx_banner_not_written_before_3_turns():
-    sm, pty, _ = make_manager()
-    for _ in range(2):
-        fire_output(sm, pty, "content")
-        fire_output(sm, pty, "\n\n")
-    assert "[IDX]" not in sm._pending_banner
 
 
 # ---------------------------------------------------------------------------
@@ -248,22 +224,6 @@ def test_turn_output_history_max_10():
     assert len(sm._turn_output_history) == 10
 
 
-def test_verbosity_banner_injected_when_over_threshold():
-    # banners disabled — no injection expected even when over threshold
-    sm, pty, _ = make_manager(config={"verbosity_threshold": 0})
-    sm._verbosity_last_inject = 0.0
-    fire_output(sm, pty, "some response content")
-    fire_output(sm, pty, "\n\n")
-    assert "[VERBOSITY]" not in sm._pending_banner
-
-
-def test_verbosity_banner_not_injected_when_under_threshold():
-    """Verbosity banner is silent when turn output tokens are below threshold."""
-    sm, pty, _ = make_manager(config={"verbosity_threshold": 9999})
-    fire_output(sm, pty, "short")
-    fire_output(sm, pty, "\n\n")
-    assert not ("[VERBOSITY]" in sm._pending_banner and "Last response:" in sm._pending_banner)
-
 
 def test_on_session_exit_writes_verbosity_log(tmp_path):
     """_on_session_exit writes per-turn stats to .agentflow/verbosity_log.jsonl."""
@@ -366,116 +326,3 @@ def test_detect_read_path_natural_language_returns_none():
     assert sm._detect_read_path("read the config.py file for details") is None
 
 
-def test_handle_output_injects_idx_banner_when_idx_exists(tmp_path):
-    # banners disabled — no injection expected even when .idx exists
-    sm, pty, _ = make_manager()
-    idx_dir = tmp_path / ".agentflow" / "cache" / sm._cwd_hash / "index"
-    (idx_dir / "agentflow" / "config").mkdir(parents=True)
-    (idx_dir / "agentflow" / "config" / "settings.py.idx").touch()
-
-    with patch("pathlib.Path.home", return_value=tmp_path):
-        fire_output(sm, pty, "Read tool agentflow/config/settings.py to get config")
-
-    assert "[IDX]" not in sm._pending_banner
-
-
-def test_handle_output_no_idx_banner_when_idx_absent(tmp_path):
-    """_handle_output does not queue a targeted [IDX] banner when no .idx file found."""
-    sm, pty, _ = make_manager()
-    with patch("pathlib.Path.home", return_value=tmp_path):
-        fire_output(sm, pty, "Read tool agentflow/config/settings.py to get config")
-
-    assert not ("[IDX]" in sm._pending_banner and "exists" in sm._pending_banner)
-
-
-def test_handle_output_injects_idx_banner_for_absolute_path(tmp_path):
-    # banners disabled — no injection expected for absolute paths either
-    sm, pty, _ = make_manager()
-    idx_dir = tmp_path / ".agentflow" / "cache" / sm._cwd_hash / "index"
-    (idx_dir / "agentflow" / "config").mkdir(parents=True)
-    (idx_dir / "agentflow" / "config" / "settings.py.idx").touch()
-
-    abs_path = os.path.join(os.getcwd(), "agentflow/config/settings.py")
-    with patch("pathlib.Path.home", return_value=tmp_path):
-        fire_output(sm, pty, f'Read("{abs_path}")')
-
-    assert "[IDX]" not in sm._pending_banner
-
-
-def test_handle_output_no_idx_banner_for_path_outside_cwd(tmp_path):
-    """Absolute paths outside the project root are silently ignored."""
-    sm, pty, _ = make_manager()
-    with patch("pathlib.Path.home", return_value=tmp_path):
-        fire_output(sm, pty, 'Read("/etc/passwd")')
-
-    assert not ("[IDX]" in sm._pending_banner and "exists" in sm._pending_banner)
-
-
-def test_static_verbosity_banner_not_at_init():
-    """Static verbosity banner must NOT be queued at __init__ time."""
-    sm, pty, _ = make_manager()
-    assert not ("[VERBOSITY]" in sm._pending_banner and "Target" in sm._pending_banner)
-
-
-def test_static_verbosity_banner_not_before_quiet_period():
-    """Static banner is not queued immediately after output (TUI still generating)."""
-    sm, pty, _ = make_manager(config={"startup_quiet_period_seconds": 9999.0})
-    fire_output(sm, pty, "x" * 2048)
-    sm.on_idle_tick()
-    assert not ("[VERBOSITY]" in sm._pending_banner and "Target" in sm._pending_banner)
-
-
-def test_static_verbosity_banner_fires_after_quiet_period():
-    # banners disabled — quiet period still marks initial_banner_sent but queues nothing
-    sm, pty, _ = make_manager(config={"startup_quiet_period_seconds": 0.0})
-    fire_output(sm, pty, "x" * 100)
-    sm.on_idle_tick()
-    assert sm._initial_banner_sent is True
-    assert "[VERBOSITY]" not in sm._pending_banner
-    assert "[IDX]" not in sm._pending_banner
-
-
-def test_static_verbosity_banner_fires_only_once():
-    # banners disabled — _initial_banner_sent still gates to exactly one idle_tick transition
-    sm, pty, _ = make_manager(config={"startup_quiet_period_seconds": 0.0})
-    fire_output(sm, pty, "x" * 100)
-    for _ in range(5):
-        sm.on_idle_tick()
-    assert sm._pending_banner.count("[VERBOSITY] Target") == 0
-
-
-
-def test_every_3_turns_idx_injection_regression():
-    # banners disabled — no IDX injection at turn 3
-    sm, pty, _ = make_manager()
-    for _ in range(3):
-        fire_output(sm, pty, "assistant response text")
-        fire_output(sm, pty, "\n\n")
-    assert "[IDX]" not in sm._pending_banner
-
-
-# ---------------------------------------------------------------------------
-# T-055. should_inject_banner — generation-turn guard
-# ---------------------------------------------------------------------------
-
-
-class TestShouldInjectBanner:
-    def test_returns_false_for_generate_keyword(self):
-        sm, pty, _ = make_manager()
-        assert sm.should_inject_banner("please generate a function") is False
-
-    def test_returns_false_for_proceed_keyword(self):
-        sm, pty, _ = make_manager()
-        assert sm.should_inject_banner("proceed") is False
-
-    def test_returns_false_for_long_message(self):
-        sm, pty, _ = make_manager()
-        assert sm.should_inject_banner("x" * 81) is False
-
-    def test_returns_true_for_short_sparring(self):
-        sm, pty, _ = make_manager()
-        assert sm.should_inject_banner("what does this do?") is True
-
-    def test_returns_false_for_yes(self):
-        sm, pty, _ = make_manager()
-        assert sm.should_inject_banner("yes") is False

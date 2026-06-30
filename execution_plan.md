@@ -120,7 +120,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-059 | Bake verbosity target into skill prompts as standing instruction | PENDING |
 | T-060 | Provider-keyed rate calibration files: Claude vs Gemini | MERGED |
 | T-061 | Explore Gemini CLI hook equivalents for .idx reminder injection | PENDING |
-| T-062 | UserPromptSubmit hook — .idx reminder injection (replaces PTY stdin) | PENDING |
+| T-062 | UserPromptSubmit hook — .idx reminder injection (replaces PTY stdin) | MERGED |
 
 
 | Round | Tasks | Note |

@@ -28,13 +28,7 @@ _DEFAULTS: dict = {
     "restart_delay_seconds": 5,
 }
 
-_IDX_BANNER = (
-    "[IDX] Before any Read: for each file, check"
-    " ~/.agentflow/cache/{hash}/index/<that-file>.idx first"
-    " — grep name:start-end, then Read(offset, limit).\n"
-)
 
-_VERBOSITY_STATIC_BANNER = "[VERBOSITY] Target <=3 sentences (~150 tokens) per response.\n"
 
 _ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;]*[mGKHFABCDhJlsu]")
 _READ_PATH_RE = re.compile(
@@ -47,9 +41,6 @@ _READ_PATH_RE = re.compile(
     re.MULTILINE,
 )
 
-_GENERATION_KEYWORDS = frozenset({
-    "generate", "write", "create", "proceed", "implement", "yes",
-})
 
 
 class SessionManager:
@@ -95,7 +86,6 @@ class SessionManager:
         self._verbosity_last_inject: float = time.monotonic()
         self._initial_banner_sent: bool = False
         self._last_output_time: float = time.monotonic()
-        self._pending_banner: str = ""
         self._quiet_period_seconds: float = float(
             cfg.get("startup_quiet_period_seconds", 1.5)
         )
@@ -183,38 +173,7 @@ class SessionManager:
         m = _READ_PATH_RE.search(text)
         return next((g for g in m.groups() if g), None) if m else None
 
-    def _inject_idx_banner(self) -> None:
-        self._pending_banner += _IDX_BANNER.format(hash=self._cwd_hash)
 
-    def _inject_verbosity_banner(self, n: int) -> None:
-        now = time.monotonic()
-        if now - self._verbosity_last_inject < 30.0:
-            return
-        self._pending_banner += (
-            f"[VERBOSITY] Last response: {n} tokens"
-            " — target ≤3 sentences (~150 tokens) for sparring exchanges.\n"
-        )
-        self._verbosity_last_inject = now
-
-    def should_inject_banner(self, message: str) -> bool:
-        """Return True only for short sparring messages that don't trigger generation.
-
-        Injection is skipped when:
-        - message exceeds 80 chars (likely a multi-line generation prompt)
-        - message contains any generation-intent keyword
-        """
-        if len(message) > 80:
-            return False
-        lower = message.lower()
-        if any(kw in lower for kw in _GENERATION_KEYWORDS):
-            return False
-        return True
-
-    def pop_pending_banner(self) -> str:
-        """Return accumulated banner text and clear the queue."""
-        banner = self._pending_banner
-        self._pending_banner = ""
-        return banner
 
     # ------------------------------------------------------------------
     # Session exit
