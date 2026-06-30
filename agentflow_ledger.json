@@ -1717,10 +1717,78 @@
         "compaction": null
       },
       "status": "closed"
+    },
+    {
+      "session_id": "20260629_200651",
+      "agent": "agy",
+      "task_ids": "",
+      "start_time": "2026-06-29T20:06:51.479675",
+      "end_time": "2026-06-29T20:06:51.479684",
+      "context_at_start": 21190,
+      "input_tokens": 13904943,
+      "output_tokens": 41039,
+      "token_detail": {
+        "uncached_input": 2176933,
+        "cache_creation": 0,
+        "cache_read": 11728010,
+        "output": 41039,
+        "n_turns": 129,
+        "initial_ctx": 21190,
+        "final_ctx": 176032
+      },
+      "n_turns": 129,
+      "final_ctx": 176032,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 25071094,
+        "shadow_output": 124941,
+        "shadow_extra": 10926429,
+        "compaction": {
+          "before": 239722,
+          "after": 83902,
+          "cost_tokens": 83902
+        }
+      },
+      "status": "closed"
+    },
+    {
+      "session_id": "20260629_200651",
+      "agent": "agy",
+      "task_ids": "",
+      "start_time": "2026-06-29T20:06:51.483005",
+      "end_time": "2026-06-29T20:06:51.483017",
+      "context_at_start": 21190,
+      "input_tokens": 4515476,
+      "output_tokens": 22271,
+      "token_detail": {
+        "uncached_input": 849115,
+        "cache_creation": 0,
+        "cache_read": 3666361,
+        "output": 22271,
+        "n_turns": 64,
+        "initial_ctx": 21190,
+        "final_ctx": 111430
+      },
+      "n_turns": 64,
+      "final_ctx": 111430,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 10059489,
+        "shadow_output": 83270,
+        "shadow_extra": 5369728,
+        "compaction": {
+          "before": 174285,
+          "after": 60999,
+          "cost_tokens": 60999
+        }
+      },
+      "status": "closed"
     }
   ],
   "shadow_state": {
-    "accumulated_context": 84701,
-    "compaction_events": 32
+    "accumulated_context": 60999,
+    "compaction_events": 34
   }
 }

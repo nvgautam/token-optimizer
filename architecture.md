@@ -454,13 +454,13 @@ Nine strategies, applied at different layers. Savings are modelled estimates —
 |---|---|---|---|---|
 | Handoff | Session lifecycle | ~40% input tokens | v1 | Yes — manual `/handoff` |
 | No-re-read rule | Worker prompt | ~1–15K tokens/session | v1 (prompt) / v2 (worker) | Partially |
-| Context bundle | Worker context | ~20–30% per worker | v1 | Once context_builder built |
-| Symbol index | File reads | ~65% per targeted read | v1 | Once indexer built |
+| Context bundle | Worker context | ~20–30% per worker | v1 | Yes — orchestrate.md writes context_bundle.md per task |
+| Symbol index | File reads | ~65% per targeted read | v1 | Yes — .idx generated inline; workers use targeted reads |
 | Lazy decomposition | Orchestrator context | ~75% of tasks.json cost | v1 | Yes — current tasks.json |
-| Compact state docs | State documents | ~96K tokens/project | v1 | Yes — update handoff skill |
-| Verbosity control | All sessions | ~20% slower growth | v1 | Yes — update skill prompts |
-| Section-only loading | Architecture reads | ~40K tokens/project | v1 | Yes — enforce in tasks.json |
-| Per-session thresholds | PTY shell | ~10–15% efficiency | v1 | Once session_manager built |
+| Compact state docs | State documents | ~96K tokens/project | v1 | Yes — handoff skill enforces format |
+| Verbosity control | All sessions | ~20% slower growth | v1 | Pending — T-059 (bake target into skill prompts) |
+| Section-only loading | Architecture reads | ~40K tokens/project | v1 | Yes — enforced in task reads + skill prompts |
+| Per-session thresholds | PTY shell | ~10–15% efficiency | v1 | Yes — session_manager reads per-type threshold |
 | Orchestrator round-sizing | Orchestrator skill | Prevents wasted handoff mid-round | v1 | Yes — in commands/claude/orchestrate.md |
 
 All savings figures are modelled, not measured. **Combined effect: with all strategies active, estimated 2× more work per session vs baseline** (same threshold gets through ~80 turns instead of ~40). Manual testing priority: handoff + verbosity + compact docs first (zero implementation cost, testable today).
