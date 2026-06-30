@@ -1,47 +1,72 @@
 {
-  "updated": "2026-06-29T22:19:00",
+  "updated": "2026-06-30T11:50:46.606253",
   "milestone": "Milestone 4: Config + PTY Shell",
-  "status": "COMPLETE",
+  "status": "IN_PROGRESS",
   "groups": [
     {
       "round": "D",
-      "tasks": ["T-009"],
+      "tasks": [
+        "T-009"
+      ],
       "status": "MERGED"
     },
     {
       "round": "E",
-      "tasks": ["T-010"],
+      "tasks": [
+        "T-010"
+      ],
       "status": "MERGED"
     },
     {
       "round": "F",
-      "tasks": ["T-052"],
+      "tasks": [
+        "T-052"
+      ],
       "status": "MERGED"
     },
     {
       "round": "G",
-      "tasks": ["T-051", "T-054", "T-055"],
+      "tasks": [
+        "T-051",
+        "T-054",
+        "T-055"
+      ],
       "status": "MERGED"
     },
     {
       "round": "H",
-      "tasks": ["T-056"],
+      "tasks": [
+        "T-056"
+      ],
       "status": "MERGED"
     },
     {
       "round": "I",
-      "tasks": ["T-062"],
+      "tasks": [
+        "T-062"
+      ],
       "status": "MERGED"
     },
     {
       "round": "J",
-      "tasks": ["T-058"],
+      "tasks": [
+        "T-058"
+      ],
       "status": "MERGED"
     },
     {
       "round": "K",
-      "tasks": ["T-059"],
+      "tasks": [
+        "T-059"
+      ],
       "status": "MERGED"
+    },
+    {
+      "round": "Addendum A",
+      "tasks": [
+        "T-065"
+      ],
+      "status": "IN_PROGRESS"
     }
   ],
   "pending": []

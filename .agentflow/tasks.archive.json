@@ -3,9 +3,17 @@
     {
       "task_id": "T-008",
       "title": "PTY session manager — handoff, countdown, idx injection",
-      "owns": ["agentflow/shell/session_manager.py", "agentflow/shell/countdown.py"],
-      "reads": ["agentflow/shell/pty_wrapper.py", "agentflow/shell/tokenizer.py"],
-      "depends_on": ["T-006"],
+      "owns": [
+        "agentflow/shell/session_manager.py",
+        "agentflow/shell/countdown.py"
+      ],
+      "reads": [
+        "agentflow/shell/pty_wrapper.py",
+        "agentflow/shell/tokenizer.py"
+      ],
+      "depends_on": [
+        "T-006"
+      ],
       "acceptance_criteria": "SessionManager detects session type, injects idx banner every 3 turns, triggers handoff+countdown+restart when threshold exceeded; countdown callable works standalone",
       "estimated_lines": 220,
       "context_section": "architecture.md#pty-shell-design",
@@ -15,9 +23,18 @@
     {
       "task_id": "T-009",
       "title": "CLI cmd_shell — PTY I/O relay loop",
-      "owns": ["agentflow/cli.py"],
-      "reads": ["agentflow/shell/pty_wrapper.py", "agentflow/shell/session_manager.py", "agentflow/shell/tokenizer.py", "agentflow/shell/countdown.py"],
-      "depends_on": ["T-008"],
+      "owns": [
+        "agentflow/cli.py"
+      ],
+      "reads": [
+        "agentflow/shell/pty_wrapper.py",
+        "agentflow/shell/session_manager.py",
+        "agentflow/shell/tokenizer.py",
+        "agentflow/shell/countdown.py"
+      ],
+      "depends_on": [
+        "T-008"
+      ],
       "acceptance_criteria": "agentflow shell --command claude launches claude under PTY; IDX banners every 3 turns; handoff fires at threshold; terminal restored on exit",
       "estimated_lines": 60,
       "status": "complete",
@@ -26,9 +43,16 @@
     {
       "task_id": "T-010",
       "title": "PTY — per-turn output token tracking + verbosity compliance signal",
-      "owns": ["agentflow/shell/session_manager.py"],
-      "reads": ["agentflow/shell/tokenizer.py", "agentflow/shell/pty_wrapper.py"],
-      "depends_on": ["T-009"],
+      "owns": [
+        "agentflow/shell/session_manager.py"
+      ],
+      "reads": [
+        "agentflow/shell/tokenizer.py",
+        "agentflow/shell/pty_wrapper.py"
+      ],
+      "depends_on": [
+        "T-009"
+      ],
       "acceptance_criteria": "verbosity_log.jsonl accumulates per-turn output token counts; banner fires on verbose turns; shadow analyzer reads mean/p90 vs 150-token target",
       "estimated_lines": 50,
       "status": "complete",
@@ -74,7 +98,7 @@
     {
       "task_id": "T-058",
       "title": "PostToolUse hook: block Write/Edit when file exceeds line limit",
-      "description": "New hook agentflow/hooks/size_check.py \u2014 PostToolUse on Write and Edit. After each write, read the modified file and check line count against per-category limits: tests/ \u2192 350, commands/ \u2192 150, all other .py \u2192 250. Stubs excluded: files whose content is >50% pass/ellipsis lines skip the check. On violation: print single telegraphic message and exit(1) to block next tool call \u2014 \"FILE TOO LARGE: <rel_path> is <N> lines (limit <L>) \u2014 split by responsibility boundary before proceeding.\" On pass: exit(0), no output. Register under PostToolUse for both Write and Edit matchers in .claude/settings.json alongside write_indexer. Add tests/hooks/test_size_check.py covering: under-limit passes, over-limit blocks, correct limit per category, stub exemption, non-.py files skipped.",
+      "description": "New hook agentflow/hooks/size_check.py — PostToolUse on Write and Edit. After each write, read the modified file and check line count against per-category limits: tests/ → 350, commands/ → 150, all other .py → 250. Stubs excluded: files whose content is >50% pass/ellipsis lines skip the check. On violation: print single telegraphic message and exit(1) to block next tool call — \"FILE TOO LARGE: <rel_path> is <N> lines (limit <L>) — split by responsibility boundary before proceeding.\" On pass: exit(0), no output. Register under PostToolUse for both Write and Edit matchers in .claude/settings.json alongside write_indexer. Add tests/hooks/test_size_check.py covering: under-limit passes, over-limit blocks, correct limit per category, stub exemption, non-.py files skipped.",
       "owns": [
         "agentflow/hooks/size_check.py",
         "tests/hooks/test_size_check.py",
@@ -85,10 +109,21 @@
     {
       "task_id": "T-059",
       "title": "Bake verbosity target into skill prompts as standing instruction",
-      "description": "Add a consistent verbosity target to oracle.md and orchestrate.md as a permanent standing instruction, not an optional argument. oracle.md: promote the Phase 2 verbosity note (\"\u22643 sentences per exchange\") to a top-level instruction visible before any phase executes \u2014 add \"\u22643 sentences (~150 tokens) per response; expand only if user asks\" near the opening. Remove the duplicate in Phase 2. orchestrate.md: extend the existing \"## Verbosity rules\" section to include the token target \u2014 \"\u22643 sentences (~150 tokens) per orchestrator status message\". Both changes must survive context growth (instruction must appear early in the file, not only in a late section). No changes to handoff.md, drift.md, or worker prompts \u2014 those are single-purpose and do not have multi-turn verbosity risk.",
+      "description": "Add a consistent verbosity target to oracle.md and orchestrate.md as a permanent standing instruction, not an optional argument. oracle.md: promote the Phase 2 verbosity note (\"≤3 sentences per exchange\") to a top-level instruction visible before any phase executes — add \"≤3 sentences (~150 tokens) per response; expand only if user asks\" near the opening. Remove the duplicate in Phase 2. orchestrate.md: extend the existing \"## Verbosity rules\" section to include the token target — \"≤3 sentences (~150 tokens) per orchestrator status message\". Both changes must survive context growth (instruction must appear early in the file, not only in a late section). No changes to handoff.md, drift.md, or worker prompts — those are single-purpose and do not have multi-turn verbosity risk.",
       "owns": [
         "commands/claude/oracle.md",
         "commands/claude/orchestrate.md"
+      ],
+      "status": "complete"
+    },
+    {
+      "task_id": "T-065",
+      "title": "Orchestrate skill — structured PTY signals + current_round.json",
+      "description": "Enable PTY to track task lifecycle deterministically. (1) commands/claude/orchestrate.md: at round start, write .agentflow/current_round.json with {round_id, task_ids, estimated_lines_per_task, file_counts_per_task, timestamp}. (2) Before spawning each worker, print AGENTFLOW_TASK_START:<task_id> to stdout. (3) After each worker completes, print AGENTFLOW_TASK_COMPLETE:<task_id>. (4) After all round tasks complete, print AGENTFLOW_ROUND_COMPLETE. (5) commands/gemini/skills/orchestrate/SKILL.md: same four signals. (6) Tests: test_orchestrate_skill.py — assert all four signal strings present in Claude and Gemini skill content; assert current_round.json write step present.",
+      "owns": [
+        "commands/claude/orchestrate.md",
+        "commands/gemini/skills/orchestrate/SKILL.md",
+        "tests/prompts/test_orchestrate_skill.py"
       ],
       "status": "complete"
     }

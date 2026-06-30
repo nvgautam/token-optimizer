@@ -110,8 +110,8 @@
     },
     {
       "task_id": "T-039",
-      "title": "Orchestrate skill \u2014 ledger-anchored rate cap derivation",
-      "description": "Update the rate calibration logic in commands/orchestrate.md. Replace single-session delta method (cap = session_tokens / delta_pct) with ledger-anchored method: at session end, read agentflow_ledger.json, filter sessions where start_time >= window_start (local time; datetime.now() no tz), sum billable tokens (uncached_input + cache_creation + output per session), then cap_5hr = total_5hr_tokens / (end_pct_5hr / 100) and cap_wkly = total_wkly_tokens / (end_pct_wkly / 100). Window starts: 5hr = reset_time_5hr - 5h; weekly = reset_time_wkly - 7d. Gap: current session tokens not yet flushed to ledger \u2014 correct by adding (end_pct - start_pct) * prior_cap_estimate as current-session delta if ledger read returns fewer tokens than expected. Write updated cap estimates to ~/.agentflow/rate_calibration.json alongside existing EWMA fields.",
+      "title": "Orchestrate skill — ledger-anchored rate cap derivation",
+      "description": "Update the rate calibration logic in commands/orchestrate.md. Replace single-session delta method (cap = session_tokens / delta_pct) with ledger-anchored method: at session end, read agentflow_ledger.json, filter sessions where start_time >= window_start (local time; datetime.now() no tz), sum billable tokens (uncached_input + cache_creation + output per session), then cap_5hr = total_5hr_tokens / (end_pct_5hr / 100) and cap_wkly = total_wkly_tokens / (end_pct_wkly / 100). Window starts: 5hr = reset_time_5hr - 5h; weekly = reset_time_wkly - 7d. Gap: current session tokens not yet flushed to ledger — correct by adding (end_pct - start_pct) * prior_cap_estimate as current-session delta if ledger read returns fewer tokens than expected. Write updated cap estimates to ~/.agentflow/rate_calibration.json alongside existing EWMA fields.",
       "owns": [
         "commands/claude/orchestrate.md"
       ],
@@ -142,8 +142,8 @@
     },
     {
       "task_id": "T-040",
-      "title": "Oracle skill \u2014 general .idx reading protocol",
-      "description": "Add a general Targeted Reads Rule section to commands/oracle.md. Currently oracle only checks .idx for architecture.md (Step 2a). All other file reads (lazy-loaded phase files: market.md 63L, checklist.md 113L, generation.md 133L; any future reads) have no .idx protocol. Add a 'Targeted Reads Rule' section matching the structure in commands/worker/system.md lines 51-78: compute HASH, check IDX path, grep for symbol, Read with offset+limit, fallback to full read if absent. Note: oracle's phase files (market.md, checklist.md, generation.md) are intentionally read in full when entering each phase \u2014 the rule applies to any targeted symbol/section lookup oracle makes outside of those full-phase loads.",
+      "title": "Oracle skill — general .idx reading protocol",
+      "description": "Add a general Targeted Reads Rule section to commands/oracle.md. Currently oracle only checks .idx for architecture.md (Step 2a). All other file reads (lazy-loaded phase files: market.md 63L, checklist.md 113L, generation.md 133L; any future reads) have no .idx protocol. Add a 'Targeted Reads Rule' section matching the structure in commands/worker/system.md lines 51-78: compute HASH, check IDX path, grep for symbol, Read with offset+limit, fallback to full read if absent. Note: oracle's phase files (market.md, checklist.md, generation.md) are intentionally read in full when entering each phase — the rule applies to any targeted symbol/section lookup oracle makes outside of those full-phase loads.",
       "owns": [
         "commands/claude/oracle.md"
       ],
@@ -210,7 +210,7 @@
     {
       "task_id": "T-050",
       "title": "Add agentflow/__main__.py so `python -m agentflow` is executable",
-      "description": "Create agentflow/__main__.py as a thin shim that imports and calls agentflow.cli.main(). Currently `python -m agentflow shell` (and all subcommands) fail with 'No module named agentflow.__main__; agentflow is a package and cannot be directly executed'. The fix is a 2-line __main__.py: `from agentflow.cli import main; main()`. No logic \u2014 delegate entirely to cli.main().",
+      "description": "Create agentflow/__main__.py as a thin shim that imports and calls agentflow.cli.main(). Currently `python -m agentflow shell` (and all subcommands) fail with 'No module named agentflow.__main__; agentflow is a package and cannot be directly executed'. The fix is a 2-line __main__.py: `from agentflow.cli import main; main()`. No logic — delegate entirely to cli.main().",
       "owns": [
         "agentflow/__main__.py"
       ],
@@ -241,8 +241,8 @@
     {
       "task_id": "T-052",
       "status": "complete",
-      "title": "PTY session manager \u2014 Read-event idx injection + proactive verbosity banners",
-      "description": "Two additions to SessionManager, no new files. (1) Read-event idx injection: in _handle_output, strip ANSI codes (re.sub), regex-match for Read + file path pattern, check if ~/.agentflow/cache/<hash>/index/<file>.idx exists, inject targeted [IDX] <file>.idx banner immediately if found. Add _ansi_strip(text) and _detect_read_path(text) as private helpers. Existing every-3-turns injection kept as fallback. (2) Proactive verbosity injection: inject verbosity constraint banner once at session start (write to PTY stdin before first user input); re-inject every ~60s via time.monotonic() timer checked in the relay loop \u2014 no turn counting, no output parsing. Banner text: \"[VERBOSITY] Target <=3 sentences (~150 tokens) per response.\" Timer state held in SessionManager; relay loop calls session_manager.tick() each iteration.",
+      "title": "PTY session manager — Read-event idx injection + proactive verbosity banners",
+      "description": "Two additions to SessionManager, no new files. (1) Read-event idx injection: in _handle_output, strip ANSI codes (re.sub), regex-match for Read + file path pattern, check if ~/.agentflow/cache/<hash>/index/<file>.idx exists, inject targeted [IDX] <file>.idx banner immediately if found. Add _ansi_strip(text) and _detect_read_path(text) as private helpers. Existing every-3-turns injection kept as fallback. (2) Proactive verbosity injection: inject verbosity constraint banner once at session start (write to PTY stdin before first user input); re-inject every ~60s via time.monotonic() timer checked in the relay loop — no turn counting, no output parsing. Banner text: \"[VERBOSITY] Target <=3 sentences (~150 tokens) per response.\" Timer state held in SessionManager; relay loop calls session_manager.tick() each iteration.",
       "owns": [
         "agentflow/shell/session_manager.py"
       ],
@@ -277,7 +277,7 @@
     {
       "task_id": "T-053",
       "title": "Bug fixes: verbosity banner timing + absolute-path IDX guard",
-      "description": "Two bugs found and fixed in session_manager.py. (1) Static verbosity banner fired at __init__ time before child process was live \u2014 landed in input field on restart. Fixed by deferring injection to first _handle_output chunk. Added _initial_banner_sent flag. (2) T-052 IDX reactive banner never fired for real Read calls because _handle_output filtered out paths starting with '/' \u2014 but Read always uses absolute paths. Fixed by stripping cwd prefix from absolute paths before idx lookup; paths outside cwd silently dropped. Three pre-existing test failures fixed (verbosity threshold test missing 30s cooldown bypass; two tick() tests referencing removed method replaced with banner-timing tests).",
+      "description": "Two bugs found and fixed in session_manager.py. (1) Static verbosity banner fired at __init__ time before child process was live — landed in input field on restart. Fixed by deferring injection to first _handle_output chunk. Added _initial_banner_sent flag. (2) T-052 IDX reactive banner never fired for real Read calls because _handle_output filtered out paths starting with '/' — but Read always uses absolute paths. Fixed by stripping cwd prefix from absolute paths before idx lookup; paths outside cwd silently dropped. Three pre-existing test failures fixed (verbosity threshold test missing 30s cooldown bypass; two tick() tests referencing removed method replaced with banner-timing tests).",
       "owns": [
         "agentflow/shell/session_manager.py",
         "tests/shell/test_session_manager.py"
@@ -299,7 +299,7 @@
     {
       "task_id": "T-057",
       "title": "Reorganise skill dirs: commands/claude/ + commands/gemini/",
-      "description": "Restructure skill file locations to track Claude and Gemini skills under a unified commands/ tree. (1) Move all files under commands/ to commands/claude/ \u2014 preserving subdirectory structure (oracle/, orchestrator/, reviewer/, worker/). (2) Move Gemini skills from .agents/ to commands/gemini/ \u2014 AGENTS.md \u2192 commands/gemini/AGENTS.md; .agents/skills/drift/, handoff/, orchestrate/ \u2192 commands/gemini/skills/drift/, handoff/, orchestrate/. (3) Update all path references: design_status.md (Skill file location row), architecture.md (commands/ references in structure section and provider table), CLAUDE.md (structure block, skills dir entry), tasks.json (owns + context_section fields referencing commands/*.md), tests/prompts/test_oracle_prompts.py + test_reviewer_prompts.py + test_worker_prompts.py (ORACLE_DIR, REVIEWER_DIR, ORCHESTRATOR_DIR, WORKER_DIR constants). (4) Regenerate .idx cache: after moves, run the inline indexer against commands/claude/ and commands/gemini/ so ~/.agentflow/cache/<hash>/index/commands/claude/*.idx entries replace the stale commands/*.idx entries. Stale commands/*.idx entries must be deleted. (5) Copy target: update any copy instructions from commands/ \u2192 ~/.claude/commands/ to read from commands/claude/ instead.",
+      "description": "Restructure skill file locations to track Claude and Gemini skills under a unified commands/ tree. (1) Move all files under commands/ to commands/claude/ — preserving subdirectory structure (oracle/, orchestrator/, reviewer/, worker/). (2) Move Gemini skills from .agents/ to commands/gemini/ — AGENTS.md → commands/gemini/AGENTS.md; .agents/skills/drift/, handoff/, orchestrate/ → commands/gemini/skills/drift/, handoff/, orchestrate/. (3) Update all path references: design_status.md (Skill file location row), architecture.md (commands/ references in structure section and provider table), CLAUDE.md (structure block, skills dir entry), tasks.json (owns + context_section fields referencing commands/*.md), tests/prompts/test_oracle_prompts.py + test_reviewer_prompts.py + test_worker_prompts.py (ORACLE_DIR, REVIEWER_DIR, ORCHESTRATOR_DIR, WORKER_DIR constants). (4) Regenerate .idx cache: after moves, run the inline indexer against commands/claude/ and commands/gemini/ so ~/.agentflow/cache/<hash>/index/commands/claude/*.idx entries replace the stale commands/*.idx entries. Stale commands/*.idx entries must be deleted. (5) Copy target: update any copy instructions from commands/ → ~/.claude/commands/ to read from commands/claude/ instead.",
       "owns": [
         "commands/claude/",
         "commands/gemini/",
@@ -330,7 +330,7 @@
     {
       "task_id": "T-058",
       "title": "PostToolUse hook: block Write/Edit when file exceeds line limit",
-      "description": "New hook agentflow/hooks/size_check.py \u2014 PostToolUse on Write and Edit. After each write, read the modified file and check line count against per-category limits: tests/ \u2192 350, commands/ \u2192 150, all other .py \u2192 250. Stubs excluded: files whose content is >50% pass/ellipsis lines skip the check. On violation: print single telegraphic message and exit(1) to block next tool call \u2014 \"FILE TOO LARGE: <rel_path> is <N> lines (limit <L>) \u2014 split by responsibility boundary before proceeding.\" On pass: exit(0), no output. Register under PostToolUse for both Write and Edit matchers in .claude/settings.json alongside write_indexer. Add tests/hooks/test_size_check.py covering: under-limit passes, over-limit blocks, correct limit per category, stub exemption, non-.py files skipped.",
+      "description": "New hook agentflow/hooks/size_check.py — PostToolUse on Write and Edit. After each write, read the modified file and check line count against per-category limits: tests/ → 350, commands/ → 150, all other .py → 250. Stubs excluded: files whose content is >50% pass/ellipsis lines skip the check. On violation: print single telegraphic message and exit(1) to block next tool call — \"FILE TOO LARGE: <rel_path> is <N> lines (limit <L>) — split by responsibility boundary before proceeding.\" On pass: exit(0), no output. Register under PostToolUse for both Write and Edit matchers in .claude/settings.json alongside write_indexer. Add tests/hooks/test_size_check.py covering: under-limit passes, over-limit blocks, correct limit per category, stub exemption, non-.py files skipped.",
       "owns": [
         "agentflow/hooks/size_check.py",
         "tests/hooks/test_size_check.py",
@@ -341,7 +341,7 @@
     {
       "task_id": "T-059",
       "title": "Bake verbosity target into skill prompts as standing instruction",
-      "description": "Add a consistent verbosity target to oracle.md and orchestrate.md as a permanent standing instruction, not an optional argument. oracle.md: promote the Phase 2 verbosity note (\"\u22643 sentences per exchange\") to a top-level instruction visible before any phase executes \u2014 add \"\u22643 sentences (~150 tokens) per response; expand only if user asks\" near the opening. Remove the duplicate in Phase 2. orchestrate.md: extend the existing \"## Verbosity rules\" section to include the token target \u2014 \"\u22643 sentences (~150 tokens) per orchestrator status message\". Both changes must survive context growth (instruction must appear early in the file, not only in a late section). No changes to handoff.md, drift.md, or worker prompts \u2014 those are single-purpose and do not have multi-turn verbosity risk.",
+      "description": "Add a consistent verbosity target to oracle.md and orchestrate.md as a permanent standing instruction, not an optional argument. oracle.md: promote the Phase 2 verbosity note (\"≤3 sentences per exchange\") to a top-level instruction visible before any phase executes — add \"≤3 sentences (~150 tokens) per response; expand only if user asks\" near the opening. Remove the duplicate in Phase 2. orchestrate.md: extend the existing \"## Verbosity rules\" section to include the token target — \"≤3 sentences (~150 tokens) per orchestrator status message\". Both changes must survive context growth (instruction must appear early in the file, not only in a late section). No changes to handoff.md, drift.md, or worker prompts — those are single-purpose and do not have multi-turn verbosity risk.",
       "owns": [
         "commands/claude/oracle.md",
         "commands/claude/orchestrate.md"
@@ -351,7 +351,7 @@
     {
       "task_id": "T-061",
       "title": "Explore Gemini CLI hook equivalents for .idx reminder injection",
-      "description": "Investigate whether Gemini CLI has hook mechanisms equivalent to Claude Code's UserPromptSubmit hook, for invisible turn-conditioned .idx reminder injection. Desired properties: fires before each user turn, invisible to user (not written to stdin/input field), turn-conditioned (every 3 turns), preserves recency effect in conversation context. Explore: (1) Gemini CLI hook/plugin system \u2014 any pre-turn or pre-request event hooks; (2) GEMINI_API_BASE_URL or equivalent env var for local proxy interception as fallback; (3) Gemini AGENTS.md or system prompt injection mechanism. Document findings in design_status.md as a new row: 'Gemini idx injection mechanism' \u2014 RESOLVED with chosen approach or DEFERRED if no clean equivalent exists.",
+      "description": "Investigate whether Gemini CLI has hook mechanisms equivalent to Claude Code's UserPromptSubmit hook, for invisible turn-conditioned .idx reminder injection. Desired properties: fires before each user turn, invisible to user (not written to stdin/input field), turn-conditioned (every 3 turns), preserves recency effect in conversation context. Explore: (1) Gemini CLI hook/plugin system — any pre-turn or pre-request event hooks; (2) GEMINI_API_BASE_URL or equivalent env var for local proxy interception as fallback; (3) Gemini AGENTS.md or system prompt injection mechanism. Document findings in design_status.md as a new row: 'Gemini idx injection mechanism' — RESOLVED with chosen approach or DEFERRED if no clean equivalent exists.",
       "owns": [
         "design_status.md"
       ],
@@ -363,8 +363,8 @@
     },
     {
       "task_id": "T-062",
-      "title": "UserPromptSubmit hook \u2014 .idx reminder injection (replaces PTY stdin)",
-      "description": "Wire up agentflow/hooks/idx_reminder.py as a UserPromptSubmit hook in .claude/settings.json. Hook fires after user submits each message (input field already cleared \u2014 injection invisible). Every 3rd turn outputs [IDX] reminder text; Claude receives it as context without user seeing it in the input field. Add tests/hooks/test_idx_reminder.py covering: counter increments on each call, reminder output on turn 3/6/9, no output on turns 1/2/4, counter file created if absent, counter resets gracefully on corrupt file. Remove PTY stdin .idx injection from session_manager.py (_inject_idx_banner call site in the every-3-turns path) \u2014 hook supersedes it. PTY Read-event detection (T-052) stays: it is reactive (fires on detected Read calls), hook is proactive (periodic recalibration). Both complement; stdin injection is the only part removed.",
+      "title": "UserPromptSubmit hook — .idx reminder injection (replaces PTY stdin)",
+      "description": "Wire up agentflow/hooks/idx_reminder.py as a UserPromptSubmit hook in .claude/settings.json. Hook fires after user submits each message (input field already cleared — injection invisible). Every 3rd turn outputs [IDX] reminder text; Claude receives it as context without user seeing it in the input field. Add tests/hooks/test_idx_reminder.py covering: counter increments on each call, reminder output on turn 3/6/9, no output on turns 1/2/4, counter file created if absent, counter resets gracefully on corrupt file. Remove PTY stdin .idx injection from session_manager.py (_inject_idx_banner call site in the every-3-turns path) — hook supersedes it. PTY Read-event detection (T-052) stays: it is reactive (fires on detected Read calls), hook is proactive (periodic recalibration). Both complement; stdin injection is the only part removed.",
       "owns": [
         "agentflow/hooks/idx_reminder.py",
         ".claude/settings.json",
@@ -378,8 +378,8 @@
     },
     {
       "task_id": "T-063",
-      "title": "Cross-provider atomic task claiming \u2014 claimed_by field + claim protocol",
-      "description": "Enable simultaneous Claude + Gemini orchestrators on the same tasks.json without task collision. (1) Add claimed_by field to task schema (null = unclaimed, 'claude'/'gemini' = in use). (2) commands/claude/orchestrate.md: before spawning a worker for a task, read tasks.json, check status=pending AND claimed_by=null, write claimed_by='claude' under a file lock (.agentflow/tasks.lock), then spawn. On task complete/failed, clear claimed_by. (3) commands/gemini/skills/orchestrate/SKILL.md: same protocol with claimed_by='gemini'. (4) Both providers skip tasks where claimed_by is already set. File lock ensures atomic read-modify-write; lock held <100ms. Tests: test_orchestrate_skill.py \u2014 assert claim protocol present in both Claude and Gemini skill content.",
+      "title": "Cross-provider atomic task claiming — claimed_by field + claim protocol",
+      "description": "Enable simultaneous Claude + Gemini orchestrators on the same tasks.json without task collision. (1) Add claimed_by field to task schema (null = unclaimed, 'claude'/'gemini' = in use). (2) commands/claude/orchestrate.md: before spawning a worker for a task, read tasks.json, check status=pending AND claimed_by=null, write claimed_by='claude' under a file lock (.agentflow/tasks.lock), then spawn. On task complete/failed, clear claimed_by. (3) commands/gemini/skills/orchestrate/SKILL.md: same protocol with claimed_by='gemini'. (4) Both providers skip tasks where claimed_by is already set. File lock ensures atomic read-modify-write; lock held <100ms. Tests: test_orchestrate_skill.py — assert claim protocol present in both Claude and Gemini skill content.",
       "owns": [
         "commands/claude/orchestrate.md",
         "commands/gemini/skills/orchestrate/SKILL.md",
@@ -390,7 +390,7 @@
     {
       "task_id": "T-064",
       "title": "Cross-provider rate headroom check before task claiming",
-      "description": "Before claiming a task, each provider checks its own rate_calibration_<provider>.json for remaining 5hr window headroom. If remaining headroom < 10% of cap_5hr, skip claiming this round and log 'Rate headroom low \u2014 skipping claim (<provider>)'. This prevents a nearly-rate-limited provider from grabbing tasks it cannot complete before the window resets, allowing the other provider to continue. (1) commands/claude/orchestrate.md: add headroom check step before claim in the task loop; read rate_calibration_claude.json, compute remaining = cap_5hr * (1 - end_pct_5hr/100), skip if remaining < cap_5hr * 0.10. (2) commands/gemini/skills/orchestrate/SKILL.md: same with rate_calibration_gemini.json. Depends on T-063 (claimed_by protocol) and T-060 (provider-keyed files).",
+      "description": "Before claiming a task, each provider checks its own rate_calibration_<provider>.json for remaining 5hr window headroom. If remaining headroom < 10% of cap_5hr, skip claiming this round and log 'Rate headroom low — skipping claim (<provider>)'. This prevents a nearly-rate-limited provider from grabbing tasks it cannot complete before the window resets, allowing the other provider to continue. (1) commands/claude/orchestrate.md: add headroom check step before claim in the task loop; read rate_calibration_claude.json, compute remaining = cap_5hr * (1 - end_pct_5hr/100), skip if remaining < cap_5hr * 0.10. (2) commands/gemini/skills/orchestrate/SKILL.md: same with rate_calibration_gemini.json. Depends on T-063 (claimed_by protocol) and T-060 (provider-keyed files).",
       "owns": [
         "commands/claude/orchestrate.md",
         "commands/gemini/skills/orchestrate/SKILL.md"
@@ -408,7 +408,7 @@
     {
       "task_id": "T-060",
       "title": "Provider-keyed rate calibration files: rate_calibration_claude.json / rate_calibration_gemini.json",
-      "description": "rate_calibration.json is a single shared file \u2014 Gemini sessions overwrite Claude EWMA and caps, making round-sizing and rate-pacing wrong for whichever provider runs next. Fix: each provider reads and writes its own file. (1) commands/claude/orchestrate.md: replace both references to rate_calibration.json with rate_calibration_claude.json (Step 5 load and end-of-session write). (2) commands/claude/oracle.md: same replacement (Step 2b load). (3) commands/gemini/skills/orchestrate/SKILL.md: replace with rate_calibration_gemini.json. (4) Migration: on load, if provider-specific file is absent but rate_calibration.json exists, read the generic file as fallback (one-time compat shim; do not write back to generic file). (5) Update tests/prompts/test_oracle_skill.py and test_orchestrate_skill.py: assert rate_calibration_claude.json (not rate_calibration.json) in Claude skill content.",
+      "description": "rate_calibration.json is a single shared file — Gemini sessions overwrite Claude EWMA and caps, making round-sizing and rate-pacing wrong for whichever provider runs next. Fix: each provider reads and writes its own file. (1) commands/claude/orchestrate.md: replace both references to rate_calibration.json with rate_calibration_claude.json (Step 5 load and end-of-session write). (2) commands/claude/oracle.md: same replacement (Step 2b load). (3) commands/gemini/skills/orchestrate/SKILL.md: replace with rate_calibration_gemini.json. (4) Migration: on load, if provider-specific file is absent but rate_calibration.json exists, read the generic file as fallback (one-time compat shim; do not write back to generic file). (5) Update tests/prompts/test_oracle_skill.py and test_orchestrate_skill.py: assert rate_calibration_claude.json (not rate_calibration.json) in Claude skill content.",
       "owns": [
         "commands/claude/orchestrate.md",
         "commands/claude/oracle.md",
@@ -420,19 +420,19 @@
     },
     {
       "task_id": "T-065",
-      "title": "Orchestrate skill \u2014 structured PTY signals + current_round.json",
-      "description": "Enable PTY to track task lifecycle deterministically. (1) commands/claude/orchestrate.md: at round start, write .agentflow/current_round.json with {round_id, task_ids, estimated_lines_per_task, file_counts_per_task, timestamp}. (2) Before spawning each worker, print AGENTFLOW_TASK_START:<task_id> to stdout. (3) After each worker completes, print AGENTFLOW_TASK_COMPLETE:<task_id>. (4) After all round tasks complete, print AGENTFLOW_ROUND_COMPLETE. (5) commands/gemini/skills/orchestrate/SKILL.md: same four signals. (6) Tests: test_orchestrate_skill.py \u2014 assert all four signal strings present in Claude and Gemini skill content; assert current_round.json write step present.",
+      "title": "Orchestrate skill — structured PTY signals + current_round.json",
+      "description": "Enable PTY to track task lifecycle deterministically. (1) commands/claude/orchestrate.md: at round start, write .agentflow/current_round.json with {round_id, task_ids, estimated_lines_per_task, file_counts_per_task, timestamp}. (2) Before spawning each worker, print AGENTFLOW_TASK_START:<task_id> to stdout. (3) After each worker completes, print AGENTFLOW_TASK_COMPLETE:<task_id>. (4) After all round tasks complete, print AGENTFLOW_ROUND_COMPLETE. (5) commands/gemini/skills/orchestrate/SKILL.md: same four signals. (6) Tests: test_orchestrate_skill.py — assert all four signal strings present in Claude and Gemini skill content; assert current_round.json write step present.",
       "owns": [
         "commands/claude/orchestrate.md",
         "commands/gemini/skills/orchestrate/SKILL.md",
         "tests/prompts/test_orchestrate_skill.py"
       ],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-066",
-      "title": "PTY session_manager \u2014 ROUND_COMPLETE detection + token-floor handoff",
-      "description": "Replace pure token-threshold handoff with deterministic round-boundary handoff. (1) session_manager.py: scan stdout for AGENTFLOW_ROUND_COMPLETE. On detection: (a) read .agentflow/current_round.json to confirm round closed, (b) check accumulated_tokens vs configurable floor (shell.handoff_token_floor_pct, default 0.30 of threshold). (2) If above floor: call trigger_handoff() \u2014 clean boundary, no mid-task interrupt. (3) If below floor: log round-complete-low-tokens event to verbosity_log.jsonl, reset round state, continue. Token threshold remains as a safety net if ROUND_COMPLETE is never emitted. (4) Tests: test_session_manager.py \u2014 mock ROUND_COMPLETE in PTY stdout; assert handoff triggered when tokens above floor; assert handoff skipped and continued when below floor.",
+      "title": "PTY session_manager — ROUND_COMPLETE detection + token-floor handoff",
+      "description": "Replace pure token-threshold handoff with deterministic round-boundary handoff. (1) session_manager.py: scan stdout for AGENTFLOW_ROUND_COMPLETE. On detection: (a) read .agentflow/current_round.json to confirm round closed, (b) check accumulated_tokens vs configurable floor (shell.handoff_token_floor_pct, default 0.30 of threshold). (2) If above floor: call trigger_handoff() — clean boundary, no mid-task interrupt. (3) If below floor: log round-complete-low-tokens event to verbosity_log.jsonl, reset round state, continue. Token threshold remains as a safety net if ROUND_COMPLETE is never emitted. (4) Tests: test_session_manager.py — mock ROUND_COMPLETE in PTY stdout; assert handoff triggered when tokens above floor; assert handoff skipped and continued when below floor.",
       "owns": [
         "agentflow/shell/session_manager.py",
         "tests/shell/test_session_manager.py"
@@ -447,8 +447,8 @@
     },
     {
       "task_id": "T-067",
-      "title": "PTY session_manager \u2014 per-task token bracketing \u2192 task_token_log.jsonl",
-      "description": "Collect empirical per-task token data to power the future estimator. (1) session_manager.py: on AGENTFLOW_TASK_START:<task_id>, snapshot tokenizer accumulator value as task_start_tokens. (2) On AGENTFLOW_TASK_COMPLETE:<task_id>, compute delta = current_accumulated - task_start_tokens; read estimated_lines and file_count for this task_id from current_round.json. (3) Append to ~/.agentflow/task_token_log.jsonl: {task_id, session_type, token_delta, estimated_lines, file_count, timestamp}. File created if absent. (4) Tests: test_session_manager.py \u2014 emit TASK_START + TASK_COMPLETE signals; assert task_token_log.jsonl entry written with correct delta and metadata.",
+      "title": "PTY session_manager — per-task token bracketing → task_token_log.jsonl",
+      "description": "Collect empirical per-task token data to power the future estimator. (1) session_manager.py: on AGENTFLOW_TASK_START:<task_id>, snapshot tokenizer accumulator value as task_start_tokens. (2) On AGENTFLOW_TASK_COMPLETE:<task_id>, compute delta = current_accumulated - task_start_tokens; read estimated_lines and file_count for this task_id from current_round.json. (3) Append to ~/.agentflow/task_token_log.jsonl: {task_id, session_type, token_delta, estimated_lines, file_count, timestamp}. File created if absent. (4) Tests: test_session_manager.py — emit TASK_START + TASK_COMPLETE signals; assert task_token_log.jsonl entry written with correct delta and metadata.",
       "owns": [
         "agentflow/shell/session_manager.py",
         "tests/shell/test_session_manager.py"
@@ -465,8 +465,8 @@
     },
     {
       "task_id": "T-068",
-      "title": "Per-task token estimator \u2014 regression model from task_token_log.jsonl",
-      "description": "Build empirical estimator to replace the 2500-token constant in round-sizing. (1) New file agentflow/shadow/task_estimator.py: reads ~/.agentflow/task_token_log.jsonl. (2) Requires sample_count >= 5; else returns fallback constant 2500. (3) Fits linear regression: tokens ~ intercept + slope_lines * estimated_lines + slope_files * file_count using least squares (stdlib only \u2014 no numpy; implement normal equations directly). (4) Writes model to ~/.agentflow/task_estimator.json: {slope_lines, slope_files, intercept, r2, sample_count, updated_at}. (5) Exposes estimate(estimated_lines, file_count) -> int. (6) Tests: test_task_estimator.py \u2014 synthetic log entries; assert model written; assert fallback on low sample count; assert estimate() output reasonable.",
+      "title": "Per-task token estimator — regression model from task_token_log.jsonl",
+      "description": "Build empirical estimator to replace the 2500-token constant in round-sizing. (1) New file agentflow/shadow/task_estimator.py: reads ~/.agentflow/task_token_log.jsonl. (2) Requires sample_count >= 5; else returns fallback constant 2500. (3) Fits linear regression: tokens ~ intercept + slope_lines * estimated_lines + slope_files * file_count using least squares (stdlib only — no numpy; implement normal equations directly). (4) Writes model to ~/.agentflow/task_estimator.json: {slope_lines, slope_files, intercept, r2, sample_count, updated_at}. (5) Exposes estimate(estimated_lines, file_count) -> int. (6) Tests: test_task_estimator.py — synthetic log entries; assert model written; assert fallback on low sample count; assert estimate() output reasonable.",
       "owns": [
         "agentflow/shadow/task_estimator.py",
         "tests/shadow/test_task_estimator.py"
@@ -481,8 +481,8 @@
     },
     {
       "task_id": "T-069",
-      "title": "Orchestrate skill \u2014 parallel worker scheduling using token estimator",
-      "description": "Replace sequential per-round task execution with parallel scheduling bounded by token budget. (1) commands/claude/orchestrate.md: at round start, load ~/.agentflow/task_estimator.json (fallback 2500 if absent or sample_count < 5). (2) Compute N = max(1, floor(remaining_tokens / estimated_tokens_per_task)). (3) Filter candidate tasks: exclude any task whose owns fields overlap with another selected task (disjoint owns required to prevent write conflicts). (4) Spawn up to N workers in parallel Agent calls within the same orchestrate session. (5) commands/gemini/skills/orchestrate/SKILL.md: same parallel scheduling logic with task_estimator.json load. (6) Tests: test_orchestrate_skill.py \u2014 assert parallel scheduling logic, estimator load step, and owns-disjoint check present in both Claude and Gemini skill content.",
+      "title": "Orchestrate skill — parallel worker scheduling using token estimator",
+      "description": "Replace sequential per-round task execution with parallel scheduling bounded by token budget. (1) commands/claude/orchestrate.md: at round start, load ~/.agentflow/task_estimator.json (fallback 2500 if absent or sample_count < 5). (2) Compute N = max(1, floor(remaining_tokens / estimated_tokens_per_task)). (3) Filter candidate tasks: exclude any task whose owns fields overlap with another selected task (disjoint owns required to prevent write conflicts). (4) Spawn up to N workers in parallel Agent calls within the same orchestrate session. (5) commands/gemini/skills/orchestrate/SKILL.md: same parallel scheduling logic with task_estimator.json load. (6) Tests: test_orchestrate_skill.py — assert parallel scheduling logic, estimator load step, and owns-disjoint check present in both Claude and Gemini skill content.",
       "owns": [
         "commands/claude/orchestrate.md",
         "commands/gemini/skills/orchestrate/SKILL.md",
@@ -499,8 +499,8 @@
     },
     {
       "task_id": "T-070",
-      "title": "read_check.py \u2014 block large-range reads that bypass idx enforcement",
-      "description": "read_check.py currently blocks reads with no offset/limit when an idx exists. Gap: reads with offset\u22480 + large limit (e.g. offset=7, limit=168 on a 174-line file) pass unblocked despite covering nearly the full file. Fix: (1) When offset and limit are both present, count total lines in file (stdlib only). (2) Compute coverage = limit / (total_lines - offset). (3) If coverage > threshold (default 0.60) AND idx exists \u2192 exit 1 with message: \"Large-range read (N/M lines, X%) \u2014 use idx to target specific sections\". (4) If file < 50 lines (no idx expected) \u2192 skip check. (5) Threshold configurable via AGENTFLOW_READ_COVERAGE_THRESHOLD env var. (6) Tests: tests/hooks/test_read_check.py \u2014 assert exit 1 on large-range read with idx present; assert exit 0 on targeted read (small limit); assert exit 0 on file < 50 lines; assert exit 0 when no idx exists regardless of range.",
+      "title": "read_check.py — block large-range reads that bypass idx enforcement",
+      "description": "read_check.py currently blocks reads with no offset/limit when an idx exists. Gap: reads with offset≈0 + large limit (e.g. offset=7, limit=168 on a 174-line file) pass unblocked despite covering nearly the full file. Fix: (1) When offset and limit are both present, count total lines in file (stdlib only). (2) Compute coverage = limit / (total_lines - offset). (3) If coverage > threshold (default 0.60) AND idx exists → exit 1 with message: \"Large-range read (N/M lines, X%) — use idx to target specific sections\". (4) If file < 50 lines (no idx expected) → skip check. (5) Threshold configurable via AGENTFLOW_READ_COVERAGE_THRESHOLD env var. (6) Tests: tests/hooks/test_read_check.py — assert exit 1 on large-range read with idx present; assert exit 0 on targeted read (small limit); assert exit 0 on file < 50 lines; assert exit 0 when no idx exists regardless of range.",
       "owns": [
         "agentflow/hooks/read_check.py",
         "tests/hooks/test_read_check.py"

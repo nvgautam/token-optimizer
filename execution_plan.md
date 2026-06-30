@@ -121,7 +121,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-060 | Provider-keyed rate calibration files: Claude vs Gemini | MERGED |
 | T-061 | Explore Gemini CLI hook equivalents for .idx reminder injection | PENDING |
 | T-062 | UserPromptSubmit hook — .idx reminder injection (replaces PTY stdin) | MERGED |
-| T-065 | Orchestrate skill — structured PTY signals + current_round.json | PENDING |
+| T-065 || MERGED |
 | T-066 | PTY session_manager — ROUND_COMPLETE detection + token-floor handoff | PENDING |
 | T-067 | PTY session_manager — per-task token bracketing → task_token_log.jsonl | PENDING |
 | T-070 | read_check.py — block large-range reads that bypass idx enforcement | PENDING |
