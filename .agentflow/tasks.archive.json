@@ -126,6 +126,16 @@
         "tests/prompts/test_orchestrate_skill.py"
       ],
       "status": "complete"
+    },
+    {
+      "task_id": "T-070",
+      "title": "read_check.py — block large-range reads that bypass idx enforcement",
+      "description": "read_check.py currently blocks reads with no offset/limit when an idx exists. Gap: reads with offset≈0 + large limit (e.g. offset=7, limit=168 on a 174-line file) pass unblocked despite covering nearly the full file. Fix: (1) When offset and limit are both present, count total lines in file (stdlib only). (2) Compute coverage = limit / (total_lines - offset). (3) If coverage > threshold (default 0.60) AND idx exists → exit 1 with message: \"Large-range read (N/M lines, X%) — use idx to target specific sections\". (4) If file < 50 lines (no idx expected) → skip check. (5) Threshold configurable via AGENTFLOW_READ_COVERAGE_THRESHOLD env var. (6) Tests: tests/hooks/test_read_check.py — assert exit 1 on large-range read with idx present; assert exit 0 on targeted read (small limit); assert exit 0 on file < 50 lines; assert exit 0 when no idx exists regardless of range.",
+      "owns": [
+        "agentflow/hooks/read_check.py",
+        "tests/hooks/test_read_check.py"
+      ],
+      "status": "complete"
     }
   ]
 }

@@ -124,7 +124,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-065 || MERGED |
 | T-066 | PTY session_manager — ROUND_COMPLETE detection + token-floor handoff | PENDING |
 | T-067 | PTY session_manager — per-task token bracketing → task_token_log.jsonl | PENDING |
-| T-070 | read_check.py — block large-range reads that bypass idx enforcement | PENDING |
+| T-070 | read_check.py — block large-range reads that bypass idx enforcement | MERGED |
 
 | Round | Tasks | Note |
 |---|---|---|
