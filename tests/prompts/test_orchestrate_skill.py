@@ -141,3 +141,21 @@ def test_orchestrate_writes_ewma_to_rate_calibration():
     assert "ewma_alpha" in content, \
         "orchestrate.md must write ewma_alpha to rate_calibration_claude.json"
 
+
+def test_orchestrate_signals_and_round_json():
+    """Assert all four signal strings and current_round.json write step are present."""
+    for f in [CLAUDE_ORCHESTRATE, GEMINI_ORCHESTRATE]:
+        content = f.read_text(encoding="utf-8")
+        assert ".agentflow/current_round.json" in content, f"{f.name} must write .agentflow/current_round.json"
+        assert "round_id" in content, f"{f.name} must include round_id in current_round.json write details"
+        assert "task_ids" in content, f"{f.name} must include task_ids in current_round.json write details"
+        assert "estimated_lines_per_task" in content, f"{f.name} must include estimated_lines_per_task in current_round.json write details"
+        assert "file_counts_per_task" in content, f"{f.name} must include file_counts_per_task in current_round.json write details"
+        assert "timestamp" in content, f"{f.name} must include timestamp in current_round.json write details"
+        
+        assert "AGENTFLOW_TASK_START:" in content, f"{f.name} must print AGENTFLOW_TASK_START:<task_id>"
+        assert "AGENTFLOW_TASK_COMPLETE:" in content, f"{f.name} must print AGENTFLOW_TASK_COMPLETE:<task_id>"
+        assert "AGENTFLOW_ROUND_COMPLETE" in content, f"{f.name} must print AGENTFLOW_ROUND_COMPLETE"
+
+
+

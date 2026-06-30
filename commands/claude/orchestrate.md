@@ -110,7 +110,24 @@ Close every prompt: `"End your final message with TOKENS: input=N output=N — n
 
 Spawn one agent per group, `isolation: "worktree"`. Parallel only if no cross-dependencies and rate supports. Save `.agentflow/state.json` after each.
 
+### Round Lifecycle & PTY Signals
+At the start of each round, write `.agentflow/current_round.json` with the following schema:
+```json
+{
+  "round_id": "string",
+  "task_ids": ["string"],
+  "estimated_lines_per_task": {"task_id": "int"},
+  "file_counts_per_task": {"task_id": "int"},
+  "timestamp": "ISO8601"
+}
+```
+During the round execution, orchestrate the worker lifecycles with deterministic stdout print signals:
+- Before spawning each worker: print `AGENTFLOW_TASK_START:<task_id>`
+- After each worker completes: print `AGENTFLOW_TASK_COMPLETE:<task_id>`
+- After all round tasks complete: print `AGENTFLOW_ROUND_COMPLETE`
+
 ---
+
 
 ## Review
 
