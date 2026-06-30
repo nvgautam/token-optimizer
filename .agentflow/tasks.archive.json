@@ -149,6 +149,20 @@
         ".agentflow/current_round.json"
       ],
       "status": "complete"
+    },
+    {
+      "task_id": "T-067",
+      "title": "PTY session_manager — per-task token bracketing → task_token_log.jsonl",
+      "description": "Collect empirical per-task token data to power the future estimator. (1) session_manager.py: on AGENTFLOW_TASK_START:<task_id>, snapshot tokenizer accumulator value as task_start_tokens. (2) On AGENTFLOW_TASK_COMPLETE:<task_id>, compute delta = current_accumulated - task_start_tokens; read estimated_lines and file_count for this task_id from current_round.json. (3) Append to ~/.agentflow/task_token_log.jsonl: {task_id, session_type, token_delta, estimated_lines, file_count, timestamp}. File created if absent. (4) Tests: test_session_manager.py — emit TASK_START + TASK_COMPLETE signals; assert task_token_log.jsonl entry written with correct delta and metadata.",
+      "owns": [
+        "agentflow/shell/session_manager.py",
+        "tests/shell/test_session_manager.py"
+      ],
+      "reads": [
+        ".agentflow/current_round.json",
+        "~/.agentflow/task_token_log.jsonl"
+      ],
+      "status": "complete"
     }
   ]
 }

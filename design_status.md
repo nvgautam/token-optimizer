@@ -63,3 +63,19 @@ Oracle reads on startup. Handoff writes updates. Architecture.md = workers only.
 | ContentRouter integration | DEFERRED | v2 — Headroom library; uses ANTHROPIC_BASE_URL as interception point — IS the proxy layer. PTY sets ANTHROPIC_BASE_URL at launch; ContentRouter handles compression + system prompt injection. No separate PTY proxy needed. |
 | Mid-session /compact | DEFERRED | Not worth at current 30-60K handoff thresholds — sessions hand off before compaction helps. Revisit if thresholds raised significantly. |
 | Verbosity compliance tracking | RESOLVED | Per-turn output token tracking in PTY (T-010) — writes verbosity_log.jsonl; shadow analyzer reports mean/p90 vs 150-token target. |
+
+## Oracle Direction — Sparred 2026-06-30
+
+| Item | Status | Decision |
+|---|---|---|
+| Oracle 4-stage expansion | DEFERRED | Expand to: (1) market+product spec, (2) architecture, (3) engineering+token optimization, (4) QA acceptance criteria; blocked on first customer conversation — build with them, not before |
+| Universal requirements taxonomy | DEFERRED | Replace per-market checklists with cross-cutting taxonomy (Security, Compliance, Observability, Reliability, Scale, Privacy) + silent market-segment overlays applied at spar time; shallow compliance depth agreed (flag what applies; no legal liability accepted) |
+| Oracle IP protection — checklist content | RESOLVED | Taxonomy + overlays embed in PTY binary (Nuitka compile-time); server-side delivery for commercial tier; .md files on disk not acceptable for IP-sensitive content |
+| Oracle brownfield mode | DEFERRED | Separate `/oracle --brownfield` skill; reads existing architecture + tech debt before sparring; different startup sequence from greenfield |
+| QA acceptance criteria ownership | RESOLVED | Oracle writes acceptance criteria per milestone at generation time; test scaffolding + evaluation belong to worker/reviewer pipeline — not oracle |
+| Delivery timeline propagation | DEFERRED | Oracle captures user-stated delivery timelines; propagates as ordering constraint into milestone sequencing; v2 design — needs milestone management integration |
+| SRE persona | DEFERRED | Fold SRE concerns (observability, alerting, runbooks) into Stage 2 architecture checklist batch; not a separate oracle stage |
+| Headroom/ContentRouter integration | DEFERRED | Pending T-071 evaluation; if composable with PTY, pull into demo scope; SharedContext may redesign M5 from collision-prevention to active cross-provider context sharing |
+| Demo report generator | DEFERRED | Required for demo — reads task_token_log.jsonl, computes savings vs baseline, breakdown per strategy (targeted reads + handoff + Headroom compression); add as task after T-071 resolves Headroom metrics question |
+| Monetization positioning | RESOLVED | Cost + compliance, not orchestration features; target AI-first startups $5K–20K/month API spend; PTY measurement layer + compliance taxonomy = moat competitors lack |
+| Customer conversation timing | RESOLVED | Start discovery conversations now (no code needed); live demo after M4 addendum (T-067) + report generator landed; build compliance taxonomy depth with first customer, not speculatively |
