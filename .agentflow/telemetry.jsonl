@@ -289,3 +289,4 @@
 {"trace_id": "635ac29d-b95a-49fb-8d0a-9aca70dd89d7", "span": "worker.context_built", "timestamp": "2026-06-29T23:36:47.344252+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
 {"trace_id": "c9a4bb40-2ecd-457a-8170-f3cbd6e0f5de", "span": "worker.context_built", "timestamp": "2026-06-29T23:36:47.353371+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
 {"event": "session_complete", "timestamp": "2026-06-29T16:37:00", "tasks": 1, "groups": 1}
+{"event": "handoff", "timestamp": "2026-06-29T19:29:00", "session_type": "orchestrator", "agent_tokens_in": 15000, "agent_tokens_out": 2500, "agents": 1}
