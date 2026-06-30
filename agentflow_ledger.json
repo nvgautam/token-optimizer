@@ -2023,10 +2023,44 @@
         }
       },
       "status": "closed"
+    },
+    {
+      "session_id": "20260630_153105",
+      "agent": "agy",
+      "task_ids": "",
+      "start_time": "2026-06-30T15:31:05.952919",
+      "end_time": "2026-06-30T15:31:05.952927",
+      "context_at_start": 21302,
+      "input_tokens": 10452999,
+      "output_tokens": 55749,
+      "token_detail": {
+        "uncached_input": 844653,
+        "cache_creation": 0,
+        "cache_read": 9608346,
+        "output": 55749,
+        "n_turns": 98,
+        "initial_ctx": 21302,
+        "final_ctx": 161507
+      },
+      "n_turns": 98,
+      "final_ctx": 161507,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 19946386,
+        "shadow_output": 137941,
+        "shadow_extra": 9258550,
+        "compaction": {
+          "before": 234837,
+          "after": 82192,
+          "cost_tokens": 82192
+        }
+      },
+      "status": "closed"
     }
   ],
   "shadow_state": {
-    "accumulated_context": 94475,
-    "compaction_events": 41
+    "accumulated_context": 82192,
+    "compaction_events": 42
   }
 }
