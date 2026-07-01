@@ -493,7 +493,9 @@
       "task_id": "T-071",
       "title": "Evaluate headroom-ai library — integration feasibility for PTY + M5",
       "description": "Research spike: determine what headroom-ai actually does before designing integration. (1) pip install headroom-ai[all]; run `headroom wrap claude --help` and explore CLI flags. (2) Determine mechanism: subprocess wrapper, HTTP proxy, ANTHROPIC_BASE_URL intercept, or other — and whether it conflicts with PTY stdin/stdout interception. (3) Understand compress(): what algorithm, lossless or lossy, token savings estimate. (4) Understand SharedContext: in-memory or persistent? Cross-process? How does cross-provider sharing work? (5) Check whether headroom exposes per-session compression metrics readable by a report generator. (6) Write findings to .agentflow/headroom_eval.md: mechanism, composability verdict, savings estimate, SharedContext design implications for M5, recommended integration approach or DEFER if incompatible.",
-      "owns": [".agentflow/headroom_eval.md"],
+      "owns": [
+        ".agentflow/headroom_eval.md"
+      ],
       "status": "complete"
     },
     {
@@ -508,6 +510,50 @@
         "tests/hooks/test_verbosity_reminder.py"
       ],
       "status": "complete"
+    },
+    {
+      "task_id": "T-074",
+      "title": "Wire headroom-ai into PTY shell — `headroom wrap <provider>` at session start",
+      "description": "Per T-071 findings (.agentflow/headroom_eval.md): headroom wrap does not touch stdin/stdout, so PTY shell can wrap it transparently. (1) agentflow/cli.py cmd_shell: if shutil.which('headroom') found, replace cmd with ['headroom','wrap',cmd] before constructing PTYWrapper; set HEADROOM_WORKSPACE_DIR to <project_root>/.headroom/ so ledger/cache stay project-local. Fall back to raw cmd if headroom not installed — no hard dependency. (2) Claude path (cmd=='claude') is primary — interception mechanism (ANTHROPIC_BASE_URL + ~/.claude/settings.json injection) confirmed Claude-Code-specific in the eval doc. Gemini path (cmd=='agy') is UNVERIFIED — eval doc never tested Gemini CLI env-var handling. Must empirically verify: spawn headroom-wrapped agy, confirm savings_events.jsonl gets entries from a real Gemini session. If not intercepted, ship Claude-only this task and log a DEFERRED note for Gemini in design_status.md — do not claim cross-provider savings without evidence. (3) Do not assume vendor's '60%+ context reduction' claim transfers to AgentFlow's actual traffic — idx targeted-reads already strip much of the large tool-output payload Headroom targets hardest; real number must be measured (T-072), not assumed. Tests: tests/test_cli_shell.py — cmd_shell wraps with headroom when present, falls back cleanly when absent, sets HEADROOM_WORKSPACE_DIR correctly.",
+      "owns": [
+        "agentflow/cli.py",
+        "tests/test_cli_shell.py"
+      ],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-075",
+      "title": "Split agentflow.py (989 lines) into modules — retroactive 250-line enforcement",
+      "description": "agentflow.py has been 960+ lines since the project's first commit — predates T-058's size_check.py hook, which only fires on Write/Edit tool calls and never touched this pre-existing file. Split by responsibility boundary into agentflow/ submodules; audit for overlap with agentflow/cli.py before splitting further. No behavior change — mechanical extraction, preserve all CLI commands and existing test assertions. Each resulting file ≤250 lines. Update only import paths if commands move modules.",
+      "owns": [
+        "agentflow.py"
+      ],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-076",
+      "title": "Size-limit enforcement gap — Gemini writes + pre-existing violations uncovered",
+      "description": "T-058's size_check.py is Claude-Code-specific (PostToolUse hook); it never fires for (a) files that existed before Claude's Write/Edit tool touched them (e.g. agentflow.py), or (b) Gemini CLI writes — no equivalent hook mechanism wired for Gemini. (1) Add standalone agentflow/hooks/size_audit.py — walks repo, applies same per-category limits as size_check.py (tests/->350, commands/->150, other .py->250, stub-exempt), reports every current violation. (2) Wire as a manual/orchestrator-invoked sweep (python3 agentflow/hooks/size_audit.py) callable at milestone boundaries by either provider's orchestrate skill — not a live hook, since no PostToolUse-equivalent event exists for Gemini CLI today. (3) Investigate whether Gemini CLI supports an analogous post-write hook; if yes, wire a size_check.py equivalent; if no, document the gap in design_status.md and rely on the periodic sweep. Tests: tests/hooks/test_size_audit.py — fixture repo with known violations, assert correct per-category detection.",
+      "owns": [
+        "agentflow/hooks/size_audit.py",
+        "tests/hooks/test_size_audit.py"
+      ],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-072",
+      "title": "`agentflow report` subcommand — aggregate + per-strategy savings dashboard",
+      "description": "Demo-facing artifact (design_status.md: Demo report generator, Monetization positioning, Report modes). Two output modes, not one blended number: (1) aggregate — single non-overlapping total tokens saved; (2) by-strategy — each strategy's savings shown separately. (A) agentflow/shadow/analyzer.py: fix double-count bug — _report_targeted_reads misses and _report_no_reread violations can both match the same shadow_reads.jsonl entry (idx_exists=True + rel in tasks.json reads + offset=None satisfies both filters); add priority-order bucketing (no-reread > targeted-reads > indexing-gap > state-docs) so each entry attributes to exactly one strategy for aggregate mode — by-strategy mode keeps the current per-filter view (overlap there is descriptive, not additive). (B) agentflow/shadow/analyzer.py: add _report_verbosity_compliance(project_root) — reads .agentflow/verbosity_log.jsonl (T-073), computes mean/p90 output tokens vs 150-token target per session type; replaces stale 'requires v2 PTY tracking' note at analyzer.py:199 (tracking now exists via T-073). (C) New agentflow/reporting/report_builder.py: for headroom, call headroom.storage.create_storage(store_url).get_summary_stats(...)['total_tokens_saved'] directly (not just generate_report()) so compression savings feed the numeric aggregate, in addition to calling generate_report(store_url, output_path) for the embedded HTML dashboard section. (D) Merge into combined_report.html with mode=aggregate|by_strategy: idx + no-reread + indexing-gap + state-docs + verbosity + compression — each attributed to its own strategy in by-strategy mode; single deduped sum in aggregate mode; no invented blended percentage, no double-counting. (E) agentflow/cli.py: add report subcommand -> cmd_report(mode) -> report_builder.build(mode). (F) Tests: tests/reporting/test_report_builder.py — mock headroom get_summary_stats/generate_report and shadow analyzer functions; assert aggregate mode sums without double-counting; assert by-strategy mode lists each strategy separately including verbosity and compression.",
+      "owns": [
+        "agentflow/reporting/report_builder.py",
+        "agentflow/shadow/analyzer.py",
+        "agentflow/cli.py",
+        "tests/reporting/test_report_builder.py"
+      ],
+      "depends_on": [
+        "T-074"
+      ],
+      "status": "pending"
     }
   ]
 }

@@ -2219,10 +2219,78 @@
         }
       },
       "status": "closed"
+    },
+    {
+      "session_id": "20260701_090634",
+      "agent": "agy",
+      "task_ids": "",
+      "start_time": "2026-07-01T09:06:34.156691",
+      "end_time": "2026-07-01T09:06:34.156700",
+      "context_at_start": 21055,
+      "input_tokens": 13941128,
+      "output_tokens": 51028,
+      "token_detail": {
+        "uncached_input": 1194734,
+        "cache_creation": 0,
+        "cache_read": 12746394,
+        "output": 51028,
+        "n_turns": 125,
+        "initial_ctx": 21055,
+        "final_ctx": 180604
+      },
+      "n_turns": 125,
+      "final_ctx": 180604,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 21960788,
+        "shadow_output": 128871,
+        "shadow_extra": 7797250,
+        "compaction": {
+          "before": 222410,
+          "after": 77843,
+          "cost_tokens": 77843
+        }
+      },
+      "status": "closed"
+    },
+    {
+      "session_id": "20260701_115228",
+      "agent": "claude",
+      "task_ids": "",
+      "start_time": "2026-07-01T11:52:28.832668",
+      "end_time": "2026-07-01T11:52:28.832677",
+      "context_at_start": 32026,
+      "input_tokens": 5334427,
+      "output_tokens": 57226,
+      "token_detail": {
+        "uncached_input": 5077,
+        "cache_creation": 211946,
+        "cache_read": 5117404,
+        "output": 57226,
+        "n_turns": 70,
+        "initial_ctx": 32026,
+        "final_ctx": 128368
+      },
+      "n_turns": 70,
+      "final_ctx": 128368,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 10072348,
+        "shadow_output": 114825,
+        "shadow_extra": 5449010,
+        "compaction": {
+          "before": 164570,
+          "after": 57599,
+          "cost_tokens": 57599
+        }
+      },
+      "status": "closed"
     }
   ],
   "shadow_state": {
-    "accumulated_context": 62378,
-    "compaction_events": 45
+    "accumulated_context": 57599,
+    "compaction_events": 47
   }
 }

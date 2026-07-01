@@ -127,6 +127,10 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-070 | read_check.py — block large-range reads that bypass idx enforcement | MERGED |
 | T-071 | Evaluate headroom-ai library — integration feasibility for PTY + M5 | MERGED |
 | T-073 | Fix verbosity signal reliability — incremental writes + reminder hook | MERGED |
+| T-074 | Wire headroom-ai into PTY shell — `headroom wrap <provider>` at session start | PENDING |
+| T-075 | Split agentflow.py (989 lines) into modules — retroactive 250-line enforcement | PENDING |
+| T-076 | Size-limit enforcement gap — Gemini writes + pre-existing violations uncovered | PENDING |
+| T-072 | `agentflow report` subcommand — combined savings dashboard across strategies | PENDING |
 
 | Round | Tasks | Note |
 |---|---|---|
@@ -146,6 +150,8 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | B | T-068, T-064 | T-068 depends on T-067; T-064 depends on T-063 |
 | C | T-069 | Depends on T-068 + T-065 (merged) |
 | D | T-073 | No deps — independent bug fix |
+| E | T-074, T-075 | Both independent, disjoint owns — highest priority: savings mechanism + tech debt |
+| F | T-072, T-076 | T-072 depends on T-074 (ledger); T-076 independent |
 
 ---
 
