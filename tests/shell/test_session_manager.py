@@ -127,27 +127,28 @@ def test_turn_output_history_max_10():
         fire_output(sm, pty, "\n\n")
     assert len(sm._turn_output_history) == 10
 
-def test_on_session_exit_writes_verbosity_log(tmp_path):
+def test_incremental_write_verbosity_log(tmp_path):
     agentflow_dir = tmp_path / ".agentflow"
     agentflow_dir.mkdir()
     sm, pty, _ = make_manager()
-    sm._turn_output_history = [10, 20, 30]
     sm.session_type = "oracle"
     with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
-        sm._on_session_exit(0)
+        fire_output(sm, pty, "some response")
+        fire_output(sm, pty, "\n\n")
     log_path = agentflow_dir / "verbosity_log.jsonl"
     assert log_path.exists()
     lines = log_path.read_text(encoding="utf-8").strip().split("\n")
-    assert len(lines) == 3
-    records = [json.loads(line) for line in lines]
-    assert records[0]["turn"] == 1 and records[0]["output_tokens"] == 10 and records[0]["session_type"] == "oracle"
-    assert records[2]["turn"] == 3 and records[2]["output_tokens"] == 30
+    assert len(lines) == 1
+    record = json.loads(lines[0])
+    assert record["turn"] == 1
+    assert record["session_type"] == "oracle"
+    assert record["output_tokens"] > 0
 
-def test_on_session_exit_skips_when_no_agentflow_dir(tmp_path):
+def test_incremental_write_skips_when_no_agentflow_dir(tmp_path):
     sm, pty, _ = make_manager()
-    sm._turn_output_history = [5]
     with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
-        sm._on_session_exit(0)
+        fire_output(sm, pty, "some response")
+        fire_output(sm, pty, "\n\n")
     assert not (tmp_path / ".agentflow").exists()
 
 def test_on_session_exit_registered_on_pty():

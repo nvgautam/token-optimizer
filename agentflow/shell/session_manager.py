@@ -58,20 +58,11 @@ class SessionManager:
         pty_wrapper._on_output = self._handle_output
         pty_wrapper._on_exit = self._on_session_exit
 
-        self._verbosity_last_inject = time.monotonic()
-        self._initial_banner_sent = False
-        self._last_output_time = time.monotonic()
-        self._quiet_period_seconds = float(cfg.get("startup_quiet_period_seconds", 1.5))
-
     def on_idle_tick(self) -> None:
-        if self._initial_banner_sent:
-            return
-        if time.monotonic() - self._last_output_time >= self._quiet_period_seconds:
-            self._initial_banner_sent = True
+        pass
 
     def _handle_output(self, chunk: bytes) -> None:
         text = chunk.decode("utf-8", errors="replace")
-        self._last_output_time = time.monotonic()
 
         clean = self._ansi_strip(text)
         detected_path = self._detect_read_path(clean)
@@ -96,6 +87,22 @@ class SessionManager:
             self._turn_output_history.append(self._current_turn_output_tokens)
             if len(self._turn_output_history) > 10:
                 self._turn_output_history = self._turn_output_history[-10:]
+
+            # Incremental write of verbosity turn data to verbosity_log.jsonl
+            log_path = pathlib.Path.cwd() / ".agentflow" / "verbosity_log.jsonl"
+            if log_path.parent.exists():
+                try:
+                    entry = {
+                        "ts": datetime.datetime.now().isoformat(),
+                        "session_type": self.session_type,
+                        "turn": self._turn_count,
+                        "output_tokens": self._current_turn_output_tokens,
+                    }
+                    with open(log_path, "a", encoding="utf-8") as fh:
+                        fh.write(json.dumps(entry) + "\n")
+                except Exception:
+                    pass
+
             self._current_turn_output_tokens = 0
             self._last_idx_injected = None
 
@@ -171,13 +178,7 @@ class SessionManager:
         return next((g for g in m.groups() if g), None) if m else None
 
     def _on_session_exit(self, exit_code: int) -> None:
-        log_path = pathlib.Path.cwd() / ".agentflow" / "verbosity_log.jsonl"
-        if not log_path.parent.exists():
-            return
-        ts = datetime.datetime.now().isoformat()
-        with open(log_path, "a", encoding="utf-8") as fh:
-            for i, output_tokens in enumerate(self._turn_output_history, start=1):
-                fh.write(json.dumps({"ts": ts, "session_type": self.session_type, "turn": i, "output_tokens": output_tokens}) + "\n")
+        pass
 
     def trigger_handoff(self) -> None:
         self._injecting = True
