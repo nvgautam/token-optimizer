@@ -131,6 +131,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-075 | Split agentflow.py (989 lines) into modules — retroactive 250-line enforcement | MERGED |
 | T-076 | Size-limit enforcement gap — Gemini writes + pre-existing violations uncovered | PENDING |
 | T-072 | `agentflow report` subcommand — combined savings dashboard across strategies | MERGED |
+| T-077 | Spike — can headroom's proxy auto-capture 5hr/weekly usage windows? | PENDING |
 
 | Round | Tasks | Note |
 |---|---|---|
@@ -152,6 +153,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | D | T-073 | No deps — independent bug fix |
 | E | T-074, T-075 | Both independent, disjoint owns — highest priority: savings mechanism + tech debt |
 | F | T-072, T-076 | T-072 depends on T-074 (ledger); T-076 independent |
+| G | T-077 | Depends on T-074 (headroom must be wired first) |
 
 ---
 
@@ -202,7 +204,7 @@ Status: DEFERRED — Python CLI out of scope for v1
 
 ## Deferred
 - AgentFlow user-facing CLI (subcommands for config management, T-002): backlog.json
-- Headless automation layer: v2
+- Headless automation layer: confirmed dead 2026-07-01 — oracle/orchestrator/worker/reviewer/tools API-mode subtree (includes M7/T-030's context builder) never wired into cli.py or any skill; see architecture.md "Deferred (v2)" section for the full file list. Not v1 scope; do not resume from this snapshot if ever revived.
 - Local API observation proxy: v2 — stdlib HTTP proxy; ANTHROPIC_BASE_URL swap; logs exact usage fields from API responses; foundation for Caveman/Headroom integration
 - Headroom CacheAligner integration: v2 — KV cache prefix stabilization; evaluate after PTY validated
 - Headroom ContentRouter / Caveman integration: v2 — tool output compression; plug into PTY I/O interception layer (same ANTHROPIC_BASE_URL intercept as observation proxy)

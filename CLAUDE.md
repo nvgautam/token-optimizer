@@ -10,15 +10,14 @@ Provider-agnostic multi-agent project management: skills for Claude and Gemini +
 ## Structure
 ```
 agentflow/shell/                → PTY overlay shell — token counting, threshold, handoff inject, session restart (zero LLM calls)
-commands/                       → Provider skill files: Claude (claude/) and Gemini (gemini/skills/)
-agentflow/oracle/prompts/       → Oracle prompt files (system, market, checklist, generation)
-agentflow/worker/prompts/       → Worker prompt files (system, context_bundle, testing_guide)
-agentflow/worker/context_builder.py → Assembles minimal context bundle per task; writes context_bundle.md to disk
-agentflow/reviewer/prompts/     → Reviewer prompt files (code_review, security_review, test_review)
-agentflow/orchestrator/prompts/ → Orchestrator prompt files (system, planning)
-agentflow/config/               → Layered config: threshold settings, model config (Pydantic v2)
+agentflow/hooks/                → PostToolUse/UserPromptSubmit hooks: read_check, idx_reminder, verbosity_reminder, write_indexer, size_check
+commands/                       → Provider skill files: Claude (claude/) and Gemini (gemini/skills/) — this IS the oracle/worker/reviewer/orchestrator logic
+agentflow/config/                → Layered config: threshold settings, model config (Pydantic v2)
 agentflow/indexer/              → Symbol index — ~/.agentflow/cache/<project-hash>/index/ (standalone CLI tool)
+agentflow/shadow/               → Savings-across-strategies analyzer (targeted reads, no-reread, verbosity, headroom) — feeds `agentflow report`
 ```
+
+`agentflow/oracle/`, `orchestrator/`, `worker/`, `reviewer/`, `tools/` (Python packages, not the skill files above) are a deferred/dead headless-automation-layer prototype — never wired into `cli.py` or any skill. See architecture.md's "Deferred (v2)" section. Do not extend or document as live.
 
 ## State documents (living — updated continuously, not written once)
 ```
@@ -28,7 +27,8 @@ architecture.md      → Design reference: module boundaries, PTY design, config
                        Workers read anchored sections; oracle does not read this at startup
 execution_plan.md    → Milestone state: milestone structure + Milestone 1 tasks (full);
                        Orchestrator extends with tasks for each subsequent milestone on prior completion
-tasks.json           → Task state: individual task lifecycle PENDING → MERGED
+tasks.json           → Task state: {task_id, status}, status ∈ {pending, complete};
+                       execution_plan.md carries MERGED per task once the skill confirms the merge
 ```
 
 ## Integrations
@@ -45,7 +45,7 @@ Skills execute via Claude Code / Gemini CLI
 - PTY shell: zero LLM calls, stdlib-only, fully deterministic
 - Symbol index: `~/.agentflow/cache/<project-hash>/index/` — not committed, not visible in project
 - Pydantic v2 for all structured inputs and config validation
-- Human PR approval is an enforced gate (HUMAN_APPROVED state), not advisory
+- Human PR approval is an enforced gate — the skill never marks a task `complete`/`MERGED` before the human merges on GitHub
 - Every operation must be idempotent — safe to run twice with the same result
 - Brownfield: index generation v1; file refactoring deferred to v2
 - Codex provider: v2

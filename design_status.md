@@ -35,7 +35,7 @@ Oracle reads on startup. Handoff writes updates. Architecture.md = workers only.
 | Merge sequencer | DEFERRED | v1 manual merge acceptable; automated sequencer v2 |
 | PTY sequencing | RESOLVED | PTY built alongside skills in v1 — product IS skills + PTY shell. Headless layer v2. |
 | v1 milestone order | RESOLVED | M1: skill files → M2: symbol indexer (inline) → M3: PTY shell → v2: headless |
-| Headless automation layer | DEFERRED | v2 — PTY approach validated in v1 first |
+| Headless automation layer | DEFERRED | Confirmed dead 2026-07-01 — oracle/orchestrator/worker/reviewer/tools API-mode subtree never wired into cli.py or any skill; marked deferred (v2) in architecture.md, not documented as live. Re-derive from scratch if ever revived — don't resume from the killed snapshot. |
 | Symbol indexer | RESOLVED | Standalone CLI; PTY runs on session start; skills read .idx before full files (~65% per targeted read) |
 | Context builder | RESOLVED | context_builder.py assembles minimal bundle; orchestrate writes context_bundle.md per task; workers read only that |
 | Oracle state doc | RESOLVED | design_status.md — oracle reads on startup, handoff writes on flush. Replaces decisions log in architecture.md. |

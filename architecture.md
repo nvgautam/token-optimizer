@@ -32,30 +32,30 @@ User types: claude / gemini                   ← existing AI CLI, unchanged
   ┌──────────────────┐    ┌──────────────────────────────────────────┐
   │  Oracle skill    │    │  Orchestrator skill                       │
   │  (Claude/Gemini) │    │  (Claude/Gemini)                         │
+  │  runs interactive │    │  runs interactive — same CLI session     │
   │                  │    │                                           │
   │  multi-persona   │    │  reads execution_plan.md, tasks.json      │
   │  market-aware    │    │  extends execution_plan.md lazily          │
-  │  checklist       │    │  spawns headless workers                  │
-  │                  │    │  manages reviewer pipeline                │
-  │  writes:         │    │  gates on HUMAN_APPROVED                  │
-  │  architecture.md │    │  merges in DAG order                      │
-  │  CLAUDE.md       │    └──────────────┬───────────────────────────┘
-  └──────────────────┘                   │  per task
+  │  checklist       │    │  spawns workers via Agent/Task tool       │
+  │                  │    │  (native CLI subagents — no separate      │
+  │  writes:         │    │   process, no direct API calls)           │
+  │  architecture.md │    │  gates on HUMAN_APPROVED (human PR review) │
+  │  CLAUDE.md       │    │  merges in dependency order                │
+  └──────────────────┘    └──────────────┬───────────────────────────┘
+                                          │  per task
                               ┌──────────▼──────────────┐
-                              │  Headless Worker Agent   │
+                              │  Worker (Agent subagent)  │
                               │  reads context bundle    │
                               │  write_file → .idx hook  │
-                              │  TDD: red→green→PR       │
+                              │  TDD: red→green→PR (gh)  │
                               └──────────┬──────────────┘
                                          │  PR opened
-                              ┌──────────▼──────────────┐
-                              │  Reviewer Pipeline       │
-                              │  code reviewer           │
-                              │  security reviewer       │
-                              └──────────┬──────────────┘
-                                         │  Human approves
-                                    Merge (DAG order)
+                                    Human reviews on GitHub
+                                         │  approves
+                                    Merge
 ```
+
+A separate headless pipeline (own process, direct Anthropic/Gemini API calls, automated LLM reviewer) was scaffolded early on but never wired into the live flow above — see **Deferred (v2) — Headless automation layer** near the end of this document. It is not part of v1.
 
 ---
 
@@ -88,45 +88,19 @@ commands/                           # Canonical skill files (git-tracked)
       handoff/                      # handoff skill
       orchestrate/                  # orchestration lifecycle skill
 agentflow/
-  cli.py                          # entry points, arg dispatch
+  cli.py                          # entry points, arg dispatch; wraps `headroom wrap` when present (T-074)
   shell/
     pty_wrapper.py                # PTY process lifecycle, I/O interception
     tokenizer.py                  # local token counting per provider (tiktoken)
     session_manager.py            # threshold watch, session type, restart coordination
     countdown.py                  # configurable countdown with SIGINT handler
-  oracle/
-    checklist.py                  # market-aware NFR checklist, confidence scoring
-    artifact_generator.py         # writes design_status.md, architecture.md, CLAUDE.md, execution_plan.md, tasks.json
-    prompts/v1/
-      system.md                   # multi-persona: Senior PE + PM + Designer
-      market.md                   # market segment branching (consumer/SMB/enterprise)
-      checklist.md                # NFR question bank, 23+ items
-      generation.md               # artifact output format spec
-  orchestrator/
-    execution_plan.py             # extends execution_plan.md lazily at milestone boundaries (oracle creates it)
-    task_decomposer.py            # milestone → tasks.json entries (lazy, per milestone)
-    state_machine.py              # task state transitions with timestamps
-    environment.py                # tech-stack aware env setup (python/node/go/ruby)
-    project_manager.py            # PM loop: spawns workers, handles results, reviewer trigger
-    merge_sequencer.py            # post-HUMAN_APPROVED ordered merge, worktree cleanup
-    prompts/v1/
-      system.md                   # orchestrator persona: Staff Engineering Lead
-      planning.md                 # milestone decomposition format
-  worker/
-    context_builder.py            # assembles minimal context bundle with index lookups
-    agent_runner.py               # headless API agent, TDD loop, budget restart
-    write_file_tool.py            # write_file + automatic .idx regeneration side-effect
-    prompts/v1/
-      system.md                   # implementer persona, no-re-read rule
-      context_bundle.md           # bundle format and interpretation
-      testing_guide.md            # TDD: red→green, behaviour not implementation
-  reviewer/
-    code_reviewer.py              # contract adherence, architecture conformance
-    security_reviewer.py          # OWASP Top 10, secrets, compliance constraints
-    prompts/v1/
-      code_review.md
-      security_review.md
-      test_review.md
+  hooks/
+    read_check.py                 # PostToolUse: blocks full-file Read if .idx exists — T-052
+    idx_reminder.py               # UserPromptSubmit: periodic [IDX] banner injection
+    verbosity_reminder.py         # UserPromptSubmit: periodic output-budget reminder — T-073
+    write_indexer.py              # PostToolUse: regenerate .idx on write_file
+    read_logger.py                # PostToolUse: read event log for shadow analyzer
+    size_check.py                 # PostToolUse: enforce per-category line-count ceilings — T-058
   indexer/
     index_manager.py              # cache path: ~/.agentflow/cache/<hash>/index/<mirrored-path>.idx
     brownfield_scanner.py         # scan existing project files on first load, build initial index
@@ -135,14 +109,10 @@ agentflow/
       markdown_parser.py          # H2/H3 headers, line ranges
       json_parser.py              # top-level keys + line ranges (files > 30 lines only)
       yaml_parser.py              # top-level and second-level keys (files > 30 lines only)
-  tools/
-    git.py                        # worktree create/delete, commit, branch
-    github.py                     # PR create, inline comments, status checks (httpx)
-    test_runner.py                # run tests in worktree, parse coverage
-    file_validator.py             # enforce file size limits, fail with rework message
+  shadow/
+    analyzer.py                   # savings-across-strategies: targeted reads, no-reread, verbosity, headroom — T-072
   telemetry/
     logger.py                     # structured JSON logger, trace IDs, JSONL output
-    token_tracker.py              # per-span attribution, shadow model, budget enforcement
     ledger.py                     # .agentflow/ledger.json r/w, project_total, session_total
   config/
     loader.py                     # layered resolution: env → project → user → defaults
@@ -152,6 +122,10 @@ agentflow/
     report_builder.py             # aggregate and split dashboard generation (HTML/stdout)
 pyproject.toml
 ```
+
+Everything above is what the live product actually runs: the PTY shell, its hooks, the symbol indexer, the shadow/savings analyzer, and shared telemetry/config/reporting utilities. The oracle, orchestrator, worker, and reviewer *skills* (`commands/`) are the product's brains — they run inside the interactive Claude Code / Gemini CLI session itself, not as separate Python modules.
+
+A separate `agentflow/oracle/` (API-mode files), `orchestrator/`, `worker/`, `reviewer/`, and `tools/` Python package tree exists in the repo implementing an *unattended, direct-API* version of the same pipeline. It was never wired into `cli.py` or any skill and predates the pivot to skills + PTY. See **Deferred (v2) — Headless automation layer** below.
 
 ---
 
@@ -342,7 +316,7 @@ config snapshot     (model, coverage threshold, file size limits)
 
 No-re-read rule (in worker system.md): "Do not use the Read tool on any file listed in your Dependencies section — its contents are already in this context. Re-reading wastes tokens."
 
-Bundle size warning: if bundle exceeds 50k tokens, `context_builder` emits a telemetry warning. Indicates reads list may be too broad.
+Bundle assembly is skill-driven (v1): the orchestrate skill writes `context_bundle.md` per task directly via the Write tool during pre-spawn, following the format above. A module-based alternative (`worker/context_builder.py`, `telemetry/metrics.py` bundle-size warning) was scaffolded but never wired into the orchestrate skill — see **Deferred (v2) — Headless automation layer**.
 
 ---
 
@@ -496,37 +470,28 @@ All savings figures are modelled, not measured. **Combined effect: with all stra
 
 ---
 
-## Task state machine
+## Task state machine (live)
 
-```
-PENDING → SPAWNED → IMPLEMENTING → PR_OPEN → REVIEW_IN_PROGRESS
-                                                    │
-                              ┌─────────────────────┤
-                              │                     │
-                         REWORK_NEEDED         REVIEW_PASSED
-                              │                     │
-                      (worker reruns with    HUMAN_APPROVED  ← enforced gate
-                       reviewer comments          │
-                       as rework context)       MERGED
-```
+Two-state model, tracked directly by the orchestrate skill via file I/O — no enforcing Python module:
 
-Failure policy: retry once on crash → rework on review failure → escalate to human after second rework failure. No third attempt.
+- `tasks.json` — each entry: `{"task_id", "status"}`, `status ∈ {pending, complete}`
+- `execution_plan.md` — per-milestone task rows carry `MERGED` once the skill confirms the PR merged
+- `.agentflow/state.json` — session-resume bookmark the skill reads/writes directly (`Check .agentflow/state.json` in orchestrate.md); not produced by any Python module
 
-CRITICAL security findings block `HUMAN_APPROVED` transition. Reviewer findings reference file and line; they never echo secret values.
+Human PR review remains an enforced gate in practice: the skill does not mark a task `complete` / `MERGED` until the human has approved and merged the PR on GitHub.
+
+A richer 9-state machine (`PENDING → SPAWNED → IMPLEMENTING → PR_OPEN → REVIEW_IN_PROGRESS → REVIEW_PASSED/REWORK_NEEDED → HUMAN_APPROVED → MERGED`) with automated LLM review gating was built as part of the deferred headless pipeline — see below. It is not the state machine in force today.
 
 ---
 
 ## Security model
 
 ### AgentFlow itself
-- No secrets in source or config files — env vars only (`GITHUB_TOKEN`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`)
+- No secrets in source or config files — env vars only (the PTY shell and hooks need none; `HEADROOM_WORKSPACE_DIR` is a path, not a secret)
 - Telemetry records token counts only — no prompt content, no API keys
 - Ledger records token counts only
-- Worker file writes sandboxed to `owns` list — write attempts outside the list raise `SandboxViolationError`
 - `shell=True` banned in all subprocess calls — list args only, branch names validated before use
-- PR diff content treated as untrusted user data in reviewer prompts — never as instructions
-- Input sanitisation at oracle ingestion: pattern-match for instruction-override attempts in user descriptions
-- `tasks.json` validated against Pydantic schema on load — tampered files rejected before any worker spawns
+- Skill/model API keys (Claude Code, Gemini CLI, and anything `headroom wrap` proxies) are managed by those CLIs themselves, not by AgentFlow
 
 ### Projects built with AgentFlow
 The oracle asks: "Does your application receive untrusted input that reaches an LLM prompt, or produce LLM output that reaches users or downstream systems?"
@@ -535,17 +500,20 @@ If yes, the oracle probes: which entry points, what sensitivity level, what outp
 - Runtime input sanitisation layer (prompt injection guard at identified entry points)
 - Output validation layer (PII/sensitive data scan before output reaches user or downstream system)
 
+(Worker file-write sandboxing, PR-diff-as-untrusted-data, and Pydantic-validated `tasks.json` loading were security properties of the deferred headless pipeline's own execution — not properties of the live skill-driven flow, where the human is present at every write and PR merge.)
+
 ---
 
 ## External integrations
 
-| Service | Owner module | Credentials | Failure strategy | Compliance impact |
+| Service | Owner | Credentials | Failure strategy | Compliance impact |
 |---|---|---|---|---|
-| GitHub REST API | tools/github.py | `GITHUB_TOKEN` env var | retry 3× with backoff, then surface error | None |
-| Anthropic API | worker/agent_runner.py | `ANTHROPIC_API_KEY` env var | budget exhaustion → compress + restart (max 2); escalate on 3rd | None |
-| Gemini API | worker/agent_runner.py | `GEMINI_API_KEY` env var | same as Anthropic | None |
-| Headroom CacheAligner | pty/session_manager.py (v2) | None | Disable if import fails — savings optional | None |
-| Headroom ContentRouter | pty/io_interceptor.py (v2) | None | Disable if import fails — savings optional | None |
+| GitHub CLI (`gh`) | used directly by the skill / human, not a Python module | `gh`'s own auth | skill surfaces `gh` errors as-is | None |
+| Headroom (`headroom wrap`) | `agentflow/cli.py` (T-074) | None | falls back to raw `cmd` if `headroom` not on PATH — no hard dependency | None |
+
+Headroom's CacheAligner and ContentRouter transform-pipeline stages run automatically as part of `headroom wrap`; there is no separate AgentFlow integration point for them (superseded design_status items 62/63).
+
+A direct-API integration (Anthropic API keyed off `ANTHROPIC_API_KEY`, Gemini API keyed off `GEMINI_API_KEY`, GitHub REST API keyed off `GITHUB_TOKEN`) exists only in the deferred headless pipeline below — none of it is exercised by the live product.
 
 ---
 
@@ -628,6 +596,40 @@ Emitted as JSONL to `.agentflow/telemetry.jsonl`. No prompt content. No API keys
 | Config / data | unconstrained | — |
 
 Violation at CI gate → rework prompt with specific split instruction, not silent pass.
+
+---
+
+## Deferred (v2) — Headless automation layer
+
+Confirmed dead 2026-07-01 (see design_status.md item 38). An early, unattended-agent version of the product — spawn workers as separate processes hitting the Anthropic/Gemini API directly, review PRs via a Python LLM reviewer, merge via an automated sequencer — was scaffolded before the pivot to skills + PTY. **None of it is imported by `cli.py`, any hook, or any skill.** It is not part of v1 architecture; do not extend it, document it as live, or block on it.
+
+```
+agentflow/oracle/
+  conversation.py            # API-mode oracle sparring (direct Anthropic calls)
+  artifact_generator.py      # API-mode artifact writer
+  contract_generator.py      # TDD stub/contract generator for headless workers
+  prompts/v1/                # duplicate oracle prompt set for the API-mode path
+agentflow/orchestrator/
+  project_manager.py         # PM loop: spawns workers, handles results, reviewer trigger
+  dag.py, state.py, state_machine.py   # task graph + 9-state machine for spawned workers
+  merge_sequencer.py         # automated post-HUMAN_APPROVED merge
+  environment.py, execution_plan.py, task_decomposer.py   # unwired stubs
+  prompts/v1/
+agentflow/worker/
+  agent_runner.py             # headless API agent, TDD loop, budget restart
+  context_builder.py          # module-based context bundle assembly (skill does this directly instead — see Context bundle)
+  write_file_tool.py          # unwired stub
+  prompts/v1/
+agentflow/reviewer/
+  code_reviewer.py, security_reviewer.py   # automated LLM-based PR review
+  prompts/v1/
+agentflow/tools/
+  git.py, github.py, test_runner.py, file_validator.py   # worktree/PR/test-runner support for the above
+agentflow/telemetry/
+  token_tracker.py, metrics.py   # budget enforcement + bundle-size metric, used only by worker/agent_runner.py and worker/context_builder.py
+```
+
+If this layer is ever revived (e.g. a future fully-autonomous tier), re-open design_status.md item 38 and re-derive an architecture section for it against whatever the skills + PTY product looks like at that time — don't resume from this snapshot as-is.
 
 ---
 

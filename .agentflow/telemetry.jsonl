@@ -654,3 +654,5 @@
 {"trace_id": "af8220aa-16a5-4256-9ba1-80013ffa4947", "span": "worker.context_built", "timestamp": "2026-07-01T21:28:50.661742+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
 {"trace_id": "cd212243-d258-4c3f-a291-e0b9da4715ec", "span": "worker.context_built", "timestamp": "2026-07-01T21:28:50.669870+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
 {"event": "handoff", "timestamp": "2026-07-01T21:29:21.828536+00:00", "session_type": "oracle", "agent_tokens_in": 0, "agent_tokens_out": 0, "agents": 0}
+{"event": "handoff", "timestamp": "2026-07-01T22:54:40.696511+00:00", "session_type": "orchestrator", "agent_tokens_in": 0, "agent_tokens_out": 0, "agents": 0}
+{"event": "handoff", "timestamp": "2026-07-01T22:58:58.395367Z", "session_type": "orchestrator", "agent_tokens_in": 0, "agent_tokens_out": 0, "agents": 0}
