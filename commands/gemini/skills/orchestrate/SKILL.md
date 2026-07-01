@@ -164,6 +164,8 @@ Worktree: <absolute path>
 PR: <URL> (always push branch to remote and show PR URL, or PR creation link)
 Reply: yes → merge | no [reason] → rework | skip → continue
 ```
+- **PR creation fallback:** Always push the task branch. If `gh pr create` encounters a sandbox permission failure, the agent must fallback to generating and providing the direct PR creation URL (e.g. `https://github.com/<owner>/<repo>/pull/new/<branch>`) instead of skipping.
+
 Emit: `HANDOFF RECOMMENDED: PR #N open for [task_ids] — good stopping point before you review`
 
 **Never merge without explicit "yes".**
