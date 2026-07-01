@@ -194,6 +194,7 @@ IDX=~/.agentflow/cache/$HASH/index/<relative-path>.idx
 
 ## Verbosity rules
 
+- Target ≤3 sentences (~150 tokens) per orchestrator status message.
 - Status: one line only
 - Round reports: table only — no prose between spawns
 - Don't narrate grouping logic, overlap scores, or round-sizing
