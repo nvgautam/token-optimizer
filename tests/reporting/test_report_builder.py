@@ -203,6 +203,9 @@ def test_report_builder_integration(tmp_path):
         assert "aggregate" in html_content.lower()
         assert "5,000" in html_content
         assert "Mocked Headroom Report Content" in html_content
+        assert "Real Tokens Used" in html_content
+        assert "Shadow Mode Tokens" in html_content
+        assert "Percentage Saved" in html_content
 
         build_report(
             project_root=tmp_path,
@@ -211,6 +214,10 @@ def test_report_builder_integration(tmp_path):
             store_url="sqlite:///dummy.db"
         )
         assert out_html.exists()
+        html_content_split = out_html.read_text()
+        assert "Real Tokens Used" in html_content_split
+        assert "Shadow Mode Tokens" in html_content_split
+        assert "Percentage Saved" in html_content_split
 
 
 def test_cli_report_cmd(tmp_path):

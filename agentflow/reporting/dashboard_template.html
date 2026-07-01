@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgentFlow Token Savings Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #0b0f19;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --primary: #4f46e5;
+            --primary-glow: rgba(79, 70, 229, 0.4);
+            --success: #10b981;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 2rem;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        header {
+            margin-bottom: 3rem;
+            text-align: center;
+            position: relative;
+        }
+        h1 {
+            font-size: 2.8rem;
+            margin: 0;
+            background: linear-gradient(135deg, #a78bfa 0%, #4f46e5 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+        }
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            margin-top: 0.5rem;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            backdrop-filter: blur(12px);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(79, 70, 229, 0.3);
+        }
+        .stat-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--success);
+            margin: 0.5rem 0;
+        }
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .details-section {
+            margin-top: 3rem;
+            border-top: 1px solid var(--border-color);
+            padding-top: 2rem;
+        }
+        .strategy-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .headroom-section {
+            margin-top: 4rem;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 16px;
+            padding: 2rem;
+            border: 1px solid var(--border-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>AgentFlow Token Savings</h1>
+            <p class="subtitle">Real-time token optimization & waste analytics • Mode: {mode_upper}</p>
+        </header>
+
+        <div class="grid">
+            <div class="card">
+                <div class="stat-label">Total Tokens Saved</div>
+                <div class="stat-value">{total_saved_str}</div>
+                <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Cumulative optimization savings</div>
+            </div>
+            <div class="card">
+                <div class="stat-label">Real Tokens Used</div>
+                <div class="stat-value">{total_real_str}</div>
+                <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Actual tokens consumed</div>
+            </div>
+            <div class="card">
+                <div class="stat-label">Shadow Mode Tokens</div>
+                <div class="stat-value">{shadow_mode_tokens_str}</div>
+                <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Baseline unoptimized tokens</div>
+            </div>
+            <div class="card">
+                <div class="stat-label">Percentage Saved</div>
+                <div class="stat-value">{pct_saved_str}%</div>
+                <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Overall optimization efficiency</div>
+            </div>
+            <div class="card">
+                <div class="stat-label">Shadow Cost Avoided</div>
+                <div class="stat-value">{shadow_sum_str}</div>
+                <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Avoided file I/O waste</div>
+            </div>
+            <div class="card">
+                <div class="stat-label">Compression Savings</div>
+                <div class="stat-value">{compression_savings_str}</div>
+                <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Headroom context reduction</div>
+            </div>
+        </div>
+
+        <div class="details-section">
+            <h2>Savings Breakdown by Strategy</h2>
+            <div class="strategy-row">
+                <span>Symbol Index / Targeted Reads (idx)</span>
+                <strong>{stats_idx_str} tokens</strong>
+            </div>
+            <div class="strategy-row">
+                <span>No-re-read Rule Compliance (no-reread)</span>
+                <strong>{stats_no_reread_str} tokens</strong>
+            </div>
+            <div class="strategy-row">
+                <span>Indexing Gap Avoidance (indexing-gap)</span>
+                <strong>{stats_indexing_gap_str} tokens</strong>
+            </div>
+            <div class="strategy-row">
+                <span>Compact State Documents (state-docs)</span>
+                <strong>{stats_state_docs_str} tokens</strong>
+            </div>
+            <div class="strategy-row">
+                <span>Output Verbosity Control (verbosity)</span>
+                <strong>{verbosity_savings_str} tokens</strong>
+            </div>
+            <div class="strategy-row">
+                <span>Headroom Compression (compression)</span>
+                <strong>{compression_savings_str} tokens</strong>
+            </div>
+        </div>
+
+        {headroom_section_html}
+    </div>
+</body>
+</html>

@@ -100,6 +100,7 @@ def cmd_shell(args: argparse.Namespace) -> int:
     from agentflow.shell.pty_wrapper import PTYWrapper
     from agentflow.shell.session_manager import SessionManager
     from agentflow.shell import tokenizer as tokenizer_module
+    import shutil
 
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
@@ -108,7 +109,13 @@ def cmd_shell(args: argparse.Namespace) -> int:
         cmd = args.shell_command
         if cmd == "gemini":
             cmd = "agy"
-        wrapper = PTYWrapper([cmd])
+
+        cmd_args = [cmd]
+        if shutil.which("headroom"):
+            cmd_args = ["headroom", "wrap", cmd]
+            os.environ["HEADROOM_WORKSPACE_DIR"] = str(Path.cwd().resolve() / ".headroom")
+
+        wrapper = PTYWrapper(cmd_args)
         session_manager = SessionManager(wrapper, tokenizer_module, config={})
 
         while not wrapper._exited:

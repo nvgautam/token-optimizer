@@ -519,7 +519,7 @@
         "agentflow/cli.py",
         "tests/test_cli_shell.py"
       ],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-075",
