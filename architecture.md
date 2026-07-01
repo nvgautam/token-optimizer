@@ -148,6 +148,8 @@ agentflow/
     loader.py                     # layered resolution: env → project → user → defaults
     schema.py                     # Pydantic v2 models for all config fields
     defaults.yaml                 # shipped defaults
+  reporting/
+    report_builder.py             # aggregate and split dashboard generation (HTML/stdout)
 pyproject.toml
 ```
 
