@@ -23,7 +23,7 @@ def test_agentflow_parser_choices():
             # Ensure parse_args returns a clean namespace
             mock_parser.parse_args.return_value = argparse.Namespace(command="status", agent=None, ledger=None)
             
-            with patch("agentflow.legacy_cli.load_ledger", return_value={"sessions": []}):
+            with patch("agentflow.legacy_commands.load_ledger", return_value={"sessions": []}):
                 af_script.main()
             
             # Find the call to add_argument with "--agent"
@@ -42,9 +42,9 @@ def test_cmd_start_maps_gemini_to_agy():
     args = argparse.Namespace()
     
     with patch("builtins.input", side_effect=["gemini", "C-123"]), \
-         patch("agentflow.legacy_cli.load_ledger", return_value={"sessions": []}), \
-         patch("agentflow.legacy_cli.save_ledger") as mock_save, \
-         patch("agentflow.legacy_cli.active_session", return_value=None):
+         patch("agentflow.legacy_commands.load_ledger", return_value={"sessions": []}), \
+         patch("agentflow.legacy_commands.save_ledger") as mock_save, \
+         patch("agentflow.legacy_commands.active_session", return_value=None):
         
         af_script.cmd_start(args)
         
@@ -73,14 +73,14 @@ def test_cmd_handoff_maps_gemini_and_agy_correctly():
     }
     
     for args in (args_gemini, args_agy):
-        with patch("agentflow.legacy_cli.read_gemini_db_usage", return_value=fake_usage) as mock_read, \
-             patch("agentflow.legacy_cli.update_shadow", return_value={}), \
-             patch("agentflow.legacy_cli._print_token_breakdown"), \
-             patch("agentflow.legacy_cli._print_summary"), \
+        with patch("agentflow.legacy_commands.read_gemini_db_usage", return_value=fake_usage) as mock_read, \
+             patch("agentflow.legacy_commands.update_shadow", return_value={}), \
+             patch("agentflow.legacy_commands._print_token_breakdown"), \
+             patch("agentflow.legacy_commands._print_summary"), \
              patch("builtins.input", return_value=""):
             
-            with patch("agentflow.legacy_cli.load_ledger", return_value={"sessions": []}), \
-                 patch("agentflow.legacy_cli.save_ledger"):
+            with patch("agentflow.legacy_commands.load_ledger", return_value={"sessions": []}), \
+                 patch("agentflow.legacy_commands.save_ledger"):
                 
                 af_script.cmd_handoff(args)
                 assert mock_read.called
@@ -101,9 +101,9 @@ def test_cmd_report_filters_both_gemini_and_agy():
     }
     
     for args in (args_gemini, args_agy):
-        with patch("agentflow.legacy_cli.load_ledger", return_value=fake_ledger), \
-             patch("agentflow.legacy_cli.total_real_tokens", return_value=10), \
-             patch("agentflow.legacy_cli.real_cost_from_usage", return_value=0.0):
+        with patch("agentflow.legacy_report.load_ledger", return_value=fake_ledger), \
+             patch("agentflow.legacy_report.total_real_tokens", return_value=10), \
+             patch("agentflow.legacy_report.real_cost_from_usage", return_value=0.0):
             
             with patch("builtins.print") as mock_print:
                 af_script.cmd_report(args)
