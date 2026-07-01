@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""Shadow cost analyzer: measures token waste from unimplemented optimizations.
-
-Usage: python agentflow/shadow/analyzer.py
-"""
+"""Shadow cost analyzer: measures token waste from unimplemented optimizations."""
 
 import json
 from collections import defaultdict
@@ -23,13 +20,58 @@ def _load_log(log_path: Path) -> list[dict]:
     for line in log_path.read_text().splitlines():
         try:
             entries.append(json.loads(line))
-        except json.JSONDecodeError:
-            continue
+        except Exception:
+            pass
     return entries
 
 
+def _load_tasks(project_root: Path) -> list[dict]:
+    path = project_root / "tasks.json"
+    if not path.exists():
+        return []
+    try:
+        return json.loads(path.read_text()).get("tasks", [])
+    except Exception:
+        return []
+
+
+def get_bucketed_stats(
+    project_root: Path,
+    entries: list[dict],
+    reads_files: set[str],
+    mode: str = "aggregate",
+) -> dict[str, int]:
+    res = {"no-reread": 0, "targeted-reads": 0, "indexing-gap": 0, "state-docs": 0}
+    sd_names = {"architecture.md", "design_status.md", "execution_plan.md"}
+    for e in entries:
+        rel = e.get("rel", "")
+        off_none = e.get("offset") is None
+        idx_ex = e.get("idx_exists")
+        is_no_reread = rel in reads_files and off_none
+        is_targeted = bool(idx_ex) and off_none
+        fl = e.get("file_lines", 0)
+        is_gap = not idx_ex and fl >= 50 and off_none and rel not in sd_names
+        is_state_doc = rel in sd_names
+        file_chars = e.get("file_chars", 0)
+        t_val = _tokens(file_chars)
+        t_targeted = t_val - _tokens(int(file_chars / max(e.get("idx_sections", 1), 1)))
+
+        matched = False
+        if is_no_reread:
+            res["no-reread"] += t_val
+            matched = True
+        if is_targeted and (not matched or mode != "aggregate"):
+            res["targeted-reads"] += t_targeted
+            matched = True
+        if is_gap and (not matched or mode != "aggregate"):
+            res["indexing-gap"] += t_val
+            matched = True
+        if is_state_doc and (not matched or mode != "aggregate"):
+            res["state-docs"] += t_val
+    return res
+
+
 def _report_targeted_reads(entries: list[dict]) -> int:
-    """Symbol index + section-only loading: full reads where .idx existed."""
     indexed = [e for e in entries if e.get("idx_exists")]
     print("\n━━━ Symbol Index + Section-only Loading ━━━")
     if not indexed:
@@ -38,9 +80,7 @@ def _report_targeted_reads(entries: list[dict]) -> int:
 
     hits = [e for e in indexed if e.get("offset") is not None]
     misses = [e for e in indexed if e.get("offset") is None]
-    compliance = len(hits) / len(indexed) * 100
-
-    by_file: dict[str, list[dict]] = defaultdict(list)
+    by_file = defaultdict(list)
     for e in misses:
         by_file[e["rel"]].append(e)
 
@@ -50,103 +90,86 @@ def _report_targeted_reads(entries: list[dict]) -> int:
         s = reads[0]
         file_chars = s.get("file_chars", 0)
         sections = max(s.get("idx_sections", 1), 1)
-        avg_section_chars = file_chars / sections
-        per_read = _tokens(file_chars) - _tokens(int(avg_section_chars))
+        per_read = _tokens(file_chars) - _tokens(int(file_chars / sections))
         total = per_read * len(reads)
         total_shadow += total
-        shadow_by_file[rel] = (s.get("file_lines", 0), sections, per_read, len(reads), total)
+        fl = s.get("file_lines", 0)
+        shadow_by_file[rel] = (fl, sections, per_read, len(reads), total)
 
-    print(f"  Reads: {len(hits)} targeted  {len(misses)} full-file  ({compliance:.0f}% compliance)")
+    c = (len(hits) / len(indexed) * 100) if indexed else 0
+    print(f"  Reads: {len(hits)} targeted  {len(misses)} full ({c:.0f}% compliance)")
     print(f"  Estimated shadow cost: ~{total_shadow:,} tokens")
     if shadow_by_file:
         print("  Offenders:")
         for rel, (lines, secs, per_read, count, total) in sorted(
             shadow_by_file.items(), key=lambda x: -x[1][4]
         )[:8]:
-            print(f"    {rel:<48} {lines:>4}L  {secs:>2} sections  ×{count}  ~{total:,} tokens")
+            t = f"    {rel:<40} {lines:>4}L {secs:>2}sec x{count} ~{total:,}T"
+            print(t)
     return total_shadow
 
 
-def _report_indexing_gap(entries: list[dict]) -> None:
-    """Files ≥50 lines with no .idx read in full — indexing opportunity."""
-    gaps = [
-        e for e in entries
-        if not e.get("idx_exists")
-        and e.get("file_lines", 0) >= 50
-        and e.get("offset") is None
-    ]
+def _is_gap(e: dict) -> bool:
+    lines = e.get("file_lines", 0)
+    return not e.get("idx_exists") and lines >= 50 and e.get("offset") is None
+
+
+def _report_indexing_gap(entries: list[dict]) -> int:
+    gaps = [e for e in entries if _is_gap(e)]
     print("\n━━━ Indexing Gap (≥50 lines, no .idx) ━━━")
     if not gaps:
         print("  None — all large files are indexed.")
-        return
-
-    by_file: dict[str, list[dict]] = defaultdict(list)
+        return 0
+    by_file = defaultdict(list)
     for e in gaps:
         by_file[e["rel"]].append(e)
+    total_est = 0
+    for rel, reads in sorted(
+        by_file.items(), key=lambda x: -x[1][0].get("file_lines", 0)
+    )[:8]:
+        est = _tokens(reads[0].get("file_chars", 0)) * len(reads)
+        total_est += est
+        fl = reads[0].get("file_lines", 0)
+        print(f"    {rel:<40} {fl:>4}L  x{len(reads)}  ~{est:,}T -> pre-spawn")
+    return total_est
 
-    for rel, reads in sorted(by_file.items(), key=lambda x: -x[1][0].get("file_lines", 0))[:8]:
-        s = reads[0]
-        est = _tokens(s.get("file_chars", 0)) * len(reads)
-        print(
-            f"    {rel:<48} {s.get('file_lines',0):>4}L  "
-            f"×{len(reads)}  ~{est:,} tokens  → add to pre-spawn reads"
-        )
 
-
-def _report_lazy_decomposition(project_root: Path) -> None:
-    """Lazy decomposition: slim stubs vs eager full definitions."""
-    tasks_path = project_root / "tasks.json"
+def _report_lazy_decomposition(project_root: Path) -> int:
     print("\n━━━ Lazy Decomposition ━━━")
-    if not tasks_path.exists():
-        print("  tasks.json not found.")
-        return
-    try:
-        data = json.loads(tasks_path.read_text())
-    except json.JSONDecodeError:
-        print("  tasks.json parse error.")
-        return
-
-    tasks = data.get("tasks", [])
+    tasks = _load_tasks(project_root)
+    if not tasks:
+        return 0
     slim = [t for t in tasks if set(t.keys()) <= {"task_id", "status"}]
     full = [t for t in tasks if len(t.keys()) > 2]
-
-    full_tokens = sum(_tokens(len(json.dumps(t))) for t in full)
-    slim_tokens = sum(_tokens(len(json.dumps(t))) for t in slim)
-    eager_est = full_tokens + len(slim) * (_tokens(len(json.dumps(full[0]))) if full else 1500)
-
-    print(f"  Tasks: {len(full)} full definitions, {len(slim)} slim stubs")
-    print(f"  Current tasks.json cost per load: ~{full_tokens + slim_tokens:,} tokens")
-    print(f"  Eager alternative (all full defs): ~{eager_est:,} tokens")
-    print(f"  Savings already realized:          ~{eager_est - full_tokens - slim_tokens:,} tokens  ✓")
+    f_tok = sum(_tokens(len(json.dumps(t))) for t in full)
+    s_tok = sum(_tokens(len(json.dumps(t))) for t in slim)
+    eager = f_tok + len(slim) * (_tokens(len(json.dumps(full[0]))) if full else 1500)
+    print(f"  Tasks: {len(full)} full, {len(slim)} slim")
+    print(f"  Current cost: ~{f_tok + s_tok:,} | Eager: ~{eager:,} tokens")
+    diff = eager - f_tok - s_tok
+    print(f"  Savings realized: ~{diff:,} tokens  ✓")
+    return diff
 
 
 def _report_no_reread(entries: list[dict], project_root: Path) -> int:
-    """No-re-read rule: files in task reads lists that were read in full anyway."""
-    tasks_path = project_root / "tasks.json"
     print("\n━━━ No-re-read Rule ━━━")
-    if not tasks_path.exists():
-        print("  tasks.json not found.")
-        return 0
-    try:
-        data = json.loads(tasks_path.read_text())
-    except json.JSONDecodeError:
-        print("  tasks.json parse error.")
+    tasks = _load_tasks(project_root)
+    if not tasks:
         return 0
 
-    reads_files: set[str] = set()
-    for t in data.get("tasks", []):
+    reads_files = set()
+    for t in tasks:
         for r in t.get("reads", []):
-            reads_files.add(r.split("#")[0])  # strip anchor qualifiers
+            reads_files.add(r.split("#")[0])
 
     violations = [
-        e for e in entries
-        if e.get("rel") in reads_files and e.get("offset") is None
+        e for e in entries if e.get("rel") in reads_files and e.get("offset") is None
     ]
     if not violations:
-        print("  No violations detected — reads list files not re-read in full.  ✓")
+        print("  No violations detected.  ✓")
         return 0
 
-    by_file: dict[str, list[dict]] = defaultdict(list)
+    by_file = defaultdict(list)
     for e in violations:
         by_file[e["rel"]].append(e)
 
@@ -157,46 +180,67 @@ def _report_no_reread(entries: list[dict], project_root: Path) -> int:
     print(f"  Violations: {len(violations)} reads of pre-embedded files")
     print(f"  Estimated shadow cost: ~{total_shadow:,} tokens")
     for rel, reads in sorted(by_file.items(), key=lambda x: -len(x[1])):
-        s = reads[0]
-        print(f"    {rel:<48} {s.get('file_lines',0):>4}L  ×{len(reads)}  ~{_tokens(s.get('file_chars',0)) * len(reads):,} tokens")
+        c_tok = _tokens(reads[0].get("file_chars", 0)) * len(reads)
+        fl = reads[0].get("file_lines", 0)
+        print(f"    {rel:<40} {fl:>4}L x{len(reads)} ~{c_tok:,}T")
     return total_shadow
 
 
-def _report_state_docs(project_root: Path) -> None:
-    """Compact state documents: token cost of living state files per load."""
-    docs = [
-        ("design_status.md", "oracle startup"),
-        ("execution_plan.md", "orchestrator startup"),
-        ("architecture.md", "worker reads (section-only target)"),
-    ]
+def _report_state_docs(project_root: Path) -> int:
     print("\n━━━ Compact State Documents ━━━")
-    for name, note in docs:
+    total_tok = 0
+    for name, note in [
+        ("design_status.md", "oracle"),
+        ("execution_plan.md", "orchestrator"),
+        ("architecture.md", "worker"),
+    ]:
         path = project_root / name
-        if not path.exists():
-            continue
-        content = path.read_text()
-        lines = len(content.splitlines())
-        tok = _tokens(len(content))
-        print(f"  {name:<25} {lines:>4} lines  ~{tok:>5,} tokens/load  ({note})")
+        if path.exists():
+            content = path.read_text()
+            tok = _tokens(len(content))
+            total_tok += tok
+            lns = len(content.splitlines())
+            print(f"  {name:<20} {lns:>4}L ~{tok:>5}T ({note})")
+    return total_tok
+
+
+def _report_verbosity_compliance(project_root: Path) -> int:
+    log_path = project_root / ".agentflow" / "verbosity_log.jsonl"
+    print("\n━━━ Output Verbosity Control ━━━")
+    entries = []
+    if log_path.exists():
+        for line in log_path.read_text().splitlines():
+            try:
+                entries.append(json.loads(line))
+            except Exception:
+                pass
+    if not entries:
+        print("  No verbosity logs recorded yet.")
+        return 0
+    by_type = defaultdict(list)
+    for e in entries:
+        by_type[e.get("session_type", "unknown")].append(e.get("output_tokens", 0))
+    for st, tokens in sorted(by_type.items()):
+        n = len(tokens)
+        mean_tokens = sum(tokens) / n if n else 0
+        sorted_tokens = sorted(tokens)
+        p90_tokens = sorted_tokens[int(n * 0.9)] if sorted_tokens else 0
+        m, p = mean_tokens, p90_tokens
+        print(f"  {st:<15} mean: {m:.1f}, p90: {p:.1f} ({n} turns, target <= 150)")
+    return sum(max(0, 600 - e.get("output_tokens", 0)) for e in entries)
 
 
 def main() -> None:
-    project_root = Path.cwd()
-    log_path = project_root / ".agentflow" / "shadow_reads.jsonl"
-    entries = _load_log(log_path)
-
-    print("AgentFlow Shadow Cost Report")
-    print(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}")
-    print(f"Read log:  {len(entries)} calls recorded")
-
-    total = _report_targeted_reads(entries)
-    total += _report_no_reread(entries, project_root)
-    _report_indexing_gap(entries)
-    _report_lazy_decomposition(project_root)
-    _report_state_docs(project_root)
-
-    print(f"\nTotal measurable shadow cost: ~{total:,} tokens")
-    print("Note: handoff timing, verbosity, and round-sizing require PTY token tracking (v2).")
+    r = Path.cwd()
+    ents = _load_log(r / ".agentflow" / "shadow_reads.jsonl")
+    dt = datetime.now().strftime("%Y-%m-%d %H:%M")
+    print(f"Shadow Report | {dt} | {len(ents)} calls")
+    t = _report_targeted_reads(ents) + _report_no_reread(ents, r)
+    _report_indexing_gap(ents)
+    _report_lazy_decomposition(r)
+    _report_state_docs(r)
+    _report_verbosity_compliance(r)
+    print(f"\nTotal measurable shadow cost: ~{t:,} tokens")
 
 
 if __name__ == "__main__":
