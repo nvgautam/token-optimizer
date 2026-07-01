@@ -76,18 +76,16 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
     print(f"Mode: {mode}")
     print("----------------------------------------------")
     if mode == "aggregate":
-        print(f"Non-overlapping Token Savings (Log Analysis): {shadow_sum:,} tokens")
-        print(f"Output Verbosity Savings:                     {verbosity_savings:,} tokens")
-        print(f"Compression Savings (Headroom):               {compression_savings:,} tokens")
-        print("----------------------------------------------")
         print(f"TOTAL TOKENS SAVED:                           {total_saved:,} tokens")
     else:
+        print(f"TOTAL TOKENS SAVED (aggregate):                {total_saved:,} tokens")
+        print("----------------------------------------------")
         print(f"Symbol Index & Section loading (idx):         {stats['targeted-reads']:,} tokens")
-        print(f"No-re-read Rule compliance:                   {stats['no-reread']:,} tokens")
-        print(f"Indexing Gap reduction:                       {stats['indexing-gap']:,} tokens")
-        print(f"Compact State Documents:                      {stats['state-docs']:,} tokens")
-        print(f"Output Verbosity Savings:                     {verbosity_savings:,} tokens")
-        print(f"Compression Savings (Headroom):               {compression_savings:,} tokens")
+        print(f"No-re-read Rule compliance (no-reread):       {stats['no-reread']:,} tokens")
+        print(f"Indexing Gap reduction (indexing-gap):         {stats['indexing-gap']:,} tokens")
+        print(f"Compact State Documents (state-docs):          {stats['state-docs']:,} tokens")
+        print(f"Output Verbosity Savings (verbosity):         {verbosity_savings:,} tokens")
+        print(f"Compression Savings (compression):            {compression_savings:,} tokens")
         print("----------------------------------------------")
         print("Note: Summing these values directly may double-count overlaps.")
 
@@ -98,20 +96,95 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AgentFlow Token Savings Dashboard</title>
     <style>
-        :root {{ --bg-color: #0b0f19; --card-bg: rgba(255, 255, 255, 0.03); --border-color: rgba(255, 255, 255, 0.08); --primary: #4f46e5; --primary-glow: rgba(79, 70, 229, 0.4); --success: #10b981; --text-main: #f3f4f6; --text-muted: #9ca3af; }}
-        body {{ background-color: var(--bg-color); color: var(--text-main); font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; padding: 2rem; min-height: 100vh; }}
-        .container {{ max-width: 1200px; margin: 0 auto; }}
-        header {{ margin-bottom: 3rem; text-align: center; position: relative; }}
-        h1 {{ font-size: 2.8rem; margin: 0; background: linear-gradient(135deg, #a78bfa 0%, #4f46e5 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; letter-spacing: -0.025em; }}
-        .subtitle {{ color: var(--text-muted); font-size: 1.1rem; margin-top: 0.5rem; }}
-        .grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 3rem; }}
-        .card {{ background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 1.5rem; backdrop-filter: blur(12px); transition: transform 0.3s ease, border-color 0.3s ease; }}
-        .card:hover {{ transform: translateY(-4px); border-color: rgba(79, 70, 229, 0.3); }}
-        .stat-value {{ font-size: 2.2rem; font-weight: 700; color: var(--success); margin: 0.5rem 0; }}
-        .stat-label {{ font-size: 0.9rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }}
-        .details-section {{ margin-top: 3rem; border-top: 1px solid var(--border-color); padding-top: 2rem; }}
-        .strategy-row {{ display: flex; justify-content: space-between; padding: 1rem 0; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }}
-        .headroom-section {{ margin-top: 4rem; background: rgba(255, 255, 255, 0.02); border-radius: 16px; padding: 2rem; border: 1px solid var(--border-color); }}
+        :root {{
+            --bg-color: #0b0f19;
+            --card-bg: rgba(255, 255, 255, 0.03);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --primary: #4f46e5;
+            --primary-glow: rgba(79, 70, 229, 0.4);
+            --success: #10b981;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+        }}
+        body {{
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            padding: 2rem;
+            min-height: 100vh;
+        }}
+        .container {{
+            max-width: 1200px;
+            margin: 0 auto;
+        }}
+        header {{
+            margin-bottom: 3rem;
+            text-align: center;
+            position: relative;
+        }}
+        h1 {{
+            font-size: 2.8rem;
+            margin: 0;
+            background: linear-gradient(135deg, #a78bfa 0%, #4f46e5 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+            letter-spacing: -0.025em;
+        }}
+        .subtitle {{
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            margin-top: 0.5rem;
+        }}
+        .grid {{
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }}
+        .card {{
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem;
+            backdrop-filter: blur(12px);
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }}
+        .card:hover {{
+            transform: translateY(-4px);
+            border-color: rgba(79, 70, 229, 0.3);
+        }}
+        .stat-value {{
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--success);
+            margin: 0.5rem 0;
+        }}
+        .stat-label {{
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }}
+        .details-section {{
+            margin-top: 3rem;
+            border-top: 1px solid var(--border-color);
+            padding-top: 2rem;
+        }}
+        .strategy-row {{
+            display: flex;
+            justify-content: space-between;
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }}
+        .headroom-section {{
+            margin-top: 4rem;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 16px;
+            padding: 2rem;
+            border: 1px solid var(--border-color);
+        }}
     </style>
 </head>
 <body>

@@ -161,7 +161,7 @@ def build_parser() -> argparse.ArgumentParser:
     report = sub.add_parser("report", help="Show token usage report across sessions")
     report.add_argument(
         "--mode",
-        choices=["aggregate", "by-strategy"],
+        choices=["aggregate", "split"],
         default="aggregate",
         help="Report mode (default: aggregate)",
     )

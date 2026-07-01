@@ -86,8 +86,8 @@ def test_shadow_analyzer_bucketing(tmp_path):
     assert stats_agg["indexing-gap"] == 500
     assert stats_agg["state-docs"] == 2500
 
-    # In by-strategy mode:
-    stats_by = get_bucketed_stats(tmp_path, entries, reads_files, mode="by-strategy")
+    # In split mode:
+    stats_by = get_bucketed_stats(tmp_path, entries, reads_files, mode="split")
     assert stats_by["no-reread"] == 1000
     assert stats_by["targeted-reads"] == 750
     assert stats_by["indexing-gap"] == 500
@@ -206,7 +206,7 @@ def test_report_builder_integration(tmp_path):
 
         build_report(
             project_root=tmp_path,
-            mode="by-strategy",
+            mode="split",
             output_path=out_html,
             store_url="sqlite:///dummy.db"
         )
