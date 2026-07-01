@@ -64,6 +64,7 @@ Oracle reads on startup. Handoff writes updates. Architecture.md = workers only.
 | Mid-session /compact | DEFERRED | Not worth at current 30-60K handoff thresholds — sessions hand off before compaction helps. Revisit if thresholds raised significantly. |
 | Verbosity compliance tracking | RESOLVED | Per-turn output token tracking in PTY (T-010) — writes verbosity_log.jsonl; shadow analyzer reports mean/p90 vs 150-token target. |
 | Verbosity signal reliability | RESOLVED | Write-on-exit-only lost data across `/clear` cycles (no real process exit) — zero oracle-tagged entries despite completed oracle sessions confirmed. T-052/T-055 "proactive banner" never implemented despite MERGED (dead `_verbosity_last_inject`). Fix: incremental per-turn writes; new UserPromptSubmit hook `verbosity_reminder.py` (separate from idx_reminder.py, own counter, 1–2 turn cadence) — T-073 |
+| Gemini idx injection mechanism | RESOLVED | Use PreInvocation hook in .agents/hooks.json. Fires before model invocation; runs script that maintains counter file and prints [IDX] reminder every 3rd turn to dynamically inject context. Invisible to user, preserves recency. |
 
 ## Oracle Direction — Sparred 2026-06-30
 
