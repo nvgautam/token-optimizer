@@ -553,7 +553,7 @@
       "depends_on": [
         "T-074"
       ],
-      "status": "pending"
+      "status": "complete"
     }
   ]
 }
