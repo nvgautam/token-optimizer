@@ -507,7 +507,7 @@
         "tests/shell/test_session_manager.py",
         "tests/hooks/test_verbosity_reminder.py"
       ],
-      "status": "pending"
+      "status": "complete"
     }
   ]
 }

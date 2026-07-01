@@ -126,7 +126,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-067 | PTY session_manager — per-task token bracketing → task_token_log.jsonl | MERGED |
 | T-070 | read_check.py — block large-range reads that bypass idx enforcement | MERGED |
 | T-071 | Evaluate headroom-ai library — integration feasibility for PTY + M5 | MERGED |
-| T-073 | Fix verbosity signal reliability — incremental writes + reminder hook | PENDING |
+| T-073 | Fix verbosity signal reliability — incremental writes + reminder hook | MERGED |
 
 | Round | Tasks | Note |
 |---|---|---|

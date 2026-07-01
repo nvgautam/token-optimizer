@@ -170,6 +170,19 @@
       "description": "Research spike: determine what headroom-ai actually does before designing integration. (1) pip install headroom-ai[all]; run `headroom wrap claude --help` and explore CLI flags. (2) Determine mechanism: subprocess wrapper, HTTP proxy, ANTHROPIC_BASE_URL intercept, or other — and whether it conflicts with PTY stdin/stdout interception. (3) Understand compress(): what algorithm, lossless or lossy, token savings estimate. (4) Understand SharedContext: in-memory or persistent? Cross-process? How does cross-provider sharing work? (5) Check whether headroom exposes per-session compression metrics readable by a report generator. (6) Write findings to .agentflow/headroom_eval.md: mechanism, composability verdict, savings estimate, SharedContext design implications for M5, recommended integration approach or DEFER if incompatible.",
       "owns": [".agentflow/headroom_eval.md"],
       "status": "complete"
+    },
+    {
+      "task_id": "T-073",
+      "title": "Fix verbosity signal reliability — incremental writes + reminder hook",
+      "description": "verbosity_log.jsonl only written in _on_session_exit (batched, last-10-turns) — sessions restarted via /clear (not a real process exit) never reach this path, silently losing all verbosity data; confirmed zero oracle-tagged entries despite completed oracle sessions. Also T-052/T-055 marked MERGED but the 'proactive verbosity banner' was never implemented (_verbosity_last_inject set once, never read; should_inject_banner absent from code and tests) — dead state. Fix: (1) session_manager.py — write each entry to verbosity_log.jsonl incrementally at turn-boundary detection (same site as _turn_output_history.append), not batched at exit; remove dead _verbosity_last_inject/_initial_banner_sent if superseded by (2). (2) New hook agentflow/hooks/verbosity_reminder.py — separate file from idx_reminder.py (one-concern-per-file convention), own counter (~/.agentflow/verbosity_turn_counter), fires every 1-2 turns (tighter than idx's 3) reminding to keep responses ≤ 3 sentences. Register as new entry under UserPromptSubmit in .claude/settings.json. (3) Tests: tests/shell/test_session_manager.py — assert incremental write fires at turn boundary without requiring exit; tests/hooks/test_verbosity_reminder.py — mirror test_idx_reminder.py structure, assert own counter + cadence.",
+      "owns": [
+        "agentflow/shell/session_manager.py",
+        "agentflow/hooks/verbosity_reminder.py",
+        ".claude/settings.json",
+        "tests/shell/test_session_manager.py",
+        "tests/hooks/test_verbosity_reminder.py"
+      ],
+      "status": "complete"
     }
   ]
 }
