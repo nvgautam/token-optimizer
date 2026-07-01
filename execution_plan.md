@@ -130,7 +130,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-074 | Wire headroom-ai into PTY shell — `headroom wrap <provider>` at session start | PENDING |
 | T-075 | Split agentflow.py (989 lines) into modules — retroactive 250-line enforcement | PENDING |
 | T-076 | Size-limit enforcement gap — Gemini writes + pre-existing violations uncovered | PENDING |
-| T-072 | `agentflow report` subcommand — combined savings dashboard across strategies | PENDING |
+| T-072 | `agentflow report` subcommand — combined savings dashboard across strategies | MERGED |
 
 | Round | Tasks | Note |
 |---|---|---|
