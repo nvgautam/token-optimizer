@@ -103,6 +103,13 @@
         "T-072"
       ],
       "status": "MERGED"
+    },
+    {
+      "round": "Addendum G",
+      "tasks": [
+        "T-061"
+      ],
+      "status": "MERGED"
     }
   ],
   "pending": []

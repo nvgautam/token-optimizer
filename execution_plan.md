@@ -119,7 +119,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-058 | PostToolUse hook: block Write/Edit when file exceeds line limit | MERGED |
 | T-059 | Bake verbosity target into skill prompts as standing instruction | MERGED |
 | T-060 | Provider-keyed rate calibration files: Claude vs Gemini | MERGED |
-| T-061 | Explore Gemini CLI hook equivalents for .idx reminder injection | PENDING |
+| T-061 | Explore Gemini CLI hook equivalents for .idx reminder injection | MERGED |
 | T-062 | UserPromptSubmit hook — .idx reminder injection (replaces PTY stdin) | MERGED |
 | T-065 || MERGED |
 | T-066 | PTY session_manager — ROUND_COMPLETE detection + token-floor handoff | MERGED |

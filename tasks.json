@@ -359,7 +359,7 @@
         "commands/gemini/skills/orchestrate/SKILL.md",
         "commands/claude/orchestrate.md"
       ],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-062",
