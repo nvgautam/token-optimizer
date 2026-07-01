@@ -96,6 +96,13 @@
         "T-073"
       ],
       "status": "MERGED"
+    },
+    {
+      "round": "Addendum F",
+      "tasks": [
+        "T-072"
+      ],
+      "status": "MERGED"
     }
   ],
   "pending": []
