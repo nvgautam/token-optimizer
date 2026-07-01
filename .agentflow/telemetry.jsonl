@@ -656,3 +656,4 @@
 {"event": "handoff", "timestamp": "2026-07-01T21:29:21.828536+00:00", "session_type": "oracle", "agent_tokens_in": 0, "agent_tokens_out": 0, "agents": 0}
 {"event": "handoff", "timestamp": "2026-07-01T22:54:40.696511+00:00", "session_type": "orchestrator", "agent_tokens_in": 0, "agent_tokens_out": 0, "agents": 0}
 {"event": "handoff", "timestamp": "2026-07-01T22:58:58.395367Z", "session_type": "orchestrator", "agent_tokens_in": 0, "agent_tokens_out": 0, "agents": 0}
+{"event": "task_merged", "timestamp": "2026-07-01T14:35:00", "task_id": "T-076", "pr": 40, "module": "agentflow/hooks"}

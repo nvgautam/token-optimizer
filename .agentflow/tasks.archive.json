@@ -2,7 +2,7 @@
   "tasks": [
     {
       "task_id": "T-008",
-      "title": "PTY session manager — handoff, countdown, idx injection",
+      "title": "PTY session manager \u2014 handoff, countdown, idx injection",
       "owns": [
         "agentflow/shell/session_manager.py",
         "agentflow/shell/countdown.py"
@@ -22,7 +22,7 @@
     },
     {
       "task_id": "T-009",
-      "title": "CLI cmd_shell — PTY I/O relay loop",
+      "title": "CLI cmd_shell \u2014 PTY I/O relay loop",
       "owns": [
         "agentflow/cli.py"
       ],
@@ -42,7 +42,7 @@
     },
     {
       "task_id": "T-010",
-      "title": "PTY — per-turn output token tracking + verbosity compliance signal",
+      "title": "PTY \u2014 per-turn output token tracking + verbosity compliance signal",
       "owns": [
         "agentflow/shell/session_manager.py"
       ],
@@ -73,7 +73,7 @@
     {
       "task_id": "T-056",
       "title": "read_check.py: skip block on empty idx + compress output message",
-      "description": "Two fixes to read_check.py PreToolUse hook. (1) False-positive block: when .idx exists but is 0 bytes (file <50 lines or no indexable sections), hook still fires sys.exit(1) — add short-circuit after strip() so empty idx allows full read through. (2) Verbose output: current 3-line error message (~50 tokens) fires into model context on every blocked read; compress to single telegraphic line.",
+      "description": "Two fixes to read_check.py PreToolUse hook. (1) False-positive block: when .idx exists but is 0 bytes (file <50 lines or no indexable sections), hook still fires sys.exit(1) \u2014 add short-circuit after strip() so empty idx allows full read through. (2) Verbose output: current 3-line error message (~50 tokens) fires into model context on every blocked read; compress to single telegraphic line.",
       "owns": [
         "agentflow/hooks/read_check.py",
         "tests/hooks/test_read_check.py"
@@ -82,8 +82,8 @@
     },
     {
       "task_id": "T-062",
-      "title": "UserPromptSubmit hook — .idx reminder injection (replaces PTY stdin)",
-      "description": "Wire up agentflow/hooks/idx_reminder.py as a UserPromptSubmit hook in .claude/settings.json. Hook fires after user submits each message (input field already cleared — injection invisible). Every 3rd turn outputs [IDX] reminder text; Claude receives it as context without user seeing it in the input field. Add tests/hooks/test_idx_reminder.py covering: counter increments on each call, reminder output on turn 3/6/9, no output on turns 1/2/4, counter file created if absent, counter resets gracefully on corrupt file. Remove PTY stdin .idx injection from session_manager.py (_inject_idx_banner call site in the every-3-turns path) — hook supersedes it. PTY Read-event detection (T-052) stays: it is reactive (fires on detected Read calls), hook is proactive (periodic recalibration). Both complement; stdin injection is the only part removed.",
+      "title": "UserPromptSubmit hook \u2014 .idx reminder injection (replaces PTY stdin)",
+      "description": "Wire up agentflow/hooks/idx_reminder.py as a UserPromptSubmit hook in .claude/settings.json. Hook fires after user submits each message (input field already cleared \u2014 injection invisible). Every 3rd turn outputs [IDX] reminder text; Claude receives it as context without user seeing it in the input field. Add tests/hooks/test_idx_reminder.py covering: counter increments on each call, reminder output on turn 3/6/9, no output on turns 1/2/4, counter file created if absent, counter resets gracefully on corrupt file. Remove PTY stdin .idx injection from session_manager.py (_inject_idx_banner call site in the every-3-turns path) \u2014 hook supersedes it. PTY Read-event detection (T-052) stays: it is reactive (fires on detected Read calls), hook is proactive (periodic recalibration). Both complement; stdin injection is the only part removed.",
       "owns": [
         "agentflow/hooks/idx_reminder.py",
         ".claude/settings.json",
@@ -98,7 +98,7 @@
     {
       "task_id": "T-058",
       "title": "PostToolUse hook: block Write/Edit when file exceeds line limit",
-      "description": "New hook agentflow/hooks/size_check.py — PostToolUse on Write and Edit. After each write, read the modified file and check line count against per-category limits: tests/ → 350, commands/ → 150, all other .py → 250. Stubs excluded: files whose content is >50% pass/ellipsis lines skip the check. On violation: print single telegraphic message and exit(1) to block next tool call — \"FILE TOO LARGE: <rel_path> is <N> lines (limit <L>) — split by responsibility boundary before proceeding.\" On pass: exit(0), no output. Register under PostToolUse for both Write and Edit matchers in .claude/settings.json alongside write_indexer. Add tests/hooks/test_size_check.py covering: under-limit passes, over-limit blocks, correct limit per category, stub exemption, non-.py files skipped.",
+      "description": "New hook agentflow/hooks/size_check.py \u2014 PostToolUse on Write and Edit. After each write, read the modified file and check line count against per-category limits: tests/ \u2192 350, commands/ \u2192 150, all other .py \u2192 250. Stubs excluded: files whose content is >50% pass/ellipsis lines skip the check. On violation: print single telegraphic message and exit(1) to block next tool call \u2014 \"FILE TOO LARGE: <rel_path> is <N> lines (limit <L>) \u2014 split by responsibility boundary before proceeding.\" On pass: exit(0), no output. Register under PostToolUse for both Write and Edit matchers in .claude/settings.json alongside write_indexer. Add tests/hooks/test_size_check.py covering: under-limit passes, over-limit blocks, correct limit per category, stub exemption, non-.py files skipped.",
       "owns": [
         "agentflow/hooks/size_check.py",
         "tests/hooks/test_size_check.py",
@@ -109,7 +109,7 @@
     {
       "task_id": "T-059",
       "title": "Bake verbosity target into skill prompts as standing instruction",
-      "description": "Add a consistent verbosity target to oracle.md and orchestrate.md as a permanent standing instruction, not an optional argument. oracle.md: promote the Phase 2 verbosity note (\"≤3 sentences per exchange\") to a top-level instruction visible before any phase executes — add \"≤3 sentences (~150 tokens) per response; expand only if user asks\" near the opening. Remove the duplicate in Phase 2. orchestrate.md: extend the existing \"## Verbosity rules\" section to include the token target — \"≤3 sentences (~150 tokens) per orchestrator status message\". Both changes must survive context growth (instruction must appear early in the file, not only in a late section). No changes to handoff.md, drift.md, or worker prompts — those are single-purpose and do not have multi-turn verbosity risk.",
+      "description": "Add a consistent verbosity target to oracle.md and orchestrate.md as a permanent standing instruction, not an optional argument. oracle.md: promote the Phase 2 verbosity note (\"\u22643 sentences per exchange\") to a top-level instruction visible before any phase executes \u2014 add \"\u22643 sentences (~150 tokens) per response; expand only if user asks\" near the opening. Remove the duplicate in Phase 2. orchestrate.md: extend the existing \"## Verbosity rules\" section to include the token target \u2014 \"\u22643 sentences (~150 tokens) per orchestrator status message\". Both changes must survive context growth (instruction must appear early in the file, not only in a late section). No changes to handoff.md, drift.md, or worker prompts \u2014 those are single-purpose and do not have multi-turn verbosity risk.",
       "owns": [
         "commands/claude/oracle.md",
         "commands/claude/orchestrate.md"
@@ -118,8 +118,8 @@
     },
     {
       "task_id": "T-065",
-      "title": "Orchestrate skill — structured PTY signals + current_round.json",
-      "description": "Enable PTY to track task lifecycle deterministically. (1) commands/claude/orchestrate.md: at round start, write .agentflow/current_round.json with {round_id, task_ids, estimated_lines_per_task, file_counts_per_task, timestamp}. (2) Before spawning each worker, print AGENTFLOW_TASK_START:<task_id> to stdout. (3) After each worker completes, print AGENTFLOW_TASK_COMPLETE:<task_id>. (4) After all round tasks complete, print AGENTFLOW_ROUND_COMPLETE. (5) commands/gemini/skills/orchestrate/SKILL.md: same four signals. (6) Tests: test_orchestrate_skill.py — assert all four signal strings present in Claude and Gemini skill content; assert current_round.json write step present.",
+      "title": "Orchestrate skill \u2014 structured PTY signals + current_round.json",
+      "description": "Enable PTY to track task lifecycle deterministically. (1) commands/claude/orchestrate.md: at round start, write .agentflow/current_round.json with {round_id, task_ids, estimated_lines_per_task, file_counts_per_task, timestamp}. (2) Before spawning each worker, print AGENTFLOW_TASK_START:<task_id> to stdout. (3) After each worker completes, print AGENTFLOW_TASK_COMPLETE:<task_id>. (4) After all round tasks complete, print AGENTFLOW_ROUND_COMPLETE. (5) commands/gemini/skills/orchestrate/SKILL.md: same four signals. (6) Tests: test_orchestrate_skill.py \u2014 assert all four signal strings present in Claude and Gemini skill content; assert current_round.json write step present.",
       "owns": [
         "commands/claude/orchestrate.md",
         "commands/gemini/skills/orchestrate/SKILL.md",
@@ -129,8 +129,8 @@
     },
     {
       "task_id": "T-070",
-      "title": "read_check.py — block large-range reads that bypass idx enforcement",
-      "description": "read_check.py currently blocks reads with no offset/limit when an idx exists. Gap: reads with offset≈0 + large limit (e.g. offset=7, limit=168 on a 174-line file) pass unblocked despite covering nearly the full file. Fix: (1) When offset and limit are both present, count total lines in file (stdlib only). (2) Compute coverage = limit / (total_lines - offset). (3) If coverage > threshold (default 0.60) AND idx exists → exit 1 with message: \"Large-range read (N/M lines, X%) — use idx to target specific sections\". (4) If file < 50 lines (no idx expected) → skip check. (5) Threshold configurable via AGENTFLOW_READ_COVERAGE_THRESHOLD env var. (6) Tests: tests/hooks/test_read_check.py — assert exit 1 on large-range read with idx present; assert exit 0 on targeted read (small limit); assert exit 0 on file < 50 lines; assert exit 0 when no idx exists regardless of range.",
+      "title": "read_check.py \u2014 block large-range reads that bypass idx enforcement",
+      "description": "read_check.py currently blocks reads with no offset/limit when an idx exists. Gap: reads with offset\u22480 + large limit (e.g. offset=7, limit=168 on a 174-line file) pass unblocked despite covering nearly the full file. Fix: (1) When offset and limit are both present, count total lines in file (stdlib only). (2) Compute coverage = limit / (total_lines - offset). (3) If coverage > threshold (default 0.60) AND idx exists \u2192 exit 1 with message: \"Large-range read (N/M lines, X%) \u2014 use idx to target specific sections\". (4) If file < 50 lines (no idx expected) \u2192 skip check. (5) Threshold configurable via AGENTFLOW_READ_COVERAGE_THRESHOLD env var. (6) Tests: tests/hooks/test_read_check.py \u2014 assert exit 1 on large-range read with idx present; assert exit 0 on targeted read (small limit); assert exit 0 on file < 50 lines; assert exit 0 when no idx exists regardless of range.",
       "owns": [
         "agentflow/hooks/read_check.py",
         "tests/hooks/test_read_check.py"
@@ -139,8 +139,8 @@
     },
     {
       "task_id": "T-066",
-      "title": "PTY session_manager — ROUND_COMPLETE detection + token-floor handoff",
-      "description": "Replace pure token-threshold handoff with deterministic round-boundary handoff. (1) session_manager.py: scan stdout for AGENTFLOW_ROUND_COMPLETE. On detection: (a) read .agentflow/current_round.json to confirm round closed, (b) check accumulated_tokens vs configurable floor (shell.handoff_token_floor_pct, default 0.30 of threshold). (2) If above floor: call trigger_handoff() — clean boundary, no mid-task interrupt. (3) If below floor: log round-complete-low-tokens event to verbosity_log.jsonl, reset round state, continue. Token threshold remains as a safety net if ROUND_COMPLETE is never emitted. (4) Tests: test_session_manager.py — mock ROUND_COMPLETE in PTY stdout; assert handoff triggered when tokens above floor; assert handoff skipped and continued when below floor.",
+      "title": "PTY session_manager \u2014 ROUND_COMPLETE detection + token-floor handoff",
+      "description": "Replace pure token-threshold handoff with deterministic round-boundary handoff. (1) session_manager.py: scan stdout for AGENTFLOW_ROUND_COMPLETE. On detection: (a) read .agentflow/current_round.json to confirm round closed, (b) check accumulated_tokens vs configurable floor (shell.handoff_token_floor_pct, default 0.30 of threshold). (2) If above floor: call trigger_handoff() \u2014 clean boundary, no mid-task interrupt. (3) If below floor: log round-complete-low-tokens event to verbosity_log.jsonl, reset round state, continue. Token threshold remains as a safety net if ROUND_COMPLETE is never emitted. (4) Tests: test_session_manager.py \u2014 mock ROUND_COMPLETE in PTY stdout; assert handoff triggered when tokens above floor; assert handoff skipped and continued when below floor.",
       "owns": [
         "agentflow/shell/session_manager.py",
         "tests/shell/test_session_manager.py"
@@ -152,8 +152,8 @@
     },
     {
       "task_id": "T-067",
-      "title": "PTY session_manager — per-task token bracketing → task_token_log.jsonl",
-      "description": "Collect empirical per-task token data to power the future estimator. (1) session_manager.py: on AGENTFLOW_TASK_START:<task_id>, snapshot tokenizer accumulator value as task_start_tokens. (2) On AGENTFLOW_TASK_COMPLETE:<task_id>, compute delta = current_accumulated - task_start_tokens; read estimated_lines and file_count for this task_id from current_round.json. (3) Append to ~/.agentflow/task_token_log.jsonl: {task_id, session_type, token_delta, estimated_lines, file_count, timestamp}. File created if absent. (4) Tests: test_session_manager.py — emit TASK_START + TASK_COMPLETE signals; assert task_token_log.jsonl entry written with correct delta and metadata.",
+      "title": "PTY session_manager \u2014 per-task token bracketing \u2192 task_token_log.jsonl",
+      "description": "Collect empirical per-task token data to power the future estimator. (1) session_manager.py: on AGENTFLOW_TASK_START:<task_id>, snapshot tokenizer accumulator value as task_start_tokens. (2) On AGENTFLOW_TASK_COMPLETE:<task_id>, compute delta = current_accumulated - task_start_tokens; read estimated_lines and file_count for this task_id from current_round.json. (3) Append to ~/.agentflow/task_token_log.jsonl: {task_id, session_type, token_delta, estimated_lines, file_count, timestamp}. File created if absent. (4) Tests: test_session_manager.py \u2014 emit TASK_START + TASK_COMPLETE signals; assert task_token_log.jsonl entry written with correct delta and metadata.",
       "owns": [
         "agentflow/shell/session_manager.py",
         "tests/shell/test_session_manager.py"
@@ -166,21 +166,33 @@
     },
     {
       "task_id": "T-071",
-      "title": "Evaluate headroom-ai library — integration feasibility for PTY + M5",
-      "description": "Research spike: determine what headroom-ai actually does before designing integration. (1) pip install headroom-ai[all]; run `headroom wrap claude --help` and explore CLI flags. (2) Determine mechanism: subprocess wrapper, HTTP proxy, ANTHROPIC_BASE_URL intercept, or other — and whether it conflicts with PTY stdin/stdout interception. (3) Understand compress(): what algorithm, lossless or lossy, token savings estimate. (4) Understand SharedContext: in-memory or persistent? Cross-process? How does cross-provider sharing work? (5) Check whether headroom exposes per-session compression metrics readable by a report generator. (6) Write findings to .agentflow/headroom_eval.md: mechanism, composability verdict, savings estimate, SharedContext design implications for M5, recommended integration approach or DEFER if incompatible.",
-      "owns": [".agentflow/headroom_eval.md"],
+      "title": "Evaluate headroom-ai library \u2014 integration feasibility for PTY + M5",
+      "description": "Research spike: determine what headroom-ai actually does before designing integration. (1) pip install headroom-ai[all]; run `headroom wrap claude --help` and explore CLI flags. (2) Determine mechanism: subprocess wrapper, HTTP proxy, ANTHROPIC_BASE_URL intercept, or other \u2014 and whether it conflicts with PTY stdin/stdout interception. (3) Understand compress(): what algorithm, lossless or lossy, token savings estimate. (4) Understand SharedContext: in-memory or persistent? Cross-process? How does cross-provider sharing work? (5) Check whether headroom exposes per-session compression metrics readable by a report generator. (6) Write findings to .agentflow/headroom_eval.md: mechanism, composability verdict, savings estimate, SharedContext design implications for M5, recommended integration approach or DEFER if incompatible.",
+      "owns": [
+        ".agentflow/headroom_eval.md"
+      ],
       "status": "complete"
     },
     {
       "task_id": "T-073",
-      "title": "Fix verbosity signal reliability — incremental writes + reminder hook",
-      "description": "verbosity_log.jsonl only written in _on_session_exit (batched, last-10-turns) — sessions restarted via /clear (not a real process exit) never reach this path, silently losing all verbosity data; confirmed zero oracle-tagged entries despite completed oracle sessions. Also T-052/T-055 marked MERGED but the 'proactive verbosity banner' was never implemented (_verbosity_last_inject set once, never read; should_inject_banner absent from code and tests) — dead state. Fix: (1) session_manager.py — write each entry to verbosity_log.jsonl incrementally at turn-boundary detection (same site as _turn_output_history.append), not batched at exit; remove dead _verbosity_last_inject/_initial_banner_sent if superseded by (2). (2) New hook agentflow/hooks/verbosity_reminder.py — separate file from idx_reminder.py (one-concern-per-file convention), own counter (~/.agentflow/verbosity_turn_counter), fires every 1-2 turns (tighter than idx's 3) reminding to keep responses ≤ 3 sentences. Register as new entry under UserPromptSubmit in .claude/settings.json. (3) Tests: tests/shell/test_session_manager.py — assert incremental write fires at turn boundary without requiring exit; tests/hooks/test_verbosity_reminder.py — mirror test_idx_reminder.py structure, assert own counter + cadence.",
+      "title": "Fix verbosity signal reliability \u2014 incremental writes + reminder hook",
+      "description": "verbosity_log.jsonl only written in _on_session_exit (batched, last-10-turns) \u2014 sessions restarted via /clear (not a real process exit) never reach this path, silently losing all verbosity data; confirmed zero oracle-tagged entries despite completed oracle sessions. Also T-052/T-055 marked MERGED but the 'proactive verbosity banner' was never implemented (_verbosity_last_inject set once, never read; should_inject_banner absent from code and tests) \u2014 dead state. Fix: (1) session_manager.py \u2014 write each entry to verbosity_log.jsonl incrementally at turn-boundary detection (same site as _turn_output_history.append), not batched at exit; remove dead _verbosity_last_inject/_initial_banner_sent if superseded by (2). (2) New hook agentflow/hooks/verbosity_reminder.py \u2014 separate file from idx_reminder.py (one-concern-per-file convention), own counter (~/.agentflow/verbosity_turn_counter), fires every 1-2 turns (tighter than idx's 3) reminding to keep responses \u2264 3 sentences. Register as new entry under UserPromptSubmit in .claude/settings.json. (3) Tests: tests/shell/test_session_manager.py \u2014 assert incremental write fires at turn boundary without requiring exit; tests/hooks/test_verbosity_reminder.py \u2014 mirror test_idx_reminder.py structure, assert own counter + cadence.",
       "owns": [
         "agentflow/shell/session_manager.py",
         "agentflow/hooks/verbosity_reminder.py",
         ".claude/settings.json",
         "tests/shell/test_session_manager.py",
         "tests/hooks/test_verbosity_reminder.py"
+      ],
+      "status": "complete"
+    },
+    {
+      "task_id": "T-076",
+      "title": "Size-limit enforcement gap \u2014 Gemini writes + pre-existing violations uncovered",
+      "description": "T-058's size_check.py is Claude-Code-specific (PostToolUse hook); it never fires for (a) files that existed before Claude's Write/Edit tool touched them (e.g. agentflow.py), or (b) Gemini CLI writes \u2014 no equivalent hook mechanism wired for Gemini. (1) Add standalone agentflow/hooks/size_audit.py \u2014 walks repo, applies same per-category limits as size_check.py (tests/->350, commands/->150, other .py->250, stub-exempt), reports every current violation. (2) Wire as a manual/orchestrator-invoked sweep (python3 agentflow/hooks/size_audit.py) callable at milestone boundaries by either provider's orchestrate skill \u2014 not a live hook, since no PostToolUse-equivalent event exists for Gemini CLI today. (3) Investigate whether Gemini CLI supports an analogous post-write hook; if yes, wire a size_check.py equivalent; if no, document the gap in design_status.md and rely on the periodic sweep. Tests: tests/hooks/test_size_audit.py \u2014 fixture repo with known violations, assert correct per-category detection.",
+      "owns": [
+        "agentflow/hooks/size_audit.py",
+        "tests/hooks/test_size_audit.py"
       ],
       "status": "complete"
     }

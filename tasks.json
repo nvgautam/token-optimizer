@@ -532,13 +532,7 @@
     },
     {
       "task_id": "T-076",
-      "title": "Size-limit enforcement gap — Gemini writes + pre-existing violations uncovered",
-      "description": "T-058's size_check.py is Claude-Code-specific (PostToolUse hook); it never fires for (a) files that existed before Claude's Write/Edit tool touched them (e.g. agentflow.py), or (b) Gemini CLI writes — no equivalent hook mechanism wired for Gemini. (1) Add standalone agentflow/hooks/size_audit.py — walks repo, applies same per-category limits as size_check.py (tests/->350, commands/->150, other .py->250, stub-exempt), reports every current violation. (2) Wire as a manual/orchestrator-invoked sweep (python3 agentflow/hooks/size_audit.py) callable at milestone boundaries by either provider's orchestrate skill — not a live hook, since no PostToolUse-equivalent event exists for Gemini CLI today. (3) Investigate whether Gemini CLI supports an analogous post-write hook; if yes, wire a size_check.py equivalent; if no, document the gap in design_status.md and rely on the periodic sweep. Tests: tests/hooks/test_size_audit.py — fixture repo with known violations, assert correct per-category detection.",
-      "owns": [
-        "agentflow/hooks/size_audit.py",
-        "tests/hooks/test_size_audit.py"
-      ],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-072",
