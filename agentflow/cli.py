@@ -78,8 +78,12 @@ def cmd_orchestrate_merge(args: argparse.Namespace) -> int:
 
 
 def cmd_report(args: argparse.Namespace) -> int:
-    print("agentflow report — not yet implemented")
-    return 0
+    from agentflow.reporting.report_builder import build_report
+    return build_report(
+        project_root=Path.cwd(),
+        mode=args.mode,
+        output_path=args.output
+    )
 
 
 def cmd_validate(args: argparse.Namespace) -> int:
@@ -154,7 +158,18 @@ def build_parser() -> argparse.ArgumentParser:
     orch_sub.add_parser("status", help="Show live progress dashboard")
     orch_sub.add_parser("merge", help="Trigger DAG-ordered merge of approved PRs")
 
-    sub.add_parser("report", help="Show token usage report across sessions")
+    report = sub.add_parser("report", help="Show token usage report across sessions")
+    report.add_argument(
+        "--mode",
+        choices=["aggregate", "by-strategy"],
+        default="aggregate",
+        help="Report mode (default: aggregate)",
+    )
+    report.add_argument(
+        "--output",
+        default="combined_report.html",
+        help="Path to write the HTML report (default: combined_report.html)",
+    )
 
     validate = sub.add_parser("validate", help="Validate tasks.json schema and ownership rules")
     validate.add_argument("tasks_file", nargs="?", default="tasks.json", metavar="FILE")
