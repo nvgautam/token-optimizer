@@ -110,6 +110,13 @@
         "T-061"
       ],
       "status": "MERGED"
+    },
+    {
+      "round": "Addendum H",
+      "tasks": [
+        "T-075"
+      ],
+      "status": "MERGED"
     }
   ],
   "pending": []
