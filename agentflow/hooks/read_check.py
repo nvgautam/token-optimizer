@@ -74,7 +74,10 @@ def main() -> None:
         # If coverage > threshold AND idx exists → exit 1
         if coverage > threshold:
             pct = int(round(coverage * 100))
-            print(f"Large-range read ({limit_val}/{total_lines} lines, {pct}%) — use idx to target specific sections")
+            print(
+                f"Large-range read ({limit_val}/{total_lines} lines, {pct}%) — use idx to target specific sections",
+                file=sys.stderr,
+            )
             sys.exit(1)
 
         sys.exit(0)
@@ -89,7 +92,7 @@ def main() -> None:
     if not sections:
         sys.exit(0)
 
-    print(f"Blocked read of {rel}: use Read(offset=N, limit=M)")
+    print(f"Blocked read of {rel}: use Read(offset=N, limit=M)", file=sys.stderr)
     sys.exit(2)
 
 

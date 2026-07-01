@@ -40,7 +40,8 @@ def test_over_limit_blocks(tmp_path, monkeypatch, capsys):
     with pytest.raises(SystemExit) as exc_info:
         size_check.main()
     assert exc_info.value.code == 1
-    out = capsys.readouterr().out.strip()
+    captured = capsys.readouterr()
+    out = (captured.out + captured.err).strip()
     assert "FILE TOO LARGE" in out
     assert "module.py is 260 lines (limit 250)" in out
 
@@ -64,7 +65,8 @@ def test_tests_limit_correct(tmp_path, monkeypatch, capsys):
     with pytest.raises(SystemExit) as exc_info:
         size_check.main()
     assert exc_info.value.code == 1
-    out = capsys.readouterr().out.strip()
+    captured = capsys.readouterr()
+    out = (captured.out + captured.err).strip()
     assert "tests/test_module.py is 360 lines (limit 350)" in out
 
 
@@ -87,7 +89,8 @@ def test_commands_limit_correct(tmp_path, monkeypatch, capsys):
     with pytest.raises(SystemExit) as exc_info:
         size_check.main()
     assert exc_info.value.code == 1
-    out = capsys.readouterr().out.strip()
+    captured = capsys.readouterr()
+    out = (captured.out + captured.err).strip()
     assert "commands/command.md is 160 lines (limit 150)" in out
 
 
@@ -144,3 +147,17 @@ def test_exceptions_handled_gracefully(tmp_path, monkeypatch):
     with pytest.raises(SystemExit) as exc_info:
         size_check.main()
     assert exc_info.value.code == 0
+
+
+def test_outputs_go_to_stderr(tmp_path, monkeypatch, capsys):
+    target = tmp_path / "module.py"
+    target.write_text("print('hello')\n" * 260)
+    monkeypatch.setattr(os, "getcwd", lambda: str(tmp_path))
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps({"tool_input": {"file_path": str(target)}})))
+    with pytest.raises(SystemExit) as exc_info:
+        size_check.main()
+    assert exc_info.value.code == 1
+    captured = capsys.readouterr()
+    assert "FILE TOO LARGE" in captured.err
+    assert captured.out == ""
+

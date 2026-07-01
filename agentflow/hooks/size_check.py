@@ -62,7 +62,8 @@ def main() -> None:
         if n_lines > limit:
             print(
                 f"FILE TOO LARGE: {rel_path_str} is {n_lines} lines (limit {limit}) — "
-                "split by responsibility boundary before proceeding."
+                "split by responsibility boundary before proceeding.",
+                file=sys.stderr,
             )
             sys.exit(1)
 

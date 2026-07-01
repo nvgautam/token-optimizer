@@ -27,7 +27,8 @@ def _run(payload: dict, cwd: str | None = None, home: str | None = None) -> tupl
         cwd=cwd,
         env=env,
     )
-    return result.returncode, result.stdout.strip()
+    output = (result.stdout + result.stderr).strip()
+    return result.returncode, output
 
 
 def _make_idx(home: Path, cwd: str, rel: str) -> None:
@@ -217,7 +218,8 @@ def test_in_process_all_branches(tmp_path, monkeypatch, capsys):
     with pytest.raises(SystemExit) as exc_info:
         read_check.main()
     assert exc_info.value.code == 2
-    out = capsys.readouterr().out.strip()
+    captured = capsys.readouterr()
+    out = (captured.out + captured.err).strip()
     assert "\n" not in out
     assert "module.py" in out
     assert "Read(offset=" in out
@@ -283,7 +285,8 @@ def test_in_process_new_logic(tmp_path, monkeypatch, capsys):
 
     # 1. Exit 1 on large-range read with idx
     run_assert({"tool_input": {"file_path": str(target), "offset": 0, "limit": 80}}, 1)
-    assert "Large-range read (80/100 lines, 80%)" in capsys.readouterr().out
+    captured = capsys.readouterr()
+    assert "Large-range read (80/100 lines, 80%)" in (captured.out + captured.err)
 
     # 2. Exit 0 on targeted read
     run_assert({"tool_input": {"file_path": str(target), "offset": 0, "limit": 20}}, 0)
@@ -305,7 +308,8 @@ def test_in_process_new_logic(tmp_path, monkeypatch, capsys):
 
     monkeypatch.setenv("AGENTFLOW_READ_COVERAGE_THRESHOLD", "0.30")
     run_assert({"tool_input": {"file_path": str(target), "offset": 0, "limit": 40}}, 1)
-    assert "Large-range read (40/100 lines, 40%)" in capsys.readouterr().out
+    captured = capsys.readouterr()
+    assert "Large-range read (40/100 lines, 40%)" in (captured.out + captured.err)
 
     monkeypatch.setenv("AGENTFLOW_READ_COVERAGE_THRESHOLD", "invalid")
     run_assert({"tool_input": {"file_path": str(target), "offset": 0, "limit": 80}}, 1)
@@ -325,4 +329,39 @@ def test_in_process_new_logic(tmp_path, monkeypatch, capsys):
     # File read error
     (idx_path.parent / "nonexistent.py.idx").write_text("some_func:1-10\n")
     run_assert({"tool_input": {"file_path": "nonexistent.py", "offset": 0, "limit": 80}}, 0)
+
+
+def test_outputs_go_to_stderr(tmp_path, monkeypatch, capsys):
+    project = tmp_path / "project"
+    project.mkdir()
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setattr(os, "getcwd", lambda: str(project))
+    target = project / "module.py"
+    target.write_text("\n" * 100)
+
+    cwd_hash = hashlib.sha256(str(project).encode()).hexdigest()
+    idx_path = home / ".agentflow" / "cache" / cwd_hash / "index" / "module.py.idx"
+    idx_path.parent.mkdir(parents=True, exist_ok=True)
+    idx_path.write_text("some_func:1-10\n")
+
+    # 1. Check exit 2 message goes to stderr, not stdout
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps({"tool_input": {"file_path": str(target)}})))
+    with pytest.raises(SystemExit) as exc_info:
+        read_check.main()
+    assert exc_info.value.code == 2
+    captured = capsys.readouterr()
+    assert "Blocked read" in captured.err
+    assert captured.out == ""
+
+    # 2. Check exit 1 message goes to stderr, not stdout
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps({"tool_input": {"file_path": str(target), "offset": 0, "limit": 80}})))
+    with pytest.raises(SystemExit) as exc_info:
+        read_check.main()
+    assert exc_info.value.code == 1
+    captured = capsys.readouterr()
+    assert "Large-range read" in captured.err
+    assert captured.out == ""
+
 
