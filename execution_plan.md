@@ -126,6 +126,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-067 | PTY session_manager — per-task token bracketing → task_token_log.jsonl | MERGED |
 | T-070 | read_check.py — block large-range reads that bypass idx enforcement | MERGED |
 | T-071 | Evaluate headroom-ai library — integration feasibility for PTY + M5 | MERGED |
+| T-073 | Fix verbosity signal reliability — incremental writes + reminder hook | PENDING |
 
 | Round | Tasks | Note |
 |---|---|---|
@@ -144,6 +145,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | A | T-067, T-063, T-061, T-071 | T-067: unblocked (T-065/T-066 merged); T-063: independent; T-061/T-071: research spikes |
 | B | T-068, T-064 | T-068 depends on T-067; T-064 depends on T-063 |
 | C | T-069 | Depends on T-068 + T-065 (merged) |
+| D | T-073 | No deps — independent bug fix |
 
 ---
 

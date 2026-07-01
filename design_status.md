@@ -63,6 +63,7 @@ Oracle reads on startup. Handoff writes updates. Architecture.md = workers only.
 | ContentRouter integration | DEFERRED | v2 — Headroom library; uses ANTHROPIC_BASE_URL as interception point — IS the proxy layer. PTY sets ANTHROPIC_BASE_URL at launch; ContentRouter handles compression + system prompt injection. No separate PTY proxy needed. |
 | Mid-session /compact | DEFERRED | Not worth at current 30-60K handoff thresholds — sessions hand off before compaction helps. Revisit if thresholds raised significantly. |
 | Verbosity compliance tracking | RESOLVED | Per-turn output token tracking in PTY (T-010) — writes verbosity_log.jsonl; shadow analyzer reports mean/p90 vs 150-token target. |
+| Verbosity signal reliability | RESOLVED | Write-on-exit-only lost data across `/clear` cycles (no real process exit) — zero oracle-tagged entries despite completed oracle sessions confirmed. T-052/T-055 "proactive banner" never implemented despite MERGED (dead `_verbosity_last_inject`). Fix: incremental per-turn writes; new UserPromptSubmit hook `verbosity_reminder.py` (separate from idx_reminder.py, own counter, 1–2 turn cadence) — T-073 |
 
 ## Oracle Direction — Sparred 2026-06-30
 
@@ -75,7 +76,8 @@ Oracle reads on startup. Handoff writes updates. Architecture.md = workers only.
 | QA acceptance criteria ownership | RESOLVED | Oracle writes acceptance criteria per milestone at generation time; test scaffolding + evaluation belong to worker/reviewer pipeline — not oracle |
 | Delivery timeline propagation | DEFERRED | Oracle captures user-stated delivery timelines; propagates as ordering constraint into milestone sequencing; v2 design — needs milestone management integration |
 | SRE persona | DEFERRED | Fold SRE concerns (observability, alerting, runbooks) into Stage 2 architecture checklist batch; not a separate oracle stage |
-| Headroom/ContentRouter integration | DEFERRED | Pending T-071 evaluation; if composable with PTY, pull into demo scope; SharedContext may redesign M5 from collision-prevention to active cross-provider context sharing |
-| Demo report generator | DEFERRED | Required for demo — reads task_token_log.jsonl, computes savings vs baseline, breakdown per strategy (targeted reads + handoff + Headroom compression); add as task after T-071 resolves Headroom metrics question |
+| Headroom/ContentRouter integration | RESOLVED | T-071 complete: fully composable (HTTP proxy vs PTY I/O — orthogonal layers); PTY invokes `headroom wrap claude`; workspace isolated to `.headroom/` per project; Intel macOS needs Homebrew onnxruntime workaround |
+| Headroom SharedContext for M5 | DEFERRED | Workers operate on disjoint tasks by design — no cross-process context sharing needed in v1; task claiming already solved via file locks (T-063); revisit if same-file reads across providers become a measured problem |
+| Demo report generator | RESOLVED | No build needed — `headroom.reporting.generator.generate_report()` produces HTML dashboard from `savings_events.jsonl` ledger; `agentflow report` subcommand wraps it; add as task after T-067 data populates ledger |
 | Monetization positioning | RESOLVED | Cost + compliance, not orchestration features; target AI-first startups $5K–20K/month API spend; PTY measurement layer + compliance taxonomy = moat competitors lack |
 | Customer conversation timing | RESOLVED | Start discovery conversations now (no code needed); live demo after M4 addendum (T-067) + report generator landed; build compliance taxonomy depth with first customer, not speculatively |
