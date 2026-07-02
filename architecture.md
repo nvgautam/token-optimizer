@@ -461,6 +461,8 @@ All savings figures are modelled, not measured. **Combined effect: with all stra
 
 **v1 status:** v2 — plug into PTY I/O interception layer after CacheAligner evaluated.
 
+> **Update (T-084):** v1 is now live (not v2-only) via `headroom wrap` in `agentflow/cli.py`'s `cmd_shell`, running in `HEADROOM_MODE=token`. Actual measured trade-off and mode history documented in `.agentflow/headroom_eval.md` section 10. The "18-28%" estimate above was a pre-integration model, not yet reconciled against real measured numbers — that reconciliation is T-085's concern.
+
 ---
 
 | Strategy | Layer | Est. savings | v1 or v2 | Testable now? |
