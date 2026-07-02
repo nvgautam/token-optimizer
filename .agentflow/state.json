@@ -1,6 +1,6 @@
 {
-  "updated": "2026-07-02T20:36:00",
-  "milestone": "Milestone 4: Config + PTY Shell (addendum) — COMPLETE; next: Milestone 5: Multi-Provider Coordination",
+  "updated": "2026-07-02T21:05:00",
+  "milestone": "Milestone 4: Config + PTY Shell (addendum) — T-086 in progress",
   "status": "IN_PROGRESS",
   "groups": [
     {
@@ -202,6 +202,15 @@
       "status": "MERGED",
       "agentId": "a7097505a57c66c44",
       "note": "PR #49 merged 2026-07-02T20:36:11Z. Oracle's resolved approach assumed agentflow_ledger.json carried a session_type field to bucket by; it doesn't (0 occurrences across 101 sessions). Worker discovered this at pre-spawn, attempted a ledger end_time <-> telemetry.jsonl handoff-event timestamp join anyway, correctly detected it's unreliable on real data (57-then-67 telemetry events vs 90-100 ledger sessions, median match delta ~400s, <50% match rate), and fell back to one global unbucketed p25 pool (N=90, ~1,127 tok/turn, replacing the invented 500 tok/turn constant) -- labeled modeled/not-measured throughout, excluded from total_saved. Pass 1 + Pass 2 (fresh Haiku, retried once after a prompt-construction bug on the first attempt) both CLEAN except one non-blocking WARNING (broad except Exception in two best-effort local-file loaders -- justified). Post-review, user asked whether the gap could be closed more reliably; found cmd_start/cmd_handoff (agentflow/legacy_commands.py) never captured session_type at the source despite already prompting interactively for agent/task_ids -- flagged as a separate follow-up (not folded into T-085). User then asked whether the dominant tag among tagged telemetry events could at least give a coarser honest signal; verified empirically (43 orchestrator / 8 oracle / 9 unknown / 7 untagged of 67 events) and added `_tag_breakdown_note()` to handoff_savings.py so the unbucketed methodology string reports 'predominantly orchestrator sessions (N of M tagged handoff events)' instead of a bare 'no join' note -- 3 new tests, pushed to PR #49 as an additional commit pre-merge. Post-merge: local main reconciled with origin (ahead 13/behind 3, clean merge, no conflicts); worktree removed (2 log-only pollution files discarded), branch deleted."
+    },
+    {
+      "round": "N",
+      "tasks": [
+        "T-086"
+      ],
+      "status": "IN_PROGRESS",
+      "agentId": "a2dc491b98d7fd743",
+      "note": "Spawned solo (first agent of session). Config-owned headroom.enabled toggle (default true) + AGENTFLOW_ENABLE_HEADROOM env override + startup active/inactive banner. Owns: agentflow/cli.py (248/250 lines pre-task -- worker briefed to extract a helper to stay under cap), agentflow/config/schema.py, agentflow/config/defaults.yaml, tests/test_cli_shell.py."
     }
   ],
   "pending": [
