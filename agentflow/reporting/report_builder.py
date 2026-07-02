@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from agentflow.shadow.analyzer import _load_log, get_bucketed_stats
 from agentflow.shadow.verbosity_ab import load_baseline
+from agentflow.reporting.handoff_savings import compute_handoff_savings
 
 
 def _reporting_window(entries: list[dict]) -> tuple[str, str] | None:
@@ -127,8 +128,7 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
     verbosity_savings = sum(max(0, baseline_tokens - e.get("output_tokens", 0)) for e in windowed_verb_entries)
     verbosity_annotation = _format_baseline_annotation(verbosity_baseline)
 
-    # T-082: compression from proxy_savings.json, windowed like verbosity.
-    proxy_savings = _load_proxy_savings(project_root)
+    proxy_savings = _load_proxy_savings(project_root)  # T-082: compression from proxy_savings.json, windowed like verbosity.
     history = (proxy_savings or {}).get("history", [])
     compression_savings = _compression_delta_from_history(history, reporting_window, "total_tokens_saved")
     compression_real = _compression_delta_from_history(history, reporting_window, "total_input_tokens")
@@ -213,9 +213,10 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
         ("stats_state_docs", "Compact State Documents — read volume, not savings (state-docs)", "real", stats["state-docs"], ""),
         ("verbosity_savings", "Output Verbosity Savings (verbosity)", "real", verbosity_savings, verbosity_annotation),
         ("compression_savings", "Compression Savings (compression)", "real", compression_savings, ""),
+        ("handoff_savings", "Session Recycling — Handoff/context cycling, MODELED not measured (handoff)", "modeled", (_hs := compute_handoff_savings(project_root))["tokens_saved"], f" [{_hs['methodology']}]"),
     ]
     if mode != "aggregate":
-        for section, header in (("waste", "Waste Avoided (shadow, lower is better)"), ("real", f"Real Savings Realized (total_saved={total_saved:,} tokens)")):
+        for section, header in (("waste", "Waste Avoided (shadow, lower is better)"), ("real", f"Real Savings Realized (total_saved={total_saved:,} tokens)"), ("modeled", "Modeled Projections (not measured -- see methodology per row)")):
             print(f"----------------------------------------------\n{header}")
             for _, label, sec, val, note in STRATEGY_ROWS:
                 if sec == section:
