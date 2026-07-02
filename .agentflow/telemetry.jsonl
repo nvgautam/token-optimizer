@@ -660,3 +660,13 @@
 {"event": "handoff", "timestamp": "2026-07-01T23:56:38.641048+00:00", "session_type": "orchestrator", "agent_tokens_in": 0, "agent_tokens_out": 0, "agents": 0}
 {"event": "session_complete", "timestamp": "2026-07-01T18:05:13.428375", "tasks": 1, "groups": 1}
 {"event": "handoff", "timestamp": "2026-07-01T18:07:46.654257", "session_type": "orchestrator", "agent_tokens_in": 195000, "agent_tokens_out": 9700, "agents": 1}
+{"trace_id": "ffe746c3-8540-47d6-a479-6bd931072d5f", "span": "worker.context_built", "timestamp": "2026-07-02T02:22:13.428088+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
+{"trace_id": "06890dff-fcc0-42f3-9eaf-be04fcd6d3cb", "span": "worker.context_built", "timestamp": "2026-07-02T02:22:13.440950+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
+{"trace_id": "be4cc504-b162-40a2-a0c9-9d22185b2187", "span": "worker.context_built", "timestamp": "2026-07-02T02:22:13.448670+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
+{"trace_id": "dc819b9f-1cc2-4a8b-9f02-5de29a7871dc", "span": "worker.context_built", "timestamp": "2026-07-02T02:22:13.460184+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
+{"trace_id": "bb0353a0-fa49-442b-99f1-3e7cdfe1c309", "span": "worker.context_built", "timestamp": "2026-07-02T02:22:13.468767+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 175, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
+{"trace_id": "53bb9556-081e-4c02-87fd-248b5ba35017", "span": "worker.context_built", "timestamp": "2026-07-02T02:22:13.476701+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
+{"trace_id": "5fe468ca-20c0-4116-b853-c7572d625da4", "span": "worker.context_built", "timestamp": "2026-07-02T02:22:13.487035+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
+{"trace_id": "1ad768a2-831a-4992-af67-edb5210d26b7", "span": "worker.context_built", "timestamp": "2026-07-02T02:22:13.494859+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
+{"event": "session_complete", "timestamp": "2026-07-01T19:25:49.119965", "tasks": 1, "groups": 1}
+{"event": "handoff", "timestamp": "2026-07-01T20:27:45.870766", "session_type": "orchestrator", "agent_tokens_in": 3866573, "agent_tokens_out": 35177, "agents": 2}

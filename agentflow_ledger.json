@@ -2593,10 +2593,78 @@
         }
       },
       "status": "closed"
+    },
+    {
+      "session_id": "20260701_193139",
+      "agent": "agy",
+      "task_ids": "",
+      "start_time": "2026-07-01T19:31:39.648281",
+      "end_time": "2026-07-01T19:31:39.648301",
+      "context_at_start": 21117,
+      "input_tokens": 7210620,
+      "output_tokens": 41058,
+      "token_detail": {
+        "uncached_input": 751597,
+        "cache_creation": 0,
+        "cache_read": 6459023,
+        "output": 41058,
+        "n_turns": 90,
+        "initial_ctx": 21117,
+        "final_ctx": 129623
+      },
+      "n_turns": 90,
+      "final_ctx": 129623,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 14488927,
+        "shadow_output": 106863,
+        "shadow_extra": 7090290,
+        "compaction": {
+          "before": 188017,
+          "after": 65805,
+          "cost_tokens": 65805
+        }
+      },
+      "status": "closed"
+    },
+    {
+      "session_id": "20260701_202755",
+      "agent": "agy",
+      "task_ids": "",
+      "start_time": "2026-07-01T20:27:55.980280",
+      "end_time": "2026-07-01T20:27:55.980293",
+      "context_at_start": 21117,
+      "input_tokens": 10873419,
+      "output_tokens": 53048,
+      "token_detail": {
+        "uncached_input": 1429689,
+        "cache_creation": 0,
+        "cache_read": 9443730,
+        "output": 53048,
+        "n_turns": 115,
+        "initial_ctx": 21117,
+        "final_ctx": 151787
+      },
+      "n_turns": 115,
+      "final_ctx": 151787,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 18638020,
+        "shadow_output": 122007,
+        "shadow_extra": 7567575,
+        "compaction": {
+          "before": 197026,
+          "after": 68959,
+          "cost_tokens": 68959
+        }
+      },
+      "status": "closed"
     }
   ],
   "shadow_state": {
-    "accumulated_context": 78781,
-    "compaction_events": 54
+    "accumulated_context": 68959,
+    "compaction_events": 56
   }
 }
