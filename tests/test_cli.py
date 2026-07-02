@@ -71,3 +71,44 @@ def test_orchestrate_subcommands_present():
         a for a in orch_parser._actions if hasattr(a, "_name_parser_map")
     )
     assert set(orch_sub._name_parser_map) == {"start", "status", "merge"}
+
+
+def test_report_agent_without_session_mode_raises_error():
+    import pytest
+    from agentflow.cli import build_parser
+    parser = build_parser()
+    with pytest.raises(SystemExit):
+        parser.parse_args(["report", "--agent", "claude"])
+
+
+def test_report_mode_session_agent_claude_routes_to_legacy(monkeypatch):
+    import pytest
+    from agentflow.cli import main
+    called = []
+    
+    def mock_cmd_report(args):
+        called.append(args)
+        return 0
+        
+    monkeypatch.setattr("agentflow.legacy_report.cmd_report", mock_cmd_report)
+    monkeypatch.setattr("sys.argv", ["agentflow", "report", "--mode", "session", "--agent", "claude"])
+    
+    with pytest.raises(SystemExit) as excinfo:
+        main()
+        
+    assert excinfo.value.code == 0
+    assert len(called) == 1
+    assert called[0].agent == "claude"
+    assert called[0].mode == "session"
+
+
+def test_root_agentflow_no_longer_accepts_report():
+    import subprocess
+    import sys
+    result = subprocess.run(
+        [sys.executable, "agentflow.py", "report"],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode != 0
+    assert "invalid choice: 'report'" in result.stderr

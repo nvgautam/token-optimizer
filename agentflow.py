@@ -8,7 +8,6 @@ Usage:
   python agentflow.py start   -- begin a new session
   python agentflow.py end     -- end current session, record tokens
   python agentflow.py handoff -- record session auto-reading from JSONL (no prior start needed)
-  python agentflow.py report  -- show savings report
   python agentflow.py status  -- show current session status
 """
 
@@ -19,7 +18,6 @@ from agentflow.telemetry.ledger import (
 from agentflow.legacy_commands import (
     cmd_start, cmd_end, cmd_handoff, cmd_status
 )
-from agentflow.legacy_report import cmd_report
 from agentflow.legacy_helpers import (
     cmd_classify, cmd_batch_check, cmd_ctx_watch,
     _print_token_breakdown, _print_summary, _manual_usage_entry
@@ -30,6 +28,11 @@ from agentflow.usage_parser import (
 from agentflow.shadow_tracker import (
     real_cost_from_usage, total_real_tokens, update_shadow
 )
+
+def cmd_report(args):
+    """Exposed for backward compatibility and testing."""
+    from agentflow.legacy_report import cmd_report as legacy_cmd_report
+    return legacy_cmd_report(args)
 
 def main():
     parser = argparse.ArgumentParser(
@@ -43,23 +46,19 @@ Commands:
   handoff --agent claude   Force Claude JSONL reader
   handoff --agent agy      Force agy/Gemini DB reader
   status             Show current open session
-  report             Show cumulative savings report
-  report --agent claude    Report for Claude sessions only
-  report --agent agy       Report for agy/Gemini sessions only
   classify [subject ...]   Classify tasks as mechanical or exploratory
   batch-check "subject"    Should next task batch into current session or start fresh?
     --ctx N                Override current context token count
     --files a,b            Comma-separated files touched in current session
-    --next-files c,d       Comma-separated files the next task will touch
+    --next-files c,d       Comma-separated files next task will touch
   ctx-watch          Stop hook: warn if context exceeds threshold (run automatically)
 
 Global flags:
   --ledger PATH      Use a project-specific ledger instead of the default.
-                     Example: python agentflow.py report --ledger ~/code/whys/agentflow_ledger.json
         """
     )
     parser.add_argument("command",
-                        choices=["start", "end", "handoff", "status", "report",
+                        choices=["start", "end", "handoff", "status",
                                  "classify", "batch-check", "ctx-watch"])
     parser.add_argument("--agent", choices=["claude", "gemini", "agy"], default=None,
                         help="Force agent backend (handoff) or filter by agent (report)")
@@ -83,7 +82,6 @@ Global flags:
         "end":         cmd_end,
         "handoff":     cmd_handoff,
         "status":      cmd_status,
-        "report":      cmd_report,
         "classify":    cmd_classify,
         "batch-check": cmd_batch_check,
         "ctx-watch":   cmd_ctx_watch,

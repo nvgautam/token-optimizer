@@ -78,6 +78,10 @@ def cmd_orchestrate_merge(args: argparse.Namespace) -> int:
 
 
 def cmd_report(args: argparse.Namespace) -> int:
+    if args.mode == "session":
+        from agentflow.legacy_report import cmd_report as legacy_cmd_report
+        legacy_cmd_report(args)
+        return 0
     from agentflow.reporting.report_builder import build_report
     return build_report(
         project_root=Path.cwd(),
@@ -145,8 +149,17 @@ def cmd_shell(args: argparse.Namespace) -> int:
     sys.exit(wrapper._exit_code or 0)
 
 
+class AgentFlowParser(argparse.ArgumentParser):
+    def parse_args(self, args=None, namespace=None):
+        parsed = super().parse_args(args, namespace)
+        if parsed.command == "report":
+            if getattr(parsed, "agent", None) is not None and parsed.mode != "session":
+                self.error("argument --agent is only valid when --mode is 'session'")
+        return parsed
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
+    parser = AgentFlowParser(
         prog="agentflow",
         description="AgentFlow — provider-agnostic multi-agent project management",
     )
@@ -168,7 +181,7 @@ def build_parser() -> argparse.ArgumentParser:
     report = sub.add_parser("report", help="Show token usage report across sessions")
     report.add_argument(
         "--mode",
-        choices=["aggregate", "split"],
+        choices=["aggregate", "split", "session"],
         default="aggregate",
         help="Report mode (default: aggregate)",
     )
@@ -176,6 +189,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--output",
         default="combined_report.html",
         help="Path to write the HTML report (default: combined_report.html)",
+    )
+    report.add_argument(
+        "--agent",
+        choices=["claude", "agy"],
+        default=None,
+        help="Filter by agent (valid only with --mode session)",
     )
 
     validate = sub.add_parser("validate", help="Validate tasks.json schema and ownership rules")
