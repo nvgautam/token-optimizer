@@ -1,7 +1,7 @@
 {
-  "updated": "2026-07-02T21:05:00",
-  "milestone": "Milestone 4: Config + PTY Shell (addendum) — T-086 in progress",
-  "status": "IN_PROGRESS",
+  "updated": "2026-07-02T21:24:05",
+  "milestone": "Milestone 4: Config + PTY Shell (addendum) — COMPLETE; Milestone 5: Multi-Provider Coordination next (T-063 pending)",
+  "status": "MILESTONE_COMPLETE",
   "groups": [
     {
       "round": "D",
@@ -208,9 +208,9 @@
       "tasks": [
         "T-086"
       ],
-      "status": "IN_PROGRESS",
+      "status": "MERGED",
       "agentId": "a2dc491b98d7fd743",
-      "note": "Spawned solo (first agent of session). Config-owned headroom.enabled toggle (default true) + AGENTFLOW_ENABLE_HEADROOM env override + startup active/inactive banner. Owns: agentflow/cli.py (248/250 lines pre-task -- worker briefed to extract a helper to stay under cap), agentflow/config/schema.py, agentflow/config/defaults.yaml, tests/test_cli_shell.py."
+      "note": "PR #50 merged 2026-07-02T21:24:05Z (resumed from prior session; review passes skipped per explicit user instruction, human approved merge directly). Config-owned headroom.enabled toggle (default true) + AGENTFLOW_ENABLE_HEADROOM env override + startup active/inactive banner, resolve_headroom_status()/format_headroom_banner() extracted to config/schema.py to keep cli.py under 250-line cap. Post-merge: local main reconciled with origin (17 local flush commits vs 2 remote commits, clean --no-ff merge, no conflicts); worktree + branch removed."
     }
   ],
   "pending": [
