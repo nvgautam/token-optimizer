@@ -223,12 +223,12 @@ def test_report_builder_falls_back_when_no_baseline_measured(tmp_path):
 def test_report_builder_aligns_verbosity_window_to_shadow_reads_scope(tmp_path):
     shadow_log = tmp_path / ".agentflow" / "shadow_reads.jsonl"
     shadow_log.parent.mkdir(parents=True, exist_ok=True)
-    shadow_log.write_text(json.dumps({"ts": "2026-07-01T12:00:00", "rel": "foo.py", "offset": 1, "limit": 5, "idx_exists": True, "idx_sections": 2, "file_lines": 10, "file_chars": 400}) + "\n")
+    shadow_log.write_text(json.dumps({"ts": "2026-07-03T12:00:00", "rel": "foo.py", "offset": 1, "limit": 5, "idx_exists": True, "idx_sections": 2, "file_lines": 10, "file_chars": 400}) + "\n")
 
     verb_log = tmp_path / ".agentflow" / "verbosity_log.jsonl"
     verb_log.write_text(
         json.dumps({"ts": "2026-06-01T00:00:00", "session_type": "oracle", "turn": 1, "output_tokens": 0}) + "\n" +
-        json.dumps({"ts": "2026-07-01T12:00:00", "session_type": "oracle", "turn": 2, "output_tokens": 100}) + "\n"
+        json.dumps({"ts": "2026-07-03T12:00:00", "session_type": "oracle", "turn": 2, "output_tokens": 100}) + "\n"
     )
 
     out_html = tmp_path / "combined_report.html"
@@ -285,15 +285,15 @@ def test_report_builder_windows_compression_to_shadow_reads_scope(utc_tz, tmp_pa
     shadow_log = tmp_path / ".agentflow" / "shadow_reads.jsonl"
     shadow_log.parent.mkdir(parents=True, exist_ok=True)
     shadow_log.write_text(json.dumps({
-        "ts": "2026-07-01T12:00:00", "rel": "foo.py", "offset": 1, "limit": 5,
+        "ts": "2026-07-03T12:00:00", "rel": "foo.py", "offset": 1, "limit": 5,
         "idx_exists": True, "idx_sections": 2, "file_lines": 10, "file_chars": 400,
     }) + "\n")
     (tmp_path / ".headroom").mkdir(parents=True, exist_ok=True)
     (tmp_path / ".headroom" / "proxy_savings.json").write_text(json.dumps({
         "history": [
-            {"timestamp": "2026-07-01T09:00:00Z", "total_tokens_saved": 100, "total_input_tokens": 1000},
-            {"timestamp": "2026-07-01T12:00:00Z", "total_tokens_saved": 900, "total_input_tokens": 4000},
-            {"timestamp": "2026-07-02T00:00:00Z", "total_tokens_saved": 9000, "total_input_tokens": 40000},
+            {"timestamp": "2026-07-03T09:00:00Z", "total_tokens_saved": 100, "total_input_tokens": 1000},
+            {"timestamp": "2026-07-03T12:00:00Z", "total_tokens_saved": 900, "total_input_tokens": 4000},
+            {"timestamp": "2026-07-03T23:00:00Z", "total_tokens_saved": 9000, "total_input_tokens": 40000},
         ],
     }))
 
@@ -313,8 +313,8 @@ def test_report_builder_idx_savings(tmp_path):
     shadow_log = tmp_path / ".agentflow" / "shadow_reads.jsonl"
     shadow_log.parent.mkdir(parents=True, exist_ok=True)
     shadow_log.write_text(
-        json.dumps({"ts": "2026-07-01T12:00:00", "rel": "a.py", "offset": 10, "limit": 10, "idx_exists": True, "idx_sections": 1, "file_lines": 100, "file_chars": 4000}) + "\n" +
-        json.dumps({"ts": "2026-07-01T12:01:00", "rel": "b.py", "offset": 5, "limit": 5, "idx_exists": False, "idx_sections": 0, "file_lines": 50, "file_chars": 2000}) + "\n"
+        json.dumps({"ts": "2026-07-03T12:00:00", "rel": "a.py", "offset": 10, "limit": 10, "idx_exists": True, "idx_sections": 1, "file_lines": 100, "file_chars": 4000}) + "\n" +
+        json.dumps({"ts": "2026-07-03T12:01:00", "rel": "b.py", "offset": 5, "limit": 5, "idx_exists": False, "idx_sections": 0, "file_lines": 50, "file_chars": 2000}) + "\n"
     )
     out_html = tmp_path / "combined_report.html"
     build_report(project_root=tmp_path, mode="split", output_path=out_html, store_url="sqlite:///dummy.db")

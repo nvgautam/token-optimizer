@@ -1,6 +1,6 @@
 {
-  "updated": "2026-07-02T23:14:47",
-  "milestone": "Milestone 4: Config + PTY Shell (addendum) — T-088 (Addendum P) still pending; Milestone 5: Multi-Provider Coordination next (T-063 pending)",
+  "updated": "2026-07-02T16:23:00",
+  "milestone": "Milestone 5: Multi-Provider Coordination next (T-063 pending)",
   "status": "IN_PROGRESS",
   "groups": [
     {
@@ -220,13 +220,20 @@
       "status": "MERGED",
       "agentId": "ae146a9058039e6a6",
       "note": "PR #51 merged 2026-07-02T23:14:47Z (resumed from prior session that ended before state.json was updated -- worktree found intact, locked, work already committed at 55f89a6 and pushed, PR already open; no re-implementation needed). steady_state.py computes measured (not modeled) pct_saved scoped to closed ledger sessions after T-086's merge (later than T-084's), rendered as new top-level stat in combined_report.html. Pass 1 clean. Pass 2 (fresh Haiku) flagged 2 CRITICAL scope-creep findings (dashboard_template.html, tests/test_steady_state.py touched outside T-087's owns list) -- both verified as false positives: dashboard_template.html is report_builder.py's actual template source (report_builder.py:229), required to satisfy the task's explicit render-in-combined_report.html requirement; tests/test_steady_state.py is mandated unconditionally by testing_guide.md's TDD convention independent of owns. Root cause: owns list was filed incomplete during the oracle re-spar session. Corrected in tasks.archive.json; human approved merge with this understanding. Post-merge: removed a stray untracked pre-spawn stub (agentflow/reporting/steady_state.py, 1 line) from main's working tree that would have conflicted with the incoming merge; local main reconciled with origin (22 local vs 2 remote commits, clean --no-ff merge, no conflicts); stale-locked worktree (dead pid) force-removed, branch deleted locally and on origin."
+    },
+    {
+      "round": "P",
+      "tasks": [
+        "T-088"
+      ],
+      "status": "MERGED",
+      "note": "PR #52 merged 2026-07-02T16:23:00. Computed idx_savings and offset_savings accumulators and surfaced idx_savings in the strategy list and HTML dashboard. Test file tests/reporting/test_report_builder.py was compressed to stay below 350-line limit, and report_builder.py was compacted to stay below 250-line cap."
     }
   ],
   "pending": [
     "T-063",
     "T-064",
     "T-068",
-    "T-069",
-    "T-088"
+    "T-069"
   ]
 }

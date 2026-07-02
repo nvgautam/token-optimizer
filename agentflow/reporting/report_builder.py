@@ -4,28 +4,18 @@ from pathlib import Path
 from agentflow.shadow.analyzer import _load_log, get_bucketed_stats
 from agentflow.shadow.verbosity_ab import load_baseline
 from agentflow.reporting import handoff_savings, steady_state
+from agentflow.reporting.steady_state import _parse_ts, WINDOW_START
 
 
 def _reporting_window(entries: list[dict]) -> tuple[str, str] | None:
-    """Timestamp range covered by `entries` (shadow_reads.jsonl, the
-    current-scope log). Returns None when there's no timestamped data to
-    bound the window with — callers should treat that as "no window
-    constraint" rather than an empty window."""
     ts_values = [e.get("ts") for e in entries if e.get("ts")]
-    if not ts_values:
-        return None
-    return (min(ts_values), max(ts_values))
+    return (min(ts_values), max(ts_values)) if ts_values else None
 
 
 def _filter_by_window(entries: list[dict], window: tuple[str, str] | None) -> list[dict]:
-    """T-081: verbosity_log.jsonl accumulates for the project's lifetime
-    while shadow_reads.jsonl is scoped to the current reporting run. Summing
-    the former unfiltered against the latter double-counts history that
-    isn't part of this report. Bound verbosity entries to the same window."""
     if window is None:
         return entries
-    start, end = window
-    return [e for e in entries if start <= e.get("ts", "") <= end]
+    return [e for e in entries if window[0] <= e.get("ts", "") <= window[1]]
 
 
 def _load_proxy_savings(project_root: Path) -> dict | None:
@@ -92,6 +82,9 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
 
     log_path = project_root / ".agentflow" / "shadow_reads.jsonl"
     raw_entries = _load_log(log_path) if log_path.exists() else []
+
+    start_dt = _parse_ts(WINDOW_START)
+    raw_entries = [e for e in raw_entries if (ts := _parse_ts(e.get("ts", ""))) and ts >= start_dt]
 
     # Blocked attempts (idx exists, offset=None) never executed the read --
     # left in, they'd double-count as phantom real cost + phantom savings.

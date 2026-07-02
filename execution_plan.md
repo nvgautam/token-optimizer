@@ -142,7 +142,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-085 | Calibrate handoff/session-recycling savings from real ledger data, add as report line item | MERGED |
 | T-086 | Move headroom-wrap toggle from ambient env var into AgentFlow config; add startup active/inactive banner | MERGED |
 | T-087 | Add steady-state (post-regression-fix) savings percentage alongside lifetime total in report_builder.py | MERGED |
-| T-088 | Surface index-driven read savings as its own report line item | PENDING |
+| T-088 | Surface index-driven read savings as its own report line item | MERGED |
 
 | Round | Tasks | Note |
 |---|---|---|
