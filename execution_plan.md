@@ -141,6 +141,8 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-084 | Recover headroom compression savings lost to cache mode's strict prefix freeze | MERGED |
 | T-085 | Calibrate handoff/session-recycling savings from real ledger data, add as report line item | MERGED |
 | T-086 | Move headroom-wrap toggle from ambient env var into AgentFlow config; add startup active/inactive banner | MERGED |
+| T-087 | Add steady-state (post-regression-fix) savings percentage alongside lifetime total in report_builder.py | PENDING |
+| T-088 | Surface index-driven read savings as its own report line item | PENDING |
 
 | Round | Tasks | Note |
 |---|---|---|
@@ -170,6 +172,8 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | L | T-084 | Independent — oracle re-spar 2026-07-02, headroom compression regression traced to T-080's cache mode |
 | M | T-085 | Independent — oracle re-spar 2026-07-02, handoff savings measurement approach resolved |
 | N | T-086 | Independent — oracle re-spar 2026-07-02, headroom-wrap silently skipped due to ambient env-var dependency |
+| O | T-087 | Depends on T-084, T-086 (needs their merge timestamps as the steady-state window start) — oracle re-spar 2026-07-02, blended lifetime pct_saved understates current capability for demo use |
+| P | T-088 | Independent — oracle re-spar 2026-07-02, index-driven savings computed but never surfaced as its own report row |
 
 ---
 

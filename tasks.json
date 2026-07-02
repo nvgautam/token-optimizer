@@ -617,6 +617,26 @@
     {
       "task_id": "T-086",
       "status": "complete"
+    },
+    {
+      "task_id": "T-087",
+      "title": "Add steady-state (post-regression-fix) savings percentage alongside lifetime total in report_builder.py",
+      "description": "Oracle re-spar 2026-07-02: combined_report.html currently reports one lifetime pct_saved blended across full ledger history, including the T-084 cache-mode regression window (compression steady-state <1%) and the T-086 silent-headroom-off window (compression 0 for hours) \u2014 both real degradations, not measurement bugs, so they cannot be retroactively backfilled (see T-084/T-086). A single blended percentage understates current system capability for demo/investor use. (1) Add a second computed figure in report_builder.py: steady-state pct_saved, scoped to sessions closed after the later of T-084s and T-086s merge timestamps (fixes trading correctness), using the same total_saved formula as the lifetime figure. (2) Keep the existing lifetime pct_saved (full history) unchanged \u2014 do not remove it, it is the more auditable/credible number and shows the regression-and-recovery trend. (3) Render both in combined_report.html: lifetime figure stays in Real Savings Realized; steady-state figure added as its own clearly-labeled stat (e.g. \"Current / Steady-State Savings\") near the top summary stats, not buried in the details section. (4) Keep report_builder.py under the 250-line cap \u2014 extend via a small helper (e.g. steady_state.py in agentflow/reporting/) rather than growing report_builder.py inline, matching the T-085 pattern.",
+      "owns": [
+        "agentflow/reporting/report_builder.py",
+        "agentflow/reporting/steady_state.py"
+      ],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-088",
+      "title": "Surface index-driven read savings as its own report line item",
+      "description": "Oracle re-spar 2026-07-02: report_builder.py computes file_reads_saved (baseline=25%-of-file vs actual bytes read, lines 162-184) across every read entry and rolls it into total_saved, but never surfaces it as its own row — the strategy list shows waste buckets (idx/no-reread/indexing-gap/state-docs) individually but the realized savings side is invisible, anonymously folded into the 'Total Tokens Saved' headline. Also file_reads_saved currently conflates idx-driven reduction with any generic offset/limit reduction (idx not required). (1) Split the per-entry loop into two accumulators: idx_savings (entries where idx_exists=True) vs offset_savings (entries with offset/limit but no idx) — same baseline/real formula, partitioned by idx_exists. (2) Add 'Targeted Reads — Savings Realized (idx)' as a new row under Real Savings Realized in dashboard_template.html and report_builder.py's template substitution, using idx_savings. (3) total_saved formula unchanged (idx_savings + offset_savings must still sum to the existing file_reads_saved so Total Tokens Saved doesn't shift). (4) Label clearly as measured (not modeled) — matches T-083's real-savings-vs-waste labeling split.",
+      "owns": [
+        "agentflow/reporting/report_builder.py",
+        "agentflow/reporting/dashboard_template.html"
+      ],
+      "status": "pending"
     }
   ]
 }
