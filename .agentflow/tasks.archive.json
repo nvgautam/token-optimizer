@@ -287,6 +287,17 @@
         ".agentflow/headroom_eval.md"
       ],
       "status": "complete"
+    },
+    {
+      "task_id": "T-085",
+      "title": "Calibrate handoff/session-recycling savings from real ledger data, add as report line item",
+      "description": "architecture.md's Handoff (context cycling) model uses an invented 500 tok/turn constant to project ~40% savings — never measured, and design_status.md flags session-recycling as entirely missing from combined_report.html's get_bucketed_stats buckets. Oracle re-spar 2026-07-02 resolved the approach: don't build new per-turn input-token logging (too much new scope for the value); instead recalibrate the existing formula from the 99 real closed sessions already in agentflow_ledger.json. (1) New module agentflow/reporting/handoff_savings.py: for each closed session compute (final_ctx - initial_ctx) / n_turns, bucket by session_type (oracle/orchestrator). (2) Use the p25 percentile (not median) as the calibrated tok/turn constant — conservative bias per user direction, savings claims should undershoot for customer bill-reconciliation credibility, not overshoot. (3) Feed the calibrated constant into the existing triangular-sum handoff model to produce a session-recycling savings figure; wire into report_builder.py as a new line item (keep report_builder.py itself under the 250-line cap — extend via the new module, not inline). (4) The report line item must carry an explicit methodology label ('modeled from N=99 measured sessions, p25 conservative percentile, triangular-sum projection') — never presented as directly-measured, matching the aggregate-vs-waste labeling split T-083 established. (5) Update architecture.md's Handoff section to cite the calibrated constant and methodology instead of the assumed 500 tok/turn.",
+      "owns": [
+        "agentflow/reporting/handoff_savings.py",
+        "agentflow/reporting/report_builder.py",
+        "architecture.md"
+      ],
+      "status": "complete"
     }
   ]
 }

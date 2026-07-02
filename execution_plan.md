@@ -139,7 +139,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-082 | Fix headroom compression data source in report_builder.py — SQLite store empty, real data in proxy_savings.json | MERGED |
 | T-083 | Split shadow-waste vs real-savings labeling in report output | MERGED |
 | T-084 | Recover headroom compression savings lost to cache mode's strict prefix freeze | MERGED |
-| T-085 | Calibrate handoff/session-recycling savings from real ledger data, add as report line item | PENDING |
+| T-085 | Calibrate handoff/session-recycling savings from real ledger data, add as report line item | MERGED |
 
 | Round | Tasks | Note |
 |---|---|---|

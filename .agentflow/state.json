@@ -1,6 +1,6 @@
 {
-  "updated": "2026-07-02T17:38:00",
-  "milestone": "Milestone 4: Config + PTY Shell (addendum)",
+  "updated": "2026-07-02T20:36:00",
+  "milestone": "Milestone 4: Config + PTY Shell (addendum) — COMPLETE; next: Milestone 5: Multi-Provider Coordination",
   "status": "IN_PROGRESS",
   "groups": [
     {
@@ -193,13 +193,21 @@
       "status": "MERGED",
       "agentId": "a60927ec3bd4ab937",
       "note": "PR #48 merged 2026-07-02T17:37:55Z. Reverted agentflow/cli.py HEADROOM_MODE cache->token: DEFAULT_EXCLUDE_TOOLS already protects Read/Glob/Grep/Write/Edit unconditionally in both modes, so cache mode's is_cache_mode() strict all-but-latest-turn freeze (anthropic.py:908-915) was never buying extra tool-type protection -- it just killed ~all ContentRouter compression (74%->1% of requests per proxy.log). No upstream knob decouples protect_recent_reads_fraction from the mode dichotomy (confirmed via source read of server.py/content_router.py/anthropic.py). User pushed back on residual corruption risk pre-merge -- clarified the T-79 mitigation (fresh-read-gate-files rule in oracle.md/orchestrate.md) is a skill-level guard independent of headroom mode and remains in place; it bounds but does not eliminate the token-mode 0.3-fraction recency leak. User approved merge with this understanding. Pass 1 + Pass 2 (fresh Haiku) both CLEAN. Local main reconciled with origin (clean merge, no conflicts); worktree removed."
+    },
+    {
+      "round": "M",
+      "tasks": [
+        "T-085"
+      ],
+      "status": "MERGED",
+      "agentId": "a7097505a57c66c44",
+      "note": "PR #49 merged 2026-07-02T20:36:11Z. Oracle's resolved approach assumed agentflow_ledger.json carried a session_type field to bucket by; it doesn't (0 occurrences across 101 sessions). Worker discovered this at pre-spawn, attempted a ledger end_time <-> telemetry.jsonl handoff-event timestamp join anyway, correctly detected it's unreliable on real data (57-then-67 telemetry events vs 90-100 ledger sessions, median match delta ~400s, <50% match rate), and fell back to one global unbucketed p25 pool (N=90, ~1,127 tok/turn, replacing the invented 500 tok/turn constant) -- labeled modeled/not-measured throughout, excluded from total_saved. Pass 1 + Pass 2 (fresh Haiku, retried once after a prompt-construction bug on the first attempt) both CLEAN except one non-blocking WARNING (broad except Exception in two best-effort local-file loaders -- justified). Post-review, user asked whether the gap could be closed more reliably; found cmd_start/cmd_handoff (agentflow/legacy_commands.py) never captured session_type at the source despite already prompting interactively for agent/task_ids -- flagged as a separate follow-up (not folded into T-085). User then asked whether the dominant tag among tagged telemetry events could at least give a coarser honest signal; verified empirically (43 orchestrator / 8 oracle / 9 unknown / 7 untagged of 67 events) and added `_tag_breakdown_note()` to handoff_savings.py so the unbucketed methodology string reports 'predominantly orchestrator sessions (N of M tagged handoff events)' instead of a bare 'no join' note -- 3 new tests, pushed to PR #49 as an additional commit pre-merge. Post-merge: local main reconciled with origin (ahead 13/behind 3, clean merge, no conflicts); worktree removed (2 log-only pollution files discarded), branch deleted."
     }
   ],
   "pending": [
     "T-063",
     "T-064",
     "T-068",
-    "T-069",
-    "T-085"
+    "T-069"
   ]
 }
