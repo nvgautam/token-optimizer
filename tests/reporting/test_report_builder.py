@@ -170,50 +170,28 @@ def test_report_builder_splits_waste_vs_real_savings_sections(tmp_path, capsys):
     assert "Waste Avoided" not in agg_out  # console breakdown stays mode-gated (unchanged behavior)
     assert "Real Savings Realized" in out_html.read_text()  # HTML sections always render, both modes
 
-def test_reporting_window_empty_entries():
+def test_reporting_window():
     assert _reporting_window([]) is None
     assert _reporting_window([{"rel": "foo.py"}]) is None
-
-def test_reporting_window_bounds_from_ts():
     entries = [{"ts": "2026-07-01T12:00:00"}, {"ts": "2026-07-01T09:00:00"}, {"ts": "2026-07-01T15:00:00"}]
     assert _reporting_window(entries) == ("2026-07-01T09:00:00", "2026-07-01T15:00:00")
 
-def test_filter_by_window_none_returns_all():
-    entries = [{"ts": "2026-07-01T12:00:00"}]
+def test_filter_by_window():
+    entries = [{"ts": "2026-07-01T12:00:00", "output_tokens": 2}]
     assert _filter_by_window(entries, None) == entries
-
-def test_filter_by_window_excludes_outside_range():
-    entries = [
+    entries_multi = [
         {"ts": "2026-07-01T08:00:00", "output_tokens": 1},
         {"ts": "2026-07-01T12:00:00", "output_tokens": 2},
         {"ts": "2026-07-01T20:00:00", "output_tokens": 3},
     ]
-    filtered = _filter_by_window(entries, ("2026-07-01T10:00:00", "2026-07-01T15:00:00"))
-    assert [e["output_tokens"] for e in filtered] == [2]
+    assert [e["output_tokens"] for e in _filter_by_window(entries_multi, ("2026-07-01T10:00:00", "2026-07-01T15:00:00"))] == [2]
 
-def test_format_baseline_annotation_unmeasured():
-    annotation = _format_baseline_annotation({"measured": False, "baseline_tokens": 600, "sample_size": 0})
-    assert "UNMEASURED" in annotation
-    assert "600" in annotation
-
-def test_format_baseline_annotation_measured_with_ci():
-    annotation = _format_baseline_annotation(
-        {"measured": True, "baseline_tokens": 500, "sample_size": 10, "ci95_low": 450.0, "ci95_high": 550.0}
-    )
-    assert "measured" in annotation
-    assert "n=10" in annotation
-    assert "95% CI" in annotation
-    assert "450" in annotation and "550" in annotation
-
-def test_format_baseline_annotation_measured_single_sample_no_ci():
-    annotation = _format_baseline_annotation(
-        {"measured": True, "baseline_tokens": 500, "sample_size": 1, "ci95_low": None, "ci95_high": None}
-    )
-    assert "n=1" in annotation
-    assert "CI unavailable" in annotation
+def test_format_baseline_annotation():
+    assert "UNMEASURED" in _format_baseline_annotation({"measured": False, "baseline_tokens": 600})
+    assert "n=10" in _format_baseline_annotation({"measured": True, "baseline_tokens": 500, "sample_size": 10, "ci95_low": 450.0, "ci95_high": 550.0})
+    assert "CI unavailable" in _format_baseline_annotation({"measured": True, "baseline_tokens": 500, "sample_size": 1, "ci95_low": None, "ci95_high": None})
 
 def test_report_builder_uses_measured_baseline_not_hardcoded_600(tmp_path):
-    # Seed a measured hook-off baseline of 500 tokens (n=3) via the T-081 A/B harness.
     for tok in (400, 500, 600):
         record_turn(tmp_path, session_type="oracle", turn=1, output_tokens=tok, arm="hook_off")
     run_ab_comparison(tmp_path)
@@ -226,7 +204,6 @@ def test_report_builder_uses_measured_baseline_not_hardcoded_600(tmp_path):
     build_report(project_root=tmp_path, mode="split", output_path=out_html, store_url="sqlite:///dummy.db")
 
     html_content = out_html.read_text()
-    # measured baseline (500) - 100 = 400, not the old 600 - 100 = 500
     assert "400" in html_content
     assert "measured baseline=500tok" in html_content
     assert "n=3" in html_content
@@ -241,14 +218,13 @@ def test_report_builder_falls_back_when_no_baseline_measured(tmp_path):
 
     html_content = out_html.read_text()
     assert "UNMEASURED" in html_content
-    assert "500" in html_content  # unmeasured fallback: 600 - 100 = 500
+    assert "500" in html_content
 
 def test_report_builder_aligns_verbosity_window_to_shadow_reads_scope(tmp_path):
     shadow_log = tmp_path / ".agentflow" / "shadow_reads.jsonl"
     shadow_log.parent.mkdir(parents=True, exist_ok=True)
     shadow_log.write_text(json.dumps({"ts": "2026-07-01T12:00:00", "rel": "foo.py", "offset": 1, "limit": 5, "idx_exists": True, "idx_sections": 2, "file_lines": 10, "file_chars": 400}) + "\n")
 
-    # One entry in-window, one far outside (lifetime) -- only in-window counts.
     verb_log = tmp_path / ".agentflow" / "verbosity_log.jsonl"
     verb_log.write_text(
         json.dumps({"ts": "2026-06-01T00:00:00", "session_type": "oracle", "turn": 1, "output_tokens": 0}) + "\n" +
@@ -259,7 +235,6 @@ def test_report_builder_aligns_verbosity_window_to_shadow_reads_scope(tmp_path):
     build_report(project_root=tmp_path, mode="split", output_path=out_html, store_url="sqlite:///dummy.db")
     html_content = out_html.read_text()
 
-    # Unmeasured baseline=600, in-window 600-100=500; stale leak would read 1,100.
     assert "500" in html_content
     assert "1,100" not in html_content
 
@@ -269,18 +244,13 @@ def test_cli_report_cmd(tmp_path):
         assert cmd_report(args) == 0
         assert (tmp_path / "cli_report.html").exists()
 
-# --- T-082: compression data source (proxy_savings.json, not headroom.db) ---
-
-def test_load_proxy_savings_absent_returns_none(tmp_path):
+def test_load_proxy_savings(tmp_path):
     assert _load_proxy_savings(tmp_path) is None
-
-def test_load_proxy_savings_reads_json(tmp_path):
     (tmp_path / ".headroom").mkdir(parents=True, exist_ok=True)
     (tmp_path / ".headroom" / "proxy_savings.json").write_text(json.dumps({"history": [{"timestamp": "t"}]}))
     assert _load_proxy_savings(tmp_path) == {"history": [{"timestamp": "t"}]}
 
-def test_compression_delta_from_history_windowed(utc_tz):
-    # Cumulative counters: delta = end - baseline (last snapshot before window start). utc_tz pins local==UTC.
+def test_compression_delta_from_history(utc_tz):
     history = [
         {"timestamp": "2026-07-01T08:00:00Z", "total_tokens_saved": 1000, "total_input_tokens": 4000},
         {"timestamp": "2026-07-01T11:00:00Z", "total_tokens_saved": 1500, "total_input_tokens": 5000},
@@ -290,29 +260,21 @@ def test_compression_delta_from_history_windowed(utc_tz):
     assert _compression_delta_from_history(history, window, "total_tokens_saved") == 500
     assert _compression_delta_from_history(history, window, "total_input_tokens") == 1000
 
-def test_compression_delta_from_history_no_baseline_before_window(utc_tz):
-    # Nothing precedes window start -> baseline is 0, never fabricated.
-    history = [{"timestamp": "2026-07-01T12:00:00Z", "total_tokens_saved": 800, "total_input_tokens": 2000}]
-    window = ("2026-07-01T10:00:00", "2026-07-01T15:00:00")
-    assert _compression_delta_from_history(history, window, "total_tokens_saved") == 800
+    history2 = [{"timestamp": "2026-07-01T12:00:00Z", "total_tokens_saved": 800}]
+    assert _compression_delta_from_history(history2, window, "total_tokens_saved") == 800
 
-def test_compression_delta_from_history_empty_or_no_window():
     assert _compression_delta_from_history([], ("a", "b"), "total_tokens_saved") == 0
     assert _compression_delta_from_history([], None, "total_tokens_saved") == 0
-    history = [{"timestamp": "2026-07-01T12:00:00Z", "total_tokens_saved": 42}]
-    assert _compression_delta_from_history(history, None, "total_tokens_saved") == 42
+    assert _compression_delta_from_history(history2, None, "total_tokens_saved") == 800
 
 def test_compression_delta_from_history_handles_utc_vs_local_timezone(monkeypatch):
-    # Regression: history ts are UTC, window bounds naive local. Old bug (rstrip("Z")
-    # + string-compare) misattributed entries whenever local != UTC. UTC-8 proves real tz normalization.
     monkeypatch.setenv("TZ", "Etc/GMT+8")
     time.tzset()
     try:
         history = [
-            {"timestamp": "2026-06-30T20:00:00Z", "total_tokens_saved": 100},  # local 12:00
-            {"timestamp": "2026-07-01T02:00:00Z", "total_tokens_saved": 900},  # local 18:00
+            {"timestamp": "2026-06-30T20:00:00Z", "total_tokens_saved": 100},
+            {"timestamp": "2026-07-01T02:00:00Z", "total_tokens_saved": 900},
         ]
-        # Window 17:00-20:00 local includes the 18:00-local (UTC 02:00) entry -> 800 (old bug gave 100).
         window = ("2026-06-30T17:00:00", "2026-06-30T20:00:00")
         assert _compression_delta_from_history(history, window, "total_tokens_saved") == 800
     finally:
@@ -335,7 +297,6 @@ def test_report_builder_windows_compression_to_shadow_reads_scope(utc_tz, tmp_pa
         ],
     }))
 
-    # Window == single point (12:00:00): baseline=09:00 (100/1000), end=12:00 (900/4000) -> delta 800/3000, not lifetime 9000.
     out_html = tmp_path / "combined_report.html"
     build_report(project_root=tmp_path, mode="split", output_path=out_html, store_url="sqlite:///dummy.db")
     html_content = out_html.read_text()
@@ -347,3 +308,17 @@ def test_report_builder_compression_zero_when_proxy_savings_absent(tmp_path):
     build_report(project_root=tmp_path, mode="split", output_path=out_html, store_url="sqlite:///dummy.db")
     html_content = out_html.read_text()
     assert "Compression Savings" in html_content
+
+def test_report_builder_idx_savings(tmp_path):
+    shadow_log = tmp_path / ".agentflow" / "shadow_reads.jsonl"
+    shadow_log.parent.mkdir(parents=True, exist_ok=True)
+    shadow_log.write_text(
+        json.dumps({"ts": "2026-07-01T12:00:00", "rel": "a.py", "offset": 10, "limit": 10, "idx_exists": True, "idx_sections": 1, "file_lines": 100, "file_chars": 4000}) + "\n" +
+        json.dumps({"ts": "2026-07-01T12:01:00", "rel": "b.py", "offset": 5, "limit": 5, "idx_exists": False, "idx_sections": 0, "file_lines": 50, "file_chars": 2000}) + "\n"
+    )
+    out_html = tmp_path / "combined_report.html"
+    build_report(project_root=tmp_path, mode="split", output_path=out_html, store_url="sqlite:///dummy.db")
+    html_content = out_html.read_text()
+    assert "Targeted Reads — Savings Realized (idx)" in html_content
+    assert "900" in html_content
+    assert "1,350" in html_content

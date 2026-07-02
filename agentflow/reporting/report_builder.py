@@ -102,9 +102,7 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
     if tasks_path.exists():
         try:
             data = json.loads(tasks_path.read_text())
-            for t in data.get("tasks", []):
-                for r in t.get("reads", []):
-                    reads_files.add(r.split("#")[0])
+            reads_files.update(r.split("#")[0] for t in data.get("tasks", []) for r in t.get("reads", []))
         except Exception:
             pass
 
@@ -114,9 +112,7 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
     verb_entries = []
     if verb_log_path.exists():
         try:
-            for line in verb_log_path.read_text().splitlines():
-                if line.strip():
-                    verb_entries.append(json.loads(line))
+            verb_entries = [json.loads(line) for line in verb_log_path.read_text().splitlines() if line.strip()]
         except Exception:
             pass
 
@@ -133,32 +129,28 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
     compression_savings = _compression_delta_from_history(history, reporting_window, "total_tokens_saved")
     compression_real = _compression_delta_from_history(history, reporting_window, "total_input_tokens")
 
-    headroom_html, headroom_installed = "", False
+    headroom_html = ""
     try:
         from headroom.storage import create_storage
         from headroom.reporting.generator import generate_report
 
         try:
             storage = create_storage(store_url)
-            storage.get_summary_stats()  # presence check only; compression figures come from proxy_savings.json
-            headroom_installed = True
+            storage.get_summary_stats()
+            temp_path = project_root / ".agentflow" / "temp_headroom.html"
+            generate_report(store_url, str(temp_path))
+            if temp_path.exists():
+                headroom_html = temp_path.read_text(encoding="utf-8")
+                temp_path.unlink()
         except Exception:
             pass
-
-        if headroom_installed:
-            temp_path = project_root / ".agentflow" / "temp_headroom.html"
-            try:
-                generate_report(store_url, str(temp_path))
-                if temp_path.exists():
-                    headroom_html = temp_path.read_text(encoding="utf-8")
-                    temp_path.unlink()
-            except Exception:
-                pass
     except ImportError:
         pass
 
     shadow_sum = sum(stats.values())
 
+    idx_savings = 0
+    offset_savings = 0
     file_reads_real = file_reads_baseline = 0
     for e in entries:
         offset = e.get("offset")
@@ -166,6 +158,7 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
         file_lines = e.get("file_lines", 0)
         file_chars = e.get("file_chars", 0)
         idx_sections = e.get("idx_sections", 0)
+        idx_exists = bool(e.get("idx_exists"))
 
         baseline = int(file_chars * 0.25)
         if offset is not None:
@@ -180,36 +173,41 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
         file_reads_real += real
         file_reads_baseline += baseline
 
-    # shadow_sum is a waste metric; real savings = baseline minus actual cost.
-    file_reads_saved = file_reads_baseline - file_reads_real
+        entry_saved = baseline - real
+        if idx_exists:
+            idx_savings += entry_saved
+        else:
+            offset_savings += entry_saved
+
+    file_reads_saved = idx_savings + offset_savings
     total_saved = file_reads_saved + verbosity_savings + compression_savings
 
     # Same window as verbosity_savings -- cost and savings must match scope.
     verbosity_real = sum(e.get("output_tokens", 0) for e in windowed_verb_entries)
 
     if compression_real == 0:
-        # No measured "after" cost -- exclude compression rather than guess.
         compression_savings = 0
 
     total_real = file_reads_real + verbosity_real + compression_real
     shadow_mode_tokens = total_real + total_saved
     pct_saved = (total_saved / shadow_mode_tokens * 100) if shadow_mode_tokens > 0 else 0.0
 
-    print("\n==============================================")
-    print("       AgentFlow Savings Report Summary")
-    print("==============================================")
-    print(f"Mode: {mode}")
-    print("----------------------------------------------")
     suffix = " (aggregate)" if mode != "aggregate" else ""
-    print(f"TOTAL TOKENS SAVED{suffix}:      {total_saved:,} tokens")
-    print(f"REAL TOKENS USED{suffix}:        {total_real:,} tokens")
-    print(f"SHADOW MODE TOKENS (baseline{suffix}): {shadow_mode_tokens:,} tokens")
-    print(f"PERCENTAGE SAVED{suffix}:        {pct_saved:.1f}%")
-    # T-083: waste (lower=better) vs real savings; state-docs is a volume figure, not savings.
+    print(f"\n==============================================\n"
+          f"       AgentFlow Savings Report Summary\n"
+          f"==============================================\n"
+          f"Mode: {mode}\n"
+          f"----------------------------------------------\n"
+          f"TOTAL TOKENS SAVED{suffix}:      {total_saved:,} tokens\n"
+          f"REAL TOKENS USED{suffix}:        {total_real:,} tokens\n"
+          f"SHADOW MODE TOKENS (baseline{suffix}): {shadow_mode_tokens:,} tokens\n"
+          f"PERCENTAGE SAVED{suffix}:        {pct_saved:.1f}%")
+
     STRATEGY_ROWS = [
         ("stats_idx", "Symbol Index & Section loading (idx)", "waste", stats["targeted-reads"], ""),
         ("stats_no_reread", "No-re-read Rule compliance (no-reread)", "waste", stats["no-reread"], ""),
         ("stats_indexing_gap", "Indexing Gap avoidance (indexing-gap)", "waste", stats["indexing-gap"], ""),
+        ("idx_savings", "Targeted Reads — Savings Realized (idx)", "real", idx_savings, ""),
         ("stats_state_docs", "Compact State Documents — read volume, not savings (state-docs)", "real", stats["state-docs"], ""),
         ("verbosity_savings", "Output Verbosity Savings (verbosity)", "real", verbosity_savings, verbosity_annotation),
         ("compression_savings", "Compression Savings (compression)", "real", compression_savings, ""),
@@ -239,7 +237,7 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
         "{pct_saved_str}": f"{pct_saved:.1f}",
         "{shadow_sum_str}": f"{shadow_sum:,}",
         "{headroom_section_html}": headroom_section_html,
-        **steady_state.render_replacements(project_root),  # T-087: steady-state pct_saved, post T-084/T-086.
+        **steady_state.render_replacements(project_root),
     }
     replacements.update({f"{{{ph}_str}}": f"{val:,}{note}" for ph, _, _, val, note in STRATEGY_ROWS})
     for k, v in replacements.items():
