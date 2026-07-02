@@ -104,28 +104,29 @@ def cmd_shell(args: argparse.Namespace) -> int:
     from agentflow.shell.pty_wrapper import PTYWrapper
     from agentflow.shell.session_manager import SessionManager
     from agentflow.shell import tokenizer as tokenizer_module
+    from agentflow.config.loader import load_config
+    from agentflow.config.schema import format_headroom_banner, resolve_headroom_status
     import shutil
+
+    cmd = args.shell_command
+    if cmd == "gemini":
+        cmd = "agy"
+    cmd_args = [cmd]
+    headroom_active, headroom_reason = resolve_headroom_status(
+        load_config(Path.cwd()).headroom.enabled,
+        os.environ.get("AGENTFLOW_ENABLE_HEADROOM"),
+        shutil.which("headroom") is not None,
+    )
+    print(format_headroom_banner(headroom_active, headroom_reason))  # pre-raw-mode: OPOST intact
+    if headroom_active:
+        cmd_args = ["headroom", "wrap", cmd]
+        os.environ["HEADROOM_WORKSPACE_DIR"] = str(Path.cwd().resolve() / ".headroom")
+        os.environ["HEADROOM_MODE"] = "token"  # T-084: token mode; see design_status.md
 
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
     try:
         tty.setraw(fd)
-        cmd = args.shell_command
-        if cmd == "gemini":
-            cmd = "agy"
-
-        cmd_args = [cmd]
-        if os.environ.get("AGENTFLOW_ENABLE_HEADROOM") and shutil.which("headroom"):
-            cmd_args = ["headroom", "wrap", cmd]
-            os.environ["HEADROOM_WORKSPACE_DIR"] = str(Path.cwd().resolve() / ".headroom")
-            # T-084: DEFAULT_EXCLUDE_TOOLS protects Read/Glob/Grep/Write/Edit
-            # unconditionally in both modes. cache mode's real effect is an
-            # unconditional frozen-message-count freeze in the Anthropic
-            # handler that killed ~all compression. token mode's residual
-            # protect_recent_reads_fraction=0.3 recency leak is mitigated at
-            # the skill level (oracle.md/orchestrate.md fresh-read-gate rule).
-            os.environ["HEADROOM_MODE"] = "token"
-
         wrapper = PTYWrapper(cmd_args)
         session_manager = SessionManager(wrapper, tokenizer_module, config={})
 
