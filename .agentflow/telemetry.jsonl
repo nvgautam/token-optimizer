@@ -690,3 +690,4 @@
 {"event": "session_complete", "timestamp": "2026-07-02T00:39:20", "tasks": 1, "groups": 1, "note": "retroactive \u2014 original append silently dropped when bundled command was denied"}
 {"event": "handoff", "timestamp": "2026-07-02T07:56:45.229697Z", "session_type": "orchestrator", "agent_tokens_in": 0, "agent_tokens_out": 0, "agents": 1}
 {"event": "handoff", "timestamp": "2026-07-02T20:20:00Z", "session_type": "orchestrator", "agent_tokens_in": 0, "agent_tokens_out": 0, "agents": 0}
+{"event": "handoff", "timestamp": "2026-07-02T08:45:08Z", "session_type": "oracle", "agent_tokens_in": 0, "agent_tokens_out": 0, "agents": 0}

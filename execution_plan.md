@@ -136,6 +136,8 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-079 | Harden gate-file reads against Headroom staleness — skill rule + invocation audit | MERGED |
 | T-080 | ContentRouter mode default fix — cli.py sets HEADROOM_MODE=cache; tag-protect hook-injected reminders | MERGED |
 | T-081 | A/B test verbosity control — measure real hook-off/hook-on baseline, replace assumed 600-token constant | MERGED |
+| T-082 | Fix headroom compression data source in report_builder.py — SQLite store empty, real data in proxy_savings.json | PENDING |
+| T-083 | Split shadow-waste vs real-savings labeling in report output | PENDING |
 
 | Round | Tasks | Note |
 |---|---|---|
@@ -160,6 +162,8 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | G | T-077 | Depends on T-074 (headroom must be wired first) |
 | H | T-078 | Depends on T-072 (report_builder.py must exist) |
 | I | T-079 | Depends on T-074 (headroom must be wired first) — oracle re-spar 2026-07-01 |
+| J | T-082 | Independent bug fix — oracle re-spar 2026-07-02, combined_report.html anomalies |
+| K | T-083 | Depends on T-082 |
 
 ---
 
