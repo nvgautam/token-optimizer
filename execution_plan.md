@@ -81,7 +81,7 @@ Note: json/yaml parsers dropped — .idx format is Python + Markdown only.
 ---
 
 ## Milestone 4: Config + PTY Shell
-Status: COMPLETE
+Status: COMPLETE — addendum: T-079 PENDING
 Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 
 | Task | Title | Status |
@@ -133,6 +133,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-072 | `agentflow report` subcommand — combined savings dashboard across strategies | MERGED |
 | T-077 | Spike — can headroom's proxy auto-capture 5hr/weekly usage windows? | MERGED |
 | T-078 | Unify `agentflow report` / `python agentflow.py report` into one command (--mode session) | MERGED |
+| T-079 | Harden gate-file reads against Headroom staleness — skill rule + invocation audit | PENDING |
 
 | Round | Tasks | Note |
 |---|---|---|
@@ -156,6 +157,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | F | T-072, T-076 | T-072 depends on T-074 (ledger); T-076 independent |
 | G | T-077 | Depends on T-074 (headroom must be wired first) |
 | H | T-078 | Depends on T-072 (report_builder.py must exist) |
+| I | T-079 | Depends on T-074 (headroom must be wired first) — oracle re-spar 2026-07-01 |
 
 ---
 

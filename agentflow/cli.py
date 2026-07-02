@@ -115,7 +115,7 @@ def cmd_shell(args: argparse.Namespace) -> int:
             cmd = "agy"
 
         cmd_args = [cmd]
-        if shutil.which("headroom"):
+        if os.environ.get("AGENTFLOW_ENABLE_HEADROOM") and shutil.which("headroom"):
             cmd_args = ["headroom", "wrap", cmd]
             os.environ["HEADROOM_WORKSPACE_DIR"] = str(Path.cwd().resolve() / ".headroom")
 
