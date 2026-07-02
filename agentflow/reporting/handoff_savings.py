@@ -7,6 +7,7 @@ This is a MODELED projection, not a directly-measured savings figure --
 every value this module returns must carry the `methodology` label when
 surfaced in a report (see report_builder.py wiring).
 """
+import collections
 import json
 import statistics
 from datetime import datetime, timezone
@@ -127,6 +128,18 @@ def _bucket_sessions(sessions: list[dict], events: list[tuple]) -> tuple[dict, s
     return {k: {"rates": buckets[k], "turns": turns[k]} for k in buckets}, "bucketed"
 
 
+def _tag_breakdown_note(events: list[tuple]) -> str:
+    """Population-level signal for the unbucketed case: even when the
+    per-session join is too unreliable to trust (_bucket_sessions), the
+    handoff events themselves still carry session_type -- report which type
+    dominates the tagged population instead of a bare "no join" note."""
+    tags = [t for _, t in events if t]
+    if not tags:
+        return "unbucketed -- no reliable session_type join"
+    dominant, n = collections.Counter(tags).most_common(1)[0]
+    return f"predominantly {dominant} sessions ({n} of {len(tags)} tagged handoff events)"
+
+
 def _triangular_sum(tok_per_turn: float, n_turns: int) -> float:
     return tok_per_turn * n_turns * (n_turns + 1) / 2
 
@@ -182,7 +195,7 @@ def compute_handoff_savings(project_root: Path) -> dict:
 
     projection = _project_session(tok_per_turn, rep_n_turns)
 
-    bucket_note = "unbucketed -- no reliable session_type join" if mode == "unbucketed" else f"bucket={primary_key}"
+    bucket_note = _tag_breakdown_note(events) if mode == "unbucketed" else f"bucket={primary_key}"
     methodology = (
         f"modeled from N={n_sessions} measured sessions ({bucket_note}), "
         f"p25 conservative percentile ({tok_per_turn:.0f} tok/turn), triangular-sum projection"

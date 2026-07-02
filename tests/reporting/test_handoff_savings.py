@@ -13,6 +13,7 @@ from agentflow.reporting.handoff_savings import (
     _bucket_sessions,
     _triangular_sum,
     _project_session,
+    _tag_breakdown_note,
 )
 
 
@@ -148,6 +149,32 @@ def test_compute_handoff_savings_end_to_end_unbucketed(tmp_path):
     assert result["tokens_saved"] > 0
     assert "p25" in result["methodology"]
     assert "modeled from N=10" in result["methodology"]
+
+
+def test_tag_breakdown_note_no_events():
+    assert _tag_breakdown_note([]) == "unbucketed -- no reliable session_type join"
+
+
+def test_tag_breakdown_note_reports_dominant_type():
+    events = [(0, "orchestrator")] * 3 + [(0, "oracle")] + [(0, None)] * 2
+    note = _tag_breakdown_note(events)
+    assert note == "predominantly orchestrator sessions (3 of 4 tagged handoff events)"
+
+
+def test_compute_handoff_savings_unbucketed_methodology_reports_dominant_tag(tmp_path):
+    sessions = [
+        _session(f"s{i}", 60 + i, 1000, 1000 + (600 + i * 10) * (60 + i), f"2026-07-0{1 + i % 7}T0{i % 9}:00:00")
+        for i in range(10)
+    ]
+    _write_ledger(tmp_path, sessions)
+    # Telemetry events exist and are dominantly "orchestrator", but far too
+    # sparse relative to the 10 ledger sessions to trust a per-session join
+    # (mode stays "unbucketed") -- methodology should still surface the
+    # population-level tag breakdown instead of a bare "no join" note.
+    _write_telemetry(tmp_path, [("2099-01-01T00:00:00", "orchestrator")])
+    result = compute_handoff_savings(tmp_path)
+    assert result["mode"] == "unbucketed"
+    assert "predominantly orchestrator sessions (1 of 1 tagged handoff events)" in result["methodology"]
 
 
 def test_compute_handoff_savings_methodology_never_claims_measured(tmp_path):
