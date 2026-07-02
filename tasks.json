@@ -591,16 +591,7 @@
     },
     {
       "task_id": "T-083",
-      "title": "Split shadow-waste vs real-savings labeling in report output",
-      "description": "\"Savings Breakdown by Strategy\" mixes two different metrics under one label. idx/no-reread/indexing-gap come from get_bucketed_stats and measure shadow *waste* (tokens lost to unimplemented or violated optimizations) \u2014 0 for idx is the correct/good outcome once read_check.py enforces compliance (realized idx savings are already counted separately in total_saved via file_reads_saved, not in this bucket). state-docs is a raw read-volume figure, not a waste or savings number. verbosity and compression are actual realized savings. Presenting all six under one \"Savings Breakdown\" header reads as \"idx saved 0 tokens\" when it means \"0 tokens wasted \u2014 compliance enforced upstream.\" Fix: split into two sections in both console output and dashboard_template.html \u2014 \"Waste Avoided (shadow, lower is better)\" for idx/no-reread/indexing-gap, and \"Real Savings Realized\" for state-docs volume (relabeled as volume, not savings), verbosity, compression, and the total_saved headline. Depends on T-082 (compression numbers should be real before relabeling the section that surfaces them).",
-      "owns": [
-        "agentflow/reporting/report_builder.py",
-        "agentflow/reporting/dashboard_template.html"
-      ],
-      "depends_on": [
-        "T-082"
-      ],
-      "status": "pending"
+      "status": "complete"
     }
   ]
 }

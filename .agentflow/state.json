@@ -1,5 +1,5 @@
 {
-  "updated": "2026-07-02T15:30:00",
+  "updated": "2026-07-02T16:15:00",
   "milestone": "Milestone 4: Config + PTY Shell (addendum)",
   "status": "IN_PROGRESS",
   "groups": [
@@ -181,10 +181,15 @@
       "tasks": [
         "T-083"
       ],
-      "status": "SPAWNED",
+      "status": "MERGED",
       "agentId": "ad9789b90a1893a0f",
-      "note": "First spawn of session (solo, per rate-pacing rule). owns report_builder.py (250/250 lines, at cap) + dashboard_template.html; depends_on T-082 (merged). Worker briefed on hard size ceiling and told to refactor for headroom (loop over label/section tuples) rather than exceed cap, or ESCALATE."
+      "note": "PR #47 merged 2026-07-02T16:13:22Z. Pass 1 programmatic clean (no CRITICAL/secrets/shell=True/bare except; report_builder.py at 250-line cap, test file at 350-line cap but not over). Pass 2 LLM review was killed per user instruction (already reviewed). Human approved merge; branch + worktree cleaned up; local main reconciled with origin (linear divergence, clean merge, no conflicts)."
     }
   ],
-  "pending": ["T-063", "T-064", "T-068", "T-069"]
+  "pending": [
+    "T-063",
+    "T-064",
+    "T-068",
+    "T-069"
+  ]
 }

@@ -137,7 +137,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-080 | ContentRouter mode default fix — cli.py sets HEADROOM_MODE=cache; tag-protect hook-injected reminders | MERGED |
 | T-081 | A/B test verbosity control — measure real hook-off/hook-on baseline, replace assumed 600-token constant | MERGED |
 | T-082 | Fix headroom compression data source in report_builder.py — SQLite store empty, real data in proxy_savings.json | MERGED |
-| T-083 | Split shadow-waste vs real-savings labeling in report output | IN_PROGRESS |
+| T-083 | Split shadow-waste vs real-savings labeling in report output | MERGED |
 
 | Round | Tasks | Note |
 |---|---|---|
