@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from agentflow.shadow.analyzer import _load_log, get_bucketed_stats
 from agentflow.shadow.verbosity_ab import load_baseline
-from agentflow.reporting.handoff_savings import compute_handoff_savings
+from agentflow.reporting import handoff_savings, steady_state
 
 
 def _reporting_window(entries: list[dict]) -> tuple[str, str] | None:
@@ -213,7 +213,7 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
         ("stats_state_docs", "Compact State Documents — read volume, not savings (state-docs)", "real", stats["state-docs"], ""),
         ("verbosity_savings", "Output Verbosity Savings (verbosity)", "real", verbosity_savings, verbosity_annotation),
         ("compression_savings", "Compression Savings (compression)", "real", compression_savings, ""),
-        ("handoff_savings", "Session Recycling — Handoff/context cycling, MODELED not measured (handoff)", "modeled", (_hs := compute_handoff_savings(project_root))["tokens_saved"], f" [{_hs['methodology']}]"),
+        ("handoff_savings", "Session Recycling — Handoff/context cycling, MODELED not measured (handoff)", "modeled", (_hs := handoff_savings.compute_handoff_savings(project_root))["tokens_saved"], f" [{_hs['methodology']}]"),
     ]
     if mode != "aggregate":
         for section, header in (("waste", "Waste Avoided (shadow, lower is better)"), ("real", f"Real Savings Realized (total_saved={total_saved:,} tokens)"), ("modeled", "Modeled Projections (not measured -- see methodology per row)")):
@@ -239,11 +239,11 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
         "{pct_saved_str}": f"{pct_saved:.1f}",
         "{shadow_sum_str}": f"{shadow_sum:,}",
         "{headroom_section_html}": headroom_section_html,
+        **steady_state.render_replacements(project_root),  # T-087: steady-state pct_saved, post T-084/T-086.
     }
     replacements.update({f"{{{ph}_str}}": f"{val:,}{note}" for ph, _, _, val, note in STRATEGY_ROWS})
     for k, v in replacements.items():
         html_template = html_template.replace(k, v)
-
     out_path = Path(output_path)
     out_path.write_text(html_template, encoding="utf-8")
     print(f"\nHTML Report written to: {out_path.resolve()}")
