@@ -1,7 +1,7 @@
 {
-  "updated": "2026-07-02T13:03:00",
-  "milestone": "Milestone 5: Multi-Provider Coordination",
-  "status": "PAUSED",
+  "updated": "2026-07-02T15:30:00",
+  "milestone": "Milestone 4: Config + PTY Shell (addendum)",
+  "status": "IN_PROGRESS",
   "groups": [
     {
       "round": "D",
@@ -166,7 +166,16 @@
         "T-063"
       ],
       "status": "STOPPED_BY_USER"
+    },
+    {
+      "round": "J",
+      "tasks": [
+        "T-082"
+      ],
+      "status": "MERGED",
+      "agentId": "af3fa24ffba43e76d",
+      "note": "PR #46 merged 2026-07-02T15:24:04Z. Rework fix was already implemented uncommitted in the worktree from the prior session's cutoff (parsed+normalized UTC vs naive-local datetimes in _compression_delta_from_history) -- found on resume, not re-implemented. Trimmed test file from 359->350 lines to clear the 350-line test cap, reverted test-pollution diffs in telemetry.jsonl/verbosity_log.jsonl before commit, pushed, Pass 1 + Pass 2 (fresh Haiku) both CLEAN, human approved merge."
     }
   ],
-  "pending": []
+  "pending": ["T-083", "T-063", "T-064", "T-068", "T-069"]
 }
