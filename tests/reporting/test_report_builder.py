@@ -181,7 +181,7 @@ def test_report_builder_integration(tmp_path):
     # Let's mock headroom library
     mock_headroom = MagicMock()
     mock_storage = MagicMock()
-    mock_storage.get_summary_stats.return_value = {"total_tokens_saved": 5000}
+    mock_storage.get_summary_stats.return_value = {"total_tokens_saved": 5000, "total_tokens_after": 15000}
     mock_headroom.storage.create_storage.return_value = mock_storage
     
     # Also mock generate_report to write a file

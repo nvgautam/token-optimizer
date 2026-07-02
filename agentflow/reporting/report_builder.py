@@ -12,7 +12,23 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
             store_url = f"sqlite:///{Path.home()}/.headroom/headroom.db"
 
     log_path = project_root / ".agentflow" / "shadow_reads.jsonl"
-    entries = _load_log(log_path) if log_path.exists() else []
+    raw_entries = _load_log(log_path) if log_path.exists() else []
+
+    # read_logger.py fires as a PreToolUse hook alongside read_check.py, so it logs
+    # every attempted Read *before* read_check decides to block it. Rows with an
+    # existing non-empty .idx and offset=None are exactly the ones read_check.py
+    # rejects (exit 2) — the read never executed, so they carry zero real cost and
+    # zero realized savings. Left in, they get double-counted: once as phantom
+    # "real" full-read cost below, once as phantom "targeted-read" savings via
+    # get_bucketed_stats.
+    def _is_blocked_attempt(e: dict) -> bool:
+        return (
+            e.get("offset") is None
+            and bool(e.get("idx_exists"))
+            and (e.get("idx_sections") or 0) > 0
+        )
+
+    entries = [e for e in raw_entries if not _is_blocked_attempt(e)]
 
     reads_files = set()
     tasks_path = project_root / "tasks.json"
@@ -68,9 +84,9 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
         pass
 
     shadow_sum = sum(stats.values())
-    total_saved = shadow_sum + verbosity_savings + compression_savings
 
     file_reads_real = 0
+    file_reads_baseline = 0
     for e in entries:
         offset = e.get("offset")
         limit = e.get("limit")
@@ -89,6 +105,15 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
         else:
             real = baseline
         file_reads_real += real
+        file_reads_baseline += baseline
+
+    # shadow_sum (from get_bucketed_stats) counts full/non-targeted reads — i.e.
+    # opportunities NOT taken (violations, indexing gaps). That's a waste metric,
+    # not tokens actually saved; folding it into total_saved is what inflated the
+    # headline percentage. Real savings = baseline cost minus what was actually
+    # spent, on reads that actually happened.
+    file_reads_saved = file_reads_baseline - file_reads_real
+    total_saved = file_reads_saved + verbosity_savings + compression_savings
 
     verbosity_real = 0
     if verb_log_path.exists():
@@ -101,10 +126,12 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
     if headroom_installed:
         try:
             compression_real = stats_hr.get("total_tokens_after", stats_hr.get("after_tokens", 0))
-            if compression_real == 0 and compression_savings > 0:
-                compression_real = 15000
         except Exception:
             pass
+        if compression_real == 0:
+            # No measured "after" cost to divide against — don't fabricate a
+            # denominator. Exclude compression from the totals rather than guess.
+            compression_savings = 0
 
     total_real = file_reads_real + verbosity_real + compression_real
     shadow_mode_tokens = total_real + total_saved

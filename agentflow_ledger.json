@@ -2759,10 +2759,172 @@
         }
       },
       "status": "closed"
+    },
+    {
+      "session_id": "20260701_221922",
+      "agent": "claude",
+      "task_ids": "",
+      "start_time": "2026-07-01T22:19:22.701795",
+      "end_time": "2026-07-01T22:19:22.701808",
+      "context_at_start": 34795,
+      "input_tokens": 4552114,
+      "output_tokens": 28956,
+      "token_detail": {
+        "uncached_input": 12307,
+        "cache_creation": 85986,
+        "cache_read": 4453821,
+        "output": 28956,
+        "n_turns": 60,
+        "initial_ctx": 34795,
+        "final_ctx": 104328
+      },
+      "n_turns": 60,
+      "final_ctx": 104328,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 8547214,
+        "shadow_output": 28956,
+        "shadow_extra": 3995100,
+        "compaction": null
+      },
+      "status": "closed"
+    },
+    {
+      "session_id": "20260701_223042",
+      "agent": "claude",
+      "task_ids": "",
+      "start_time": "2026-07-01T22:30:42.645359",
+      "end_time": "2026-07-01T22:30:42.645371",
+      "context_at_start": 34747,
+      "input_tokens": 3793165,
+      "output_tokens": 22410,
+      "token_detail": {
+        "uncached_input": 5362,
+        "cache_creation": 307043,
+        "cache_read": 3480760,
+        "output": 22410,
+        "n_turns": 55,
+        "initial_ctx": 34747,
+        "final_ctx": 112096
+      },
+      "n_turns": 55,
+      "final_ctx": 112096,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 10534135,
+        "shadow_output": 94812,
+        "shadow_extra": 7513990,
+        "compaction": {
+          "before": 206863,
+          "after": 72402,
+          "cost_tokens": 72402
+        }
+      },
+      "status": "closed"
+    },
+    {
+      "session_id": "20260701_230713",
+      "agent": "claude",
+      "task_ids": "",
+      "start_time": "2026-07-01T23:07:13.028305",
+      "end_time": "2026-07-01T23:07:13.028314",
+      "context_at_start": 29304,
+      "input_tokens": 4574538,
+      "output_tokens": 49532,
+      "token_detail": {
+        "uncached_input": 1840,
+        "cache_creation": 130494,
+        "cache_read": 4442204,
+        "output": 49532,
+        "n_turns": 60,
+        "initial_ctx": 29304,
+        "final_ctx": 111089
+      },
+      "n_turns": 60,
+      "final_ctx": 111089,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 9073063,
+        "shadow_output": 103573,
+        "shadow_extra": 4344120,
+        "compaction": {
+          "before": 154405,
+          "after": 54041,
+          "cost_tokens": 54041
+        }
+      },
+      "status": "closed"
+    },
+    {
+      "session_id": "20260701_232608",
+      "agent": "claude",
+      "task_ids": "",
+      "start_time": "2026-07-01T23:26:08.070609",
+      "end_time": "2026-07-01T23:26:08.070619",
+      "context_at_start": 29474,
+      "input_tokens": 4979233,
+      "output_tokens": 49940,
+      "token_detail": {
+        "uncached_input": 1947,
+        "cache_creation": 133404,
+        "cache_read": 4843882,
+        "output": 49940,
+        "n_turns": 74,
+        "initial_ctx": 29474,
+        "final_ctx": 101606
+      },
+      "n_turns": 74,
+      "final_ctx": 101606,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 7228760,
+        "shadow_output": 49940,
+        "shadow_extra": 3999034,
+        "compaction": null
+      },
+      "status": "closed"
+    },
+    {
+      "session_id": "20260701_234732",
+      "agent": "claude",
+      "task_ids": "",
+      "start_time": "2026-07-01T23:47:32.151486",
+      "end_time": "2026-07-01T23:47:32.151495",
+      "context_at_start": 29506,
+      "input_tokens": 5606845,
+      "output_tokens": 43950,
+      "token_detail": {
+        "uncached_input": 1965,
+        "cache_creation": 174274,
+        "cache_read": 5430606,
+        "output": 43950,
+        "n_turns": 79,
+        "initial_ctx": 29506,
+        "final_ctx": 102773
+      },
+      "n_turns": 79,
+      "final_ctx": 102773,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 13843581,
+        "shadow_output": 107376,
+        "shadow_extra": 9230123,
+        "compaction": {
+          "before": 181220,
+          "after": 63426,
+          "cost_tokens": 63426
+        }
+      },
+      "status": "closed"
     }
   ],
   "shadow_state": {
-    "accumulated_context": 66585,
-    "compaction_events": 58
+    "accumulated_context": 63426,
+    "compaction_events": 61
   }
 }

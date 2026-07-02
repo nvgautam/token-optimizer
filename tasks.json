@@ -570,6 +570,23 @@
     {
       "task_id": "T-079",
       "status": "complete"
+    },
+    {
+      "task_id": "T-081",
+      "title": "A/B test verbosity control savings — replace assumed 600-token baseline with measured data",
+      "description": "Oracle sparring 2026-07-01: report_builder.py:54 computes verbosity_savings = sum(max(0, 600 - output_tokens)) across the full lifetime verbosity_log.jsonl (5,351+ turns since project start), where 600 is architecture.md's modeled, never-measured estimate of no-hook output length. That unvalidated per-turn baseline is summed with real measured savings (file_reads_saved) into total_saved, dominating the reported percentage (~79% of the headline figure) despite being an assumption, not a measurement. Build a controlled comparison: gate agentflow/hooks/verbosity_reminder.py behind an env var so it can be disabled; run N comparable sessions/tasks with the hook off and N with it on, capture output_tokens for both arms via session_manager.py's existing per-turn logging (tag entries with an arm/session_type so they're distinguishable in verbosity_log.jsonl). Compute measured mean/p90 for each arm; replace the hardcoded 600 constant in report_builder.py with the measured hook-off baseline (config-driven, not a magic number), and surface sample size + confidence interval next to the savings figure so small-sample runs aren't presented as precise. Also fix the scope mismatch: verbosity_savings currently sums the entire lifetime log while file_reads_saved is scoped to current shadow_reads.jsonl entries — align both to the same reporting window before summing into total_saved.",
+      "owns": [
+        "agentflow/shadow/verbosity_ab.py",
+        "agentflow/hooks/verbosity_reminder.py",
+        "agentflow/reporting/report_builder.py",
+        "tests/shadow/test_verbosity_ab.py",
+        "tests/reporting/test_report_builder.py"
+      ],
+      "depends_on": [
+        "T-072",
+        "T-073"
+      ],
+      "status": "pending"
     }
   ]
 }
