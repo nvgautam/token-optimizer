@@ -1,8 +1,10 @@
 import sys
+import time
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parents[2]))
 
 import json
+import pytest
 from unittest.mock import MagicMock, patch
 import argparse
 
@@ -27,24 +29,29 @@ from agentflow.shadow.verbosity_ab import record_turn, run_ab_comparison
 from agentflow.cli import cmd_report
 
 
+@pytest.fixture
+def utc_tz(monkeypatch):
+    # Pin local tz to UTC so window/history comparisons are deterministic.
+    monkeypatch.setenv("TZ", "UTC")
+    time.tzset()
+    yield
+    monkeypatch.delenv("TZ", raising=False)
+    time.tzset()
+
+
 def test_shadow_analyzer_bucketing(tmp_path):
     tasks_data = {"tasks": [{"task_id": "T-001", "reads": ["file_a.py", "file_b.py#anchor"]}]}
     (tmp_path / "tasks.json").write_text(json.dumps(tasks_data))
 
     entries = [
-        # Double count candidate
-        {"ts": "2026-07-01T12:00:00", "rel": "file_b.py", "offset": None, "idx_exists": True, "idx_sections": 4, "file_lines": 100, "file_chars": 4000},
-        # Standard targeted hit
-        {"ts": "2026-07-01T12:01:00", "rel": "file_c.py", "offset": 10, "idx_exists": True, "idx_sections": 5, "file_lines": 200, "file_chars": 8000},
-        # Gap
-        {"ts": "2026-07-01T12:02:00", "rel": "file_d.py", "offset": None, "idx_exists": False, "idx_sections": 0, "file_lines": 60, "file_chars": 2000},
-        # State doc
-        {"ts": "2026-07-01T12:03:00", "rel": "architecture.md", "offset": None, "idx_exists": False, "idx_sections": 0, "file_lines": 500, "file_chars": 10000},
+        {"ts": "2026-07-01T12:00:00", "rel": "file_b.py", "offset": None, "idx_exists": True, "idx_sections": 4, "file_lines": 100, "file_chars": 4000},  # double-count candidate
+        {"ts": "2026-07-01T12:01:00", "rel": "file_c.py", "offset": 10, "idx_exists": True, "idx_sections": 5, "file_lines": 200, "file_chars": 8000},  # targeted hit
+        {"ts": "2026-07-01T12:02:00", "rel": "file_d.py", "offset": None, "idx_exists": False, "idx_sections": 0, "file_lines": 60, "file_chars": 2000},  # gap
+        {"ts": "2026-07-01T12:03:00", "rel": "architecture.md", "offset": None, "idx_exists": False, "idx_sections": 0, "file_lines": 500, "file_chars": 10000},  # state doc
     ]
 
     from agentflow.shadow.analyzer import get_bucketed_stats
 
-    # Reads files should be {"file_a.py", "file_b.py"}
     reads_files = {"file_a.py", "file_b.py"}
 
     # aggregate: file_b.py matches no-reread. Value = 4000 * 0.25 = 1000.
@@ -109,15 +116,13 @@ def test_report_builder_integration(tmp_path):
         json.dumps({"ts": "...", "session_type": "oracle", "turn": 2, "output_tokens": 160}) + "\n"
     )
 
-    # T-082: compression numbers come from proxy_savings.json, not the SQLite
-    # mock. Window is None (no shadow_reads.jsonl) -> full unwindowed history
-    # is used, i.e. the latest cumulative counter value.
+    # T-082: no window (no shadow_reads.jsonl) -> latest cumulative value used.
     (tmp_path / ".headroom").mkdir(parents=True, exist_ok=True)
     (tmp_path / ".headroom" / "proxy_savings.json").write_text(json.dumps({
         "history": [{"timestamp": "2026-07-01T10:00:00Z", "total_tokens_saved": 5000, "total_input_tokens": 15000}],
     }))
 
-    # Mock headroom lib -- only used here for the separate deep-analytics HTML export.
+    # Mock headroom lib -- deep-analytics HTML export only.
     mock_headroom = MagicMock()
     mock_storage = MagicMock()
     mock_storage.get_summary_stats.return_value = {"total_tokens_saved": 0, "total_tokens_after": 0}
@@ -198,8 +203,7 @@ def test_format_baseline_annotation_measured_single_sample_no_ci():
 
 
 def test_report_builder_uses_measured_baseline_not_hardcoded_600(tmp_path):
-    # Seed a measured hook-off baseline of 500 tokens (n=3) via the T-081
-    # A/B harness instead of the unvalidated 600-token design estimate.
+    # Seed a measured hook-off baseline of 500 tokens (n=3) via the T-081 A/B harness.
     for tok in (400, 500, 600):
         record_turn(tmp_path, session_type="oracle", turn=1, output_tokens=tok, arm="hook_off")
     run_ab_comparison(tmp_path)
@@ -234,13 +238,9 @@ def test_report_builder_falls_back_when_no_baseline_measured(tmp_path):
 def test_report_builder_aligns_verbosity_window_to_shadow_reads_scope(tmp_path):
     shadow_log = tmp_path / ".agentflow" / "shadow_reads.jsonl"
     shadow_log.parent.mkdir(parents=True, exist_ok=True)
-    shadow_log.write_text(json.dumps({
-        "ts": "2026-07-01T12:00:00", "rel": "foo.py", "offset": 1, "limit": 5,
-        "idx_exists": True, "idx_sections": 2, "file_lines": 10, "file_chars": 400,
-    }) + "\n")
+    shadow_log.write_text(json.dumps({"ts": "2026-07-01T12:00:00", "rel": "foo.py", "offset": 1, "limit": 5, "idx_exists": True, "idx_sections": 2, "file_lines": 10, "file_chars": 400}) + "\n")
 
-    # One entry inside the window, one far outside (lifetime history) -- only
-    # the in-window entry should count.
+    # One entry in-window, one far outside (lifetime) -- only in-window counts.
     verb_log = tmp_path / ".agentflow" / "verbosity_log.jsonl"
     verb_log.write_text(
         json.dumps({"ts": "2026-06-01T00:00:00", "session_type": "oracle", "turn": 1, "output_tokens": 0}) + "\n" +
@@ -251,8 +251,7 @@ def test_report_builder_aligns_verbosity_window_to_shadow_reads_scope(tmp_path):
     build_report(project_root=tmp_path, mode="split", output_path=out_html, store_url="sqlite:///dummy.db")
     html_content = out_html.read_text()
 
-    # Unmeasured baseline=600. In-window: 600-100=500. If the stale 600-0=600
-    # entry leaked in, total would read 1,100.
+    # Unmeasured baseline=600, in-window 600-100=500; stale leak would read 1,100.
     assert "500" in html_content
     assert "1,100" not in html_content
 
@@ -276,9 +275,8 @@ def test_load_proxy_savings_reads_json(tmp_path):
     assert _load_proxy_savings(tmp_path) == {"history": [{"timestamp": "t"}]}
 
 
-def test_compression_delta_from_history_windowed():
-    # Cumulative counters, not per-event increments: delta = end - baseline,
-    # baseline being the last snapshot strictly before the window start.
+def test_compression_delta_from_history_windowed(utc_tz):
+    # Cumulative counters: delta = end - baseline (last snapshot before window start). utc_tz pins local==UTC.
     history = [
         {"timestamp": "2026-07-01T08:00:00Z", "total_tokens_saved": 1000, "total_input_tokens": 4000},
         {"timestamp": "2026-07-01T11:00:00Z", "total_tokens_saved": 1500, "total_input_tokens": 5000},
@@ -289,7 +287,7 @@ def test_compression_delta_from_history_windowed():
     assert _compression_delta_from_history(history, window, "total_input_tokens") == 1000
 
 
-def test_compression_delta_from_history_no_baseline_before_window():
+def test_compression_delta_from_history_no_baseline_before_window(utc_tz):
     # Nothing precedes window start -> baseline is 0, never fabricated.
     history = [{"timestamp": "2026-07-01T12:00:00Z", "total_tokens_saved": 800, "total_input_tokens": 2000}]
     window = ("2026-07-01T10:00:00", "2026-07-01T15:00:00")
@@ -303,7 +301,25 @@ def test_compression_delta_from_history_empty_or_no_window():
     assert _compression_delta_from_history(history, None, "total_tokens_saved") == 42
 
 
-def test_report_builder_windows_compression_to_shadow_reads_scope(tmp_path):
+def test_compression_delta_from_history_handles_utc_vs_local_timezone(monkeypatch):
+    # Regression: history ts are UTC, window bounds naive local. Old bug (rstrip("Z")
+    # + string-compare) misattributed entries whenever local != UTC. UTC-8 proves real tz normalization.
+    monkeypatch.setenv("TZ", "Etc/GMT+8")
+    time.tzset()
+    try:
+        history = [
+            {"timestamp": "2026-06-30T20:00:00Z", "total_tokens_saved": 100},  # local 12:00
+            {"timestamp": "2026-07-01T02:00:00Z", "total_tokens_saved": 900},  # local 18:00
+        ]
+        # Window 17:00-20:00 local includes the 18:00-local (UTC 02:00) entry -> 800 (old bug gave 100).
+        window = ("2026-06-30T17:00:00", "2026-06-30T20:00:00")
+        assert _compression_delta_from_history(history, window, "total_tokens_saved") == 800
+    finally:
+        monkeypatch.delenv("TZ", raising=False)
+        time.tzset()
+
+
+def test_report_builder_windows_compression_to_shadow_reads_scope(utc_tz, tmp_path):
     shadow_log = tmp_path / ".agentflow" / "shadow_reads.jsonl"
     shadow_log.parent.mkdir(parents=True, exist_ok=True)
     shadow_log.write_text(json.dumps({
@@ -319,8 +335,7 @@ def test_report_builder_windows_compression_to_shadow_reads_scope(tmp_path):
         ],
     }))
 
-    # Window == single point (12:00:00): baseline = 09:00 snapshot (100/1000),
-    # end = 12:00:00 snapshot (900/4000) -> delta 800/3000, not lifetime 9000.
+    # Window == single point (12:00:00): baseline=09:00 (100/1000), end=12:00 (900/4000) -> delta 800/3000, not lifetime 9000.
     out_html = tmp_path / "combined_report.html"
     build_report(project_root=tmp_path, mode="split", output_path=out_html, store_url="sqlite:///dummy.db")
     html_content = out_html.read_text()

@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from agentflow.shadow.analyzer import _load_log, get_bucketed_stats
 from agentflow.shadow.verbosity_ab import load_baseline
@@ -41,20 +42,29 @@ def _load_proxy_savings(project_root: Path) -> dict | None:
 def _compression_delta_from_history(history: list[dict], window: tuple[str, str] | None, field: str) -> int:
     """Snapshots of a cumulative counter, not per-event deltas: contribution
     = value at window end minus value before window start (0 baseline if
-    none precedes -- never fabricated). window=None => latest vs 0 (T-082;
-    history is proxy-wide, not project-scoped)."""
-    if not history:
+    none precedes -- never fabricated). window=None => latest vs 0.
+    history timestamps are UTC ("...Z"); window bounds are naive *local*
+    (shadow_reads.jsonl/verbosity_log.jsonl use datetime.now(), no offset)
+    -- raw string-compare across the two silently misattributes entries
+    whenever local != UTC (T-082); parse+normalize to UTC instead."""
+    parsed = []
+    for e in history:
+        try:
+            parsed.append((datetime.fromisoformat(e.get("timestamp", "").replace("Z", "+00:00")), e))
+        except ValueError:
+            continue
+    if not parsed:
         return 0
-    sorted_h = sorted(history, key=lambda e: e.get("timestamp", ""))
+    parsed.sort(key=lambda p: p[0])
     if window is None:
-        return sorted_h[-1].get(field, 0)
-    start, end = window
+        return parsed[-1][1].get(field, 0)
+    # naive local -> aware local -> UTC (astimezone() presumes system tz).
+    start_dt, end_dt = (datetime.fromisoformat(w).astimezone(timezone.utc) for w in window)
     end_val = start_val = 0
-    for e in sorted_h:
-        ts = e.get("timestamp", "").rstrip("Z")
-        if ts < start:
+    for dt, e in parsed:
+        if dt < start_dt:
             start_val = e.get(field, 0)
-        if ts <= end:
+        if dt <= end_dt:
             end_val = e.get(field, 0)
     return max(0, end_val - start_val)
 
@@ -77,17 +87,13 @@ def _format_baseline_annotation(baseline: dict) -> str:
 def build_report(project_root: Path, mode: str = "aggregate", output_path: str = "combined_report.html", store_url: str = None) -> int:
     if store_url is None:
         local_db = project_root / ".headroom" / "headroom.db"
-        if local_db.exists():
-            store_url = f"sqlite:///{local_db.resolve()}"
-        else:
-            store_url = f"sqlite:///{Path.home()}/.headroom/headroom.db"
+        store_url = f"sqlite:///{local_db.resolve()}" if local_db.exists() else f"sqlite:///{Path.home()}/.headroom/headroom.db"
 
     log_path = project_root / ".agentflow" / "shadow_reads.jsonl"
     raw_entries = _load_log(log_path) if log_path.exists() else []
 
-    # read_logger.py logs every attempted Read before read_check.py can block
-    # it (exit 2). Blocked attempts (idx exists, offset=None) never executed
-    # -- left in, they'd double-count as phantom real cost + phantom savings.
+    # Blocked attempts (idx exists, offset=None) never executed the read --
+    # left in, they'd double-count as phantom real cost + phantom savings.
     def _is_blocked_attempt(e: dict) -> bool:
         return e.get("offset") is None and bool(e.get("idx_exists")) and (e.get("idx_sections") or 0) > 0
 
@@ -116,8 +122,7 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
         except Exception:
             pass
 
-    # T-081: window verbosity to entries' scope; use the measured hook-off
-    # baseline instead of the unvalidated 600-token design estimate.
+    # T-081: window verbosity to entries' scope; use the measured baseline.
     reporting_window = _reporting_window(entries)
     windowed_verb_entries = _filter_by_window(verb_entries, reporting_window)
     verbosity_baseline = load_baseline(project_root)
@@ -131,9 +136,7 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
     compression_savings = _compression_delta_from_history(history, reporting_window, "total_tokens_saved")
     compression_real = _compression_delta_from_history(history, reporting_window, "total_input_tokens")
 
-    headroom_html = ""
-    headroom_installed = False
-
+    headroom_html, headroom_installed = "", False
     try:
         from headroom.storage import create_storage
         from headroom.reporting.generator import generate_report
@@ -159,8 +162,7 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
 
     shadow_sum = sum(stats.values())
 
-    file_reads_real = 0
-    file_reads_baseline = 0
+    file_reads_real = file_reads_baseline = 0
     for e in entries:
         offset = e.get("offset")
         limit = e.get("limit")
@@ -181,8 +183,7 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
         file_reads_real += real
         file_reads_baseline += baseline
 
-    # shadow_sum is a waste metric (opportunities not taken); real savings is
-    # baseline cost minus what reads that actually happened actually cost.
+    # shadow_sum is a waste metric; real savings = baseline minus actual cost.
     file_reads_saved = file_reads_baseline - file_reads_real
     total_saved = file_reads_saved + verbosity_savings + compression_savings
 
