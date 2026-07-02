@@ -566,6 +566,20 @@
         "T-072"
       ],
       "status": "complete"
+    },
+    {
+      "task_id": "T-079",
+      "title": "Harden gate-file reads against Headroom staleness — skill rule + invocation audit",
+      "description": "Oracle re-spar 2026-07-01 (Headroom incident): a live /orchestrate session reported garbled-looking Read/Grep results for design_status.md and rate_calibration_claude.json, correctly refused to act on them, and paused. Root cause traced in the installed headroom package, not guesswork: headroom/config.py's DEFAULT_EXCLUDE_TOOLS already excludes Read/Glob/Grep/Write/Edit from ContentRouter compression, and cli.py's `headroom wrap claude` invocation (cmd_shell, ~line 118-120) passes no flags, so that protection is intact by default. The live risk is headroom/transforms/read_lifecycle.py's ReadLifecycleConfig (compress_stale=True by default), which runs independent of tool exclusion and rewrites a prior turn's Read of a file into a `[Read content stale ... re-read the file]` marker once that file is later Written/Edited — a pattern AgentFlow's own handoff/calibration tooling triggers constantly on design_status.md/tasks.json/rate_calibration_claude.json within a single long-running skill session. Two-part fix. (A) commands/claude/oracle.md + commands/claude/orchestrate.md: add a standing rule near each skill's gate-check steps (design_status.md UNRESOLVED scan, tasks.json status reads, rate-calibration reads) — always issue a fresh same-turn Read before using a gate file's contents for a decision; if a Headroom stale/superseded marker or any garbled/truncated-looking result appears on a gate file, re-read immediately and never parse the marker text as data. (B) tests/test_headroom_invocation.py (new): a static assertion over agentflow/cli.py's cmd_shell that the headroom cmd_args construction contains no flags beyond `[\"headroom\", \"wrap\", cmd]` — fails loudly if `--intercept-tool-results` or a non-default `--mode` is ever added without a corresponding design_status.md decision, since either would defeat DEFAULT_EXCLUDE_TOOLS's protection for Read/Grep.",
+      "owns": [
+        "commands/claude/oracle.md",
+        "commands/claude/orchestrate.md",
+        "tests/test_headroom_invocation.py"
+      ],
+      "depends_on": [
+        "T-074"
+      ],
+      "status": "pending"
     }
   ]
 }

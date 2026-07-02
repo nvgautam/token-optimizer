@@ -13,3 +13,4 @@ build/
 .claude/*
 !.claude/settings.json
 .agentflow/shadow_reads.jsonl
+.headroom/
