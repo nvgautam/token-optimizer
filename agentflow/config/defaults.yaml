@@ -24,6 +24,9 @@ file_limits:
   prompts: 150
   stubs: 100
 
+headroom:
+  enabled: true
+
 mcps:
   - github
   - filesystem
