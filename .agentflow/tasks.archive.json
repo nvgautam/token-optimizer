@@ -277,6 +277,16 @@
         "T-082"
       ],
       "status": "complete"
+    },
+    {
+      "task_id": "T-084",
+      "title": "Recover headroom compression savings lost to cache mode's strict prefix freeze",
+      "description": "T-080 set HEADROOM_MODE=cache to fix the T-079 corruption incident (stale excluded-tool output falling through to compression). Root-caused via oracle re-spar 2026-07-02: is_cache_mode() in headroom/proxy/handlers/anthropic.py:911-915 unconditionally overrides frozen_message_count via _strict_previous_turn_frozen_count() \u2014 freezing every message except the current turn, for every tool type, not just the Read/Grep/Write/Edit set T-080's commit message described. Evidence from .headroom/logs/proxy.log: pre-cutover (old default/token-mode session) 649/882 requests (74%) compressed, saving 8,960,769 tokens; post-cutover (cache mode) 8/920 requests (<1%, all in the ~2min transition window) \u2014 steady state since is transforms=none on literally every request. Net effect: cache mode didn't narrow compression to protect docs, it disabled ContentRouter for the entire conversation history except the newest message, killing ~all real headroom savings for this workload. (1) Check whether headroom exposes a way to keep the T-080 fix (Read/Grep/Write/Edit always protected, protect_recent_reads_fraction=0.0) without forcing is_cache_mode()'s strict all-but-latest-turn freeze \u2014 e.g. token mode + a custom exclude_tools/protect_recent_reads_fraction override, bypassing the mode dichotomy entirely. (2) If no such config exists upstream, decide consciously: accept near-zero compression as the cost of prefix-cache safety, or file upstream against headroom-ai for a narrower knob. (3) Update .agentflow/headroom_eval.md and architecture.md's Headroom section with the real, measured trade-off \u2014 the 60%+ vendor claim and the original T-071 integration decision were made without knowing cache mode's actual scope.",
+      "owns": [
+        "agentflow/cli.py",
+        ".agentflow/headroom_eval.md"
+      ],
+      "status": "complete"
     }
   ]
 }

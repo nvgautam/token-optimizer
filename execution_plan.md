@@ -138,7 +138,8 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-081 | A/B test verbosity control — measure real hook-off/hook-on baseline, replace assumed 600-token constant | MERGED |
 | T-082 | Fix headroom compression data source in report_builder.py — SQLite store empty, real data in proxy_savings.json | MERGED |
 | T-083 | Split shadow-waste vs real-savings labeling in report output | MERGED |
-| T-084 | Recover headroom compression savings lost to cache mode's strict prefix freeze | PENDING |
+| T-084 | Recover headroom compression savings lost to cache mode's strict prefix freeze | MERGED |
+| T-085 | Calibrate handoff/session-recycling savings from real ledger data, add as report line item | PENDING |
 
 | Round | Tasks | Note |
 |---|---|---|
@@ -166,6 +167,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | J | T-082 | Independent bug fix — oracle re-spar 2026-07-02, combined_report.html anomalies |
 | K | T-083 | Depends on T-082 |
 | L | T-084 | Independent — oracle re-spar 2026-07-02, headroom compression regression traced to T-080's cache mode |
+| M | T-085 | Independent — oracle re-spar 2026-07-02, handoff savings measurement approach resolved |
 
 ---
 

@@ -1,5 +1,5 @@
 {
-  "updated": "2026-07-02T16:15:00",
+  "updated": "2026-07-02T17:38:00",
   "milestone": "Milestone 4: Config + PTY Shell (addendum)",
   "status": "IN_PROGRESS",
   "groups": [
@@ -184,12 +184,22 @@
       "status": "MERGED",
       "agentId": "ad9789b90a1893a0f",
       "note": "PR #47 merged 2026-07-02T16:13:22Z. Pass 1 programmatic clean (no CRITICAL/secrets/shell=True/bare except; report_builder.py at 250-line cap, test file at 350-line cap but not over). Pass 2 LLM review was killed per user instruction (already reviewed). Human approved merge; branch + worktree cleaned up; local main reconciled with origin (linear divergence, clean merge, no conflicts)."
+    },
+    {
+      "round": "L",
+      "tasks": [
+        "T-084"
+      ],
+      "status": "MERGED",
+      "agentId": "a60927ec3bd4ab937",
+      "note": "PR #48 merged 2026-07-02T17:37:55Z. Reverted agentflow/cli.py HEADROOM_MODE cache->token: DEFAULT_EXCLUDE_TOOLS already protects Read/Glob/Grep/Write/Edit unconditionally in both modes, so cache mode's is_cache_mode() strict all-but-latest-turn freeze (anthropic.py:908-915) was never buying extra tool-type protection -- it just killed ~all ContentRouter compression (74%->1% of requests per proxy.log). No upstream knob decouples protect_recent_reads_fraction from the mode dichotomy (confirmed via source read of server.py/content_router.py/anthropic.py). User pushed back on residual corruption risk pre-merge -- clarified the T-79 mitigation (fresh-read-gate-files rule in oracle.md/orchestrate.md) is a skill-level guard independent of headroom mode and remains in place; it bounds but does not eliminate the token-mode 0.3-fraction recency leak. User approved merge with this understanding. Pass 1 + Pass 2 (fresh Haiku) both CLEAN. Local main reconciled with origin (clean merge, no conflicts); worktree removed."
     }
   ],
   "pending": [
     "T-063",
     "T-064",
     "T-068",
-    "T-069"
+    "T-069",
+    "T-085"
   ]
 }

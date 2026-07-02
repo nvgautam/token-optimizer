@@ -5,11 +5,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 agentflow/hooks/idx_reminder.py"
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/agentflow/hooks/idx_reminder.py\""
           },
           {
             "type": "command",
-            "command": "python3 agentflow/hooks/verbosity_reminder.py"
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/agentflow/hooks/verbosity_reminder.py\""
           }
         ]
       }
@@ -20,11 +20,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 agentflow/hooks/read_logger.py"
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/agentflow/hooks/read_logger.py\""
           },
           {
             "type": "command",
-            "command": "python3 agentflow/hooks/read_check.py"
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/agentflow/hooks/read_check.py\""
           }
         ]
       }
@@ -35,11 +35,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 agentflow/hooks/write_indexer.py"
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/agentflow/hooks/write_indexer.py\""
           },
           {
             "type": "command",
-            "command": "python3 agentflow/hooks/size_check.py"
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/agentflow/hooks/size_check.py\""
           }
         ]
       },
@@ -48,11 +48,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 agentflow/hooks/write_indexer.py"
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/agentflow/hooks/write_indexer.py\""
           },
           {
             "type": "command",
-            "command": "python3 agentflow/hooks/size_check.py"
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/agentflow/hooks/size_check.py\""
           }
         ]
       }
