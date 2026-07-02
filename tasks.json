@@ -616,15 +616,7 @@
     },
     {
       "task_id": "T-086",
-      "title": "Move headroom-wrap toggle from ambient env var into AgentFlow config; add startup active/inactive banner",
-      "description": "Incident 2026-07-02: a live PTY session showed zero headroom compression for hours (confirmed via lsof — claude connected directly to Anthropic edge IPs on :443, no local proxy in the path; .headroom/proxy_savings.json history had zero new entries since before the session started). Root cause: cmd_shell() (agentflow/cli.py:117) only invokes `headroom wrap <cmd>` if `os.environ.get(\"AGENTFLOW_ENABLE_HEADROOM\")` is truthy in whatever shell happened to launch `python -m agentflow shell` — the one remaining ambient-environment dependency in an otherwise self-contained setup (HEADROOM_WORKSPACE_DIR and HEADROOM_MODE are already set unconditionally by cmd_shell itself once the gate passes). If that shell never exported the var, cmd_shell silently falls back to bare `claude` with zero indication — this is the second silent headroom-disabled incident (see T-084/T-080 history). (1) Add a `headroom.enabled` field (bool, default true) to agentflow/config/schema.py + defaults.yaml — config-owned, not shell-ambient. cmd_shell wraps whenever this resolves true AND shutil.which(\"headroom\") succeeds. (2) Keep AGENTFLOW_ENABLE_HEADROOM as an explicit override only (env var wins over config if set), for anyone who wants to force-disable without editing config. (3) On PTY startup, print one line stating whether headroom wrap is active or inactive (and why, if inactive: not installed vs config-disabled vs env-override) — belt-and-suspenders so a future gap is visible, not silent. (4) Tests: config default-on behavior, env-override-wins behavior, and the startup banner text for all three inactive reasons.",
-      "owns": [
-        "agentflow/cli.py",
-        "agentflow/config/schema.py",
-        "agentflow/config/defaults.yaml",
-        "tests/test_cli_shell.py"
-      ],
-      "status": "pending"
+      "status": "complete"
     }
   ]
 }

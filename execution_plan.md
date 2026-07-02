@@ -140,7 +140,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-083 | Split shadow-waste vs real-savings labeling in report output | MERGED |
 | T-084 | Recover headroom compression savings lost to cache mode's strict prefix freeze | MERGED |
 | T-085 | Calibrate handoff/session-recycling savings from real ledger data, add as report line item | MERGED |
-| T-086 | Move headroom-wrap toggle from ambient env var into AgentFlow config; add startup active/inactive banner | PR_OPEN (#50) |
+| T-086 | Move headroom-wrap toggle from ambient env var into AgentFlow config; add startup active/inactive banner | MERGED |
 
 | Round | Tasks | Note |
 |---|---|---|
