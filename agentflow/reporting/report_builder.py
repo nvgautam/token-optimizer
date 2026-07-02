@@ -26,6 +26,39 @@ def _filter_by_window(entries: list[dict], window: tuple[str, str] | None) -> li
     return [e for e in entries if start <= e.get("ts", "") <= end]
 
 
+def _load_proxy_savings(project_root: Path) -> dict | None:
+    """T-082: headroom-ai writes telemetry here, not headroom.db (SQLite),
+    whose get_summary_stats() returns all-zero counts against live data."""
+    path = project_root / ".headroom" / "proxy_savings.json"
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text())
+    except Exception:
+        return None
+
+
+def _compression_delta_from_history(history: list[dict], window: tuple[str, str] | None, field: str) -> int:
+    """Snapshots of a cumulative counter, not per-event deltas: contribution
+    = value at window end minus value before window start (0 baseline if
+    none precedes -- never fabricated). window=None => latest vs 0 (T-082;
+    history is proxy-wide, not project-scoped)."""
+    if not history:
+        return 0
+    sorted_h = sorted(history, key=lambda e: e.get("timestamp", ""))
+    if window is None:
+        return sorted_h[-1].get(field, 0)
+    start, end = window
+    end_val = start_val = 0
+    for e in sorted_h:
+        ts = e.get("timestamp", "").rstrip("Z")
+        if ts < start:
+            start_val = e.get(field, 0)
+        if ts <= end:
+            end_val = e.get(field, 0)
+    return max(0, end_val - start_val)
+
+
 def _format_baseline_annotation(baseline: dict) -> str:
     """Sample size + CI alongside the verbosity savings figure so a
     small-sample (or absent) A/B baseline isn't presented as precise."""
@@ -52,19 +85,11 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
     log_path = project_root / ".agentflow" / "shadow_reads.jsonl"
     raw_entries = _load_log(log_path) if log_path.exists() else []
 
-    # read_logger.py fires as a PreToolUse hook alongside read_check.py, so it logs
-    # every attempted Read *before* read_check decides to block it. Rows with an
-    # existing non-empty .idx and offset=None are exactly the ones read_check.py
-    # rejects (exit 2) — the read never executed, so they carry zero real cost and
-    # zero realized savings. Left in, they get double-counted: once as phantom
-    # "real" full-read cost below, once as phantom "targeted-read" savings via
-    # get_bucketed_stats.
+    # read_logger.py logs every attempted Read before read_check.py can block
+    # it (exit 2). Blocked attempts (idx exists, offset=None) never executed
+    # -- left in, they'd double-count as phantom real cost + phantom savings.
     def _is_blocked_attempt(e: dict) -> bool:
-        return (
-            e.get("offset") is None
-            and bool(e.get("idx_exists"))
-            and (e.get("idx_sections") or 0) > 0
-        )
+        return e.get("offset") is None and bool(e.get("idx_exists")) and (e.get("idx_sections") or 0) > 0
 
     entries = [e for e in raw_entries if not _is_blocked_attempt(e)]
 
@@ -91,17 +116,21 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
         except Exception:
             pass
 
-    # T-081: align the verbosity reporting window to the same window as
-    # `entries` (shadow_reads.jsonl, current-scope) before mixing the two
-    # into total_saved, and use the measured hook-off baseline instead of
-    # the unvalidated 600-token design estimate.
-    windowed_verb_entries = _filter_by_window(verb_entries, _reporting_window(entries))
+    # T-081: window verbosity to entries' scope; use the measured hook-off
+    # baseline instead of the unvalidated 600-token design estimate.
+    reporting_window = _reporting_window(entries)
+    windowed_verb_entries = _filter_by_window(verb_entries, reporting_window)
     verbosity_baseline = load_baseline(project_root)
     baseline_tokens = verbosity_baseline.get("baseline_tokens", 600)
     verbosity_savings = sum(max(0, baseline_tokens - e.get("output_tokens", 0)) for e in windowed_verb_entries)
     verbosity_annotation = _format_baseline_annotation(verbosity_baseline)
 
-    compression_savings = 0
+    # T-082: compression from proxy_savings.json, windowed like verbosity.
+    proxy_savings = _load_proxy_savings(project_root)
+    history = (proxy_savings or {}).get("history", [])
+    compression_savings = _compression_delta_from_history(history, reporting_window, "total_tokens_saved")
+    compression_real = _compression_delta_from_history(history, reporting_window, "total_input_tokens")
+
     headroom_html = ""
     headroom_installed = False
 
@@ -111,8 +140,7 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
 
         try:
             storage = create_storage(store_url)
-            stats_hr = storage.get_summary_stats()
-            compression_savings = stats_hr.get("total_tokens_saved", 0)
+            storage.get_summary_stats()  # presence check only; compression figures come from proxy_savings.json
             headroom_installed = True
         except Exception:
             pass
@@ -153,28 +181,17 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
         file_reads_real += real
         file_reads_baseline += baseline
 
-    # shadow_sum (from get_bucketed_stats) counts full/non-targeted reads — i.e.
-    # opportunities NOT taken (violations, indexing gaps). That's a waste metric,
-    # not tokens actually saved; folding it into total_saved is what inflated the
-    # headline percentage. Real savings = baseline cost minus what was actually
-    # spent, on reads that actually happened.
+    # shadow_sum is a waste metric (opportunities not taken); real savings is
+    # baseline cost minus what reads that actually happened actually cost.
     file_reads_saved = file_reads_baseline - file_reads_real
     total_saved = file_reads_saved + verbosity_savings + compression_savings
 
-    # Same window as verbosity_savings above -- real cost and savings must be
-    # scoped identically or shadow_mode_tokens/pct_saved get skewed.
+    # Same window as verbosity_savings -- cost and savings must match scope.
     verbosity_real = sum(e.get("output_tokens", 0) for e in windowed_verb_entries)
 
-    compression_real = 0
-    if headroom_installed:
-        try:
-            compression_real = stats_hr.get("total_tokens_after", stats_hr.get("after_tokens", 0))
-        except Exception:
-            pass
-        if compression_real == 0:
-            # No measured "after" cost to divide against — don't fabricate a
-            # denominator. Exclude compression from the totals rather than guess.
-            compression_savings = 0
+    if compression_real == 0:
+        # No measured "after" cost -- exclude compression rather than guess.
+        compression_savings = 0
 
     total_real = file_reads_real + verbosity_real + compression_real
     shadow_mode_tokens = total_real + total_saved
@@ -185,23 +202,19 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
     print("==============================================")
     print(f"Mode: {mode}")
     print("----------------------------------------------")
-    if mode == "aggregate":
-        print(f"TOTAL TOKENS SAVED:                           {total_saved:,} tokens")
-        print(f"REAL TOKENS USED:                             {total_real:,} tokens")
-        print(f"SHADOW MODE TOKENS (baseline):                {shadow_mode_tokens:,} tokens")
-        print(f"PERCENTAGE SAVED:                             {pct_saved:.1f}%")
-    else:
-        print(f"TOTAL TOKENS SAVED (aggregate):                {total_saved:,} tokens")
-        print(f"REAL TOKENS USED (aggregate):                  {total_real:,} tokens")
-        print(f"SHADOW MODE TOKENS (baseline aggregate):       {shadow_mode_tokens:,} tokens")
-        print(f"PERCENTAGE SAVED (aggregate):                  {pct_saved:.1f}%")
+    suffix = " (aggregate)" if mode != "aggregate" else ""
+    print(f"TOTAL TOKENS SAVED{suffix}:      {total_saved:,} tokens")
+    print(f"REAL TOKENS USED{suffix}:        {total_real:,} tokens")
+    print(f"SHADOW MODE TOKENS (baseline{suffix}): {shadow_mode_tokens:,} tokens")
+    print(f"PERCENTAGE SAVED{suffix}:        {pct_saved:.1f}%")
+    if mode != "aggregate":
         print("----------------------------------------------")
-        print(f"Symbol Index & Section loading (idx):         {stats['targeted-reads']:,} tokens")
-        print(f"No-re-read Rule compliance (no-reread):       {stats['no-reread']:,} tokens")
-        print(f"Indexing Gap reduction (indexing-gap):         {stats['indexing-gap']:,} tokens")
-        print(f"Compact State Documents (state-docs):          {stats['state-docs']:,} tokens")
-        print(f"Output Verbosity Savings (verbosity):         {verbosity_savings:,} tokens{verbosity_annotation}")
-        print(f"Compression Savings (compression):            {compression_savings:,} tokens")
+        print(f"Symbol Index & Section loading (idx):   {stats['targeted-reads']:,} tokens")
+        print(f"No-re-read Rule compliance (no-reread): {stats['no-reread']:,} tokens")
+        print(f"Indexing Gap reduction (indexing-gap):  {stats['indexing-gap']:,} tokens")
+        print(f"Compact State Documents (state-docs):   {stats['state-docs']:,} tokens")
+        print(f"Output Verbosity Savings (verbosity):   {verbosity_savings:,} tokens{verbosity_annotation}")
+        print(f"Compression Savings (compression):      {compression_savings:,} tokens")
         print("----------------------------------------------")
         print("Note: Summing these values directly may double-count overlaps.")
 
