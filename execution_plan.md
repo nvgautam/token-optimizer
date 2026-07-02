@@ -81,7 +81,7 @@ Note: json/yaml parsers dropped — .idx format is Python + Markdown only.
 ---
 
 ## Milestone 4: Config + PTY Shell
-Status: COMPLETE (addendum: T-078 pending)
+Status: COMPLETE
 Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 
 | Task | Title | Status |
@@ -132,7 +132,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-076 | Size-limit enforcement gap — Gemini writes + pre-existing violations uncovered | MERGED |
 | T-072 | `agentflow report` subcommand — combined savings dashboard across strategies | MERGED |
 | T-077 | Spike — can headroom's proxy auto-capture 5hr/weekly usage windows? | MERGED |
-| T-078 | Unify `agentflow report` / `python agentflow.py report` into one command (--mode session) | PENDING |
+| T-078 | Unify `agentflow report` / `python agentflow.py report` into one command (--mode session) | MERGED |
 
 | Round | Tasks | Note |
 |---|---|---|

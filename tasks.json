@@ -565,7 +565,7 @@
       "depends_on": [
         "T-072"
       ],
-      "status": "pending"
+      "status": "complete"
     }
   ]
 }
