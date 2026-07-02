@@ -94,10 +94,7 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
 
     # Blocked attempts (idx exists, offset=None) never executed the read --
     # left in, they'd double-count as phantom real cost + phantom savings.
-    def _is_blocked_attempt(e: dict) -> bool:
-        return e.get("offset") is None and bool(e.get("idx_exists")) and (e.get("idx_sections") or 0) > 0
-
-    entries = [e for e in raw_entries if not _is_blocked_attempt(e)]
+    entries = [e for e in raw_entries if not (e.get("offset") is None and bool(e.get("idx_exists")) and (e.get("idx_sections") or 0) > 0)]
 
     reads_files = set()
     tasks_path = project_root / "tasks.json"
@@ -208,16 +205,23 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
     print(f"REAL TOKENS USED{suffix}:        {total_real:,} tokens")
     print(f"SHADOW MODE TOKENS (baseline{suffix}): {shadow_mode_tokens:,} tokens")
     print(f"PERCENTAGE SAVED{suffix}:        {pct_saved:.1f}%")
+    # T-083: waste (lower=better) vs real savings; state-docs is a volume figure, not savings.
+    STRATEGY_ROWS = [
+        ("stats_idx", "Symbol Index & Section loading (idx)", "waste", stats["targeted-reads"], ""),
+        ("stats_no_reread", "No-re-read Rule compliance (no-reread)", "waste", stats["no-reread"], ""),
+        ("stats_indexing_gap", "Indexing Gap avoidance (indexing-gap)", "waste", stats["indexing-gap"], ""),
+        ("stats_state_docs", "Compact State Documents — read volume, not savings (state-docs)", "real", stats["state-docs"], ""),
+        ("verbosity_savings", "Output Verbosity Savings (verbosity)", "real", verbosity_savings, verbosity_annotation),
+        ("compression_savings", "Compression Savings (compression)", "real", compression_savings, ""),
+    ]
     if mode != "aggregate":
+        for section, header in (("waste", "Waste Avoided (shadow, lower is better)"), ("real", f"Real Savings Realized (total_saved={total_saved:,} tokens)")):
+            print(f"----------------------------------------------\n{header}")
+            for _, label, sec, val, note in STRATEGY_ROWS:
+                if sec == section:
+                    print(f"  {label}: {val:,} tokens{note}")
         print("----------------------------------------------")
-        print(f"Symbol Index & Section loading (idx):   {stats['targeted-reads']:,} tokens")
-        print(f"No-re-read Rule compliance (no-reread): {stats['no-reread']:,} tokens")
-        print(f"Indexing Gap reduction (indexing-gap):  {stats['indexing-gap']:,} tokens")
-        print(f"Compact State Documents (state-docs):   {stats['state-docs']:,} tokens")
-        print(f"Output Verbosity Savings (verbosity):   {verbosity_savings:,} tokens{verbosity_annotation}")
-        print(f"Compression Savings (compression):      {compression_savings:,} tokens")
-        print("----------------------------------------------")
-        print("Note: Summing these values directly may double-count overlaps.")
+        print("Note: Summing waste-avoided values directly may double-count overlaps.")
 
     print(f"Verbosity baseline (T-081):{verbosity_annotation}")
 
@@ -233,14 +237,9 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
         "{shadow_mode_tokens_str}": f"{shadow_mode_tokens:,}",
         "{pct_saved_str}": f"{pct_saved:.1f}",
         "{shadow_sum_str}": f"{shadow_sum:,}",
-        "{compression_savings_str}": f"{compression_savings:,}",
-        "{stats_idx_str}": f"{stats['targeted-reads']:,}",
-        "{stats_no_reread_str}": f"{stats['no-reread']:,}",
-        "{stats_indexing_gap_str}": f"{stats['indexing-gap']:,}",
-        "{stats_state_docs_str}": f"{stats['state-docs']:,}",
-        "{verbosity_savings_str}": f"{verbosity_savings:,}{verbosity_annotation}",
         "{headroom_section_html}": headroom_section_html,
     }
+    replacements.update({f"{{{ph}_str}}": f"{val:,}{note}" for ph, _, _, val, note in STRATEGY_ROWS})
     for k, v in replacements.items():
         html_template = html_template.replace(k, v)
 
