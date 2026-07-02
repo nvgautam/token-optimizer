@@ -22,6 +22,18 @@ def test_all_subpackages_importable():
     import agentflow.skills
     import agentflow.indexer
 
+    assert agentflow.cli is not None
+    assert agentflow.oracle is not None
+    assert agentflow.orchestrator is not None
+    assert agentflow.worker is not None
+    assert agentflow.reviewer is not None
+    assert agentflow.tools is not None
+    assert agentflow.telemetry is not None
+    assert agentflow.config is not None
+    assert agentflow.shell is not None
+    assert agentflow.skills is not None
+    assert agentflow.indexer is not None
+
 
 def test_cli_entry_point_importable():
     from agentflow.cli import main, build_parser
@@ -103,10 +115,15 @@ def test_report_mode_session_agent_claude_routes_to_legacy(monkeypatch):
 
 
 def test_root_agentflow_no_longer_accepts_report():
+    import os
     import subprocess
     import sys
+    
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    agentflow_py = os.path.join(project_root, "agentflow.py")
+    
     result = subprocess.run(
-        [sys.executable, "agentflow.py", "report"],
+        [sys.executable, agentflow_py, "report"],
         capture_output=True,
         text=True,
     )
