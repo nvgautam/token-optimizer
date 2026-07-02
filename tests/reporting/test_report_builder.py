@@ -28,7 +28,6 @@ from agentflow.reporting.report_builder import (
 from agentflow.shadow.verbosity_ab import record_turn, run_ab_comparison
 from agentflow.cli import cmd_report
 
-
 @pytest.fixture
 def utc_tz(monkeypatch):
     # Pin local tz to UTC so window/history comparisons are deterministic.
@@ -37,7 +36,6 @@ def utc_tz(monkeypatch):
     yield
     monkeypatch.delenv("TZ", raising=False)
     time.tzset()
-
 
 def test_shadow_analyzer_bucketing(tmp_path):
     tasks_data = {"tasks": [{"task_id": "T-001", "reads": ["file_a.py", "file_b.py#anchor"]}]}
@@ -66,7 +64,6 @@ def test_shadow_analyzer_bucketing(tmp_path):
     assert stats_by["targeted-reads"] == 750
     assert stats_by["indexing-gap"] == 500
     assert stats_by["state-docs"] == 2500
-
 
 def test_individual_reports(tmp_path):
     entries_empty = []
@@ -98,7 +95,6 @@ def test_individual_reports(tmp_path):
     verb_log.write_text(json.dumps({"session_type": "oracle", "output_tokens": 100}) + "\n")
     assert _report_verbosity_compliance(tmp_path) == 500
 
-
 def test_analyzer_main(tmp_path):
     log_path = tmp_path / ".agentflow" / "shadow_reads.jsonl"
     log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -106,7 +102,6 @@ def test_analyzer_main(tmp_path):
     (tmp_path / "tasks.json").write_text(json.dumps({"tasks": []}))
     with patch("pathlib.Path.cwd", return_value=tmp_path):
         analyzer_main()
-
 
 def test_report_builder_integration(tmp_path):
     verb_log = tmp_path / ".agentflow" / "verbosity_log.jsonl"
@@ -152,21 +147,40 @@ def test_report_builder_integration(tmp_path):
         assert "Shadow Mode Tokens" in html_content_split
         assert "Percentage Saved" in html_content_split
 
+# --- T-083: waste (shadow, lower=better) vs real-savings-realized split ---
+
+def test_report_builder_splits_waste_vs_real_savings_sections(tmp_path, capsys):
+    out_html = tmp_path / "combined_report.html"
+    build_report(project_root=tmp_path, mode="split", output_path=out_html, store_url="sqlite:///dummy.db")
+    out = capsys.readouterr().out
+    assert "Waste Avoided (shadow, lower is better)" in out
+    assert "Real Savings Realized" in out
+    waste_i, real_i = out.index("Waste Avoided"), out.index("Real Savings Realized")
+    assert waste_i < out.index("indexing-gap") < real_i < out.index("compression")
+
+    html = out_html.read_text()
+    h_waste, h_real = html.index("Waste Avoided"), html.index("Real Savings Realized")
+    assert h_waste < html.index("Indexing Gap Avoidance") < h_real
+    assert h_real < html.index("Output Verbosity Control") and h_real < html.index("Headroom Compression")
+    assert "read volume, not savings (state-docs)" in html  # volume, not a savings claim
+    assert "Total Real Savings (total_saved)" in html and html.index("Total Real Savings") > h_real
+
+    build_report(project_root=tmp_path, mode="aggregate", output_path=out_html, store_url="sqlite:///dummy.db")
+    agg_out = capsys.readouterr().out
+    assert "Waste Avoided" not in agg_out  # console breakdown stays mode-gated (unchanged behavior)
+    assert "Real Savings Realized" in out_html.read_text()  # HTML sections always render, both modes
 
 def test_reporting_window_empty_entries():
     assert _reporting_window([]) is None
     assert _reporting_window([{"rel": "foo.py"}]) is None
 
-
 def test_reporting_window_bounds_from_ts():
     entries = [{"ts": "2026-07-01T12:00:00"}, {"ts": "2026-07-01T09:00:00"}, {"ts": "2026-07-01T15:00:00"}]
     assert _reporting_window(entries) == ("2026-07-01T09:00:00", "2026-07-01T15:00:00")
 
-
 def test_filter_by_window_none_returns_all():
     entries = [{"ts": "2026-07-01T12:00:00"}]
     assert _filter_by_window(entries, None) == entries
-
 
 def test_filter_by_window_excludes_outside_range():
     entries = [
@@ -177,12 +191,10 @@ def test_filter_by_window_excludes_outside_range():
     filtered = _filter_by_window(entries, ("2026-07-01T10:00:00", "2026-07-01T15:00:00"))
     assert [e["output_tokens"] for e in filtered] == [2]
 
-
 def test_format_baseline_annotation_unmeasured():
     annotation = _format_baseline_annotation({"measured": False, "baseline_tokens": 600, "sample_size": 0})
     assert "UNMEASURED" in annotation
     assert "600" in annotation
-
 
 def test_format_baseline_annotation_measured_with_ci():
     annotation = _format_baseline_annotation(
@@ -193,14 +205,12 @@ def test_format_baseline_annotation_measured_with_ci():
     assert "95% CI" in annotation
     assert "450" in annotation and "550" in annotation
 
-
 def test_format_baseline_annotation_measured_single_sample_no_ci():
     annotation = _format_baseline_annotation(
         {"measured": True, "baseline_tokens": 500, "sample_size": 1, "ci95_low": None, "ci95_high": None}
     )
     assert "n=1" in annotation
     assert "CI unavailable" in annotation
-
 
 def test_report_builder_uses_measured_baseline_not_hardcoded_600(tmp_path):
     # Seed a measured hook-off baseline of 500 tokens (n=3) via the T-081 A/B harness.
@@ -221,7 +231,6 @@ def test_report_builder_uses_measured_baseline_not_hardcoded_600(tmp_path):
     assert "measured baseline=500tok" in html_content
     assert "n=3" in html_content
 
-
 def test_report_builder_falls_back_when_no_baseline_measured(tmp_path):
     verb_log = tmp_path / ".agentflow" / "verbosity_log.jsonl"
     verb_log.parent.mkdir(parents=True, exist_ok=True)
@@ -233,7 +242,6 @@ def test_report_builder_falls_back_when_no_baseline_measured(tmp_path):
     html_content = out_html.read_text()
     assert "UNMEASURED" in html_content
     assert "500" in html_content  # unmeasured fallback: 600 - 100 = 500
-
 
 def test_report_builder_aligns_verbosity_window_to_shadow_reads_scope(tmp_path):
     shadow_log = tmp_path / ".agentflow" / "shadow_reads.jsonl"
@@ -255,25 +263,21 @@ def test_report_builder_aligns_verbosity_window_to_shadow_reads_scope(tmp_path):
     assert "500" in html_content
     assert "1,100" not in html_content
 
-
 def test_cli_report_cmd(tmp_path):
     args = argparse.Namespace(mode="aggregate", output=str(tmp_path / "cli_report.html"))
     with patch("pathlib.Path.cwd", return_value=tmp_path):
         assert cmd_report(args) == 0
         assert (tmp_path / "cli_report.html").exists()
 
-
 # --- T-082: compression data source (proxy_savings.json, not headroom.db) ---
 
 def test_load_proxy_savings_absent_returns_none(tmp_path):
     assert _load_proxy_savings(tmp_path) is None
 
-
 def test_load_proxy_savings_reads_json(tmp_path):
     (tmp_path / ".headroom").mkdir(parents=True, exist_ok=True)
     (tmp_path / ".headroom" / "proxy_savings.json").write_text(json.dumps({"history": [{"timestamp": "t"}]}))
     assert _load_proxy_savings(tmp_path) == {"history": [{"timestamp": "t"}]}
-
 
 def test_compression_delta_from_history_windowed(utc_tz):
     # Cumulative counters: delta = end - baseline (last snapshot before window start). utc_tz pins local==UTC.
@@ -286,20 +290,17 @@ def test_compression_delta_from_history_windowed(utc_tz):
     assert _compression_delta_from_history(history, window, "total_tokens_saved") == 500
     assert _compression_delta_from_history(history, window, "total_input_tokens") == 1000
 
-
 def test_compression_delta_from_history_no_baseline_before_window(utc_tz):
     # Nothing precedes window start -> baseline is 0, never fabricated.
     history = [{"timestamp": "2026-07-01T12:00:00Z", "total_tokens_saved": 800, "total_input_tokens": 2000}]
     window = ("2026-07-01T10:00:00", "2026-07-01T15:00:00")
     assert _compression_delta_from_history(history, window, "total_tokens_saved") == 800
 
-
 def test_compression_delta_from_history_empty_or_no_window():
     assert _compression_delta_from_history([], ("a", "b"), "total_tokens_saved") == 0
     assert _compression_delta_from_history([], None, "total_tokens_saved") == 0
     history = [{"timestamp": "2026-07-01T12:00:00Z", "total_tokens_saved": 42}]
     assert _compression_delta_from_history(history, None, "total_tokens_saved") == 42
-
 
 def test_compression_delta_from_history_handles_utc_vs_local_timezone(monkeypatch):
     # Regression: history ts are UTC, window bounds naive local. Old bug (rstrip("Z")
@@ -317,7 +318,6 @@ def test_compression_delta_from_history_handles_utc_vs_local_timezone(monkeypatc
     finally:
         monkeypatch.delenv("TZ", raising=False)
         time.tzset()
-
 
 def test_report_builder_windows_compression_to_shadow_reads_scope(utc_tz, tmp_path):
     shadow_log = tmp_path / ".agentflow" / "shadow_reads.jsonl"
@@ -341,7 +341,6 @@ def test_report_builder_windows_compression_to_shadow_reads_scope(utc_tz, tmp_pa
     html_content = out_html.read_text()
     assert "800" in html_content
     assert "9,000" not in html_content
-
 
 def test_report_builder_compression_zero_when_proxy_savings_absent(tmp_path):
     out_html = tmp_path / "combined_report.html"

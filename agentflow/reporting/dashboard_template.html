@@ -94,6 +94,15 @@
             padding: 2rem;
             border: 1px solid var(--border-color);
         }
+        .section-caption {
+            font-size: 0.9rem;
+            font-weight: 400;
+            color: var(--text-muted);
+            margin-left: 0.5rem;
+        }
+        .waste-section h2 {
+            color: #f59e0b;
+        }
     </style>
 </head>
 <body>
@@ -136,8 +145,8 @@
             </div>
         </div>
 
-        <div class="details-section">
-            <h2>Savings Breakdown by Strategy</h2>
+        <div class="details-section waste-section">
+            <h2>Waste Avoided <span class="section-caption">(shadow, lower is better — 0 is the compliant outcome)</span></h2>
             <div class="strategy-row">
                 <span>Symbol Index / Targeted Reads (idx)</span>
                 <strong>{stats_idx_str} tokens</strong>
@@ -150,8 +159,12 @@
                 <span>Indexing Gap Avoidance (indexing-gap)</span>
                 <strong>{stats_indexing_gap_str} tokens</strong>
             </div>
+        </div>
+
+        <div class="details-section">
+            <h2>Real Savings Realized</h2>
             <div class="strategy-row">
-                <span>Compact State Documents (state-docs)</span>
+                <span>Compact State Documents — read volume, not savings (state-docs)</span>
                 <strong>{stats_state_docs_str} tokens</strong>
             </div>
             <div class="strategy-row">
@@ -161,6 +174,10 @@
             <div class="strategy-row">
                 <span>Headroom Compression (compression)</span>
                 <strong>{compression_savings_str} tokens</strong>
+            </div>
+            <div class="strategy-row">
+                <span>Total Real Savings (total_saved)</span>
+                <strong>{total_saved_str} tokens</strong>
             </div>
         </div>
 
