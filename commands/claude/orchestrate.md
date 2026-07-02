@@ -29,13 +29,19 @@ For `design_status.md` and `execution_plan.md`: if `.idx` absent or stale, regen
 Read `design_status.md` (use `.idx` if present). Any `| UNRESOLVED |` row → stop:
 > "Design has unresolved items. Run `/oracle` to resolve them first."
 
+Gate file: always fresh same-turn Read before acting on it. Stale/garbled/truncated-looking result (Headroom marker or otherwise) → re-read now, never parse marker text as data.
+
 ### Step 4 — Load execution state
 Read `execution_plan.md` (use `.idx`) and `tasks.json`. **No `architecture.md` or `CLAUDE.md` at startup.**
+
+Gate files: same staleness rule as Step 3 — fresh read, re-read on any stale/garbled marker.
 
 Check `.agentflow/state.json`. Present → report resumed state and ask "Continue?". Absent → identify first incomplete milestone. `/orchestrate debug` → reveal grouping plan and ask "Proceed?".
 
 ### Step 5 — Load prior calibration
 Load `~/.agentflow/rate_calibration_claude.json` (if absent and `~/.agentflow/rate_calibration.json` exists, load `~/.agentflow/rate_calibration.json` as a one-time compat fallback); init EWMA: `ewma_mean_tokens=2500, ewma_cv=0.0, sample_count=0, ewma_alpha=0.3` if generic also absent.
+
+Gate file: same staleness rule as Step 3.
 
 
 ---

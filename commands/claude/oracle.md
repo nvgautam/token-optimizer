@@ -16,6 +16,8 @@ Say: "This session will consume approximately 2% of your 5-hour window limit."
 ### Step 2 — Design status check
 Read `design_status.md` in full.
 
+Gate file: always fresh same-turn Read before acting on it. Stale/garbled/truncated-looking result (Headroom marker or otherwise) → re-read now, never parse marker text as data.
+
 - `| UNRESOLVED |` rows found → re-spar; present items and resume.
 - All `RESOLVED` / `DEFERRED` → read `tasks.json`; count PENDING tasks.
   - PENDING tasks found → Step 2c (prioritization spar).
@@ -35,9 +37,11 @@ Compute `HASH = sha256(cwd)`. Check `~/.agentflow/cache/<HASH>/index/architectur
 ### Step 2b — Load CV calibration
 Read `~/.agentflow/rate_calibration_claude.json` (if absent and `~/.agentflow/rate_calibration.json` exists, load `~/.agentflow/rate_calibration.json` as a one-time compat fallback). `sample_count >= 7` → store `ewma_cv`, `ewma_mean_tokens`. Else skip.
 
+Gate file: same staleness rule as Step 2 — fresh read, re-read on any stale/garbled marker.
+
 ### Step 2c — Prioritization Spar (pending tasks found)
 
-Read `execution_plan.md` (use `.idx`). Group PENDING tasks into **value tiers** — what each group unlocks (e.g., "handoff precision", "parallel throughput", "multi-provider"). Identify independent tasks (no pending deps) as Round A candidates; chain dependents into subsequent rounds.
+Read `execution_plan.md` (use `.idx`). Gate file: same staleness rule as Step 2. Group PENDING tasks into **value tiers** — what each group unlocks (e.g., "handoff precision", "parallel throughput", "multi-provider"). Identify independent tasks (no pending deps) as Round A candidates; chain dependents into subsequent rounds.
 
 Lead with:
 - Recommended round table (A / B / C…) + dominant rationale (one line per round: what ships)
