@@ -15,7 +15,13 @@ from agentflow.shadow.analyzer import (
     _report_verbosity_compliance,
     main as analyzer_main
 )
-from agentflow.reporting.report_builder import build_report
+from agentflow.reporting.report_builder import (
+    build_report,
+    _reporting_window,
+    _filter_by_window,
+    _format_baseline_annotation,
+)
+from agentflow.shadow.verbosity_ab import record_turn, run_ab_comparison
 from agentflow.cli import cmd_report
 
 
@@ -181,7 +187,7 @@ def test_report_builder_integration(tmp_path):
     # Let's mock headroom library
     mock_headroom = MagicMock()
     mock_storage = MagicMock()
-    mock_storage.get_summary_stats.return_value = {"total_tokens_saved": 5000}
+    mock_storage.get_summary_stats.return_value = {"total_tokens_saved": 5000, "total_tokens_after": 15000}
     mock_headroom.storage.create_storage.return_value = mock_storage
     
     # Also mock generate_report to write a file
@@ -218,6 +224,130 @@ def test_report_builder_integration(tmp_path):
         assert "Real Tokens Used" in html_content_split
         assert "Shadow Mode Tokens" in html_content_split
         assert "Percentage Saved" in html_content_split
+
+
+def test_reporting_window_empty_entries():
+    assert _reporting_window([]) is None
+    assert _reporting_window([{"rel": "foo.py"}]) is None
+
+
+def test_reporting_window_bounds_from_ts():
+    entries = [
+        {"ts": "2026-07-01T12:00:00"},
+        {"ts": "2026-07-01T09:00:00"},
+        {"ts": "2026-07-01T15:00:00"},
+    ]
+    assert _reporting_window(entries) == ("2026-07-01T09:00:00", "2026-07-01T15:00:00")
+
+
+def test_filter_by_window_none_returns_all():
+    entries = [{"ts": "2026-07-01T12:00:00"}]
+    assert _filter_by_window(entries, None) == entries
+
+
+def test_filter_by_window_excludes_outside_range():
+    entries = [
+        {"ts": "2026-07-01T08:00:00", "output_tokens": 1},
+        {"ts": "2026-07-01T12:00:00", "output_tokens": 2},
+        {"ts": "2026-07-01T20:00:00", "output_tokens": 3},
+    ]
+    window = ("2026-07-01T10:00:00", "2026-07-01T15:00:00")
+    filtered = _filter_by_window(entries, window)
+    assert [e["output_tokens"] for e in filtered] == [2]
+
+
+def test_format_baseline_annotation_unmeasured():
+    annotation = _format_baseline_annotation(
+        {"measured": False, "baseline_tokens": 600, "sample_size": 0}
+    )
+    assert "UNMEASURED" in annotation
+    assert "600" in annotation
+
+
+def test_format_baseline_annotation_measured_with_ci():
+    annotation = _format_baseline_annotation(
+        {"measured": True, "baseline_tokens": 500, "sample_size": 10, "ci95_low": 450.0, "ci95_high": 550.0}
+    )
+    assert "measured" in annotation
+    assert "n=10" in annotation
+    assert "95% CI" in annotation
+    assert "450" in annotation and "550" in annotation
+
+
+def test_format_baseline_annotation_measured_single_sample_no_ci():
+    annotation = _format_baseline_annotation(
+        {"measured": True, "baseline_tokens": 500, "sample_size": 1, "ci95_low": None, "ci95_high": None}
+    )
+    assert "n=1" in annotation
+    assert "CI unavailable" in annotation
+
+
+def test_report_builder_uses_measured_baseline_not_hardcoded_600(tmp_path):
+    # Seed a measured hook-off baseline of 500 tokens (n=3) via the T-081
+    # A/B harness instead of the unvalidated 600-token design estimate.
+    for tok in (400, 500, 600):
+        record_turn(tmp_path, session_type="oracle", turn=1, output_tokens=tok, arm="hook_off")
+    run_ab_comparison(tmp_path)
+
+    verb_log = tmp_path / ".agentflow" / "verbosity_log.jsonl"
+    verb_log.parent.mkdir(parents=True, exist_ok=True)
+    verb_log.write_text(
+        json.dumps({"ts": "2026-07-01T12:00:00", "session_type": "oracle", "turn": 1, "output_tokens": 100}) + "\n"
+    )
+
+    out_html = tmp_path / "combined_report.html"
+    build_report(project_root=tmp_path, mode="split", output_path=out_html, store_url="sqlite:///dummy.db")
+
+    html_content = out_html.read_text()
+    # measured baseline (500) - 100 = 400, not the old 600 - 100 = 500
+    assert "400" in html_content
+    assert "measured baseline=500tok" in html_content
+    assert "n=3" in html_content
+
+
+def test_report_builder_falls_back_when_no_baseline_measured(tmp_path):
+    verb_log = tmp_path / ".agentflow" / "verbosity_log.jsonl"
+    verb_log.parent.mkdir(parents=True, exist_ok=True)
+    verb_log.write_text(
+        json.dumps({"ts": "2026-07-01T12:00:00", "session_type": "oracle", "turn": 1, "output_tokens": 100}) + "\n"
+    )
+
+    out_html = tmp_path / "combined_report.html"
+    build_report(project_root=tmp_path, mode="split", output_path=out_html, store_url="sqlite:///dummy.db")
+
+    html_content = out_html.read_text()
+    assert "UNMEASURED" in html_content
+    # unmeasured fallback still uses 600 as the baseline: 600 - 100 = 500
+    assert "500" in html_content
+
+
+def test_report_builder_aligns_verbosity_window_to_shadow_reads_scope(tmp_path):
+    # shadow_reads.jsonl entries scope the report to a narrow time window.
+    shadow_log = tmp_path / ".agentflow" / "shadow_reads.jsonl"
+    shadow_log.parent.mkdir(parents=True, exist_ok=True)
+    shadow_log.write_text(
+        json.dumps({
+            "ts": "2026-07-01T12:00:00", "rel": "foo.py", "offset": 1, "limit": 5,
+            "idx_exists": True, "idx_sections": 2, "file_lines": 10, "file_chars": 400,
+        }) + "\n"
+    )
+
+    # verbosity_log.jsonl has one entry inside the window and one far outside
+    # (lifetime history) it -- only the in-window entry should count.
+    verb_log = tmp_path / ".agentflow" / "verbosity_log.jsonl"
+    verb_log.write_text(
+        json.dumps({"ts": "2026-06-01T00:00:00", "session_type": "oracle", "turn": 1, "output_tokens": 0}) + "\n" +
+        json.dumps({"ts": "2026-07-01T12:00:00", "session_type": "oracle", "turn": 2, "output_tokens": 100}) + "\n"
+    )
+
+    out_html = tmp_path / "combined_report.html"
+    build_report(project_root=tmp_path, mode="split", output_path=out_html, store_url="sqlite:///dummy.db")
+    html_content = out_html.read_text()
+
+    # Fallback baseline (unmeasured) = 600. In-window entry: 600-100=500.
+    # If the old-lifetime entry (600-0=600) leaked in, total would be 1100.
+    assert "500" in html_content
+    assert "1,100" not in html_content
 
 
 def test_cli_report_cmd(tmp_path):

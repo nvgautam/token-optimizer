@@ -134,6 +134,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-077 | Spike — can headroom's proxy auto-capture 5hr/weekly usage windows? | MERGED |
 | T-078 | Unify `agentflow report` / `python agentflow.py report` into one command (--mode session) | MERGED |
 | T-079 | Harden gate-file reads against Headroom staleness — skill rule + invocation audit | MERGED |
+| T-081 | A/B test verbosity control — measure real hook-off/hook-on baseline, replace assumed 600-token constant | pending |
 
 | Round | Tasks | Note |
 |---|---|---|

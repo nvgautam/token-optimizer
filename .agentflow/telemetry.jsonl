@@ -673,3 +673,16 @@
 {"event": "handoff", "timestamp": "2026-07-02T03:50:29.300338Z", "session_type": "unknown", "agent_tokens_in": 0, "agent_tokens_out": 0, "agents": 0}
 {"event": "handoff", "timestamp": "2026-07-01T22:00:00Z", "session_type": "unknown", "agent_tokens_in": 0, "agent_tokens_out": 0, "agents": 0}
 {"event": "handoff", "timestamp": "2026-07-01T21:59:45.836398", "session_type": "orchestrator", "agent_tokens_in": 0, "agent_tokens_out": 73046, "agents": 2}
+{"event": "handoff", "timestamp": "2026-07-01T22:19:20.451501", "session_type": "orchestrator", "agent_tokens_in": 0, "agent_tokens_out": 0, "agents": 0}
+{"event": "handoff", "timestamp": "2026-07-01T22:30:12.297701", "session_type": "unknown", "agent_tokens_in": 0, "agent_tokens_out": 0, "agents": 0}
+{"event": "handoff", "timestamp": "2026-07-02T06:05:18.039630Z", "session_type": "oracle", "agent_tokens_in": 0, "agent_tokens_out": 0, "agents": 0}
+{"trace_id": "ebedfd63-5526-4e7c-88fd-8edd2bfe0058", "span": "worker.context_built", "timestamp": "2026-07-02T06:21:22.261027+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
+{"trace_id": "653ead95-acd1-4432-bb6c-5b51101282b8", "span": "worker.context_built", "timestamp": "2026-07-02T06:21:22.265584+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
+{"trace_id": "dc1e52d3-cbc4-45ab-950e-d0c37ff09f1c", "span": "worker.context_built", "timestamp": "2026-07-02T06:21:22.269221+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
+{"trace_id": "ff8e6d42-e736-4806-ae7f-d3974ccd91e9", "span": "worker.context_built", "timestamp": "2026-07-02T06:21:22.272913+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
+{"trace_id": "e8204092-e487-4711-9de5-ddf4049af5e8", "span": "worker.context_built", "timestamp": "2026-07-02T06:21:22.276827+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 175, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
+{"trace_id": "53f6ea23-90d7-470f-bf87-7cc198c2181c", "span": "worker.context_built", "timestamp": "2026-07-02T06:21:22.280398+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
+{"trace_id": "d5ca3490-f476-46a8-8e05-8c08eac09da7", "span": "worker.context_built", "timestamp": "2026-07-02T06:21:22.283674+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
+{"trace_id": "0e6402a5-4e05-428b-a21e-5735eb2e9499", "span": "worker.context_built", "timestamp": "2026-07-02T06:21:22.287164+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
+{"event": "handoff", "timestamp": "2026-07-02T06:25:06Z", "session_type": "unknown", "agent_tokens_in": 0, "agent_tokens_out": 0, "agents": 0}
+{"event": "handoff", "timestamp": "2026-07-02T06:47:28Z", "session_type": "unknown", "agent_tokens_in": 0, "agent_tokens_out": 0, "agents": 0}
