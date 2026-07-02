@@ -117,3 +117,19 @@ We recommend integrating Headroom as an optional, high-efficiency layer in the P
    Pass the workspace name to `X-Headroom-Project` header or env `HEADROOM_PROJECT` so that all savings are attributed to the specific token-optimizer repository inside `savings_events.jsonl`.
 4. **Report Hook:**
    Add a subcommand `agentflow report` that calls `headroom.reporting.generator.generate_report` on the project-local ledger to generate a visual HTML report of session savings.
+
+---
+
+## 10. Cache-Mode Regression and Fix (T-084, 2026-07-02)
+
+T-080 set `HEADROOM_MODE=cache` to fix a real corruption incident (T-079: gate files like design_status.md occasionally garbled by ContentRouter compression). This traded away nearly all compression savings as an unintended side effect.
+
+**Root cause, confirmed by reading the installed `headroom-ai` 0.28.0 source:**
+- `DEFAULT_EXCLUDE_TOOLS` (`headroom/config.py`) protects Read/Glob/Grep/Write/Edit output unconditionally in *both* token and cache mode — cache mode never added tool-type protection that wasn't already there.
+- Token mode's actual gap: `server.py:637` sets `protect_recent_reads_fraction=0.3` — excluded-tool output older than ~30% of the conversation loses protection. This, not the mode dichotomy, was T-079's real leak vector.
+- Cache mode's actual effect: `anthropic.py:908-915`'s `_strict_previous_turn_frozen_count()` unconditionally freezes every message except the current turn — for every tool and content type, not just the five excluded tools. Measured via `.headroom/logs/proxy.log`: compression rate collapsed from 649/882 requests (74%) pre-cutover to 8/920 (<1%, all in the transition window) post-cutover.
+- No upstream knob decouples these two effects — `protect_recent_reads_fraction` has no env var/CLI override; it's hardwired to `is_token_mode(config.mode)` in `server.py`.
+
+**Resolution:** reverted `agentflow/cli.py` to `HEADROOM_MODE=token`. The residual 0.3-fraction recency leak on gate files is mitigated at the skill level, not the proxy level — `commands/claude/oracle.md` and `commands/claude/orchestrate.md` (T-079) already require a fresh same-turn Read before acting on any gate file's contents, and immediate re-read on any stale/garbled-looking result. That guard doesn't depend on which headroom mode is active. Given the mitigation already exists and cache mode's cost (~9M of ~10.7M tokens in the project's measured savings pool, per T-072/T-082) vastly exceeds the risk it was defending against, token mode is the correct steady-state choice.
+
+**Not done (out of scope for T-084):** no upstream feature request filed for a knob that would set `protect_recent_reads_fraction=0.0` under token mode without the frozen-count side effect. Worth filing if the 0.3-fraction leak proves material in practice.

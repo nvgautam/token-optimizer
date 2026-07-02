@@ -1,6 +1,7 @@
 """Unit tests for T-009: cmd_shell PTY relay loop."""
 
 import argparse
+import os
 import sys
 from contextlib import ExitStack
 from unittest.mock import MagicMock, call, patch
@@ -300,5 +301,34 @@ class TestSysExit:
     def test_exits_with_zero_on_clean_exit(self):
         m = _run(_wrapper(exited=True, exit_code=0))
         m["exit"].assert_called_once_with(0)
+
+
+# ---------------------------------------------------------------------------
+# 6. Headroom wrap sets HEADROOM_MODE (T-084: revert cache mode -> token mode)
+# ---------------------------------------------------------------------------
+
+
+class TestHeadroomWrap:
+    def test_cmd_shell_sets_headroom_mode_token_when_enabled(self):
+        with patch.dict(
+            os.environ, {"AGENTFLOW_ENABLE_HEADROOM": "1"}, clear=False
+        ), patch("shutil.which", return_value="/usr/bin/headroom"):
+            _run(_wrapper(exited=True))
+            assert os.environ["HEADROOM_MODE"] == "token"
+
+    def test_cmd_shell_does_not_set_headroom_mode_when_disabled(self):
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("AGENTFLOW_ENABLE_HEADROOM", None)
+            os.environ.pop("HEADROOM_MODE", None)
+            with patch("shutil.which", return_value="/usr/bin/headroom"):
+                _run(_wrapper(exited=True))
+            assert "HEADROOM_MODE" not in os.environ
+
+    def test_cmd_shell_sets_headroom_workspace_dir_when_enabled(self):
+        with patch.dict(
+            os.environ, {"AGENTFLOW_ENABLE_HEADROOM": "1"}, clear=False
+        ), patch("shutil.which", return_value="/usr/bin/headroom"):
+            _run(_wrapper(exited=True))
+            assert "HEADROOM_WORKSPACE_DIR" in os.environ
 
 
