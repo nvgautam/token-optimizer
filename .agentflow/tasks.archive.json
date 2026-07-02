@@ -310,6 +310,20 @@
         "tests/test_cli_shell.py"
       ],
       "status": "pending"
+    },
+    {
+      "task_id": "T-087",
+      "title": "Add steady-state (post-regression-fix) savings percentage alongside lifetime total in report_builder.py",
+      "description": "Oracle re-spar 2026-07-02: combined_report.html currently reports one lifetime pct_saved blended across full ledger history, including the T-084 cache-mode regression window (compression steady-state <1%) and the T-086 silent-headroom-off window (compression 0 for hours) -- both real degradations, not measurement bugs, so they cannot be retroactively backfilled (see T-084/T-086). A single blended percentage understates current system capability for demo/investor use. (1) Add a second computed figure in report_builder.py: steady-state pct_saved, scoped to sessions closed after the later of T-084s and T-086s merge timestamps (fixes trading correctness), using the same total_saved formula as the lifetime figure. (2) Keep the existing lifetime pct_saved (full history) unchanged -- do not remove it, it is the more auditable/credible number and shows the regression-and-recovery trend. (3) Render both in combined_report.html: lifetime figure stays in Real Savings Realized; steady-state figure added as its own clearly-labeled stat (e.g. \"Current / Steady-State Savings\") near the top summary stats, not buried in the details section. (4) Keep report_builder.py under the 250-line cap -- extend via a small helper (e.g. steady_state.py in agentflow/reporting/) rather than growing report_builder.py inline, matching the T-085 pattern.",
+      "owns": [
+        "agentflow/reporting/report_builder.py",
+        "agentflow/reporting/steady_state.py",
+        "agentflow/reporting/dashboard_template.html",
+        "tests/test_steady_state.py"
+      ],
+      "status": "complete",
+      "pr": 51,
+      "merge_commit": "429bcdea4ea8281457c7f01bc56b9ef78456e473"
     }
   ]
 }
