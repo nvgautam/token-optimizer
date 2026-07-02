@@ -81,7 +81,7 @@ Note: json/yaml parsers dropped — .idx format is Python + Markdown only.
 ---
 
 ## Milestone 4: Config + PTY Shell
-Status: COMPLETE — addendum: T-079 PENDING
+Status: COMPLETE
 Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 
 | Task | Title | Status |
@@ -133,7 +133,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-072 | `agentflow report` subcommand — combined savings dashboard across strategies | MERGED |
 | T-077 | Spike — can headroom's proxy auto-capture 5hr/weekly usage windows? | MERGED |
 | T-078 | Unify `agentflow report` / `python agentflow.py report` into one command (--mode session) | MERGED |
-| T-079 | Harden gate-file reads against Headroom staleness — skill rule + invocation audit | PENDING |
+| T-079 | Harden gate-file reads against Headroom staleness — skill rule + invocation audit | MERGED |
 
 | Round | Tasks | Note |
 |---|---|---|

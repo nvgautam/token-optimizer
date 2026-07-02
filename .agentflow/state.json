@@ -1,5 +1,5 @@
 {
-  "updated": "2026-07-02T00:55:00",
+  "updated": "2026-07-01T22:09:39",
   "milestone": "Milestone 4: Config + PTY Shell",
   "status": "COMPLETE",
   "groups": [
@@ -136,6 +136,13 @@
       "round": "Addendum G",
       "tasks": [
         "T-077"
+      ],
+      "status": "MERGED"
+    },
+    {
+      "round": "Addendum I",
+      "tasks": [
+        "T-079"
       ],
       "status": "MERGED"
     }
