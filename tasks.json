@@ -552,6 +552,20 @@
     {
       "task_id": "T-077",
       "status": "complete"
+    },
+    {
+      "task_id": "T-078",
+      "title": "Unify `agentflow report` and `python agentflow.py report` into one command surface",
+      "description": "Oracle re-spar 2026-07-01: two competing report entrypoints found — `agentflow report --mode aggregate|split` (report_builder.py, T-072, global totals only, no per-session view, no agent filter) vs `python agentflow.py report --agent claude|agy` (legacy_report.py, per-session table + provider filter, genuinely used by the user). Decision: single command, same arg namespace, backing files stay separate. (A) agentflow/cli.py: add `--mode session` to the existing `report` subcommand's `--mode` choices (`aggregate`, `split`, `session`); add `--agent {claude,agy}` argument, valid only with `--mode session` (argparse error otherwise). (B) cmd_report in cli.py: when mode == \"session\", dispatch to `agentflow.legacy_report.cmd_report` (reuses existing per-session ledger table + agent filter as-is, no logic changes); otherwise dispatch to report_builder.build_report as today. (C) agentflow.py (root script): remove \"report\" from the command choices and dispatch table; drop the `cmd_report` import from legacy_report and the report-related epilog lines (8, 11, 46-48, 58). legacy_report.py itself is unchanged — only its call site moves. (D) Tests: tests/test_cli.py — assert `--mode session --agent claude` routes to legacy_report.cmd_report; assert `--agent` without `--mode session` raises a usage error; assert root agentflow.py no longer accepts \"report\" as a command choice.",
+      "owns": [
+        "agentflow/cli.py",
+        "agentflow.py",
+        "tests/test_cli.py"
+      ],
+      "depends_on": [
+        "T-072"
+      ],
+      "status": "pending"
     }
   ]
 }
