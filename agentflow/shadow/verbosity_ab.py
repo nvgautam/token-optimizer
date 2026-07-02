@@ -67,16 +67,20 @@ def _unmeasured_baseline() -> dict:
     }
 
 
-def record_turn(project_root: Path, session_type: str, turn: int, output_tokens: int, arm: str) -> None:
+def record_turn(
+    project_root: Path, session_type: str, turn: int, output_tokens: int, arm: str, ts: str | None = None
+) -> None:
     """Append one A/B-tagged turn entry — same shape as session_manager.py's
     verbosity_log.jsonl entries, plus an `arm` field — to the dedicated
-    A/B log."""
+    A/B log. `ts` defaults to now(); import_from_verbosity_log passes the
+    source entry's original ts through so imported entries stay identifiable
+    for dedup rather than being relabeled to import time."""
     if arm not in ARMS:
         raise ValueError(f"arm must be one of {ARMS}, got {arm!r}")
     log_path = _ab_log_path(project_root)
     log_path.parent.mkdir(parents=True, exist_ok=True)
     entry = {
-        "ts": datetime.now().isoformat(),
+        "ts": ts if ts is not None else datetime.now().isoformat(),
         "session_type": session_type,
         "turn": turn,
         "output_tokens": output_tokens,
@@ -89,12 +93,21 @@ def record_turn(project_root: Path, session_type: str, turn: int, output_tokens:
 def import_from_verbosity_log(project_root: Path, arm: str, since_ts: str | None = None) -> int:
     """Re-tag entries from the live verbosity_log.jsonl (written by
     session_manager.py during a real session) into the dedicated A/B log.
-    Returns the number of entries imported."""
+    Returns the number of entries imported.
+
+    Idempotent regardless of since_ts: entries already present in the
+    destination arm's log (matched by ts+turn+session_type) are skipped,
+    so re-running with no arguments never double-imports."""
     if arm not in ARMS:
         raise ValueError(f"arm must be one of {ARMS}, got {arm!r}")
     src_path = project_root / ".agentflow" / "verbosity_log.jsonl"
     if not src_path.exists():
         return 0
+
+    already_imported = {
+        (e.get("ts"), e.get("turn"), e.get("session_type"))
+        for e in load_arm_entries(project_root, arm)
+    }
 
     count = 0
     for line in src_path.read_text().splitlines():
@@ -108,13 +121,18 @@ def import_from_verbosity_log(project_root: Path, arm: str, since_ts: str | None
             continue
         if since_ts is not None and entry.get("ts", "") <= since_ts:
             continue
+        key = (entry.get("ts"), entry.get("turn", 0), entry.get("session_type", "unknown"))
+        if key in already_imported:
+            continue
         record_turn(
             project_root,
             session_type=entry.get("session_type", "unknown"),
             turn=entry.get("turn", 0),
             output_tokens=entry.get("output_tokens", 0),
             arm=arm,
+            ts=entry.get("ts"),
         )
+        already_imported.add(key)
         count += 1
     return count
 

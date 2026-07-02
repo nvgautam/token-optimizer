@@ -223,6 +223,20 @@
       "status": "complete"
     },
     {
+      "task_id": "T-080",
+      "title": "Fix ContentRouter mode default — cli.py sets HEADROOM_MODE=cache; tag-protect hook-injected reminders",
+      "description": "Oracle sparring 2026-07-01 (\"ContentRouter mode default\"): root cause of the T-079 incident traced to headroom's installed source (proxy/modes.py, server.py, transforms/content_router.py). `headroom wrap` with no HEADROOM_MODE set resolves via normalize_proxy_mode(mode, default=\"token\") to token mode, which sets protect_recent_reads_fraction=0.3 — overriding the library's own safe default (0.0 = protect all DEFAULT_EXCLUDE_TOOLS output unconditionally). Under token mode, excluded-tool (Read/Grep/Write/Edit) results older than ~30% of the conversation fall through to SmartCrusher compression despite being \"excluded\". Fix: cli.py's cmd_shell sets HEADROOM_MODE=cache explicitly alongside HEADROOM_WORKSPACE_DIR so the protective 0.0 default holds regardless of session length. Belt-and-suspenders: hook-injected idx_reminder/verbosity_reminder text isn't a tool_result block (can't rely on exclude_tools) — wrap in a custom XML tag (protected verbatim via headroom's tag_protector, compress_tagged_content=False default) so hook reminders survive compression the same way tool_result exclusions do.",
+      "owns": [
+        "agentflow/cli.py",
+        "agentflow/hooks/idx_reminder.py",
+        "agentflow/hooks/verbosity_reminder.py"
+      ],
+      "depends_on": [
+        "T-079"
+      ],
+      "status": "complete"
+    },
+    {
       "task_id": "T-081",
       "title": "A/B test verbosity control savings — replace assumed 600-token baseline with measured data",
       "description": "Oracle sparring 2026-07-01: report_builder.py:54 computes verbosity_savings = sum(max(0, 600 - output_tokens)) across the full lifetime verbosity_log.jsonl (5,351+ turns since project start), where 600 is architecture.md's modeled, never-measured estimate of no-hook output length. That unvalidated per-turn baseline is summed with real measured savings (file_reads_saved) into total_saved, dominating the reported percentage (~79% of the headline figure) despite being an assumption, not a measurement. Build a controlled comparison: gate agentflow/hooks/verbosity_reminder.py behind an env var so it can be disabled; run N comparable sessions/tasks with the hook off and N with it on, capture output_tokens for both arms via session_manager.py's existing per-turn logging (tag entries with an arm/session_type so they're distinguishable in verbosity_log.jsonl). Compute measured mean/p90 for each arm; replace the hardcoded 600 constant in report_builder.py with the measured hook-off baseline (config-driven, not a magic number), and surface sample size + confidence interval next to the savings figure so small-sample runs aren't presented as precise. Also fix the scope mismatch: verbosity_savings currently sums the entire lifetime log while file_reads_saved is scoped to current shadow_reads.jsonl entries — align both to the same reporting window before summing into total_saved.",

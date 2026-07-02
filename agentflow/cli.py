@@ -118,6 +118,12 @@ def cmd_shell(args: argparse.Namespace) -> int:
         if os.environ.get("AGENTFLOW_ENABLE_HEADROOM") and shutil.which("headroom"):
             cmd_args = ["headroom", "wrap", cmd]
             os.environ["HEADROOM_WORKSPACE_DIR"] = str(Path.cwd().resolve() / ".headroom")
+            # token mode (headroom's default when unset) sets
+            # protect_recent_reads_fraction=0.3, letting stale-but-excluded
+            # tool output (Read/Grep/Write/Edit, and plain files re-read
+            # later) fall through to SmartCrusher compression. cache mode
+            # keeps the library's own protect-everything default (T-080).
+            os.environ["HEADROOM_MODE"] = "cache"
 
         wrapper = PTYWrapper(cmd_args)
         session_manager = SessionManager(wrapper, tokenizer_module, config={})

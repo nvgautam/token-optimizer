@@ -31,7 +31,10 @@ def main() -> None:
     COUNTER_FILE.write_text(str(count))
 
     if count % INTERVAL == 0:
-        print("[VERBOSITY] Keep responses concise (≤ 3 sentences / ~150 tokens).")
+        # Wrapped in a non-HTML tag so headroom's tag_protector (T-080)
+        # keeps it verbatim — a hook's stdout isn't a tool_result block,
+        # so exclude_tools config can't protect it any other way.
+        print("<agentflow-reminder>[VERBOSITY] Keep responses concise (≤ 3 sentences / ~150 tokens).</agentflow-reminder>")
 
     sys.exit(0)
 
