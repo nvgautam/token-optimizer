@@ -102,9 +102,9 @@ class TestHeadroomWrapping:
             stack.enter_context(patch("sys.exit"))
             stack.enter_context(patch("shutil.which", return_value="/usr/local/bin/headroom"))
             stack.enter_context(patch("pathlib.Path.cwd", return_value=tmp_path))
-            
-            # Clear env var to test setup
-            stack.enter_context(patch.dict("os.environ", {}))
+
+            # AGENTFLOW_ENABLE_HEADROOM must be set — cli.py gates wrapping behind it (7213a17)
+            stack.enter_context(patch.dict("os.environ", {"AGENTFLOW_ENABLE_HEADROOM": "1"}))
 
             cmd_shell(_args("claude"))
 
@@ -127,6 +127,29 @@ class TestHeadroomWrapping:
             stack.enter_context(patch("shutil.which", return_value=None))
             stack.enter_context(patch("pathlib.Path.cwd", return_value=tmp_path))
             stack.enter_context(patch.dict("os.environ", {}))
+
+            cmd_shell(_args("claude"))
+
+            pty_mock.assert_called_once_with(["claude"])
+            import os
+            assert "HEADROOM_WORKSPACE_DIR" not in os.environ
+
+    def test_falls_back_when_env_var_unset(self, tmp_path):
+        """headroom on PATH is not enough — AGENTFLOW_ENABLE_HEADROOM must opt in (7213a17)."""
+        from agentflow.cli import cmd_shell
+        wrapper_mock = _wrapper()
+        with ExitStack() as stack:
+            stack.enter_context(patch.object(sys.stdin, "fileno", return_value=_STDIN_FD))
+            stack.enter_context(patch("termios.tcgetattr", return_value=[0] * 6))
+            stack.enter_context(patch("tty.setraw"))
+            stack.enter_context(patch("termios.tcsetattr"))
+            pty_mock = stack.enter_context(patch(_PTY_CLS, return_value=wrapper_mock))
+            stack.enter_context(patch(_SM_CLS))
+            stack.enter_context(patch("select.select", return_value=([], [], [])))
+            stack.enter_context(patch("sys.exit"))
+            stack.enter_context(patch("shutil.which", return_value="/usr/local/bin/headroom"))
+            stack.enter_context(patch("pathlib.Path.cwd", return_value=tmp_path))
+            stack.enter_context(patch.dict("os.environ", {"AGENTFLOW_ENABLE_HEADROOM": ""}, clear=True))
 
             cmd_shell(_args("claude"))
 
