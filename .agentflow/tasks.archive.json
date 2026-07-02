@@ -195,6 +195,18 @@
         "tests/hooks/test_size_audit.py"
       ],
       "status": "complete"
+    },
+    {
+      "task_id": "T-077",
+      "title": "Spike — can headroom's proxy auto-capture 5hr/weekly usage windows?",
+      "description": "Research spike: orchestrate.md's rate-pacing protocol currently asks the user to manually run `/usage` and report 5hr/weekly % + reset times + caps for both claude and agy (design_status.md #57). Determine whether headroom's local HTTP proxy (T-074) can capture this automatically instead. NOTE: per-request token usage (input/output/cache) is already solved via existing JSONL/DB parsing (usage_parser.py) — this spike is scoped ONLY to the 5hr/weekly window %, reset_min, and cap fields that `/usage` displays. (1) Run `headroom wrap claude`, trigger `/usage` inside the session, and passively observe proxy traffic (headroom debug/verbose logging, or a temporary logging shim) to determine: does the underlying network call for `/usage` route through ANTHROPIC_BASE_URL (i.e. through the local proxy), or does it hit a different host directly? Only observe traffic the client already sends normally — do not attempt to authenticate to or probe undocumented endpoints directly. (2) If it routes through the proxy: inspect whether the response body/headers contain parseable window %/reset/cap fields; note exact shape if so. (3) Repeat for `headroom wrap agy` + agy's `/usage` — treat as fully separate from T-074's compression-savings verification (design_status.md #92 marks that UNVERIFIED; this spike tests usage-window visibility specifically, not compression). (4) Write findings to .agentflow/headroom_usage_eval.md: mechanism confirmed or not (per provider), feasibility verdict, and if not feasible, explicit recommendation to keep the current manual-ask + ledger-anchored derivation (design_status.md #57) as-is. No code changes — spike only, same shape as T-071.",
+      "owns": [
+        ".agentflow/headroom_usage_eval.md"
+      ],
+      "depends_on": [
+        "T-074"
+      ],
+      "status": "complete"
     }
   ]
 }
