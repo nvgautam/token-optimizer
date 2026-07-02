@@ -149,6 +149,13 @@
     {
       "round": "Addendum J",
       "tasks": [
+        "T-080"
+      ],
+      "status": "MERGED"
+    },
+    {
+      "round": "Addendum K",
+      "tasks": [
         "T-081"
       ],
       "status": "MERGED"

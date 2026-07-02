@@ -69,6 +69,20 @@ def test_import_from_verbosity_log_since_ts_filters(tmp_path):
     assert entries[0]["output_tokens"] == 300
 
 
+def test_import_from_verbosity_log_rerun_without_since_ts_is_idempotent(tmp_path):
+    src = tmp_path / ".agentflow" / "verbosity_log.jsonl"
+    src.parent.mkdir(parents=True, exist_ok=True)
+    src.write_text(
+        json.dumps({"ts": "2026-07-01T10:00:00", "session_type": "worker", "turn": 1, "output_tokens": 200}) + "\n" +
+        json.dumps({"ts": "2026-07-01T10:01:00", "session_type": "worker", "turn": 2, "output_tokens": 300}) + "\n"
+    )
+    first = import_from_verbosity_log(tmp_path, arm="hook_on")
+    second = import_from_verbosity_log(tmp_path, arm="hook_on")
+    assert first == 2
+    assert second == 0
+    assert len(load_arm_entries(tmp_path, "hook_on")) == 2
+
+
 def test_load_arm_entries_filters_by_arm(tmp_path):
     record_turn(tmp_path, session_type="oracle", turn=1, output_tokens=100, arm="hook_on")
     record_turn(tmp_path, session_type="oracle", turn=2, output_tokens=200, arm="hook_off")

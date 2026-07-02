@@ -22,9 +22,12 @@ def main() -> None:
 
     if count % INTERVAL == 0:
         cwd_hash = hashlib.sha256(os.getcwd().encode()).hexdigest()
+        # Wrapped in a non-HTML tag so headroom's tag_protector (T-080)
+        # keeps it verbatim — a hook's stdout isn't a tool_result block,
+        # so exclude_tools config can't protect it any other way.
         print(
-            f"[IDX] Before any Read: check"
-            f" ~/.agentflow/cache/{cwd_hash}/index/<file>.idx first"
+            f"<agentflow-reminder>[IDX] Before any Read: check"
+            f" ~/.agentflow/cache/{cwd_hash}/index/<file>.idx first</agentflow-reminder>"
         )
 
     sys.exit(0)
