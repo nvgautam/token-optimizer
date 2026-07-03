@@ -723,3 +723,4 @@
 {"event": "handoff", "timestamp": "2026-07-02T23:32:25Z", "session_type": "orchestrator", "agent_tokens_in": 95332, "agent_tokens_out": 0, "agents": 1}
 {"event": "session_complete", "timestamp": "2026-07-02T23:41:16.923632", "tasks": 1, "groups": 1}
 {"event": "handoff", "timestamp": "2026-07-03T00:52:24.472580", "session_type": "orchestrator", "agent_tokens_in": 3240, "agent_tokens_out": 1987, "agents": 1}
+{"event": "handoff", "timestamp": "2026-07-03T01:45:25.756994", "session_type": "orchestrator", "agent_tokens_in": 7842, "agent_tokens_out": 1083, "agents": 2}

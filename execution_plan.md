@@ -145,6 +145,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-088 | Surface index-driven read savings as its own report line item | MERGED |
 | T-089 | Relabel Percentage Saved / Steady-State stats + reconcile windowing across all savings sources | MERGED — PR #52 merged 2026-07-03 |
 | T-090 | Combine all four savings strategies into one reconciled overall percentage | MERGED — PR #53 merged 2026-07-03 |
+| T-091 | Include compression savings in combined pct_saved headline | MERGED — PR #54 merged 2026-07-03 |
 
 | Round | Tasks | Note |
 |---|---|---|
@@ -178,6 +179,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | P | T-088 | Independent — oracle re-spar 2026-07-02, index-driven savings computed but never surfaced as its own report row |
 | Q | T-089 | Independent — oracle re-spar 2026-07-02, session-recycling investigation: stale "lifetime" label + two unrelated stats presented as comparable |
 | R | T-090 | Depends on T-089 (needs consistent windowing) — oracle re-spar 2026-07-02, no single number represents total savings across all four strategies |
+| S | T-091 | Depends on T-090 — oracle re-spar 2026-07-03, pct_saved excluded compression_savings despite coherent shadow model |
 
 ---
 
