@@ -658,7 +658,7 @@
       "depends_on": [
         "T-089"
       ],
-      "status": "pending"
+      "status": "complete"
     }
   ]
 }

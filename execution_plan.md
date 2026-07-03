@@ -144,7 +144,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-087 | Add steady-state (post-regression-fix) savings percentage alongside lifetime total in report_builder.py | MERGED |
 | T-088 | Surface index-driven read savings as its own report line item | MERGED |
 | T-089 | Relabel Percentage Saved / Steady-State stats + reconcile windowing across all savings sources | MERGED — PR #52 merged 2026-07-03 |
-| T-090 | Combine all four savings strategies into one reconciled overall percentage | PENDING |
+| T-090 | Combine all four savings strategies into one reconciled overall percentage | MERGED — PR #53 merged 2026-07-03 |
 
 | Round | Tasks | Note |
 |---|---|---|
