@@ -228,6 +228,14 @@ Status: DEFERRED — Python CLI out of scope for v1
 
 ---
 
+## Addendum: T-093 — Thin Owned Proxy (MERGED PR #55 2026-07-03)
+
+| Task | Title | Status |
+|---|---|---|
+| T-093 | Replace headroom wrap with thin owned proxy | MERGED |
+
+---
+
 ## Deferred
 - AgentFlow user-facing CLI (subcommands for config management, T-002): backlog.json
 - Headless automation layer: confirmed dead 2026-07-01 — oracle/orchestrator/worker/reviewer/tools API-mode subtree (includes M7/T-030's context builder) never wired into cli.py or any skill; see architecture.md "Deferred (v2)" section for the full file list. Not v1 scope; do not resume from this snapshot if ever revived.

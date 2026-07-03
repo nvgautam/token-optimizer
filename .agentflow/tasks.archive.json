@@ -385,5 +385,12 @@
       "T-090"
     ],
     "status": "complete"
+  },
+  {
+    "task_id": "T-093",
+    "title": "Replace headroom wrap with thin owned proxy using library-mode compression + AgentFlowHooks",
+    "status": "complete",
+    "pr": 55,
+    "note": "PR #55 merged 2026-07-03. Thin HTTP proxy (agentflow/proxy/server.py, 192 lines): loopback-only bind (127.0.0.1:0), headroom-ai library-mode compress(), proxy_log.jsonl telemetry (no content/headers). AgentFlowHooks (hooks.py, 59 lines): bias=999 for .idx line-range patterns. ProxyShell lifecycle (pty_shell.py, 79 lines): spawn subprocess, read port, set ANTHROPIC_BASE_URL, terminate on exit. cli.py drops headroom wrap (241 lines). pyproject.toml adds headroom-ai>=0.27.0. Key finding: headroom PyPI package is unrelated \u2014 correct package is headroom-ai. Pass 2 found 2 CRITICALs fixed in rework: (1) x-agentflow-token stripped from forwarded headers; (2) per-request token gate removed since Claude Code cannot include the header \u2014 loopback+ephemeral-port is the isolation mechanism. Dead token generation/storage remains in ProxyShell/server.py. 88 tests pass."
   }
 ]
