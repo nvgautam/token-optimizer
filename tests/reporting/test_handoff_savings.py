@@ -132,7 +132,7 @@ def test_compute_handoff_savings_excludes_open_sessions(tmp_path):
     sessions = [_session("a", 40, 1000, 21000, "2026-07-01T00:00:00")]
     sessions.append({"session_id": "open1", "end_time": "", "status": "open"})
     _write_ledger(tmp_path, sessions)
-    result = compute_handoff_savings(tmp_path)
+    result = compute_handoff_savings(tmp_path, window_start="2020-01-01T00:00:00Z")
     assert result["n_sessions"] == 1
 
 
@@ -143,7 +143,7 @@ def test_compute_handoff_savings_end_to_end_unbucketed(tmp_path):
     ]
     _write_ledger(tmp_path, sessions)
     # No telemetry.jsonl present at all -> zero handoff events -> unbucketed.
-    result = compute_handoff_savings(tmp_path)
+    result = compute_handoff_savings(tmp_path, window_start="2020-01-01T00:00:00Z")
     assert result["n_sessions"] == 10
     assert result["mode"] == "unbucketed"
     assert result["tokens_saved"] > 0
@@ -172,7 +172,7 @@ def test_compute_handoff_savings_unbucketed_methodology_reports_dominant_tag(tmp
     # (mode stays "unbucketed") -- methodology should still surface the
     # population-level tag breakdown instead of a bare "no join" note.
     _write_telemetry(tmp_path, [("2099-01-01T00:00:00", "orchestrator")])
-    result = compute_handoff_savings(tmp_path)
+    result = compute_handoff_savings(tmp_path, window_start="2020-01-01T00:00:00Z")
     assert result["mode"] == "unbucketed"
     assert "predominantly orchestrator sessions (1 of 1 tagged handoff events)" in result["methodology"]
 
@@ -180,9 +180,35 @@ def test_compute_handoff_savings_unbucketed_methodology_reports_dominant_tag(tmp
 def test_compute_handoff_savings_methodology_never_claims_measured(tmp_path):
     sessions = [_session("a", 60, 1000, 61000, "2026-07-01T00:00:00")]
     _write_ledger(tmp_path, sessions)
-    result = compute_handoff_savings(tmp_path)
+    result = compute_handoff_savings(tmp_path, window_start="2020-01-01T00:00:00Z")
     assert "measured" in result["methodology"]  # "N measured sessions" is fine
     assert "directly measured" not in result["methodology"]
+
+
+# --- T-089: window reconciliation with steady_state.WINDOW_START ---
+
+def test_compute_handoff_savings_filters_by_window_start(tmp_path):
+    sessions = [
+        _session("before", 40, 1000, 21000, "2026-07-01T00:00:00Z"),
+        _session("after", 60, 1000, 31000, "2026-07-03T00:00:00Z"),
+    ]
+    _write_ledger(tmp_path, sessions)
+    result = compute_handoff_savings(tmp_path, window_start="2026-07-02T00:00:00Z")
+    assert result["n_sessions"] == 1
+
+
+def test_compute_handoff_savings_default_window_matches_steady_state():
+    import inspect
+    from agentflow.reporting.steady_state import WINDOW_START
+    sig = inspect.signature(compute_handoff_savings)
+    assert sig.parameters["window_start"].default == WINDOW_START
+
+
+def test_methodology_label_includes_window(tmp_path):
+    sessions = [_session("a", 60, 1000, 61000, "2026-07-03T00:00:00Z")]
+    _write_ledger(tmp_path, sessions)
+    result = compute_handoff_savings(tmp_path, window_start="2026-07-02T00:00:00Z")
+    assert "2026-07-02T00:00:00Z" in result["methodology"]
 
 
 def test_load_ledger_sessions_handles_corrupt_json(tmp_path):
