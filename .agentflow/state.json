@@ -228,12 +228,23 @@
       ],
       "status": "MERGED",
       "note": "PR #52 merged 2026-07-02T16:23:00. Computed idx_savings and offset_savings accumulators and surfaced idx_savings in the strategy list and HTML dashboard. Test file tests/reporting/test_report_builder.py was compressed to stay below 350-line limit, and report_builder.py was compacted to stay below 250-line cap."
+    },
+    {
+      "round": "Q",
+      "tasks": [
+        "T-089"
+      ],
+      "status": "MERGED",
+      "agentId": "ab1d77facf8db706b",
+      "note": "PR #52 merged 2026-07-03. Relabeled dashboard_template.html's Percentage Saved / Steady-State cards by actual scope; removed stale '(lifetime, all sessions)' label; reconciled handoff_savings.compute_handoff_savings() to filter agentflow_ledger.json sessions by steady_state.WINDOW_START. Review skipped per user instruction; human approved merge directly."
     }
   ],
   "pending": [
+    "T-090",
     "T-063",
     "T-064",
     "T-068",
     "T-069"
-  ]
+  ],
+  "updated": "2026-07-03T22:34:00"
 }

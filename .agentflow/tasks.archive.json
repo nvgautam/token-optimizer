@@ -328,13 +328,29 @@
     {
       "task_id": "T-088",
       "title": "Surface index-driven read savings as its own report line item",
-      "description": "Oracle re-spar 2026-07-02: report_builder.py computes file_reads_saved (baseline=25%-of-file vs actual bytes read, lines 162-184) across every read entry and rolls it into total_saved, but never surfaces it as its own row — the strategy list shows waste buckets (idx/no-reread/indexing-gap/state-docs) individually but the realized savings side is invisible, anonymously folded into the 'Total Tokens Saved' headline. Also file_reads_saved currently conflates idx-driven reduction with any generic offset/limit reduction (idx not required). (1) Split the per-entry loop into two accumulators: idx_savings (entries where idx_exists=True) vs offset_savings (entries with offset/limit but no idx) — same baseline/real formula, partitioned by idx_exists. (2) Add 'Targeted Reads — Savings Realized (idx)' as a new row under Real Savings Realized in dashboard_template.html and report_builder.py's template substitution, using idx_savings. (3) total_saved formula unchanged (idx_savings + offset_savings must still sum to the existing file_reads_saved so Total Tokens Saved doesn't shift). (4) Label clearly as measured (not modeled) — matches T-083's real-savings-vs-waste labeling split.",
+      "description": "Oracle re-spar 2026-07-02: report_builder.py computes file_reads_saved (baseline=25%-of-file vs actual bytes read, lines 162-184) across every read entry and rolls it into total_saved, but never surfaces it as its own row \u2014 the strategy list shows waste buckets (idx/no-reread/indexing-gap/state-docs) individually but the realized savings side is invisible, anonymously folded into the 'Total Tokens Saved' headline. Also file_reads_saved currently conflates idx-driven reduction with any generic offset/limit reduction (idx not required). (1) Split the per-entry loop into two accumulators: idx_savings (entries where idx_exists=True) vs offset_savings (entries with offset/limit but no idx) \u2014 same baseline/real formula, partitioned by idx_exists. (2) Add 'Targeted Reads \u2014 Savings Realized (idx)' as a new row under Real Savings Realized in dashboard_template.html and report_builder.py's template substitution, using idx_savings. (3) total_saved formula unchanged (idx_savings + offset_savings must still sum to the existing file_reads_saved so Total Tokens Saved doesn't shift). (4) Label clearly as measured (not modeled) \u2014 matches T-083's real-savings-vs-waste labeling split.",
       "owns": [
         "agentflow/reporting/report_builder.py",
         "agentflow/reporting/dashboard_template.html"
       ],
       "status": "complete",
       "merge_commit": "2c7a03393dbf7a13b6aa33144bb858dbb8dd1d72"
+    },
+    {
+      "task_id": "T-089",
+      "title": "Relabel Percentage Saved / Steady-State stats + reconcile windowing across all savings sources",
+      "description": "Oracle re-spar 2026-07-02 (session-recycling investigation): dashboard_template.html:134 labels \"Percentage Saved\" as \"(lifetime, all sessions)\" -- false since T-087's commit 4ad1fde windowed all of build_report()'s raw_entries to WINDOW_START (post T-084/T-086). Also \"Percentage Saved\" (file-reads+verbosity+compression only) and \"Current/Steady-State Savings\" (handoff/session-recycling only, via shadow_tracker.update_shadow's shadow_event) are two unrelated strategies presented as if comparable -- their 5x divergence (8.2% vs 42.4% at investigation time) reads as a bug when it's really an unscoped-label problem. Fix: (1) correct/remove the stale \"(lifetime, all sessions)\" label; (2) relabel both stats to name their actual scope (e.g. \"File-Read + Verbosity + Compression Savings\" vs \"Session-Recycling (Handoff) Savings\"); (3) reconcile windowing -- log-driven path filters raw_entries by WINDOW_START directly, steady_state.py uses ledger sessions closed >= WINDOW_START (N=5 at investigation time), but handoff_savings.py (T-085) ignores the window entirely and calibrates from all 108 lifetime closed sessions. Pick one consistent post-fix window and apply it everywhere before any of these numbers can be validly compared or combined.",
+      "owns": [
+        "agentflow/reporting/dashboard_template.html",
+        "agentflow/reporting/report_builder.py",
+        "agentflow/reporting/handoff_savings.py"
+      ],
+      "reads": [
+        "agentflow/reporting/steady_state.py",
+        "agentflow/shadow_tracker.py"
+      ],
+      "depends_on": [],
+      "status": "complete"
     }
   ]
 }
