@@ -659,6 +659,21 @@
         "T-089"
       ],
       "status": "complete"
+    },
+    {
+      "task_id": "T-091",
+      "title": "Include compression savings in combined pct_saved headline",
+      "description": "report_builder.py excludes compression_savings from total_saved (kept separate per T-090 design, compression labelled \"not blended into combined %\"). Oracle re-spar 2026-07-03: the shadow model is coherent with compression included \u2014 shadow_total = total_real + file_reads_saved + verbosity_savings + handoff_saved + compression_savings; actual_total = total_real (post-compression API spend). Each bucket reduces what hits the API via a different mechanism; no double-count. Fix: add compression_savings to the total_saved sum in report_builder.py; update methodology label from \"not blended into combined %\" to \"included in combined %\"; update the report template placeholder {steady_state_methodology_str} accordingly.",
+      "owns": [
+        "agentflow/reporting/report_builder.py"
+      ],
+      "reads": [
+        "agentflow/reporting/report_builder.py"
+      ],
+      "depends_on": [
+        "T-090"
+      ],
+      "status": "pending"
     }
   ]
 }
