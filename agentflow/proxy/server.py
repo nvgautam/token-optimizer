@@ -98,10 +98,6 @@ class _ProxyHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:  # noqa: N802
         body = self._drain_body()  # always consume body to avoid connection reset
 
-        if not self._validate_secret():
-            self._send_401()
-            return
-
         try:
             payload: dict[str, Any] = json.loads(body) if body else {}  # type: ignore[arg-type]
         except json.JSONDecodeError:
@@ -131,10 +127,11 @@ class _ProxyHandler(BaseHTTPRequestHandler):
                 pass  # compression failure is non-fatal; forward original
 
         # Forward request upstream — pass all original headers verbatim
+        # Strip hop-by-hop headers and the proxy shared-secret (never leak to upstream)
         forward_headers: dict[str, str] = {}
         for key, value in self.headers.items():
             lower = key.lower()
-            if lower in ("host", "content-length", "transfer-encoding"):
+            if lower in ("host", "content-length", "transfer-encoding", "x-agentflow-token"):
                 continue
             forward_headers[key] = value
 

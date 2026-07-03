@@ -87,9 +87,13 @@ class TestDunderMain:
             importlib.import_module("agentflow.__main__")
 
 
-class TestHeadroomWrapping:
-    def test_wraps_with_headroom_when_present(self, tmp_path):
-        from agentflow.cli import cmd_shell
+_PROXY_CLS = "agentflow.shell.pty_shell.ProxyShell"
+
+
+class TestProxyShellDispatch:
+    """T-093: cmd_shell uses ProxyShell instead of headroom CLI wrap."""
+
+    def _run_cmd_shell(self, shell_command: str, tmp_path, proxy_mock):
         wrapper_mock = _wrapper()
         with ExitStack() as stack:
             stack.enter_context(patch.object(sys.stdin, "fileno", return_value=_STDIN_FD))
@@ -100,59 +104,39 @@ class TestHeadroomWrapping:
             stack.enter_context(patch(_SM_CLS))
             stack.enter_context(patch("select.select", return_value=([], [], [])))
             stack.enter_context(patch("sys.exit"))
-            stack.enter_context(patch("shutil.which", return_value="/usr/local/bin/headroom"))
             stack.enter_context(patch("pathlib.Path.cwd", return_value=tmp_path))
+            stack.enter_context(patch(_PROXY_CLS, return_value=proxy_mock))
 
-            # AGENTFLOW_ENABLE_HEADROOM must be set — cli.py gates wrapping behind it (7213a17)
-            stack.enter_context(patch.dict("os.environ", {"AGENTFLOW_ENABLE_HEADROOM": "1"}))
+            from agentflow.cli import cmd_shell
+            cmd_shell(_args(shell_command))
+            return pty_mock
 
-            cmd_shell(_args("claude"))
+    def test_proxy_start_called_before_pty(self, tmp_path):
+        """ProxyShell.start() is called before entering raw mode."""
+        proxy_mock = MagicMock()
+        proxy_mock.banner.return_value = "[agentflow] proxy: active (http://127.0.0.1:9999)"
+        self._run_cmd_shell("claude", tmp_path, proxy_mock)
+        proxy_mock.start.assert_called_once()
 
-            pty_mock.assert_called_once_with(["headroom", "wrap", "claude"])
-            import os
-            assert os.environ.get("HEADROOM_WORKSPACE_DIR") == str(tmp_path.resolve() / ".headroom")
+    def test_proxy_stop_called_in_finally(self, tmp_path):
+        """ProxyShell.stop() is called in finally block regardless of PTY exit."""
+        proxy_mock = MagicMock()
+        proxy_mock.banner.return_value = "[agentflow] proxy: inactive (headroom not available)"
+        self._run_cmd_shell("claude", tmp_path, proxy_mock)
+        proxy_mock.stop.assert_called_once()
 
-    def test_falls_back_when_headroom_absent(self, tmp_path):
-        from agentflow.cli import cmd_shell
-        wrapper_mock = _wrapper()
-        with ExitStack() as stack:
-            stack.enter_context(patch.object(sys.stdin, "fileno", return_value=_STDIN_FD))
-            stack.enter_context(patch("termios.tcgetattr", return_value=[0] * 6))
-            stack.enter_context(patch("tty.setraw"))
-            stack.enter_context(patch("termios.tcsetattr"))
-            pty_mock = stack.enter_context(patch(_PTY_CLS, return_value=wrapper_mock))
-            stack.enter_context(patch(_SM_CLS))
-            stack.enter_context(patch("select.select", return_value=([], [], [])))
-            stack.enter_context(patch("sys.exit"))
-            stack.enter_context(patch("shutil.which", return_value=None))
-            stack.enter_context(patch("pathlib.Path.cwd", return_value=tmp_path))
-            stack.enter_context(patch.dict("os.environ", {}))
+    def test_pty_receives_bare_command(self, tmp_path):
+        """PTYWrapper is called with just [cmd] — no headroom CLI wrapping."""
+        proxy_mock = MagicMock()
+        proxy_mock.banner.return_value = "[agentflow] proxy: active (http://127.0.0.1:9999)"
+        pty_mock = self._run_cmd_shell("claude", tmp_path, proxy_mock)
+        pty_mock.assert_called_once_with(["claude"])
 
-            cmd_shell(_args("claude"))
-
-            pty_mock.assert_called_once_with(["claude"])
-            import os
-            assert "HEADROOM_WORKSPACE_DIR" not in os.environ
-
-    def test_falls_back_when_env_var_unset(self, tmp_path):
-        """headroom on PATH is not enough — AGENTFLOW_ENABLE_HEADROOM must opt in (7213a17)."""
-        from agentflow.cli import cmd_shell
-        wrapper_mock = _wrapper()
-        with ExitStack() as stack:
-            stack.enter_context(patch.object(sys.stdin, "fileno", return_value=_STDIN_FD))
-            stack.enter_context(patch("termios.tcgetattr", return_value=[0] * 6))
-            stack.enter_context(patch("tty.setraw"))
-            stack.enter_context(patch("termios.tcsetattr"))
-            pty_mock = stack.enter_context(patch(_PTY_CLS, return_value=wrapper_mock))
-            stack.enter_context(patch(_SM_CLS))
-            stack.enter_context(patch("select.select", return_value=([], [], [])))
-            stack.enter_context(patch("sys.exit"))
-            stack.enter_context(patch("shutil.which", return_value="/usr/local/bin/headroom"))
-            stack.enter_context(patch("pathlib.Path.cwd", return_value=tmp_path))
-            stack.enter_context(patch.dict("os.environ", {"AGENTFLOW_ENABLE_HEADROOM": ""}, clear=True))
-
-            cmd_shell(_args("claude"))
-
-            pty_mock.assert_called_once_with(["claude"])
-            import os
-            assert "HEADROOM_WORKSPACE_DIR" not in os.environ
+    def test_no_headroom_env_vars_set(self, tmp_path):
+        """HEADROOM_WORKSPACE_DIR and HEADROOM_MODE are never set by cmd_shell."""
+        import os
+        proxy_mock = MagicMock()
+        proxy_mock.banner.return_value = "[agentflow] proxy: inactive (headroom not available)"
+        self._run_cmd_shell("claude", tmp_path, proxy_mock)
+        assert "HEADROOM_WORKSPACE_DIR" not in os.environ
+        assert "HEADROOM_MODE" not in os.environ

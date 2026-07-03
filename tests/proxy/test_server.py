@@ -60,39 +60,32 @@ def _mock_upstream_ok():
 # ---------------------------------------------------------------------------
 
 class TestAuthGate:
-    def test_rejects_missing_token(self, proxy_server: HTTPServer):
-        """Request without X-AgentFlow-Token → 401."""
-        import httpx
-        port = proxy_server.server_address[1]
-        resp = httpx.post(
-            f"http://127.0.0.1:{port}/v1/messages",
-            json={"messages": [], "model": "claude-sonnet-4-5-20250929"},
-        )
-        assert resp.status_code == 401
-
-    def test_rejects_wrong_token(self, proxy_server: HTTPServer):
-        """Request with wrong token → 401."""
-        import httpx
-        port = proxy_server.server_address[1]
-        resp = httpx.post(
-            f"http://127.0.0.1:{port}/v1/messages",
-            headers={"X-AgentFlow-Token": "wrong-token"},
-            json={"messages": [], "model": "claude-sonnet-4-5-20250929"},
-        )
-        assert resp.status_code == 401
-
-    def test_accepts_correct_token(self, proxy_server: HTTPServer, test_secret: str):
-        """Request with correct token is forwarded (mock upstream)."""
+    def test_accepts_request_without_token(self, proxy_server: HTTPServer):
+        """Claude Code sends no X-AgentFlow-Token — proxy must forward without a 401."""
         import httpx
         port = proxy_server.server_address[1]
         with patch("agentflow.proxy.server.httpx.Client", return_value=_mock_upstream_ok()):
             resp = httpx.post(
                 f"http://127.0.0.1:{port}/v1/messages",
-                headers={"X-AgentFlow-Token": test_secret, "x-api-key": "test-key"},
-                json={"messages": [{"role": "user", "content": "hi"}],
-                      "model": "claude-sonnet-4-5-20250929"},
+                json={"messages": [], "model": "claude-sonnet-4-5-20250929"},
             )
         assert resp.status_code == 200
+
+    def test_strips_x_agentflow_token_from_forwarded_headers(self, proxy_server: HTTPServer, test_secret: str):
+        """X-AgentFlow-Token must NOT be forwarded to upstream Anthropic API."""
+        import httpx
+        port = proxy_server.server_address[1]
+        mock_client = _mock_upstream_ok()
+        with patch("agentflow.proxy.server.httpx.Client", return_value=mock_client):
+            httpx.post(
+                f"http://127.0.0.1:{port}/v1/messages",
+                headers={"X-AgentFlow-Token": test_secret, "x-api-key": "sk-ant-test"},
+                json={"messages": [], "model": "claude-sonnet-4-5-20250929"},
+            )
+        call_kwargs = mock_client.post.call_args
+        forwarded_headers = call_kwargs[1].get("headers", {})
+        header_keys_lower = {k.lower() for k in forwarded_headers}
+        assert "x-agentflow-token" not in header_keys_lower
 
 
 class TestLogging:
