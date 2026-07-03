@@ -143,6 +143,8 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-086 | Move headroom-wrap toggle from ambient env var into AgentFlow config; add startup active/inactive banner | MERGED |
 | T-087 | Add steady-state (post-regression-fix) savings percentage alongside lifetime total in report_builder.py | MERGED |
 | T-088 | Surface index-driven read savings as its own report line item | MERGED |
+| T-089 | Relabel Percentage Saved / Steady-State stats + reconcile windowing across all savings sources | PENDING |
+| T-090 | Combine all four savings strategies into one reconciled overall percentage | PENDING |
 
 | Round | Tasks | Note |
 |---|---|---|
@@ -174,6 +176,8 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | N | T-086 | Independent — oracle re-spar 2026-07-02, headroom-wrap silently skipped due to ambient env-var dependency |
 | O | T-087 | Depends on T-084, T-086 (needs their merge timestamps as the steady-state window start) — oracle re-spar 2026-07-02, blended lifetime pct_saved understates current capability for demo use |
 | P | T-088 | Independent — oracle re-spar 2026-07-02, index-driven savings computed but never surfaced as its own report row |
+| Q | T-089 | Independent — oracle re-spar 2026-07-02, session-recycling investigation: stale "lifetime" label + two unrelated stats presented as comparable |
+| R | T-090 | Depends on T-089 (needs consistent windowing) — oracle re-spar 2026-07-02, no single number represents total savings across all four strategies |
 
 ---
 

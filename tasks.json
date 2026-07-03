@@ -625,6 +625,40 @@
     {
       "task_id": "T-088",
       "status": "complete"
+    },
+    {
+      "task_id": "T-089",
+      "title": "Relabel Percentage Saved / Steady-State stats + reconcile windowing across all savings sources",
+      "description": "Oracle re-spar 2026-07-02 (session-recycling investigation): dashboard_template.html:134 labels \"Percentage Saved\" as \"(lifetime, all sessions)\" -- false since T-087's commit 4ad1fde windowed all of build_report()'s raw_entries to WINDOW_START (post T-084/T-086). Also \"Percentage Saved\" (file-reads+verbosity+compression only) and \"Current/Steady-State Savings\" (handoff/session-recycling only, via shadow_tracker.update_shadow's shadow_event) are two unrelated strategies presented as if comparable -- their 5x divergence (8.2% vs 42.4% at investigation time) reads as a bug when it's really an unscoped-label problem. Fix: (1) correct/remove the stale \"(lifetime, all sessions)\" label; (2) relabel both stats to name their actual scope (e.g. \"File-Read + Verbosity + Compression Savings\" vs \"Session-Recycling (Handoff) Savings\"); (3) reconcile windowing -- log-driven path filters raw_entries by WINDOW_START directly, steady_state.py uses ledger sessions closed >= WINDOW_START (N=5 at investigation time), but handoff_savings.py (T-085) ignores the window entirely and calibrates from all 108 lifetime closed sessions. Pick one consistent post-fix window and apply it everywhere before any of these numbers can be validly compared or combined.",
+      "owns": [
+        "agentflow/reporting/dashboard_template.html",
+        "agentflow/reporting/report_builder.py",
+        "agentflow/reporting/handoff_savings.py"
+      ],
+      "reads": [
+        "agentflow/reporting/steady_state.py",
+        "agentflow/shadow_tracker.py"
+      ],
+      "depends_on": [],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-090",
+      "title": "Combine all four savings strategies into one reconciled overall percentage",
+      "description": "No single number currently represents total AgentFlow savings: report_builder.py's \"Percentage Saved\" excludes handoff/session-recycling entirely -- the single largest lever, independently measured at ~42-45% by both steady_state.py (shadow_tracker per-session real-vs-shadow ratio) and handoff_savings.py (T-085's triangular-sum model) -- while get_bucketed_stats' waste buckets are separately excluded by design (T-083). Blocked on T-089 (needs consistent windowing first) and on resolving a compression double-count found during the 2026-07-02 investigation: compression_real (headroom's cumulative total_input_tokens delta) structurally overlaps the same file-read and verbosity content already counted once in file_reads_real/verbosity_real, because every API request re-sends prior context -- summing them into one total_real is apples-to-oranges and let compression's ~95%-of-denominator volume swamp the other two strategies' contribution in the investigated window. Approach: add handoff/session-recycling's real-vs-shadow delta (from shadow_tracker per-session shadow_event, windowed per T-089) into total_saved/total_real alongside the existing three \"real\" categories, only after compression's cumulative-cost basis is either normalized to a comparable per-event basis or kept as a separately-reported (not blended) figure.",
+      "owns": [
+        "agentflow/reporting/report_builder.py"
+      ],
+      "reads": [
+        "agentflow/shadow_tracker.py",
+        "agentflow/reporting/steady_state.py",
+        "agentflow/reporting/handoff_savings.py",
+        "agentflow_ledger.json"
+      ],
+      "depends_on": [
+        "T-089"
+      ],
+      "status": "pending"
     }
   ]
 }
