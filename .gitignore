@@ -14,3 +14,4 @@ build/
 !.claude/settings.json
 .agentflow/shadow_reads.jsonl
 .headroom/
+.agentflow/proxy_log.jsonl
