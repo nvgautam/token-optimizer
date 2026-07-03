@@ -24,6 +24,28 @@ class ProxyShell:
         self._secret: Optional[str] = None
         self.base_url: Optional[str] = None
 
+    def _python_exe(self) -> str:
+        """Return the Python executable that has headroom available.
+
+        Prefers sys.executable when it already has headroom. Falls back to
+        VIRTUAL_ENV/bin/python, then .venv/bin/python, so the proxy subprocess
+        can import headroom even when the CLI entry-point runs under a different
+        interpreter (e.g. a global conda install).
+        """
+        import importlib.util
+        if importlib.util.find_spec("headroom") is not None:
+            return sys.executable
+        # Try the active venv (VIRTUAL_ENV env var), then .venv convention
+        for candidate in [
+            os.environ.get("VIRTUAL_ENV", ""),
+            str(self.project_root / ".venv"),
+        ]:
+            if candidate:
+                exe = Path(candidate) / "bin" / "python"
+                if exe.exists():
+                    return str(exe)
+        return sys.executable
+
     def start(self) -> None:
         """Spawn proxy subprocess, read port, set ANTHROPIC_BASE_URL env."""
         self._secret = secrets.token_hex(32)
@@ -33,7 +55,7 @@ class ProxyShell:
             "AGENTFLOW_PROJECT_ROOT": str(self.project_root),
         }
         self._proc = subprocess.Popen(
-            [sys.executable, "-m", "agentflow.proxy.server"],
+            [self._python_exe(), "-m", "agentflow.proxy.server"],
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
