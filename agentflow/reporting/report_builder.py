@@ -199,7 +199,7 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
 
     file_reads_saved = idx_savings + offset_savings
     handoff_saved, handoff_real, n_sessions = _handoff_component(project_root)
-    total_saved = file_reads_saved + verbosity_savings + handoff_saved
+    total_saved = file_reads_saved + verbosity_savings + handoff_saved + compression_savings
 
     # Same window as verbosity_savings -- cost and savings must match scope.
     verbosity_real = sum(e.get("output_tokens", 0) for e in windowed_verb_entries)
@@ -236,7 +236,7 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
         "{shadow_sum_str}": f"{shadow_sum:,}",
         "{headroom_section_html}": headroom_section_html,
         "{steady_state_pct_str}": f"{compression_savings:,} tokens",
-        "{steady_state_methodology_str}": "Headroom compression; cumulative resend basis — not blended into combined %",
+        "{steady_state_methodology_str}": "Headroom compression; windowed to shadow-reads scope — included in combined %",
     }
     replacements.update({f"{{{ph}_str}}": f"{val:,}{note}" for ph, _, _, val, note in STRATEGY_ROWS})
     for k, v in replacements.items():

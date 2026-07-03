@@ -338,11 +338,11 @@ def test_handoff_component_excludes_pre_window_sessions(tmp_path):
 def test_handoff_component_empty_ledger(tmp_path):
     assert _handoff_component(tmp_path) == (0, 0, 0)
 
-def test_build_report_pct_includes_handoff_excludes_compression(tmp_path):
+def test_build_report_pct_includes_handoff_and_compression(tmp_path):
     out_html = tmp_path / "combined_report.html"
     with patch("agentflow.reporting.report_builder._handoff_component", return_value=(1000, 5000, 3)), \
          patch("agentflow.reporting.report_builder._compression_delta_from_history", return_value=2000):
         build_report(project_root=tmp_path, mode="aggregate", output_path=out_html, store_url="sqlite:///dummy.db")
     html = out_html.read_text()
-    assert "16.7%" in html
-    assert "50.0%" not in html
+    assert "37.5%" in html
+    assert "included in combined %" in html
