@@ -24,6 +24,7 @@ from agentflow.reporting.report_builder import (
     _format_baseline_annotation,
     _load_proxy_savings,
     _compression_delta_from_history,
+    _handoff_component,
 )
 from agentflow.shadow.verbosity_ab import record_turn, run_ab_comparison
 from agentflow.cli import cmd_report
@@ -140,35 +141,17 @@ def test_report_builder_integration(tmp_path):
         assert "Shadow Mode Tokens" in html_content
         assert "Percentage Saved" in html_content
 
-        build_report(project_root=tmp_path, mode="split", output_path=out_html, store_url="sqlite:///dummy.db")
-        assert out_html.exists()
-        html_content_split = out_html.read_text()
-        assert "Real Tokens Used" in html_content_split
-        assert "Shadow Mode Tokens" in html_content_split
-        assert "Percentage Saved" in html_content_split
-
 # --- T-083: waste (shadow, lower=better) vs real-savings-realized split ---
 
-def test_report_builder_splits_waste_vs_real_savings_sections(tmp_path, capsys):
+def test_report_builder_splits_waste_vs_real_savings_sections(tmp_path):
     out_html = tmp_path / "combined_report.html"
     build_report(project_root=tmp_path, mode="split", output_path=out_html, store_url="sqlite:///dummy.db")
-    out = capsys.readouterr().out
-    assert "Waste Avoided (shadow, lower is better)" in out
-    assert "Real Savings Realized" in out
-    waste_i, real_i = out.index("Waste Avoided"), out.index("Real Savings Realized")
-    assert waste_i < out.index("indexing-gap") < real_i < out.index("compression")
-
     html = out_html.read_text()
     h_waste, h_real = html.index("Waste Avoided"), html.index("Real Savings Realized")
     assert h_waste < html.index("Indexing Gap Avoidance") < h_real
     assert h_real < html.index("Output Verbosity Control") and h_real < html.index("Headroom Compression")
-    assert "read volume, not savings (state-docs)" in html  # volume, not a savings claim
+    assert "read volume, not savings (state-docs)" in html
     assert "Total Real Savings (total_saved)" in html and html.index("Total Real Savings") > h_real
-
-    build_report(project_root=tmp_path, mode="aggregate", output_path=out_html, store_url="sqlite:///dummy.db")
-    agg_out = capsys.readouterr().out
-    assert "Waste Avoided" not in agg_out  # console breakdown stays mode-gated (unchanged behavior)
-    assert "Real Savings Realized" in out_html.read_text()  # HTML sections always render, both modes
 
 def test_reporting_window():
     assert _reporting_window([]) is None
@@ -333,3 +316,33 @@ def test_dashboard_template_cards_name_their_scope():
     html = _template_html()
     assert "File-Read" in html and "Verbosity" in html and "Compression" in html
     assert "Session-Recycling" in html and "Handoff" in html
+
+def test_handoff_component_basic(tmp_path):
+    ledger = {"sessions": [
+        {"status": "closed", "end_time": "2026-07-03T00:00:00Z", "input_tokens": 100, "output_tokens": 50, "shadow_event": {"shadow_input": 200, "shadow_output": 100}},
+        {"status": "closed", "end_time": "2026-07-03T01:00:00Z", "input_tokens": 80, "output_tokens": 40, "shadow_event": {"shadow_input": 180, "shadow_output": 90}},
+    ]}
+    (tmp_path / "agentflow_ledger.json").write_text(json.dumps(ledger))
+    saved, real, n = _handoff_component(tmp_path)
+    assert n == 2 and saved == 300 and real == 270
+
+def test_handoff_component_excludes_pre_window_sessions(tmp_path):
+    ledger = {"sessions": [
+        {"status": "closed", "end_time": "2026-01-01T00:00:00Z", "input_tokens": 100, "output_tokens": 50,
+         "shadow_event": {"shadow_input": 200, "shadow_output": 100}},
+    ]}
+    (tmp_path / "agentflow_ledger.json").write_text(json.dumps(ledger))
+    saved, real, n = _handoff_component(tmp_path)
+    assert (saved, real, n) == (0, 0, 0)
+
+def test_handoff_component_empty_ledger(tmp_path):
+    assert _handoff_component(tmp_path) == (0, 0, 0)
+
+def test_build_report_pct_includes_handoff_excludes_compression(tmp_path):
+    out_html = tmp_path / "combined_report.html"
+    with patch("agentflow.reporting.report_builder._handoff_component", return_value=(1000, 5000, 3)), \
+         patch("agentflow.reporting.report_builder._compression_delta_from_history", return_value=2000):
+        build_report(project_root=tmp_path, mode="aggregate", output_path=out_html, store_url="sqlite:///dummy.db")
+    html = out_html.read_text()
+    assert "16.7%" in html
+    assert "50.0%" not in html

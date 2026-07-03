@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from agentflow.shadow.analyzer import _load_log, get_bucketed_stats
 from agentflow.shadow.verbosity_ab import load_baseline
-from agentflow.reporting import handoff_savings, steady_state
+from agentflow.reporting import handoff_savings
 from agentflow.reporting.steady_state import _parse_ts, WINDOW_START
 
 
@@ -75,6 +75,32 @@ def _format_baseline_annotation(baseline: dict) -> str:
     return f" [measured baseline={baseline.get('baseline_tokens', 0)}tok, n={n}, {ci_str}]"
 
 
+def _handoff_component(project_root: Path, window_start: str = WINDOW_START) -> tuple[int, int, int]:
+    """(handoff_saved, handoff_real, n_sessions) for closed ledger sessions in window."""
+    try:
+        sessions = json.loads((project_root / "agentflow_ledger.json").read_text()).get("sessions", [])
+    except Exception:
+        return (0, 0, 0)
+    if not (start_dt := _parse_ts(window_start)):
+        return (0, 0, 0)
+    saved = real = n = 0
+    for s in sessions:
+        if s.get("status") != "closed":
+            continue
+        end_dt = _parse_ts(s.get("end_time", ""))
+        if end_dt is None or end_dt < start_dt:
+            continue
+        se = s.get("shadow_event") or {}
+        shadow = se.get("shadow_input", 0) + se.get("shadow_output", 0)
+        if shadow <= 0:
+            continue
+        real_i = s.get("input_tokens", 0) + s.get("output_tokens", 0)
+        saved += max(0, shadow - real_i)
+        real += real_i
+        n += 1
+    return (saved, real, n)
+
+
 def build_report(project_root: Path, mode: str = "aggregate", output_path: str = "combined_report.html", store_url: str = None) -> int:
     if store_url is None:
         local_db = project_root / ".headroom" / "headroom.db"
@@ -120,7 +146,6 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
     proxy_savings = _load_proxy_savings(project_root)  # T-082: compression from proxy_savings.json, windowed like verbosity.
     history = (proxy_savings or {}).get("history", [])
     compression_savings = _compression_delta_from_history(history, reporting_window, "total_tokens_saved")
-    compression_real = _compression_delta_from_history(history, reporting_window, "total_input_tokens")
 
     headroom_html = ""
     try:
@@ -173,28 +198,17 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
             offset_savings += entry_saved
 
     file_reads_saved = idx_savings + offset_savings
-    total_saved = file_reads_saved + verbosity_savings + compression_savings
+    handoff_saved, handoff_real, n_sessions = _handoff_component(project_root)
+    total_saved = file_reads_saved + verbosity_savings + handoff_saved
 
     # Same window as verbosity_savings -- cost and savings must match scope.
     verbosity_real = sum(e.get("output_tokens", 0) for e in windowed_verb_entries)
-
-    if compression_real == 0:
-        compression_savings = 0
-
-    total_real = file_reads_real + verbosity_real + compression_real
+    total_real = file_reads_real + verbosity_real + handoff_real
     shadow_mode_tokens = total_real + total_saved
     pct_saved = (total_saved / shadow_mode_tokens * 100) if shadow_mode_tokens > 0 else 0.0
 
-    suffix = " (aggregate)" if mode != "aggregate" else ""
-    print(f"\n==============================================\n"
-          f"       AgentFlow Savings Report Summary\n"
-          f"==============================================\n"
-          f"Mode: {mode}\n"
-          f"----------------------------------------------\n"
-          f"TOTAL TOKENS SAVED{suffix}:      {total_saved:,} tokens\n"
-          f"REAL TOKENS USED{suffix}:        {total_real:,} tokens\n"
-          f"SHADOW MODE TOKENS (baseline{suffix}): {shadow_mode_tokens:,} tokens\n"
-          f"PERCENTAGE SAVED{suffix}:        {pct_saved:.1f}%")
+    print(f"\nAGENTFLOW SAVINGS ({mode}): {pct_saved:.1f}% | {total_saved:,} saved / {shadow_mode_tokens:,} shadow")
+    print(f"HANDOFF COMPONENT (N={n_sessions} sessions): {handoff_saved:,} saved from {handoff_real:,} real")
 
     STRATEGY_ROWS = [
         ("stats_idx", "Symbol Index & Section loading (idx)", "waste", stats["targeted-reads"], ""),
@@ -206,15 +220,6 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
         ("compression_savings", "Compression Savings (compression)", "real", compression_savings, ""),
         ("handoff_savings", "Session Recycling — Handoff/context cycling, MODELED not measured (handoff)", "modeled", (_hs := handoff_savings.compute_handoff_savings(project_root))["tokens_saved"], f" [{_hs['methodology']}]"),
     ]
-    if mode != "aggregate":
-        for section, header in (("waste", "Waste Avoided (shadow, lower is better)"), ("real", f"Real Savings Realized (total_saved={total_saved:,} tokens)"), ("modeled", "Modeled Projections (not measured -- see methodology per row)")):
-            print(f"----------------------------------------------\n{header}")
-            for _, label, sec, val, note in STRATEGY_ROWS:
-                if sec == section:
-                    print(f"  {label}: {val:,} tokens{note}")
-        print("----------------------------------------------")
-        print("Note: Summing waste-avoided values directly may double-count overlaps.")
-
     print(f"Verbosity baseline (T-081):{verbosity_annotation}")
 
     template_path = Path(__file__).parent / "dashboard_template.html"
@@ -230,7 +235,8 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
         "{pct_saved_str}": f"{pct_saved:.1f}",
         "{shadow_sum_str}": f"{shadow_sum:,}",
         "{headroom_section_html}": headroom_section_html,
-        **steady_state.render_replacements(project_root),
+        "{steady_state_pct_str}": f"{compression_savings:,} tokens",
+        "{steady_state_methodology_str}": "Headroom compression; cumulative resend basis — not blended into combined %",
     }
     replacements.update({f"{{{ph}_str}}": f"{val:,}{note}" for ph, _, _, val, note in STRATEGY_ROWS})
     for k, v in replacements.items():
