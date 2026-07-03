@@ -1,5 +1,5 @@
 {
-  "updated": "2026-07-02T23:40:57",
+  "updated": "2026-07-03T01:42:51",
   "milestone": "Milestone 5: Multi-Provider Coordination next (T-063 pending)",
   "status": "IN_PROGRESS",
   "groups": [
@@ -237,6 +237,14 @@
       "status": "MERGED",
       "agentId": "ab1d77facf8db706b",
       "note": "PR #52 merged 2026-07-03. Relabeled dashboard_template.html's Percentage Saved / Steady-State cards by actual scope; removed stale '(lifetime, all sessions)' label; reconciled handoff_savings.compute_handoff_savings() to filter agentflow_ledger.json sessions by steady_state.WINDOW_START. Review skipped per user instruction; human approved merge directly."
+    },
+    {
+      "round": "R",
+      "tasks": [
+        "T-091"
+      ],
+      "status": "MERGED",
+      "note": "PR #54 merged. Add compression_savings to total_saved in report_builder.py; update methodology label. Pass 1 clean, Pass 2 (Haiku) LGTM. 532 tests, 79% coverage."
     }
   ],
   "pending": [

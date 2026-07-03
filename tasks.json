@@ -673,7 +673,7 @@
       "depends_on": [
         "T-090"
       ],
-      "status": "pending"
+      "status": "complete"
     }
   ]
 }
