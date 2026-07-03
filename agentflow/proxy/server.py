@@ -134,6 +134,9 @@ class _ProxyHandler(BaseHTTPRequestHandler):
             if lower in ("host", "content-length", "transfer-encoding", "x-agentflow-token"):
                 continue
             forward_headers[key] = value
+        # Request plain (non-compressed) responses so httpx doesn't silently
+        # decompress and leave the content-encoding header mismatched on reply.
+        forward_headers["accept-encoding"] = "identity"
 
         try:
             forward_body = json.dumps(payload).encode()
@@ -158,7 +161,7 @@ class _ProxyHandler(BaseHTTPRequestHandler):
         _log_entry(request_id, tokens_before, tokens_after, compression_ratio)
 
         self.send_response(status)
-        skip_headers = {"transfer-encoding", "content-length", "connection"}
+        skip_headers = {"transfer-encoding", "content-length", "connection", "content-encoding"}
         for hdr, val in resp_headers.items():
             if hdr.lower() not in skip_headers:
                 self.send_header(hdr, val)

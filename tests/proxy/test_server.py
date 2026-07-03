@@ -219,6 +219,48 @@ class TestCompression:
         assert resp.status_code == 200
 
 
+class TestResponseHeaders:
+    def test_content_encoding_stripped_from_response(self, proxy_server: HTTPServer, test_secret: str):
+        """Upstream gzip content-encoding must not reach the client — httpx decompresses
+        the body but the header would cause the client to double-decompress and fail."""
+        import httpx
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.content = b'{"type":"message"}'
+        mock_resp.headers = {
+            "content-type": "application/json",
+            "content-encoding": "gzip",
+        }
+        mock_client = MagicMock()
+        mock_client.__enter__ = MagicMock(return_value=mock_client)
+        mock_client.__exit__ = MagicMock(return_value=False)
+        mock_client.post.return_value = mock_resp
+
+        port = proxy_server.server_address[1]
+        with patch("agentflow.proxy.server.httpx.Client", return_value=mock_client):
+            resp = httpx.post(
+                f"http://127.0.0.1:{port}/v1/messages",
+                headers={"X-AgentFlow-Token": test_secret},
+                json={"messages": [], "model": "claude-sonnet-4-5-20250929"},
+            )
+        assert "content-encoding" not in {k.lower() for k in resp.headers}
+
+    def test_accept_encoding_identity_sent_upstream(self, proxy_server: HTTPServer, test_secret: str):
+        """Proxy must request identity encoding from upstream to prevent gzip responses."""
+        import httpx
+        mock_client = _mock_upstream_ok()
+        port = proxy_server.server_address[1]
+        with patch("agentflow.proxy.server.httpx.Client", return_value=mock_client):
+            httpx.post(
+                f"http://127.0.0.1:{port}/v1/messages",
+                headers={"X-AgentFlow-Token": test_secret},
+                json={"messages": [], "model": "claude-sonnet-4-5-20250929"},
+            )
+        forwarded_headers = mock_client.post.call_args[1].get("headers", {})
+        ae = {k.lower(): v for k, v in forwarded_headers.items()}.get("accept-encoding", "")
+        assert ae == "identity"
+
+
 class TestMain:
     def test_main_exits_when_headroom_unavailable(self):
         """main() raises SystemExit(1) if headroom not installed."""
