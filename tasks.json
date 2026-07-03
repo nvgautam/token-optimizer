@@ -674,6 +674,37 @@
         "T-090"
       ],
       "status": "complete"
+    },
+    {
+      "task_id": "T-092",
+      "title": "Dashboard: per-strategy growth rate tracking + projected savings",
+      "description": "Oracle re-spar 2026-07-03. Three problems surfaced with the current combined_report.html:\n\n(1) WINDOW_START cuts 92% of shadow_reads.jsonl for idx_savings and state-docs buckets — these strategies are unaffected by the T-084/T-086 headroom regression that motivated the window. Fix: decouple per-strategy windows — idx_savings/state-docs use the full log (earliest entry timestamp); compression_savings keeps WINDOW_START; verbosity and handoff keep their existing window logic. This alone will surface the true accumulated idx savings (~13x the current figure).\n\n(2) Dashboard shows only cumulative totals — no sense of whether savings are growing, flat, or declining per session. Add a per-strategy growth-rate panel: bucket shadow_reads.jsonl entries by date (UTC day), compute daily idx_savings + no-reread + state-docs cost; bucket verbosity_log.jsonl by day for verbosity_savings; bucket proxy_savings.json history by day for compression_savings. Render as a small time-series chart (SVG sparklines or a simple bar-per-day, inline in the HTML, no external deps). Show 7-day rolling average alongside raw daily bars.\n\n(3) No projections. Add a 'Projected Savings (30-day)' section: fit a linear trend (least-squares, last 14 days) per strategy; extrapolate 30 days; display as a table (strategy | current 7-day rate | projected 30-day | annualized). Mark projections as 'modeled' not 'measured'. For idx_savings, also show what a 20% avg coverage ratio would yield vs current 55% (sensitivity column).\n\nOwns: agentflow/reporting/report_builder.py, agentflow/reporting/dashboard_template.html. Reads: agentflow/shadow/analyzer.py, agentflow/reporting/steady_state.py.",
+      "owns": [
+        "agentflow/reporting/report_builder.py",
+        "agentflow/reporting/dashboard_template.html"
+      ],
+      "reads": [
+        "agentflow/shadow/analyzer.py",
+        "agentflow/reporting/steady_state.py"
+      ],
+      "depends_on": ["T-091"],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-093",
+      "title": "Replace headroom wrap with thin owned proxy using library-mode compression + AgentFlowHooks",
+      "description": "Oracle re-spar 2026-07-03. headroom wrap's proxy does not expose CompressionHooks — HeadroomConfig has no hooks slot, pipeline_extensions are observational-only. The only path to selective protection + 60%+ compression is library-mode compress() with custom hooks, which requires AgentFlow to own the HTTP interception layer.\n\nBuild a thin Python HTTP proxy (~120 lines, fits 250-line limit) in agentflow/proxy/server.py:\n- Bind to 127.0.0.1 only (never 0.0.0.0) on an ephemeral port (:0, kernel-assigned); PTY shell reads the bound port from the subprocess and sets ANTHROPIC_BASE_URL=http://127.0.0.1:<port>\n- Intercepts /v1/messages POST requests from Claude Code\n- Calls headroom.compress(messages, hooks=AgentFlowHooks(), compress_user_messages=False) before forwarding\n- Forwards compressed payload + ALL original headers verbatim (including x-api-key / Authorization: Bearer — never inspect, never log auth headers) to real Anthropic endpoint\n- Streams response back transparently\n\nSecurity requirements (oracle re-spar 2026-07-03 — must all be implemented):\n1. Loopback-only binding: 127.0.0.1 + ephemeral port — no network exposure\n2. Shared-secret gate: PTY shell generates a random 32-byte hex token (secrets.token_hex(32)) at spawn time, passes it to proxy via stdin or env; proxy rejects any request missing X-AgentFlow-Token header matching the secret — prevents other local processes from using the proxy as an unauthenticated Anthropic relay on the user's credentials\n3. Auth header passthrough: forward x-api-key, Authorization, and all other request headers verbatim; strip them before any logging; works transparently for API key, OAuth bearer, or any future auth mechanism without proxy changes\n4. No message content in logs: proxy_log.jsonl records only {ts, request_id, tokens_before, tokens_after, compression_ratio} — no message text, no headers, no user content of any kind\n5. Verify headroom.compress() is local-only (no network calls during compression) before shipping — grep headroom source for outbound HTTP in the compress() call path; fail build if found\n\nAgentFlowHooks (agentflow/proxy/hooks.py, ~60 lines):\n- compute_biases: scan each message for .idx line-range patterns (regex: r'^\\w[\\w.]+:\\d+-\\d+$' multiline); return {i: 999.0} for matches\n- compress_user_messages=False (default) already skips all tool results in user-role messages\n\nPTY shell changes (agentflow/shell/pty_shell.py):\n- Spawn proxy, read bound port, generate + pass shared secret, set ANTHROPIC_BASE_URL\n- On session end: terminate proxy cleanly\n- Print active/inactive banner\n\nDrop: AGENTFLOW_ENABLE_HEADROOM, headroom wrap, HEADROOM_MODE, HEADROOM_WORKSPACE_DIR from cmd_shell() and cli.py.\n\nExpected outcome: Scenario C — idx + 60% compression on assistant prose = ~53% better than current. proxy_log.jsonl replaces proxy_savings.json as telemetry source for report_builder.py.",
+      "owns": [
+        "agentflow/proxy/server.py",
+        "agentflow/proxy/hooks.py",
+        "agentflow/shell/pty_shell.py",
+        "agentflow/cli.py"
+      ],
+      "reads": [
+        "agentflow/reporting/report_builder.py"
+      ],
+      "depends_on": [],
+      "status": "pending"
     }
   ]
 }
