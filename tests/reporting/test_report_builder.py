@@ -322,3 +322,14 @@ def test_report_builder_idx_savings(tmp_path):
     assert "Targeted Reads — Savings Realized (idx)" in html_content
     assert "900" in html_content
     assert "1,350" in html_content
+
+def _template_html():
+    return (Path(__file__).parents[2] / "agentflow" / "reporting" / "dashboard_template.html").read_text()
+
+def test_dashboard_template_no_stale_lifetime_label():
+    assert "(lifetime, all sessions)" not in _template_html()
+
+def test_dashboard_template_cards_name_their_scope():
+    html = _template_html()
+    assert "File-Read" in html and "Verbosity" in html and "Compression" in html
+    assert "Session-Recycling" in html and "Handoff" in html

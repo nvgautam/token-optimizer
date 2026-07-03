@@ -13,6 +13,8 @@ import statistics
 from datetime import datetime, timezone
 from pathlib import Path
 
+from agentflow.reporting.steady_state import WINDOW_START
+
 THRESHOLD_TOKENS = 40_000   # architecture.md handoff trigger default
 STATE_DOC_TOKENS = 3_500    # architecture.md: "~2-5K tokens" compact resume doc, midpoint
 MATCH_WINDOW_SECONDS = 60   # session_type join tolerance (ledger end_time <-> telemetry handoff event)
@@ -167,18 +169,26 @@ def _project_session(tok_per_turn: float, n_turns: int) -> dict:
     return {"baseline_tokens": baseline, "with_handoff_tokens": with_handoff, "tokens_saved": int(saved), "pct_reduction": pct, "handoff_turn": handoff_turn}
 
 
-def compute_handoff_savings(project_root: Path) -> dict:
+def compute_handoff_savings(project_root: Path, window_start: str = WINDOW_START) -> dict:
     """Public entry point: calibrates tok/turn from agentflow_ledger.json,
     projects triangular-sum handoff savings for a representative (median
     measured length) session, and returns a report-ready dict including an
-    explicit methodology label. Never presented as directly measured."""
+    explicit methodology label. Never presented as directly measured.
+
+    T-089: filters sessions to end_time >= window_start (default the same
+    steady_state.WINDOW_START report_builder.py and steady_state.py already
+    use) so this modeled figure is calibrated from the same post-fix
+    population, not all lifetime closed sessions."""
     sessions = _load_ledger_sessions(project_root)
+    window_dt = _parse_ts(window_start)
+    if window_dt is not None:
+        sessions = [s for s in sessions if (end_dt := _parse_ts(s.get("end_time", ""))) and end_dt >= window_dt]
     events = _load_handoff_events(project_root)
     bucketed, mode = _bucket_sessions(sessions, events)
 
     if not bucketed or not any(b["rates"] for b in bucketed.values()):
         return {"tokens_saved": 0, "pct_reduction": 0.0, "n_sessions": 0, "tok_per_turn": 0.0, "mode": mode,
-                "methodology": "modeled from N=0 measured sessions -- no closed sessions in agentflow_ledger.json"}
+                "methodology": f"modeled from N=0 measured sessions -- no closed sessions in agentflow_ledger.json since {window_start}"}
 
     # Real data (T-085 spike) always lands in "unbucketed": telemetry.jsonl
     # logs far fewer handoff events than closed ledger sessions, and matched
@@ -197,7 +207,7 @@ def compute_handoff_savings(project_root: Path) -> dict:
 
     bucket_note = _tag_breakdown_note(events) if mode == "unbucketed" else f"bucket={primary_key}"
     methodology = (
-        f"modeled from N={n_sessions} measured sessions ({bucket_note}), "
+        f"modeled from N={n_sessions} measured sessions since {window_start} ({bucket_note}), "
         f"p25 conservative percentile ({tok_per_turn:.0f} tok/turn), triangular-sum projection"
     )
 
