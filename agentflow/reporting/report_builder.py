@@ -5,6 +5,7 @@ from agentflow.shadow.analyzer import _load_log, get_bucketed_stats
 from agentflow.shadow.verbosity_ab import load_baseline
 from agentflow.reporting import handoff_savings
 from agentflow.reporting.steady_state import _parse_ts, WINDOW_START
+from agentflow.reporting import growth_tracker
 
 
 def _reporting_window(entries: list[dict]) -> tuple[str, str] | None:
@@ -107,14 +108,16 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
         store_url = f"sqlite:///{local_db.resolve()}" if local_db.exists() else f"sqlite:///{Path.home()}/.headroom/headroom.db"
 
     log_path = project_root / ".agentflow" / "shadow_reads.jsonl"
-    raw_entries = _load_log(log_path) if log_path.exists() else []
+    _all_raw = _load_log(log_path) if log_path.exists() else []
 
     start_dt = _parse_ts(WINDOW_START)
-    raw_entries = [e for e in raw_entries if (ts := _parse_ts(e.get("ts", ""))) and ts >= start_dt]
+    raw_entries = [e for e in _all_raw if (ts := _parse_ts(e.get("ts", ""))) and ts >= start_dt]
 
     # Blocked attempts (idx exists, offset=None) never executed the read --
     # left in, they'd double-count as phantom real cost + phantom savings.
     entries = [e for e in raw_entries if not (e.get("offset") is None and bool(e.get("idx_exists")) and (e.get("idx_sections") or 0) > 0)]
+    # Full log (unwindowed) for idx/offset savings — symbol index accumulates from project start.
+    all_shadow_entries = [e for e in _all_raw if not (e.get("offset") is None and bool(e.get("idx_exists")) and (e.get("idx_sections") or 0) > 0)]
 
     reads_files = set()
     tasks_path = project_root / "tasks.json"
@@ -167,35 +170,19 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
 
     shadow_sum = sum(stats.values())
 
-    idx_savings = 0
-    offset_savings = 0
-    file_reads_real = file_reads_baseline = 0
-    for e in entries:
-        offset = e.get("offset")
-        limit = e.get("limit")
-        file_lines = e.get("file_lines", 0)
-        file_chars = e.get("file_chars", 0)
-        idx_sections = e.get("idx_sections", 0)
-        idx_exists = bool(e.get("idx_exists"))
+    # idx/offset savings from full log; real cost from windowed entries.
+    _all_stats = growth_tracker.compute_file_read_stats(all_shadow_entries)
+    _win_stats = growth_tracker.compute_file_read_stats(entries)
+    idx_savings = _all_stats["idx_savings"]
+    offset_savings = _all_stats["offset_savings"]
+    file_reads_real = _win_stats["file_reads_real"]
 
-        baseline = int(file_chars * 0.25)
-        if offset is not None:
-            if file_lines > 0 and limit is not None:
-                real = int(file_chars * (limit / file_lines) * 0.25)
-            else:
-                sections = max(1, idx_sections)
-                real = int(file_chars / sections * 0.25)
-            real = min(baseline, real)
-        else:
-            real = baseline
-        file_reads_real += real
-        file_reads_baseline += baseline
-
-        entry_saved = baseline - real
-        if idx_exists:
-            idx_savings += entry_saved
-        else:
-            offset_savings += entry_saved
+    # Daily trend + 30-day projection for dashboard panels.
+    _proxy_log_path = project_root / ".agentflow" / "proxy_log.jsonl"
+    daily = growth_tracker.daily_savings(
+        all_shadow_entries, _proxy_log_path, windowed_verb_entries, baseline_tokens
+    )
+    proj = growth_tracker.projections(daily)
 
     file_reads_saved = idx_savings + offset_savings
     handoff_saved, handoff_real, n_sessions = _handoff_component(project_root)
@@ -239,6 +226,8 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
         "{steady_state_methodology_str}": "Headroom compression; windowed to shadow-reads scope — included in combined %",
     }
     replacements.update({f"{{{ph}_str}}": f"{val:,}{note}" for ph, _, _, val, note in STRATEGY_ROWS})
+    replacements["{trend_panel_html}"] = growth_tracker.render_sparklines_html(daily)
+    replacements["{projection_table_html}"] = growth_tracker.render_projection_table_html(proj)
     for k, v in replacements.items():
         html_template = html_template.replace(k, v)
     out_path = Path(output_path)
