@@ -766,3 +766,4 @@
 {"trace_id": "0bbe1328-6adc-4c45-b109-9d16ab9edc9d", "span": "worker.context_built", "timestamp": "2026-07-04T08:36:06.758833+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
 {"trace_id": "9b120c4f-dbe1-4995-8118-9764a5d0df02", "span": "worker.context_built", "timestamp": "2026-07-04T08:36:06.769809+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
 {"trace_id": "906717a9-39ec-4cb0-b7bf-f97e1e140ce0", "span": "worker.context_built", "timestamp": "2026-07-04T08:36:06.777552+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
+{"event": "handoff", "timestamp": "2026-07-04T08:56:00Z", "session_type": "orchestrator", "agent_tokens_in": 12500, "agent_tokens_out": 1800, "agents": 1}
