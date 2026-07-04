@@ -65,6 +65,8 @@ def _unmeasured_baseline() -> dict:
         "ci95_high": None,
         "measured": False,
         "arms": {},
+        "stopping_met": False,
+        "stopping_status": "STILL COLLECTING — n_on=0 / 20, n_off=0 / 20",
     }
 
 
@@ -205,8 +207,26 @@ def run_ab_comparison(project_root: Path, session_type: str | None = None) -> di
         for arm in ARMS
     }
 
+    n_on = arm_stats["hook_on"]["n"]
+    n_off = arm_stats["hook_off"]["n"]
     hook_off = arm_stats["hook_off"]
-    measured = hook_off["n"] > 0
+    measured = n_off > 0
+    ci_low = hook_off["ci95_low"]
+    ci_high = hook_off["ci95_high"]
+    ci_width = (ci_high - ci_low) if (ci_low is not None and ci_high is not None) else None
+
+    stopping_met = (
+        n_on >= 20
+        and n_off >= 20
+        and ci_width is not None
+        and ci_width < 100
+    )
+
+    if stopping_met:
+        stopping_status = f"VERBOSITY A/B COMPLETE — sufficient data (n_on={n_on}, n_off={n_off}, CI=[{round(ci_low)}, {round(ci_high)}])"
+    else:
+        stopping_status = f"STILL COLLECTING — n_on={n_on} / 20, n_off={n_off} / 20"
+
     result = {
         "computed_at": datetime.now().isoformat(),
         "baseline_tokens": round(hook_off["mean"]) if measured else FALLBACK_BASELINE_TOKENS,
@@ -215,6 +235,8 @@ def run_ab_comparison(project_root: Path, session_type: str | None = None) -> di
         "ci95_high": hook_off["ci95_high"],
         "measured": measured,
         "arms": arm_stats,
+        "stopping_met": stopping_met,
+        "stopping_status": stopping_status,
     }
 
     baseline_path = _baseline_path(project_root)
@@ -256,6 +278,7 @@ def run_verbosity_ab(project_root: Path | None = None, session_type: str | None 
         print(f"  Baseline: {result['baseline_tokens']} tokens (measured, n={result['sample_size']}{ci})")
     else:
         print(f"  Baseline: {result['baseline_tokens']} tokens (UNMEASURED fallback — collect both arms first)")
+    print(f"  Stopping Criterion: {result['stopping_status']}")
     return result
 
 

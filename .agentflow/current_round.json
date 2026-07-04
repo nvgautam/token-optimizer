@@ -1,8 +1,7 @@
 {
   "round_id": "Round B",
-  "task_ids": ["T-106"],
-  "estimated_lines_per_task": {"T-106": 80},
-  "file_counts_per_task": {"T-106": 2},
-  "timestamp": "2026-07-04T11:40:00-07:00",
-  "status": "closed"
+  "task_ids": ["T-102"],
+  "estimated_lines_per_task": {"T-102": 100},
+  "file_counts_per_task": {"T-102": 3},
+  "timestamp": "2026-07-04T14:30:00-07:00"
 }
