@@ -176,11 +176,19 @@ def compute_arm_stats(output_tokens: list[int]) -> dict:
     return {"n": n, "mean": mean, "p90": p90, "ci95_low": ci_low, "ci95_high": ci_high}
 
 
-def run_ab_comparison(project_root: Path) -> dict:
+def run_ab_comparison(project_root: Path, session_type: str | None = None) -> dict:
     """Compute per-arm stats and persist the measured hook-off baseline to
-    `.agentflow/verbosity_baseline.json` for report_builder.py to consume."""
+    `.agentflow/verbosity_baseline.json` for report_builder.py to consume.
+
+    If session_type is given, only entries matching that session_type are used."""
+    all_entries = _load_ab_entries(project_root)
+    if session_type is not None:
+        all_entries = [e for e in all_entries if e.get("session_type") == session_type]
+
     arm_stats = {
-        arm: compute_arm_stats([e.get("output_tokens", 0) for e in load_arm_entries(project_root, arm)])
+        arm: compute_arm_stats(
+            [e.get("output_tokens", 0) for e in all_entries if e.get("arm") == arm]
+        )
         for arm in ARMS
     }
 
@@ -214,12 +222,14 @@ def load_baseline(project_root: Path) -> dict:
         return _unmeasured_baseline()
 
 
-def run_verbosity_ab(project_root: Path | None = None) -> dict:
+def run_verbosity_ab(project_root: Path | None = None, session_type: str | None = None) -> dict:
     """Entry point: compare the two arms against whatever data has been
     collected so far, persist the baseline artifact, and print a short
-    summary. Returns the result dict (see run_ab_comparison)."""
+    summary. Returns the result dict (see run_ab_comparison).
+
+    If session_type is given, only entries matching that session_type are used."""
     root = project_root if project_root is not None else Path.cwd()
-    result = run_ab_comparison(root)
+    result = run_ab_comparison(root, session_type=session_type)
     hook_on = result["arms"]["hook_on"]
     hook_off = result["arms"]["hook_off"]
 

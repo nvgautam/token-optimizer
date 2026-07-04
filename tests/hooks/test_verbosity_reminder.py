@@ -63,3 +63,51 @@ def test_verbosity_reminder_corrupt_file_resets_gracefully(tmp_path, capsys):
         assert counter_file.read_text().strip() == "1"
         captured = capsys.readouterr()
         assert "[VERBOSITY]" not in captured.out
+
+
+def test_arm_file_off_suppresses_output(tmp_path, capsys, monkeypatch):
+    """When arm file contains 'off', no verbosity output even on trigger turn."""
+    counter_file = tmp_path / "verbosity_turn_counter"
+    arm_file = tmp_path / ".agentflow" / "verbosity_ab_arm.txt"
+    arm_file.parent.mkdir(parents=True, exist_ok=True)
+    arm_file.write_text("off")
+
+    monkeypatch.setenv("AGENTFLOW_PROJECT_ROOT", str(tmp_path))
+    with patch("agentflow.hooks.verbosity_reminder.COUNTER_FILE", counter_file):
+        counter_file.write_text("1")  # next call is turn 2 → trigger turn
+        with pytest.raises(SystemExit) as exc:
+            main()
+        assert exc.value.code == 0
+        captured = capsys.readouterr()
+        assert "[VERBOSITY]" not in captured.out
+
+
+def test_arm_file_on_does_not_suppress(tmp_path, capsys, monkeypatch):
+    """When arm file contains 'on', normal verbosity output on trigger turn."""
+    counter_file = tmp_path / "verbosity_turn_counter"
+    arm_file = tmp_path / ".agentflow" / "verbosity_ab_arm.txt"
+    arm_file.parent.mkdir(parents=True, exist_ok=True)
+    arm_file.write_text("on")
+
+    monkeypatch.setenv("AGENTFLOW_PROJECT_ROOT", str(tmp_path))
+    with patch("agentflow.hooks.verbosity_reminder.COUNTER_FILE", counter_file):
+        counter_file.write_text("1")  # next call is turn 2 → trigger turn
+        with pytest.raises(SystemExit) as exc:
+            main()
+        assert exc.value.code == 0
+        captured = capsys.readouterr()
+        assert "[VERBOSITY]" in captured.out
+
+
+def test_missing_arm_file_falls_through_to_normal_behavior(tmp_path, capsys, monkeypatch):
+    """When arm file is absent, hook behaves normally (no suppression)."""
+    counter_file = tmp_path / "verbosity_turn_counter"
+    monkeypatch.setenv("AGENTFLOW_PROJECT_ROOT", str(tmp_path))
+    # No arm file created — should fall through to normal behavior
+    with patch("agentflow.hooks.verbosity_reminder.COUNTER_FILE", counter_file):
+        counter_file.write_text("1")  # next call is turn 2 → trigger turn
+        with pytest.raises(SystemExit) as exc:
+            main()
+        assert exc.value.code == 0
+        captured = capsys.readouterr()
+        assert "[VERBOSITY]" in captured.out

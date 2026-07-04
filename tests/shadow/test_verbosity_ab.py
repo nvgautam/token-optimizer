@@ -183,4 +183,37 @@ def test_run_verbosity_ab_defaults_to_cwd(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     result = run_verbosity_ab()
     assert result["measured"] is False
+
+
+def test_run_ab_comparison_session_type_none_returns_all(tmp_path):
+    """session_type=None includes entries from all session types."""
+    for tok in (400, 500):
+        record_turn(tmp_path, session_type="orchestrator", turn=1, output_tokens=tok, arm="hook_off")
+    for tok in (300, 350):
+        record_turn(tmp_path, session_type="oracle", turn=1, output_tokens=tok, arm="hook_off")
+
+    result = run_ab_comparison(tmp_path, session_type=None)
+    assert result["arms"]["hook_off"]["n"] == 4
+
+
+def test_run_ab_comparison_filters_by_session_type(tmp_path):
+    """session_type='orchestrator' includes only orchestrator entries."""
+    for tok in (400, 500, 600):
+        record_turn(tmp_path, session_type="orchestrator", turn=1, output_tokens=tok, arm="hook_off")
+    for tok in (100, 200):
+        record_turn(tmp_path, session_type="oracle", turn=1, output_tokens=tok, arm="hook_off")
+
+    result = run_ab_comparison(tmp_path, session_type="orchestrator")
+    assert result["arms"]["hook_off"]["n"] == 3
+    assert result["arms"]["hook_off"]["mean"] == 500.0
+
+
+def test_run_ab_comparison_session_type_mismatch_returns_empty(tmp_path):
+    """session_type that matches no entries returns unmeasured fallback."""
+    for tok in (400, 500):
+        record_turn(tmp_path, session_type="orchestrator", turn=1, output_tokens=tok, arm="hook_off")
+
+    result = run_ab_comparison(tmp_path, session_type="worker")
+    assert result["arms"]["hook_off"]["n"] == 0
+    assert result["measured"] is False
     assert (tmp_path / ".agentflow" / "verbosity_baseline.json").exists()

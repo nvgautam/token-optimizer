@@ -8,6 +8,7 @@ cleanly on stop().
 from __future__ import annotations
 
 import os
+import random
 import secrets
 import subprocess
 import sys
@@ -46,8 +47,15 @@ class ProxyShell:
                     return str(exe)
         return sys.executable
 
+    def _flip_ab_arm(self) -> None:
+        arm = "on" if random.random() < 0.5 else "off"
+        arm_file = self.project_root / ".agentflow" / "verbosity_ab_arm.txt"
+        arm_file.parent.mkdir(parents=True, exist_ok=True)
+        arm_file.write_text(arm)
+
     def start(self) -> None:
         """Spawn proxy subprocess, read port, set ANTHROPIC_BASE_URL env."""
+        self._flip_ab_arm()
         self._secret = secrets.token_hex(32)
         env = {
             **os.environ,

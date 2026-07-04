@@ -17,8 +17,23 @@ def _hook_disabled() -> bool:
     return os.environ.get("AGENTFLOW_VERBOSITY_HOOK_DISABLED", "").strip().lower() in _DISABLED_VALUES
 
 
+def _arm_suppressed() -> bool:
+    """Return True if the A/B arm file says 'off' (suppress reminder)."""
+    project_root = os.environ.get("AGENTFLOW_PROJECT_ROOT", "")
+    candidates = []
+    if project_root:
+        candidates.append(Path(project_root) / ".agentflow" / "verbosity_ab_arm.txt")
+    candidates.append(Path.home() / ".agentflow" / "verbosity_ab_arm.txt")
+    for path in candidates:
+        if path.exists():
+            return path.read_text().strip() == "off"
+    return False
+
+
 def main() -> None:
     if _hook_disabled():
+        sys.exit(0)
+    if _arm_suppressed():
         sys.exit(0)
 
     try:

@@ -96,6 +96,82 @@ class TestProxyShellStop:
         assert "ANTHROPIC_BASE_URL" not in os.environ
 
 
+class TestProxyShellCoinFlip:
+    def test_start_writes_arm_file(self, tmp_path: Path):
+        """start() writes 'on' or 'off' to .agentflow/verbosity_ab_arm.txt."""
+        from agentflow.shell.pty_shell import ProxyShell
+
+        mock_proc = MagicMock()
+        mock_proc.poll.return_value = None
+        mock_proc.stdout.readline.return_value = "9999\n"
+
+        with patch("agentflow.shell.pty_shell.subprocess.Popen", return_value=mock_proc):
+            shell = ProxyShell(project_root=tmp_path)
+            shell.start()
+
+        arm_file = tmp_path / ".agentflow" / "verbosity_ab_arm.txt"
+        assert arm_file.exists()
+        assert arm_file.read_text().strip() in ("on", "off")
+        os.environ.pop("ANTHROPIC_BASE_URL", None)
+
+    def test_start_arm_file_absent_before_start(self, tmp_path: Path):
+        """arm file does not exist before start() is called."""
+        from agentflow.shell.pty_shell import ProxyShell
+
+        arm_file = tmp_path / ".agentflow" / "verbosity_ab_arm.txt"
+        assert not arm_file.exists()
+        _ = ProxyShell(project_root=tmp_path)
+        assert not arm_file.exists()
+
+    def test_start_coin_flip_writes_on(self, tmp_path: Path):
+        """When random returns < 0.5, arm file contains 'on'."""
+        from agentflow.shell.pty_shell import ProxyShell
+
+        mock_proc = MagicMock()
+        mock_proc.poll.return_value = 1
+        mock_proc.stdout.readline.return_value = ""
+
+        with patch("agentflow.shell.pty_shell.subprocess.Popen", return_value=mock_proc), \
+             patch("agentflow.shell.pty_shell.random.random", return_value=0.3):
+            shell = ProxyShell(project_root=tmp_path)
+            shell.start()
+
+        arm_file = tmp_path / ".agentflow" / "verbosity_ab_arm.txt"
+        assert arm_file.read_text().strip() == "on"
+
+    def test_start_coin_flip_writes_off(self, tmp_path: Path):
+        """When random returns >= 0.5, arm file contains 'off'."""
+        from agentflow.shell.pty_shell import ProxyShell
+
+        mock_proc = MagicMock()
+        mock_proc.poll.return_value = 1
+        mock_proc.stdout.readline.return_value = ""
+
+        with patch("agentflow.shell.pty_shell.subprocess.Popen", return_value=mock_proc), \
+             patch("agentflow.shell.pty_shell.random.random", return_value=0.7):
+            shell = ProxyShell(project_root=tmp_path)
+            shell.start()
+
+        arm_file = tmp_path / ".agentflow" / "verbosity_ab_arm.txt"
+        assert arm_file.read_text().strip() == "off"
+
+    def test_start_arm_file_written_even_if_proxy_fails(self, tmp_path: Path):
+        """Coin-flip arm file is written before proxy spawn attempt."""
+        from agentflow.shell.pty_shell import ProxyShell
+
+        mock_proc = MagicMock()
+        mock_proc.poll.return_value = 1  # proc died immediately
+        mock_proc.stdout.readline.return_value = ""
+
+        with patch("agentflow.shell.pty_shell.subprocess.Popen", return_value=mock_proc):
+            shell = ProxyShell(project_root=tmp_path)
+            shell.start()
+
+        arm_file = tmp_path / ".agentflow" / "verbosity_ab_arm.txt"
+        assert arm_file.exists()
+        assert shell.base_url is None  # proxy failed but arm still written
+
+
 class TestProxyShellBanner:
     def test_banner_active(self, tmp_path: Path):
         """Returns active message when proxy running."""
