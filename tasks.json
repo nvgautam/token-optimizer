@@ -466,14 +466,7 @@
     },
     {
       "task_id": "T-105",
-      "title": "session_manager \u2014 re-read arm file per session start, not just at init",
-      "description": "SessionManager reads verbosity_ab_arm.txt once in __init__ \u2014 long-lived shells spanning a code deploy or a new coin-flip never pick up the updated arm, producing entries with no arm field. Fix: extract arm-file read into a helper _read_arm_file(), call it at __init__ AND whenever _turn_count resets to 1 (new claude session detected inside the PTY). (1) agentflow/shell/session_manager.py: add _read_arm_file() -> str | None; call in __init__ and at the turn=1 reset point in _handle_output. (2) Tests: test_session_manager.py \u2014 assert arm re-read fires on turn reset; assert new arm value appears in subsequent log entries.",
-      "owns": [
-        "agentflow/shell/session_manager.py",
-        "tests/shell/test_session_manager.py"
-      ],
-      "depends_on": [],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-104",

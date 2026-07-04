@@ -295,7 +295,7 @@ Not demo-critical — code quality enforcement only, deferred to Round D.
 
 | Task | Title | Depends on | Status |
 |---|---|---|---|
-| T-105 | session_manager — re-read arm file per session start, not just at init | — | PENDING |
+| T-105 | session_manager — re-read arm file per session start, not just at init | — | MERGED |
 
 Blocks T-102/T-103 data quality: long-lived shells never pick up new arm flips, producing untagged entries. Prepend to Round A.
 
