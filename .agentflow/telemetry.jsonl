@@ -729,3 +729,4 @@
 {"event": "handoff", "timestamp": "2026-07-03T16:39:47.572731", "session_type": "orchestrator", "agent_tokens_in": 8500, "agent_tokens_out": 5200, "agents": 1}
 {"event": "handoff", "timestamp": "2026-07-03T19:33:16.187020", "session_type": "orchestrator", "agent_tokens_in": 0, "agent_tokens_out": 0, "agents": 0}
 {"event": "handoff", "timestamp": "2026-07-03T20:13:04.308007", "session_type": "orchestrator", "agent_tokens_in": 35000, "agent_tokens_out": 6453, "agents": 1}
+{"event": "handoff", "timestamp": "2026-07-03T20:40:56.149732", "session_type": "oracle", "agent_tokens_in": 0, "agent_tokens_out": 0, "agents": 0}

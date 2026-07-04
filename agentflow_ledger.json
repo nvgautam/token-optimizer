@@ -4111,10 +4111,40 @@
         "compaction": null
       },
       "status": "closed"
+    },
+    {
+      "session_id": "20260703_204047",
+      "agent": "claude",
+      "task_ids": "",
+      "start_time": "2026-07-03T20:40:47.964677",
+      "end_time": "2026-07-03T20:40:47.964685",
+      "context_at_start": 39625,
+      "input_tokens": 2463697,
+      "output_tokens": 16361,
+      "token_detail": {
+        "uncached_input": 1552,
+        "cache_creation": 116495,
+        "cache_read": 2345650,
+        "output": 16361,
+        "n_turns": 40,
+        "initial_ctx": 39625,
+        "final_ctx": 68476
+      },
+      "n_turns": 40,
+      "final_ctx": 68476,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 6305061,
+        "shadow_output": 16361,
+        "shadow_extra": 3909840,
+        "compaction": null
+      },
+      "status": "closed"
     }
   ],
   "shadow_state": {
-    "accumulated_context": 97746,
+    "accumulated_context": 126537,
     "compaction_events": 81
   }
 }
