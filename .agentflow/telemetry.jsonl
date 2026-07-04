@@ -859,3 +859,12 @@
 {"trace_id": "10eda8cb-622b-4d5e-a227-6d2d759a9a07", "span": "worker.context_built", "timestamp": "2026-07-04T18:44:17.761609+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
 {"trace_id": "5c468a81-806a-4bb3-9b39-4863f733ff82", "span": "worker.context_built", "timestamp": "2026-07-04T18:44:17.769778+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
 {"event": "session_complete", "timestamp": "2026-07-04T12:55:00.000000", "tasks": 1, "groups": 1}
+{"trace_id": "566a0360-1aa5-4415-be2f-7805ac4b5f6d", "span": "worker.context_built", "timestamp": "2026-07-04T22:03:00.582012+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
+{"trace_id": "d7af0d0f-1271-4f71-9b47-804eaacfeb26", "span": "worker.context_built", "timestamp": "2026-07-04T22:03:00.588817+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
+{"trace_id": "1b8ce172-11e8-408d-be44-b255786059d1", "span": "worker.context_built", "timestamp": "2026-07-04T22:03:00.601107+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
+{"trace_id": "15a295f5-a7eb-48dc-9f45-d129f5ce4045", "span": "worker.context_built", "timestamp": "2026-07-04T22:03:00.607637+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
+{"trace_id": "2f07c05d-0ee7-4cf7-a679-90b7c89e6d1c", "span": "worker.context_built", "timestamp": "2026-07-04T22:03:00.614759+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 175, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
+{"trace_id": "7e83635b-f41d-47bc-acb7-9607a51bfc04", "span": "worker.context_built", "timestamp": "2026-07-04T22:03:00.622156+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
+{"trace_id": "a10f5368-fb58-44cb-9710-6efe06d9164e", "span": "worker.context_built", "timestamp": "2026-07-04T22:03:00.630655+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
+{"event": "handoff", "timestamp": "2026-07-04T15:04:00.000000", "session_type": "orchestrator", "agent_tokens_in": 160000, "agent_tokens_out": 4000, "agents": 1}
+
