@@ -702,5 +702,18 @@
       "T-089"
     ],
     "status": "complete"
+  },
+  {
+    "task_id": "T-101",
+    "title": "Tag verbosity_log.jsonl entries with arm at write time",
+    "description": "T-094 wired the coin-flip but session_manager.py writes verbosity_log.jsonl entries without an `arm` field, making retroactive arm attribution impossible. Fix: (1) In SessionManager.__init__, read the arm from .agentflow/verbosity_ab_arm.txt (fall back to None if absent). (2) Include `arm` in every entry written at session_manager.py:95-100. (3) Update import_from_verbosity_log() in verbosity_ab.py to filter by entry['arm'] instead of taking arm as a caller-supplied parameter \u2014 callers that pass arm explicitly should now get a deprecation warning. (4) Update run_ab_comparison() to derive arm membership from the entry field. Tests: test_verbosity_ab.py \u2014 assert written entries contain arm field; assert import correctly separates hook_on vs hook_off entries based on the field.",
+    "owns": [
+      "agentflow/shell/session_manager.py",
+      "agentflow/shadow/verbosity_ab.py",
+      "tests/shadow/test_verbosity_ab.py"
+    ],
+    "reads": [],
+    "depends_on": [],
+    "status": "complete"
   }
 ]
