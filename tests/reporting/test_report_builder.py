@@ -25,6 +25,7 @@ from agentflow.reporting.report_builder import (
     _load_proxy_savings,
     _compression_delta_from_history,
     _handoff_component,
+    _lifetime_recycling_callout,
 )
 from agentflow.shadow.verbosity_ab import record_turn, run_ab_comparison
 from agentflow.cli import cmd_report
@@ -346,3 +347,17 @@ def test_build_report_pct_includes_handoff_and_compression(tmp_path):
     html = out_html.read_text()
     assert "37.5%" in html
     assert "included in combined %" in html
+
+def test_lifetime_recycling_callout_sums_all_sessions(tmp_path):
+    ledger = {"sessions": [
+        {"status": "closed", "end_time": "2026-01-01T00:00:00Z", "input_tokens": 100, "output_tokens": 50,
+         "shadow_event": {"shadow_extra": 30}},
+        {"status": "closed", "end_time": "2026-07-03T00:00:00Z", "input_tokens": 200, "output_tokens": 80,
+         "shadow_event": {"shadow_extra": 50}},
+    ]}
+    (tmp_path / "agentflow_ledger.json").write_text(json.dumps(ledger))
+    extra, real, n = _lifetime_recycling_callout(tmp_path)
+    assert extra == 80 and real == 430 and n == 2
+
+def test_lifetime_recycling_callout_empty(tmp_path):
+    assert _lifetime_recycling_callout(tmp_path) == (0, 0, 0)
