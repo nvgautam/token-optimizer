@@ -11,7 +11,7 @@ from agentflow.shadow_tracker import (
 )
 from agentflow.legacy_helpers import (
     _manual_usage_entry, _print_token_breakdown, _print_summary,
-    _token_detail, _session_usage, CLAUDE_PROJECTS_DIR, CLAUDE_PROJECTS_DIR,
+    _token_detail, CLAUDE_PROJECTS_DIR,
     Path
 )
 
@@ -132,6 +132,14 @@ def cmd_handoff(args):
         usage = _manual_usage_entry()
 
     def _prompt(msg, default=""):
+        import select
+        if not sys.stdin.isatty():
+            try:
+                r, _, _ = select.select([sys.stdin], [], [], 0.0)
+                if not r:
+                    return default
+            except Exception:
+                return default
         try:
             return input(msg).strip() or default
         except EOFError:
