@@ -1,7 +1,13 @@
 {
-  "round_id": "Addendum I",
-  "task_ids": ["T-079"],
-  "estimated_lines_per_task": {"T-079": 60},
-  "file_counts_per_task": {"T-079": 3},
-  "timestamp": "2026-07-02T04:50:00"
+  "round_id": "A",
+  "task_ids": [
+    "T-063"
+  ],
+  "estimated_lines_per_task": {
+    "T-063": 30
+  },
+  "file_counts_per_task": {
+    "T-063": 3
+  },
+  "timestamp": "2026-07-03T15:45:40.813635"
 }

@@ -146,6 +146,7 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 | T-089 | Relabel Percentage Saved / Steady-State stats + reconcile windowing across all savings sources | MERGED — PR #52 merged 2026-07-03 |
 | T-090 | Combine all four savings strategies into one reconciled overall percentage | MERGED — PR #53 merged 2026-07-03 |
 | T-091 | Include compression savings in combined pct_saved headline | MERGED — PR #54 merged 2026-07-03 |
+| T-092 | Dashboard: per-strategy growth rate tracking + projected savings | MERGED — PR #57 merged 2026-07-03 |
 
 | Round | Tasks | Note |
 |---|---|---|
@@ -233,6 +234,17 @@ Status: DEFERRED — Python CLI out of scope for v1
 | Task | Title | Status |
 |---|---|---|
 | T-093 | Replace headroom wrap with thin owned proxy | MERGED |
+
+---
+
+## Addendum: T-094/T-095/T-096 — Savings Infrastructure (filed 2026-07-03)
+
+| Task | Title | Status |
+|---|---|---|
+| T-092 addendum | Session recycling in sparklines/projections + per-strategy % breakdown | pending |
+| T-094 | Automated verbosity A/B — PTY coin-flip + flag file + oracle tagging fix | MERGED 8ba2382 |
+| T-095 | Post-compaction re-onboarding cost in shadow model | pending |
+| T-096 | Code-size savings as 5th dashboard strategy (git bootstrap + prospective family tracking) | pending |
 
 ---
 

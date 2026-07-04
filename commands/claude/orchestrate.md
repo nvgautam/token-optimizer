@@ -177,12 +177,19 @@ Emit: `HANDOFF RECOMMENDED: PR #N open for [task_ids] — good stopping point be
 
 ## Merge
 
-1. Replace in `tasks.json`: `{"task_id": "T-NNN", "status": "complete"}`
-2. Append full definition to `.agentflow/tasks.archive.json`
-3. Mark `MERGED` in `execution_plan.md`
-4. Milestone complete → mark `COMPLETE`, decompose next milestone lazily
-5. Save `.agentflow/state.json`
-6. Emit: `HANDOFF RECOMMENDED: [task_id] merged — state saved, good stopping point before next round`
+Run cleanup first (enforces both invariants atomically):
+```bash
+python agentflow/tools/cleanup_tasks.py .
+```
+
+Then:
+1. (**Already handled by cleanup**) tasks.json: each completed task trimmed to `{"task_id": "T-NNN", "status": "complete"}`; full definition archived to `.agentflow/tasks.archive.json` (flat list — no nested batches).
+2. Mark `MERGED` in `execution_plan.md`
+3. Milestone complete → mark `COMPLETE`, decompose next milestone lazily
+4. Save `.agentflow/state.json`
+5. Emit: `HANDOFF RECOMMENDED: [task_id] merged — state saved, good stopping point before next round`
+
+**Do not manually edit task stubs or archive — always run the cleanup script.**
 
 ---
 

@@ -1,376 +1,374 @@
 [
-  [
-    {
-      "task_id": "T-008",
-      "title": "PTY session manager \u2014 handoff, countdown, idx injection",
-      "owns": [
-        "agentflow/shell/session_manager.py",
-        "agentflow/shell/countdown.py"
-      ],
-      "reads": [
-        "agentflow/shell/pty_wrapper.py",
-        "agentflow/shell/tokenizer.py"
-      ],
-      "depends_on": [
-        "T-006"
-      ],
-      "acceptance_criteria": "SessionManager detects session type, injects idx banner every 3 turns, triggers handoff+countdown+restart when threshold exceeded; countdown callable works standalone",
-      "estimated_lines": 220,
-      "context_section": "architecture.md#pty-shell-design",
-      "status": "complete",
-      "pr": 32
-    },
-    {
-      "task_id": "T-009",
-      "title": "CLI cmd_shell \u2014 PTY I/O relay loop",
-      "owns": [
-        "agentflow/cli.py"
-      ],
-      "reads": [
-        "agentflow/shell/pty_wrapper.py",
-        "agentflow/shell/session_manager.py",
-        "agentflow/shell/tokenizer.py",
-        "agentflow/shell/countdown.py"
-      ],
-      "depends_on": [
-        "T-008"
-      ],
-      "acceptance_criteria": "agentflow shell --command claude launches claude under PTY; IDX banners every 3 turns; handoff fires at threshold; terminal restored on exit",
-      "estimated_lines": 60,
-      "status": "complete",
-      "pr": 33
-    },
-    {
-      "task_id": "T-010",
-      "title": "PTY \u2014 per-turn output token tracking + verbosity compliance signal",
-      "owns": [
-        "agentflow/shell/session_manager.py"
-      ],
-      "reads": [
-        "agentflow/shell/tokenizer.py",
-        "agentflow/shell/pty_wrapper.py"
-      ],
-      "depends_on": [
-        "T-009"
-      ],
-      "acceptance_criteria": "verbosity_log.jsonl accumulates per-turn output token counts; banner fires on verbose turns; shadow analyzer reads mean/p90 vs 150-token target",
-      "estimated_lines": 50,
-      "status": "complete",
-      "pr": 34
-    },
-    {
-      "task_id": "T-060",
-      "title": "Provider-keyed rate calibration files: rate_calibration_claude.json / rate_calibration_gemini.json",
-      "owns": [
-        "commands/claude/orchestrate.md",
-        "commands/claude/oracle.md",
-        "commands/gemini/skills/orchestrate/SKILL.md",
-        "tests/prompts/test_oracle_skill.py",
-        "tests/prompts/test_orchestrate_skill.py"
-      ],
-      "status": "complete"
-    },
-    {
-      "task_id": "T-056",
-      "title": "read_check.py: skip block on empty idx + compress output message",
-      "description": "Two fixes to read_check.py PreToolUse hook. (1) False-positive block: when .idx exists but is 0 bytes (file <50 lines or no indexable sections), hook still fires sys.exit(1) \u2014 add short-circuit after strip() so empty idx allows full read through. (2) Verbose output: current 3-line error message (~50 tokens) fires into model context on every blocked read; compress to single telegraphic line.",
-      "owns": [
-        "agentflow/hooks/read_check.py",
-        "tests/hooks/test_read_check.py"
-      ],
-      "status": "complete"
-    },
-    {
-      "task_id": "T-062",
-      "title": "UserPromptSubmit hook \u2014 .idx reminder injection (replaces PTY stdin)",
-      "description": "Wire up agentflow/hooks/idx_reminder.py as a UserPromptSubmit hook in .claude/settings.json. Hook fires after user submits each message (input field already cleared \u2014 injection invisible). Every 3rd turn outputs [IDX] reminder text; Claude receives it as context without user seeing it in the input field. Add tests/hooks/test_idx_reminder.py covering: counter increments on each call, reminder output on turn 3/6/9, no output on turns 1/2/4, counter file created if absent, counter resets gracefully on corrupt file. Remove PTY stdin .idx injection from session_manager.py (_inject_idx_banner call site in the every-3-turns path) \u2014 hook supersedes it. PTY Read-event detection (T-052) stays: it is reactive (fires on detected Read calls), hook is proactive (periodic recalibration). Both complement; stdin injection is the only part removed.",
-      "owns": [
-        "agentflow/hooks/idx_reminder.py",
-        ".claude/settings.json",
-        "agentflow/shell/session_manager.py",
-        "tests/hooks/test_idx_reminder.py"
-      ],
-      "reads": [
-        "agentflow/hooks/read_check.py"
-      ],
-      "status": "complete"
-    },
-    {
-      "task_id": "T-058",
-      "title": "PostToolUse hook: block Write/Edit when file exceeds line limit",
-      "description": "New hook agentflow/hooks/size_check.py \u2014 PostToolUse on Write and Edit. After each write, read the modified file and check line count against per-category limits: tests/ \u2192 350, commands/ \u2192 150, all other .py \u2192 250. Stubs excluded: files whose content is >50% pass/ellipsis lines skip the check. On violation: print single telegraphic message and exit(1) to block next tool call \u2014 \"FILE TOO LARGE: <rel_path> is <N> lines (limit <L>) \u2014 split by responsibility boundary before proceeding.\" On pass: exit(0), no output. Register under PostToolUse for both Write and Edit matchers in .claude/settings.json alongside write_indexer. Add tests/hooks/test_size_check.py covering: under-limit passes, over-limit blocks, correct limit per category, stub exemption, non-.py files skipped.",
-      "owns": [
-        "agentflow/hooks/size_check.py",
-        "tests/hooks/test_size_check.py",
-        ".claude/settings.json"
-      ],
-      "status": "complete"
-    },
-    {
-      "task_id": "T-059",
-      "title": "Bake verbosity target into skill prompts as standing instruction",
-      "description": "Add a consistent verbosity target to oracle.md and orchestrate.md as a permanent standing instruction, not an optional argument. oracle.md: promote the Phase 2 verbosity note (\"\u22643 sentences per exchange\") to a top-level instruction visible before any phase executes \u2014 add \"\u22643 sentences (~150 tokens) per response; expand only if user asks\" near the opening. Remove the duplicate in Phase 2. orchestrate.md: extend the existing \"## Verbosity rules\" section to include the token target \u2014 \"\u22643 sentences (~150 tokens) per orchestrator status message\". Both changes must survive context growth (instruction must appear early in the file, not only in a late section). No changes to handoff.md, drift.md, or worker prompts \u2014 those are single-purpose and do not have multi-turn verbosity risk.",
-      "owns": [
-        "commands/claude/oracle.md",
-        "commands/claude/orchestrate.md"
-      ],
-      "status": "complete"
-    },
-    {
-      "task_id": "T-065",
-      "title": "Orchestrate skill \u2014 structured PTY signals + current_round.json",
-      "description": "Enable PTY to track task lifecycle deterministically. (1) commands/claude/orchestrate.md: at round start, write .agentflow/current_round.json with {round_id, task_ids, estimated_lines_per_task, file_counts_per_task, timestamp}. (2) Before spawning each worker, print AGENTFLOW_TASK_START:<task_id> to stdout. (3) After each worker completes, print AGENTFLOW_TASK_COMPLETE:<task_id>. (4) After all round tasks complete, print AGENTFLOW_ROUND_COMPLETE. (5) commands/gemini/skills/orchestrate/SKILL.md: same four signals. (6) Tests: test_orchestrate_skill.py \u2014 assert all four signal strings present in Claude and Gemini skill content; assert current_round.json write step present.",
-      "owns": [
-        "commands/claude/orchestrate.md",
-        "commands/gemini/skills/orchestrate/SKILL.md",
-        "tests/prompts/test_orchestrate_skill.py"
-      ],
-      "status": "complete"
-    },
-    {
-      "task_id": "T-070",
-      "title": "read_check.py \u2014 block large-range reads that bypass idx enforcement",
-      "description": "read_check.py currently blocks reads with no offset/limit when an idx exists. Gap: reads with offset\u22480 + large limit (e.g. offset=7, limit=168 on a 174-line file) pass unblocked despite covering nearly the full file. Fix: (1) When offset and limit are both present, count total lines in file (stdlib only). (2) Compute coverage = limit / (total_lines - offset). (3) If coverage > threshold (default 0.60) AND idx exists \u2192 exit 1 with message: \"Large-range read (N/M lines, X%) \u2014 use idx to target specific sections\". (4) If file < 50 lines (no idx expected) \u2192 skip check. (5) Threshold configurable via AGENTFLOW_READ_COVERAGE_THRESHOLD env var. (6) Tests: tests/hooks/test_read_check.py \u2014 assert exit 1 on large-range read with idx present; assert exit 0 on targeted read (small limit); assert exit 0 on file < 50 lines; assert exit 0 when no idx exists regardless of range.",
-      "owns": [
-        "agentflow/hooks/read_check.py",
-        "tests/hooks/test_read_check.py"
-      ],
-      "status": "complete"
-    },
-    {
-      "task_id": "T-066",
-      "title": "PTY session_manager \u2014 ROUND_COMPLETE detection + token-floor handoff",
-      "description": "Replace pure token-threshold handoff with deterministic round-boundary handoff. (1) session_manager.py: scan stdout for AGENTFLOW_ROUND_COMPLETE. On detection: (a) read .agentflow/current_round.json to confirm round closed, (b) check accumulated_tokens vs configurable floor (shell.handoff_token_floor_pct, default 0.30 of threshold). (2) If above floor: call trigger_handoff() \u2014 clean boundary, no mid-task interrupt. (3) If below floor: log round-complete-low-tokens event to verbosity_log.jsonl, reset round state, continue. Token threshold remains as a safety net if ROUND_COMPLETE is never emitted. (4) Tests: test_session_manager.py \u2014 mock ROUND_COMPLETE in PTY stdout; assert handoff triggered when tokens above floor; assert handoff skipped and continued when below floor.",
-      "owns": [
-        "agentflow/shell/session_manager.py",
-        "tests/shell/test_session_manager.py"
-      ],
-      "reads": [
-        ".agentflow/current_round.json"
-      ],
-      "status": "complete"
-    },
-    {
-      "task_id": "T-067",
-      "title": "PTY session_manager \u2014 per-task token bracketing \u2192 task_token_log.jsonl",
-      "description": "Collect empirical per-task token data to power the future estimator. (1) session_manager.py: on AGENTFLOW_TASK_START:<task_id>, snapshot tokenizer accumulator value as task_start_tokens. (2) On AGENTFLOW_TASK_COMPLETE:<task_id>, compute delta = current_accumulated - task_start_tokens; read estimated_lines and file_count for this task_id from current_round.json. (3) Append to ~/.agentflow/task_token_log.jsonl: {task_id, session_type, token_delta, estimated_lines, file_count, timestamp}. File created if absent. (4) Tests: test_session_manager.py \u2014 emit TASK_START + TASK_COMPLETE signals; assert task_token_log.jsonl entry written with correct delta and metadata.",
-      "owns": [
-        "agentflow/shell/session_manager.py",
-        "tests/shell/test_session_manager.py"
-      ],
-      "reads": [
-        ".agentflow/current_round.json",
-        "~/.agentflow/task_token_log.jsonl"
-      ],
-      "status": "complete"
-    },
-    {
-      "task_id": "T-071",
-      "title": "Evaluate headroom-ai library \u2014 integration feasibility for PTY + M5",
-      "description": "Research spike: determine what headroom-ai actually does before designing integration. (1) pip install headroom-ai[all]; run `headroom wrap claude --help` and explore CLI flags. (2) Determine mechanism: subprocess wrapper, HTTP proxy, ANTHROPIC_BASE_URL intercept, or other \u2014 and whether it conflicts with PTY stdin/stdout interception. (3) Understand compress(): what algorithm, lossless or lossy, token savings estimate. (4) Understand SharedContext: in-memory or persistent? Cross-process? How does cross-provider sharing work? (5) Check whether headroom exposes per-session compression metrics readable by a report generator. (6) Write findings to .agentflow/headroom_eval.md: mechanism, composability verdict, savings estimate, SharedContext design implications for M5, recommended integration approach or DEFER if incompatible.",
-      "owns": [
-        ".agentflow/headroom_eval.md"
-      ],
-      "status": "complete"
-    },
-    {
-      "task_id": "T-073",
-      "title": "Fix verbosity signal reliability \u2014 incremental writes + reminder hook",
-      "description": "verbosity_log.jsonl only written in _on_session_exit (batched, last-10-turns) \u2014 sessions restarted via /clear (not a real process exit) never reach this path, silently losing all verbosity data; confirmed zero oracle-tagged entries despite completed oracle sessions. Also T-052/T-055 marked MERGED but the 'proactive verbosity banner' was never implemented (_verbosity_last_inject set once, never read; should_inject_banner absent from code and tests) \u2014 dead state. Fix: (1) session_manager.py \u2014 write each entry to verbosity_log.jsonl incrementally at turn-boundary detection (same site as _turn_output_history.append), not batched at exit; remove dead _verbosity_last_inject/_initial_banner_sent if superseded by (2). (2) New hook agentflow/hooks/verbosity_reminder.py \u2014 separate file from idx_reminder.py (one-concern-per-file convention), own counter (~/.agentflow/verbosity_turn_counter), fires every 1-2 turns (tighter than idx's 3) reminding to keep responses \u2264 3 sentences. Register as new entry under UserPromptSubmit in .claude/settings.json. (3) Tests: tests/shell/test_session_manager.py \u2014 assert incremental write fires at turn boundary without requiring exit; tests/hooks/test_verbosity_reminder.py \u2014 mirror test_idx_reminder.py structure, assert own counter + cadence.",
-      "owns": [
-        "agentflow/shell/session_manager.py",
-        "agentflow/hooks/verbosity_reminder.py",
-        ".claude/settings.json",
-        "tests/shell/test_session_manager.py",
-        "tests/hooks/test_verbosity_reminder.py"
-      ],
-      "status": "complete"
-    },
-    {
-      "task_id": "T-076",
-      "title": "Size-limit enforcement gap \u2014 Gemini writes + pre-existing violations uncovered",
-      "description": "T-058's size_check.py is Claude-Code-specific (PostToolUse hook); it never fires for (a) files that existed before Claude's Write/Edit tool touched them (e.g. agentflow.py), or (b) Gemini CLI writes \u2014 no equivalent hook mechanism wired for Gemini. (1) Add standalone agentflow/hooks/size_audit.py \u2014 walks repo, applies same per-category limits as size_check.py (tests/->350, commands/->150, other .py->250, stub-exempt), reports every current violation. (2) Wire as a manual/orchestrator-invoked sweep (python3 agentflow/hooks/size_audit.py) callable at milestone boundaries by either provider's orchestrate skill \u2014 not a live hook, since no PostToolUse-equivalent event exists for Gemini CLI today. (3) Investigate whether Gemini CLI supports an analogous post-write hook; if yes, wire a size_check.py equivalent; if no, document the gap in design_status.md and rely on the periodic sweep. Tests: tests/hooks/test_size_audit.py \u2014 fixture repo with known violations, assert correct per-category detection.",
-      "owns": [
-        "agentflow/hooks/size_audit.py",
-        "tests/hooks/test_size_audit.py"
-      ],
-      "status": "complete"
-    },
-    {
-      "task_id": "T-077",
-      "title": "Spike \u2014 can headroom's proxy auto-capture 5hr/weekly usage windows?",
-      "description": "Research spike: orchestrate.md's rate-pacing protocol currently asks the user to manually run `/usage` and report 5hr/weekly % + reset times + caps for both claude and agy (design_status.md #57). Determine whether headroom's local HTTP proxy (T-074) can capture this automatically instead. NOTE: per-request token usage (input/output/cache) is already solved via existing JSONL/DB parsing (usage_parser.py) \u2014 this spike is scoped ONLY to the 5hr/weekly window %, reset_min, and cap fields that `/usage` displays. (1) Run `headroom wrap claude`, trigger `/usage` inside the session, and passively observe proxy traffic (headroom debug/verbose logging, or a temporary logging shim) to determine: does the underlying network call for `/usage` route through ANTHROPIC_BASE_URL (i.e. through the local proxy), or does it hit a different host directly? Only observe traffic the client already sends normally \u2014 do not attempt to authenticate to or probe undocumented endpoints directly. (2) If it routes through the proxy: inspect whether the response body/headers contain parseable window %/reset/cap fields; note exact shape if so. (3) Repeat for `headroom wrap agy` + agy's `/usage` \u2014 treat as fully separate from T-074's compression-savings verification (design_status.md #92 marks that UNVERIFIED; this spike tests usage-window visibility specifically, not compression). (4) Write findings to .agentflow/headroom_usage_eval.md: mechanism confirmed or not (per provider), feasibility verdict, and if not feasible, explicit recommendation to keep the current manual-ask + ledger-anchored derivation (design_status.md #57) as-is. No code changes \u2014 spike only, same shape as T-071.",
-      "owns": [
-        ".agentflow/headroom_usage_eval.md"
-      ],
-      "depends_on": [
-        "T-074"
-      ],
-      "status": "complete"
-    },
-    {
-      "task_id": "T-079",
-      "title": "Harden gate-file reads against Headroom staleness \u2014 skill rule + invocation audit",
-      "description": "Oracle re-spar 2026-07-01 (Headroom incident): a live /orchestrate session reported garbled-looking Read/Grep results for design_status.md and rate_calibration_claude.json, correctly refused to act on them, and paused. Root cause traced in the installed headroom package, not guesswork: headroom/config.py's DEFAULT_EXCLUDE_TOOLS already excludes Read/Glob/Grep/Write/Edit from ContentRouter compression, and cli.py's `headroom wrap claude` invocation (cmd_shell, ~line 118-120) passes no flags, so that protection is intact by default. The live risk is headroom/transforms/read_lifecycle.py's ReadLifecycleConfig (compress_stale=True by default), which runs independent of tool exclusion and rewrites a prior turn's Read of a file into a `[Read content stale ... re-read the file]` marker once that file is later Written/Edited \u2014 a pattern AgentFlow's own handoff/calibration tooling triggers constantly on design_status.md/tasks.json/rate_calibration_claude.json within a single long-running skill session. Two-part fix. (A) commands/claude/oracle.md + commands/claude/orchestrate.md: add a standing rule near each skill's gate-check steps (design_status.md UNRESOLVED scan, tasks.json status reads, rate-calibration reads) \u2014 always issue a fresh same-turn Read before using a gate file's contents for a decision; if a Headroom stale/superseded marker or any garbled/truncated-looking result appears on a gate file, re-read immediately and never parse the marker text as data. (B) tests/test_headroom_invocation.py (new): a static assertion over agentflow/cli.py's cmd_shell that the headroom cmd_args construction contains no flags beyond `[\"headroom\", \"wrap\", cmd]` \u2014 fails loudly if `--intercept-tool-results` or a non-default `--mode` is ever added without a corresponding design_status.md decision, since either would defeat DEFAULT_EXCLUDE_TOOLS's protection for Read/Grep.",
-      "owns": [
-        "commands/claude/oracle.md",
-        "commands/claude/orchestrate.md",
-        "tests/test_headroom_invocation.py"
-      ],
-      "depends_on": [
-        "T-074"
-      ],
-      "status": "complete"
-    },
-    {
-      "task_id": "T-080",
-      "title": "Fix ContentRouter mode default \u2014 cli.py sets HEADROOM_MODE=cache; tag-protect hook-injected reminders",
-      "description": "Oracle sparring 2026-07-01 (\"ContentRouter mode default\"): root cause of the T-079 incident traced to headroom's installed source (proxy/modes.py, server.py, transforms/content_router.py). `headroom wrap` with no HEADROOM_MODE set resolves via normalize_proxy_mode(mode, default=\"token\") to token mode, which sets protect_recent_reads_fraction=0.3 \u2014 overriding the library's own safe default (0.0 = protect all DEFAULT_EXCLUDE_TOOLS output unconditionally). Under token mode, excluded-tool (Read/Grep/Write/Edit) results older than ~30% of the conversation fall through to SmartCrusher compression despite being \"excluded\". Fix: cli.py's cmd_shell sets HEADROOM_MODE=cache explicitly alongside HEADROOM_WORKSPACE_DIR so the protective 0.0 default holds regardless of session length. Belt-and-suspenders: hook-injected idx_reminder/verbosity_reminder text isn't a tool_result block (can't rely on exclude_tools) \u2014 wrap in a custom XML tag (protected verbatim via headroom's tag_protector, compress_tagged_content=False default) so hook reminders survive compression the same way tool_result exclusions do.",
-      "owns": [
-        "agentflow/cli.py",
-        "agentflow/hooks/idx_reminder.py",
-        "agentflow/hooks/verbosity_reminder.py"
-      ],
-      "depends_on": [
-        "T-079"
-      ],
-      "status": "complete"
-    },
-    {
-      "task_id": "T-081",
-      "title": "A/B test verbosity control savings \u2014 replace assumed 600-token baseline with measured data",
-      "description": "Oracle sparring 2026-07-01: report_builder.py:54 computes verbosity_savings = sum(max(0, 600 - output_tokens)) across the full lifetime verbosity_log.jsonl (5,351+ turns since project start), where 600 is architecture.md's modeled, never-measured estimate of no-hook output length. That unvalidated per-turn baseline is summed with real measured savings (file_reads_saved) into total_saved, dominating the reported percentage (~79% of the headline figure) despite being an assumption, not a measurement. Build a controlled comparison: gate agentflow/hooks/verbosity_reminder.py behind an env var so it can be disabled; run N comparable sessions/tasks with the hook off and N with it on, capture output_tokens for both arms via session_manager.py's existing per-turn logging (tag entries with an arm/session_type so they're distinguishable in verbosity_log.jsonl). Compute measured mean/p90 for each arm; replace the hardcoded 600 constant in report_builder.py with the measured hook-off baseline (config-driven, not a magic number), and surface sample size + confidence interval next to the savings figure so small-sample runs aren't presented as precise. Also fix the scope mismatch: verbosity_savings currently sums the entire lifetime log while file_reads_saved is scoped to current shadow_reads.jsonl entries \u2014 align both to the same reporting window before summing into total_saved.",
-      "owns": [
-        "agentflow/shadow/verbosity_ab.py",
-        "agentflow/hooks/verbosity_reminder.py",
-        "agentflow/reporting/report_builder.py",
-        "tests/shadow/test_verbosity_ab.py",
-        "tests/reporting/test_report_builder.py"
-      ],
-      "depends_on": [
-        "T-072",
-        "T-073"
-      ],
-      "status": "complete"
-    },
-    {
-      "task_id": "T-082",
-      "title": "Fix headroom compression data source in report_builder.py",
-      "description": "build_report() falls back to ~/.headroom/headroom.db (SQLite via headroom.storage.create_storage) when project-local .headroom/headroom.db is absent \u2014 but the installed headroom-ai proxy actually persists this project's telemetry to .headroom/proxy_savings.json (JSON ledger; 2026-07-02 snapshot: 1,027 requests, 9,035,421 lifetime tokens_saved). get_summary_stats() against the SQLite path returns 0 requests, so compression_savings is permanently 0 despite real measured savings existing.",
-      "owns": [
-        "agentflow/reporting/report_builder.py",
-        "tests/reporting/test_report_builder.py"
-      ],
-      "status": "complete",
-      "pr": 46,
-      "merged_at": "2026-07-02T15:24:04Z"
-    },
-    {
-      "task_id": "T-083",
-      "title": "Split shadow-waste vs real-savings labeling in report output",
-      "description": "\"Savings Breakdown by Strategy\" mixes two different metrics under one label. idx/no-reread/indexing-gap come from get_bucketed_stats and measure shadow *waste* (tokens lost to unimplemented or violated optimizations) \u2014 0 for idx is the correct/good outcome once read_check.py enforces compliance (realized idx savings are already counted separately in total_saved via file_reads_saved, not in this bucket). state-docs is a raw read-volume figure, not a waste or savings number. verbosity and compression are actual realized savings. Presenting all six under one \"Savings Breakdown\" header reads as \"idx saved 0 tokens\" when it means \"0 tokens wasted \u2014 compliance enforced upstream.\" Fix: split into two sections in both console output and dashboard_template.html \u2014 \"Waste Avoided (shadow, lower is better)\" for idx/no-reread/indexing-gap, and \"Real Savings Realized\" for state-docs volume (relabeled as volume, not savings), verbosity, compression, and the total_saved headline. Depends on T-082 (compression numbers should be real before relabeling the section that surfaces them).",
-      "owns": [
-        "agentflow/reporting/report_builder.py",
-        "agentflow/reporting/dashboard_template.html"
-      ],
-      "depends_on": [
-        "T-082"
-      ],
-      "status": "complete"
-    },
-    {
-      "task_id": "T-084",
-      "title": "Recover headroom compression savings lost to cache mode's strict prefix freeze",
-      "description": "T-080 set HEADROOM_MODE=cache to fix the T-079 corruption incident (stale excluded-tool output falling through to compression). Root-caused via oracle re-spar 2026-07-02: is_cache_mode() in headroom/proxy/handlers/anthropic.py:911-915 unconditionally overrides frozen_message_count via _strict_previous_turn_frozen_count() \u2014 freezing every message except the current turn, for every tool type, not just the Read/Grep/Write/Edit set T-080's commit message described. Evidence from .headroom/logs/proxy.log: pre-cutover (old default/token-mode session) 649/882 requests (74%) compressed, saving 8,960,769 tokens; post-cutover (cache mode) 8/920 requests (<1%, all in the ~2min transition window) \u2014 steady state since is transforms=none on literally every request. Net effect: cache mode didn't narrow compression to protect docs, it disabled ContentRouter for the entire conversation history except the newest message, killing ~all real headroom savings for this workload. (1) Check whether headroom exposes a way to keep the T-080 fix (Read/Grep/Write/Edit always protected, protect_recent_reads_fraction=0.0) without forcing is_cache_mode()'s strict all-but-latest-turn freeze \u2014 e.g. token mode + a custom exclude_tools/protect_recent_reads_fraction override, bypassing the mode dichotomy entirely. (2) If no such config exists upstream, decide consciously: accept near-zero compression as the cost of prefix-cache safety, or file upstream against headroom-ai for a narrower knob. (3) Update .agentflow/headroom_eval.md and architecture.md's Headroom section with the real, measured trade-off \u2014 the 60%+ vendor claim and the original T-071 integration decision were made without knowing cache mode's actual scope.",
-      "owns": [
-        "agentflow/cli.py",
-        ".agentflow/headroom_eval.md"
-      ],
-      "status": "complete"
-    },
-    {
-      "task_id": "T-085",
-      "title": "Calibrate handoff/session-recycling savings from real ledger data, add as report line item",
-      "description": "architecture.md's Handoff (context cycling) model uses an invented 500 tok/turn constant to project ~40% savings \u2014 never measured, and design_status.md flags session-recycling as entirely missing from combined_report.html's get_bucketed_stats buckets. Oracle re-spar 2026-07-02 resolved the approach: don't build new per-turn input-token logging (too much new scope for the value); instead recalibrate the existing formula from the 99 real closed sessions already in agentflow_ledger.json. (1) New module agentflow/reporting/handoff_savings.py: for each closed session compute (final_ctx - initial_ctx) / n_turns, bucket by session_type (oracle/orchestrator). (2) Use the p25 percentile (not median) as the calibrated tok/turn constant \u2014 conservative bias per user direction, savings claims should undershoot for customer bill-reconciliation credibility, not overshoot. (3) Feed the calibrated constant into the existing triangular-sum handoff model to produce a session-recycling savings figure; wire into report_builder.py as a new line item (keep report_builder.py itself under the 250-line cap \u2014 extend via the new module, not inline). (4) The report line item must carry an explicit methodology label ('modeled from N=99 measured sessions, p25 conservative percentile, triangular-sum projection') \u2014 never presented as directly-measured, matching the aggregate-vs-waste labeling split T-083 established. (5) Update architecture.md's Handoff section to cite the calibrated constant and methodology instead of the assumed 500 tok/turn.",
-      "owns": [
-        "agentflow/reporting/handoff_savings.py",
-        "agentflow/reporting/report_builder.py",
-        "architecture.md"
-      ],
-      "status": "complete"
-    },
-    {
-      "task_id": "T-086",
-      "title": "Move headroom-wrap toggle from ambient env var into AgentFlow config; add startup active/inactive banner",
-      "description": "Incident 2026-07-02: a live PTY session showed zero headroom compression for hours (confirmed via lsof \u2014 claude connected directly to Anthropic edge IPs on :443, no local proxy in the path; .headroom/proxy_savings.json history had zero new entries since before the session started). Root cause: cmd_shell() (agentflow/cli.py:117) only invokes `headroom wrap <cmd>` if `os.environ.get(\"AGENTFLOW_ENABLE_HEADROOM\")` is truthy in whatever shell happened to launch `python -m agentflow shell` \u2014 the one remaining ambient-environment dependency in an otherwise self-contained setup (HEADROOM_WORKSPACE_DIR and HEADROOM_MODE are already set unconditionally by cmd_shell itself once the gate passes). If that shell never exported the var, cmd_shell silently falls back to bare `claude` with zero indication \u2014 this is the second silent headroom-disabled incident (see T-084/T-080 history). (1) Add a `headroom.enabled` field (bool, default true) to agentflow/config/schema.py + defaults.yaml \u2014 config-owned, not shell-ambient. cmd_shell wraps whenever this resolves true AND shutil.which(\"headroom\") succeeds. (2) Keep AGENTFLOW_ENABLE_HEADROOM as an explicit override only (env var wins over config if set), for anyone who wants to force-disable without editing config. (3) On PTY startup, print one line stating whether headroom wrap is active or inactive (and why, if inactive: not installed vs config-disabled vs env-override) \u2014 belt-and-suspenders so a future gap is visible, not silent. (4) Tests: config default-on behavior, env-override-wins behavior, and the startup banner text for all three inactive reasons.",
-      "owns": [
-        "agentflow/cli.py",
-        "agentflow/config/schema.py",
-        "agentflow/config/defaults.yaml",
-        "tests/test_cli_shell.py"
-      ],
-      "status": "complete"
-    },
-    {
-      "task_id": "T-087",
-      "title": "Add steady-state (post-regression-fix) savings percentage alongside lifetime total in report_builder.py",
-      "description": "Oracle re-spar 2026-07-02: combined_report.html currently reports one lifetime pct_saved blended across full ledger history, including the T-084 cache-mode regression window (compression steady-state <1%) and the T-086 silent-headroom-off window (compression 0 for hours) -- both real degradations, not measurement bugs, so they cannot be retroactively backfilled (see T-084/T-086). A single blended percentage understates current system capability for demo/investor use. (1) Add a second computed figure in report_builder.py: steady-state pct_saved, scoped to sessions closed after the later of T-084s and T-086s merge timestamps (fixes trading correctness), using the same total_saved formula as the lifetime figure. (2) Keep the existing lifetime pct_saved (full history) unchanged -- do not remove it, it is the more auditable/credible number and shows the regression-and-recovery trend. (3) Render both in combined_report.html: lifetime figure stays in Real Savings Realized; steady-state figure added as its own clearly-labeled stat (e.g. \"Current / Steady-State Savings\") near the top summary stats, not buried in the details section. (4) Keep report_builder.py under the 250-line cap -- extend via a small helper (e.g. steady_state.py in agentflow/reporting/) rather than growing report_builder.py inline, matching the T-085 pattern.",
-      "owns": [
-        "agentflow/reporting/report_builder.py",
-        "agentflow/reporting/steady_state.py",
-        "agentflow/reporting/dashboard_template.html",
-        "tests/test_steady_state.py"
-      ],
-      "status": "complete",
-      "pr": 51,
-      "merge_commit": "429bcdea4ea8281457c7f01bc56b9ef78456e473"
-    },
-    {
-      "task_id": "T-088",
-      "title": "Surface index-driven read savings as its own report line item",
-      "description": "Oracle re-spar 2026-07-02: report_builder.py computes file_reads_saved (baseline=25%-of-file vs actual bytes read, lines 162-184) across every read entry and rolls it into total_saved, but never surfaces it as its own row \u2014 the strategy list shows waste buckets (idx/no-reread/indexing-gap/state-docs) individually but the realized savings side is invisible, anonymously folded into the 'Total Tokens Saved' headline. Also file_reads_saved currently conflates idx-driven reduction with any generic offset/limit reduction (idx not required). (1) Split the per-entry loop into two accumulators: idx_savings (entries where idx_exists=True) vs offset_savings (entries with offset/limit but no idx) \u2014 same baseline/real formula, partitioned by idx_exists. (2) Add 'Targeted Reads \u2014 Savings Realized (idx)' as a new row under Real Savings Realized in dashboard_template.html and report_builder.py's template substitution, using idx_savings. (3) total_saved formula unchanged (idx_savings + offset_savings must still sum to the existing file_reads_saved so Total Tokens Saved doesn't shift). (4) Label clearly as measured (not modeled) \u2014 matches T-083's real-savings-vs-waste labeling split.",
-      "owns": [
-        "agentflow/reporting/report_builder.py",
-        "agentflow/reporting/dashboard_template.html"
-      ],
-      "status": "complete",
-      "merge_commit": "2c7a03393dbf7a13b6aa33144bb858dbb8dd1d72"
-    },
-    {
-      "task_id": "T-089",
-      "title": "Relabel Percentage Saved / Steady-State stats + reconcile windowing across all savings sources",
-      "description": "Oracle re-spar 2026-07-02 (session-recycling investigation): dashboard_template.html:134 labels \"Percentage Saved\" as \"(lifetime, all sessions)\" -- false since T-087's commit 4ad1fde windowed all of build_report()'s raw_entries to WINDOW_START (post T-084/T-086). Also \"Percentage Saved\" (file-reads+verbosity+compression only) and \"Current/Steady-State Savings\" (handoff/session-recycling only, via shadow_tracker.update_shadow's shadow_event) are two unrelated strategies presented as if comparable -- their 5x divergence (8.2% vs 42.4% at investigation time) reads as a bug when it's really an unscoped-label problem. Fix: (1) correct/remove the stale \"(lifetime, all sessions)\" label; (2) relabel both stats to name their actual scope (e.g. \"File-Read + Verbosity + Compression Savings\" vs \"Session-Recycling (Handoff) Savings\"); (3) reconcile windowing -- log-driven path filters raw_entries by WINDOW_START directly, steady_state.py uses ledger sessions closed >= WINDOW_START (N=5 at investigation time), but handoff_savings.py (T-085) ignores the window entirely and calibrates from all 108 lifetime closed sessions. Pick one consistent post-fix window and apply it everywhere before any of these numbers can be validly compared or combined.",
-      "owns": [
-        "agentflow/reporting/dashboard_template.html",
-        "agentflow/reporting/report_builder.py",
-        "agentflow/reporting/handoff_savings.py"
-      ],
-      "reads": [
-        "agentflow/reporting/steady_state.py",
-        "agentflow/shadow_tracker.py"
-      ],
-      "depends_on": [],
-      "status": "complete"
-    },
-    {
-      "task_id": "T-090",
-      "title": "Combine all four savings strategies into one reconciled overall percentage",
-      "description": "No single number currently represents total AgentFlow savings: report_builder.py's \"Percentage Saved\" excludes handoff/session-recycling entirely -- the single largest lever, independently measured at ~42-45% by both steady_state.py (shadow_tracker per-session real-vs-shadow ratio) and handoff_savings.py (T-085's triangular-sum model) -- while get_bucketed_stats' waste buckets are separately excluded by design (T-083). Blocked on T-089 (needs consistent windowing first) and on resolving a compression double-count found during the 2026-07-02 investigation: compression_real (headroom's cumulative total_input_tokens delta) structurally overlaps the same file-read and verbosity content already counted once in file_reads_real/verbosity_real, because every API request re-sends prior context -- summing them into one total_real is apples-to-oranges and let compression's ~95%-of-denominator volume swamp the other two strategies' contribution in the investigated window. Approach: add handoff/session-recycling's real-vs-shadow delta (from shadow_tracker per-session shadow_event, windowed per T-089) into total_saved/total_real alongside the existing three \"real\" categories, only after compression's cumulative-cost basis is either normalized to a comparable per-event basis or kept as a separately-reported (not blended) figure.",
-      "owns": [
-        "agentflow/reporting/report_builder.py"
-      ],
-      "reads": [
-        "agentflow/shadow_tracker.py",
-        "agentflow/reporting/steady_state.py",
-        "agentflow/reporting/handoff_savings.py",
-        "agentflow_ledger.json"
-      ],
-      "depends_on": [
-        "T-089"
-      ],
-      "status": "complete"
-    }
-  ],
+  {
+    "task_id": "T-008",
+    "title": "PTY session manager \u2014 handoff, countdown, idx injection",
+    "owns": [
+      "agentflow/shell/session_manager.py",
+      "agentflow/shell/countdown.py"
+    ],
+    "reads": [
+      "agentflow/shell/pty_wrapper.py",
+      "agentflow/shell/tokenizer.py"
+    ],
+    "depends_on": [
+      "T-006"
+    ],
+    "acceptance_criteria": "SessionManager detects session type, injects idx banner every 3 turns, triggers handoff+countdown+restart when threshold exceeded; countdown callable works standalone",
+    "estimated_lines": 220,
+    "context_section": "architecture.md#pty-shell-design",
+    "status": "complete",
+    "pr": 32
+  },
+  {
+    "task_id": "T-009",
+    "title": "CLI cmd_shell \u2014 PTY I/O relay loop",
+    "owns": [
+      "agentflow/cli.py"
+    ],
+    "reads": [
+      "agentflow/shell/pty_wrapper.py",
+      "agentflow/shell/session_manager.py",
+      "agentflow/shell/tokenizer.py",
+      "agentflow/shell/countdown.py"
+    ],
+    "depends_on": [
+      "T-008"
+    ],
+    "acceptance_criteria": "agentflow shell --command claude launches claude under PTY; IDX banners every 3 turns; handoff fires at threshold; terminal restored on exit",
+    "estimated_lines": 60,
+    "status": "complete",
+    "pr": 33
+  },
+  {
+    "task_id": "T-010",
+    "title": "PTY \u2014 per-turn output token tracking + verbosity compliance signal",
+    "owns": [
+      "agentflow/shell/session_manager.py"
+    ],
+    "reads": [
+      "agentflow/shell/tokenizer.py",
+      "agentflow/shell/pty_wrapper.py"
+    ],
+    "depends_on": [
+      "T-009"
+    ],
+    "acceptance_criteria": "verbosity_log.jsonl accumulates per-turn output token counts; banner fires on verbose turns; shadow analyzer reads mean/p90 vs 150-token target",
+    "estimated_lines": 50,
+    "status": "complete",
+    "pr": 34
+  },
+  {
+    "task_id": "T-060",
+    "title": "Provider-keyed rate calibration files: rate_calibration_claude.json / rate_calibration_gemini.json",
+    "owns": [
+      "commands/claude/orchestrate.md",
+      "commands/claude/oracle.md",
+      "commands/gemini/skills/orchestrate/SKILL.md",
+      "tests/prompts/test_oracle_skill.py",
+      "tests/prompts/test_orchestrate_skill.py"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-056",
+    "title": "read_check.py: skip block on empty idx + compress output message",
+    "description": "Two fixes to read_check.py PreToolUse hook. (1) False-positive block: when .idx exists but is 0 bytes (file <50 lines or no indexable sections), hook still fires sys.exit(1) \u2014 add short-circuit after strip() so empty idx allows full read through. (2) Verbose output: current 3-line error message (~50 tokens) fires into model context on every blocked read; compress to single telegraphic line.",
+    "owns": [
+      "agentflow/hooks/read_check.py",
+      "tests/hooks/test_read_check.py"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-062",
+    "title": "UserPromptSubmit hook \u2014 .idx reminder injection (replaces PTY stdin)",
+    "description": "Wire up agentflow/hooks/idx_reminder.py as a UserPromptSubmit hook in .claude/settings.json. Hook fires after user submits each message (input field already cleared \u2014 injection invisible). Every 3rd turn outputs [IDX] reminder text; Claude receives it as context without user seeing it in the input field. Add tests/hooks/test_idx_reminder.py covering: counter increments on each call, reminder output on turn 3/6/9, no output on turns 1/2/4, counter file created if absent, counter resets gracefully on corrupt file. Remove PTY stdin .idx injection from session_manager.py (_inject_idx_banner call site in the every-3-turns path) \u2014 hook supersedes it. PTY Read-event detection (T-052) stays: it is reactive (fires on detected Read calls), hook is proactive (periodic recalibration). Both complement; stdin injection is the only part removed.",
+    "owns": [
+      "agentflow/hooks/idx_reminder.py",
+      ".claude/settings.json",
+      "agentflow/shell/session_manager.py",
+      "tests/hooks/test_idx_reminder.py"
+    ],
+    "reads": [
+      "agentflow/hooks/read_check.py"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-058",
+    "title": "PostToolUse hook: block Write/Edit when file exceeds line limit",
+    "description": "New hook agentflow/hooks/size_check.py \u2014 PostToolUse on Write and Edit. After each write, read the modified file and check line count against per-category limits: tests/ \u2192 350, commands/ \u2192 150, all other .py \u2192 250. Stubs excluded: files whose content is >50% pass/ellipsis lines skip the check. On violation: print single telegraphic message and exit(1) to block next tool call \u2014 \"FILE TOO LARGE: <rel_path> is <N> lines (limit <L>) \u2014 split by responsibility boundary before proceeding.\" On pass: exit(0), no output. Register under PostToolUse for both Write and Edit matchers in .claude/settings.json alongside write_indexer. Add tests/hooks/test_size_check.py covering: under-limit passes, over-limit blocks, correct limit per category, stub exemption, non-.py files skipped.",
+    "owns": [
+      "agentflow/hooks/size_check.py",
+      "tests/hooks/test_size_check.py",
+      ".claude/settings.json"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-059",
+    "title": "Bake verbosity target into skill prompts as standing instruction",
+    "description": "Add a consistent verbosity target to oracle.md and orchestrate.md as a permanent standing instruction, not an optional argument. oracle.md: promote the Phase 2 verbosity note (\"\u22643 sentences per exchange\") to a top-level instruction visible before any phase executes \u2014 add \"\u22643 sentences (~150 tokens) per response; expand only if user asks\" near the opening. Remove the duplicate in Phase 2. orchestrate.md: extend the existing \"## Verbosity rules\" section to include the token target \u2014 \"\u22643 sentences (~150 tokens) per orchestrator status message\". Both changes must survive context growth (instruction must appear early in the file, not only in a late section). No changes to handoff.md, drift.md, or worker prompts \u2014 those are single-purpose and do not have multi-turn verbosity risk.",
+    "owns": [
+      "commands/claude/oracle.md",
+      "commands/claude/orchestrate.md"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-065",
+    "title": "Orchestrate skill \u2014 structured PTY signals + current_round.json",
+    "description": "Enable PTY to track task lifecycle deterministically. (1) commands/claude/orchestrate.md: at round start, write .agentflow/current_round.json with {round_id, task_ids, estimated_lines_per_task, file_counts_per_task, timestamp}. (2) Before spawning each worker, print AGENTFLOW_TASK_START:<task_id> to stdout. (3) After each worker completes, print AGENTFLOW_TASK_COMPLETE:<task_id>. (4) After all round tasks complete, print AGENTFLOW_ROUND_COMPLETE. (5) commands/gemini/skills/orchestrate/SKILL.md: same four signals. (6) Tests: test_orchestrate_skill.py \u2014 assert all four signal strings present in Claude and Gemini skill content; assert current_round.json write step present.",
+    "owns": [
+      "commands/claude/orchestrate.md",
+      "commands/gemini/skills/orchestrate/SKILL.md",
+      "tests/prompts/test_orchestrate_skill.py"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-070",
+    "title": "read_check.py \u2014 block large-range reads that bypass idx enforcement",
+    "description": "read_check.py currently blocks reads with no offset/limit when an idx exists. Gap: reads with offset\u22480 + large limit (e.g. offset=7, limit=168 on a 174-line file) pass unblocked despite covering nearly the full file. Fix: (1) When offset and limit are both present, count total lines in file (stdlib only). (2) Compute coverage = limit / (total_lines - offset). (3) If coverage > threshold (default 0.60) AND idx exists \u2192 exit 1 with message: \"Large-range read (N/M lines, X%) \u2014 use idx to target specific sections\". (4) If file < 50 lines (no idx expected) \u2192 skip check. (5) Threshold configurable via AGENTFLOW_READ_COVERAGE_THRESHOLD env var. (6) Tests: tests/hooks/test_read_check.py \u2014 assert exit 1 on large-range read with idx present; assert exit 0 on targeted read (small limit); assert exit 0 on file < 50 lines; assert exit 0 when no idx exists regardless of range.",
+    "owns": [
+      "agentflow/hooks/read_check.py",
+      "tests/hooks/test_read_check.py"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-066",
+    "title": "PTY session_manager \u2014 ROUND_COMPLETE detection + token-floor handoff",
+    "description": "Replace pure token-threshold handoff with deterministic round-boundary handoff. (1) session_manager.py: scan stdout for AGENTFLOW_ROUND_COMPLETE. On detection: (a) read .agentflow/current_round.json to confirm round closed, (b) check accumulated_tokens vs configurable floor (shell.handoff_token_floor_pct, default 0.30 of threshold). (2) If above floor: call trigger_handoff() \u2014 clean boundary, no mid-task interrupt. (3) If below floor: log round-complete-low-tokens event to verbosity_log.jsonl, reset round state, continue. Token threshold remains as a safety net if ROUND_COMPLETE is never emitted. (4) Tests: test_session_manager.py \u2014 mock ROUND_COMPLETE in PTY stdout; assert handoff triggered when tokens above floor; assert handoff skipped and continued when below floor.",
+    "owns": [
+      "agentflow/shell/session_manager.py",
+      "tests/shell/test_session_manager.py"
+    ],
+    "reads": [
+      ".agentflow/current_round.json"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-067",
+    "title": "PTY session_manager \u2014 per-task token bracketing \u2192 task_token_log.jsonl",
+    "description": "Collect empirical per-task token data to power the future estimator. (1) session_manager.py: on AGENTFLOW_TASK_START:<task_id>, snapshot tokenizer accumulator value as task_start_tokens. (2) On AGENTFLOW_TASK_COMPLETE:<task_id>, compute delta = current_accumulated - task_start_tokens; read estimated_lines and file_count for this task_id from current_round.json. (3) Append to ~/.agentflow/task_token_log.jsonl: {task_id, session_type, token_delta, estimated_lines, file_count, timestamp}. File created if absent. (4) Tests: test_session_manager.py \u2014 emit TASK_START + TASK_COMPLETE signals; assert task_token_log.jsonl entry written with correct delta and metadata.",
+    "owns": [
+      "agentflow/shell/session_manager.py",
+      "tests/shell/test_session_manager.py"
+    ],
+    "reads": [
+      ".agentflow/current_round.json",
+      "~/.agentflow/task_token_log.jsonl"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-071",
+    "title": "Evaluate headroom-ai library \u2014 integration feasibility for PTY + M5",
+    "description": "Research spike: determine what headroom-ai actually does before designing integration. (1) pip install headroom-ai[all]; run `headroom wrap claude --help` and explore CLI flags. (2) Determine mechanism: subprocess wrapper, HTTP proxy, ANTHROPIC_BASE_URL intercept, or other \u2014 and whether it conflicts with PTY stdin/stdout interception. (3) Understand compress(): what algorithm, lossless or lossy, token savings estimate. (4) Understand SharedContext: in-memory or persistent? Cross-process? How does cross-provider sharing work? (5) Check whether headroom exposes per-session compression metrics readable by a report generator. (6) Write findings to .agentflow/headroom_eval.md: mechanism, composability verdict, savings estimate, SharedContext design implications for M5, recommended integration approach or DEFER if incompatible.",
+    "owns": [
+      ".agentflow/headroom_eval.md"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-073",
+    "title": "Fix verbosity signal reliability \u2014 incremental writes + reminder hook",
+    "description": "verbosity_log.jsonl only written in _on_session_exit (batched, last-10-turns) \u2014 sessions restarted via /clear (not a real process exit) never reach this path, silently losing all verbosity data; confirmed zero oracle-tagged entries despite completed oracle sessions. Also T-052/T-055 marked MERGED but the 'proactive verbosity banner' was never implemented (_verbosity_last_inject set once, never read; should_inject_banner absent from code and tests) \u2014 dead state. Fix: (1) session_manager.py \u2014 write each entry to verbosity_log.jsonl incrementally at turn-boundary detection (same site as _turn_output_history.append), not batched at exit; remove dead _verbosity_last_inject/_initial_banner_sent if superseded by (2). (2) New hook agentflow/hooks/verbosity_reminder.py \u2014 separate file from idx_reminder.py (one-concern-per-file convention), own counter (~/.agentflow/verbosity_turn_counter), fires every 1-2 turns (tighter than idx's 3) reminding to keep responses \u2264 3 sentences. Register as new entry under UserPromptSubmit in .claude/settings.json. (3) Tests: tests/shell/test_session_manager.py \u2014 assert incremental write fires at turn boundary without requiring exit; tests/hooks/test_verbosity_reminder.py \u2014 mirror test_idx_reminder.py structure, assert own counter + cadence.",
+    "owns": [
+      "agentflow/shell/session_manager.py",
+      "agentflow/hooks/verbosity_reminder.py",
+      ".claude/settings.json",
+      "tests/shell/test_session_manager.py",
+      "tests/hooks/test_verbosity_reminder.py"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-076",
+    "title": "Size-limit enforcement gap \u2014 Gemini writes + pre-existing violations uncovered",
+    "description": "T-058's size_check.py is Claude-Code-specific (PostToolUse hook); it never fires for (a) files that existed before Claude's Write/Edit tool touched them (e.g. agentflow.py), or (b) Gemini CLI writes \u2014 no equivalent hook mechanism wired for Gemini. (1) Add standalone agentflow/hooks/size_audit.py \u2014 walks repo, applies same per-category limits as size_check.py (tests/->350, commands/->150, other .py->250, stub-exempt), reports every current violation. (2) Wire as a manual/orchestrator-invoked sweep (python3 agentflow/hooks/size_audit.py) callable at milestone boundaries by either provider's orchestrate skill \u2014 not a live hook, since no PostToolUse-equivalent event exists for Gemini CLI today. (3) Investigate whether Gemini CLI supports an analogous post-write hook; if yes, wire a size_check.py equivalent; if no, document the gap in design_status.md and rely on the periodic sweep. Tests: tests/hooks/test_size_audit.py \u2014 fixture repo with known violations, assert correct per-category detection.",
+    "owns": [
+      "agentflow/hooks/size_audit.py",
+      "tests/hooks/test_size_audit.py"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-077",
+    "title": "Spike \u2014 can headroom's proxy auto-capture 5hr/weekly usage windows?",
+    "description": "Research spike: orchestrate.md's rate-pacing protocol currently asks the user to manually run `/usage` and report 5hr/weekly % + reset times + caps for both claude and agy (design_status.md #57). Determine whether headroom's local HTTP proxy (T-074) can capture this automatically instead. NOTE: per-request token usage (input/output/cache) is already solved via existing JSONL/DB parsing (usage_parser.py) \u2014 this spike is scoped ONLY to the 5hr/weekly window %, reset_min, and cap fields that `/usage` displays. (1) Run `headroom wrap claude`, trigger `/usage` inside the session, and passively observe proxy traffic (headroom debug/verbose logging, or a temporary logging shim) to determine: does the underlying network call for `/usage` route through ANTHROPIC_BASE_URL (i.e. through the local proxy), or does it hit a different host directly? Only observe traffic the client already sends normally \u2014 do not attempt to authenticate to or probe undocumented endpoints directly. (2) If it routes through the proxy: inspect whether the response body/headers contain parseable window %/reset/cap fields; note exact shape if so. (3) Repeat for `headroom wrap agy` + agy's `/usage` \u2014 treat as fully separate from T-074's compression-savings verification (design_status.md #92 marks that UNVERIFIED; this spike tests usage-window visibility specifically, not compression). (4) Write findings to .agentflow/headroom_usage_eval.md: mechanism confirmed or not (per provider), feasibility verdict, and if not feasible, explicit recommendation to keep the current manual-ask + ledger-anchored derivation (design_status.md #57) as-is. No code changes \u2014 spike only, same shape as T-071.",
+    "owns": [
+      ".agentflow/headroom_usage_eval.md"
+    ],
+    "depends_on": [
+      "T-074"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-079",
+    "title": "Harden gate-file reads against Headroom staleness \u2014 skill rule + invocation audit",
+    "description": "Oracle re-spar 2026-07-01 (Headroom incident): a live /orchestrate session reported garbled-looking Read/Grep results for design_status.md and rate_calibration_claude.json, correctly refused to act on them, and paused. Root cause traced in the installed headroom package, not guesswork: headroom/config.py's DEFAULT_EXCLUDE_TOOLS already excludes Read/Glob/Grep/Write/Edit from ContentRouter compression, and cli.py's `headroom wrap claude` invocation (cmd_shell, ~line 118-120) passes no flags, so that protection is intact by default. The live risk is headroom/transforms/read_lifecycle.py's ReadLifecycleConfig (compress_stale=True by default), which runs independent of tool exclusion and rewrites a prior turn's Read of a file into a `[Read content stale ... re-read the file]` marker once that file is later Written/Edited \u2014 a pattern AgentFlow's own handoff/calibration tooling triggers constantly on design_status.md/tasks.json/rate_calibration_claude.json within a single long-running skill session. Two-part fix. (A) commands/claude/oracle.md + commands/claude/orchestrate.md: add a standing rule near each skill's gate-check steps (design_status.md UNRESOLVED scan, tasks.json status reads, rate-calibration reads) \u2014 always issue a fresh same-turn Read before using a gate file's contents for a decision; if a Headroom stale/superseded marker or any garbled/truncated-looking result appears on a gate file, re-read immediately and never parse the marker text as data. (B) tests/test_headroom_invocation.py (new): a static assertion over agentflow/cli.py's cmd_shell that the headroom cmd_args construction contains no flags beyond `[\"headroom\", \"wrap\", cmd]` \u2014 fails loudly if `--intercept-tool-results` or a non-default `--mode` is ever added without a corresponding design_status.md decision, since either would defeat DEFAULT_EXCLUDE_TOOLS's protection for Read/Grep.",
+    "owns": [
+      "commands/claude/oracle.md",
+      "commands/claude/orchestrate.md",
+      "tests/test_headroom_invocation.py"
+    ],
+    "depends_on": [
+      "T-074"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-080",
+    "title": "Fix ContentRouter mode default \u2014 cli.py sets HEADROOM_MODE=cache; tag-protect hook-injected reminders",
+    "description": "Oracle sparring 2026-07-01 (\"ContentRouter mode default\"): root cause of the T-079 incident traced to headroom's installed source (proxy/modes.py, server.py, transforms/content_router.py). `headroom wrap` with no HEADROOM_MODE set resolves via normalize_proxy_mode(mode, default=\"token\") to token mode, which sets protect_recent_reads_fraction=0.3 \u2014 overriding the library's own safe default (0.0 = protect all DEFAULT_EXCLUDE_TOOLS output unconditionally). Under token mode, excluded-tool (Read/Grep/Write/Edit) results older than ~30% of the conversation fall through to SmartCrusher compression despite being \"excluded\". Fix: cli.py's cmd_shell sets HEADROOM_MODE=cache explicitly alongside HEADROOM_WORKSPACE_DIR so the protective 0.0 default holds regardless of session length. Belt-and-suspenders: hook-injected idx_reminder/verbosity_reminder text isn't a tool_result block (can't rely on exclude_tools) \u2014 wrap in a custom XML tag (protected verbatim via headroom's tag_protector, compress_tagged_content=False default) so hook reminders survive compression the same way tool_result exclusions do.",
+    "owns": [
+      "agentflow/cli.py",
+      "agentflow/hooks/idx_reminder.py",
+      "agentflow/hooks/verbosity_reminder.py"
+    ],
+    "depends_on": [
+      "T-079"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-081",
+    "title": "A/B test verbosity control savings \u2014 replace assumed 600-token baseline with measured data",
+    "description": "Oracle sparring 2026-07-01: report_builder.py:54 computes verbosity_savings = sum(max(0, 600 - output_tokens)) across the full lifetime verbosity_log.jsonl (5,351+ turns since project start), where 600 is architecture.md's modeled, never-measured estimate of no-hook output length. That unvalidated per-turn baseline is summed with real measured savings (file_reads_saved) into total_saved, dominating the reported percentage (~79% of the headline figure) despite being an assumption, not a measurement. Build a controlled comparison: gate agentflow/hooks/verbosity_reminder.py behind an env var so it can be disabled; run N comparable sessions/tasks with the hook off and N with it on, capture output_tokens for both arms via session_manager.py's existing per-turn logging (tag entries with an arm/session_type so they're distinguishable in verbosity_log.jsonl). Compute measured mean/p90 for each arm; replace the hardcoded 600 constant in report_builder.py with the measured hook-off baseline (config-driven, not a magic number), and surface sample size + confidence interval next to the savings figure so small-sample runs aren't presented as precise. Also fix the scope mismatch: verbosity_savings currently sums the entire lifetime log while file_reads_saved is scoped to current shadow_reads.jsonl entries \u2014 align both to the same reporting window before summing into total_saved.",
+    "owns": [
+      "agentflow/shadow/verbosity_ab.py",
+      "agentflow/hooks/verbosity_reminder.py",
+      "agentflow/reporting/report_builder.py",
+      "tests/shadow/test_verbosity_ab.py",
+      "tests/reporting/test_report_builder.py"
+    ],
+    "depends_on": [
+      "T-072",
+      "T-073"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-082",
+    "title": "Fix headroom compression data source in report_builder.py",
+    "description": "build_report() falls back to ~/.headroom/headroom.db (SQLite via headroom.storage.create_storage) when project-local .headroom/headroom.db is absent \u2014 but the installed headroom-ai proxy actually persists this project's telemetry to .headroom/proxy_savings.json (JSON ledger; 2026-07-02 snapshot: 1,027 requests, 9,035,421 lifetime tokens_saved). get_summary_stats() against the SQLite path returns 0 requests, so compression_savings is permanently 0 despite real measured savings existing.",
+    "owns": [
+      "agentflow/reporting/report_builder.py",
+      "tests/reporting/test_report_builder.py"
+    ],
+    "status": "complete",
+    "pr": 46,
+    "merged_at": "2026-07-02T15:24:04Z"
+  },
+  {
+    "task_id": "T-083",
+    "title": "Split shadow-waste vs real-savings labeling in report output",
+    "description": "\"Savings Breakdown by Strategy\" mixes two different metrics under one label. idx/no-reread/indexing-gap come from get_bucketed_stats and measure shadow *waste* (tokens lost to unimplemented or violated optimizations) \u2014 0 for idx is the correct/good outcome once read_check.py enforces compliance (realized idx savings are already counted separately in total_saved via file_reads_saved, not in this bucket). state-docs is a raw read-volume figure, not a waste or savings number. verbosity and compression are actual realized savings. Presenting all six under one \"Savings Breakdown\" header reads as \"idx saved 0 tokens\" when it means \"0 tokens wasted \u2014 compliance enforced upstream.\" Fix: split into two sections in both console output and dashboard_template.html \u2014 \"Waste Avoided (shadow, lower is better)\" for idx/no-reread/indexing-gap, and \"Real Savings Realized\" for state-docs volume (relabeled as volume, not savings), verbosity, compression, and the total_saved headline. Depends on T-082 (compression numbers should be real before relabeling the section that surfaces them).",
+    "owns": [
+      "agentflow/reporting/report_builder.py",
+      "agentflow/reporting/dashboard_template.html"
+    ],
+    "depends_on": [
+      "T-082"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-084",
+    "title": "Recover headroom compression savings lost to cache mode's strict prefix freeze",
+    "description": "T-080 set HEADROOM_MODE=cache to fix the T-079 corruption incident (stale excluded-tool output falling through to compression). Root-caused via oracle re-spar 2026-07-02: is_cache_mode() in headroom/proxy/handlers/anthropic.py:911-915 unconditionally overrides frozen_message_count via _strict_previous_turn_frozen_count() \u2014 freezing every message except the current turn, for every tool type, not just the Read/Grep/Write/Edit set T-080's commit message described. Evidence from .headroom/logs/proxy.log: pre-cutover (old default/token-mode session) 649/882 requests (74%) compressed, saving 8,960,769 tokens; post-cutover (cache mode) 8/920 requests (<1%, all in the ~2min transition window) \u2014 steady state since is transforms=none on literally every request. Net effect: cache mode didn't narrow compression to protect docs, it disabled ContentRouter for the entire conversation history except the newest message, killing ~all real headroom savings for this workload. (1) Check whether headroom exposes a way to keep the T-080 fix (Read/Grep/Write/Edit always protected, protect_recent_reads_fraction=0.0) without forcing is_cache_mode()'s strict all-but-latest-turn freeze \u2014 e.g. token mode + a custom exclude_tools/protect_recent_reads_fraction override, bypassing the mode dichotomy entirely. (2) If no such config exists upstream, decide consciously: accept near-zero compression as the cost of prefix-cache safety, or file upstream against headroom-ai for a narrower knob. (3) Update .agentflow/headroom_eval.md and architecture.md's Headroom section with the real, measured trade-off \u2014 the 60%+ vendor claim and the original T-071 integration decision were made without knowing cache mode's actual scope.",
+    "owns": [
+      "agentflow/cli.py",
+      ".agentflow/headroom_eval.md"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-085",
+    "title": "Calibrate handoff/session-recycling savings from real ledger data, add as report line item",
+    "description": "architecture.md's Handoff (context cycling) model uses an invented 500 tok/turn constant to project ~40% savings \u2014 never measured, and design_status.md flags session-recycling as entirely missing from combined_report.html's get_bucketed_stats buckets. Oracle re-spar 2026-07-02 resolved the approach: don't build new per-turn input-token logging (too much new scope for the value); instead recalibrate the existing formula from the 99 real closed sessions already in agentflow_ledger.json. (1) New module agentflow/reporting/handoff_savings.py: for each closed session compute (final_ctx - initial_ctx) / n_turns, bucket by session_type (oracle/orchestrator). (2) Use the p25 percentile (not median) as the calibrated tok/turn constant \u2014 conservative bias per user direction, savings claims should undershoot for customer bill-reconciliation credibility, not overshoot. (3) Feed the calibrated constant into the existing triangular-sum handoff model to produce a session-recycling savings figure; wire into report_builder.py as a new line item (keep report_builder.py itself under the 250-line cap \u2014 extend via the new module, not inline). (4) The report line item must carry an explicit methodology label ('modeled from N=99 measured sessions, p25 conservative percentile, triangular-sum projection') \u2014 never presented as directly-measured, matching the aggregate-vs-waste labeling split T-083 established. (5) Update architecture.md's Handoff section to cite the calibrated constant and methodology instead of the assumed 500 tok/turn.",
+    "owns": [
+      "agentflow/reporting/handoff_savings.py",
+      "agentflow/reporting/report_builder.py",
+      "architecture.md"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-086",
+    "title": "Move headroom-wrap toggle from ambient env var into AgentFlow config; add startup active/inactive banner",
+    "description": "Incident 2026-07-02: a live PTY session showed zero headroom compression for hours (confirmed via lsof \u2014 claude connected directly to Anthropic edge IPs on :443, no local proxy in the path; .headroom/proxy_savings.json history had zero new entries since before the session started). Root cause: cmd_shell() (agentflow/cli.py:117) only invokes `headroom wrap <cmd>` if `os.environ.get(\"AGENTFLOW_ENABLE_HEADROOM\")` is truthy in whatever shell happened to launch `python -m agentflow shell` \u2014 the one remaining ambient-environment dependency in an otherwise self-contained setup (HEADROOM_WORKSPACE_DIR and HEADROOM_MODE are already set unconditionally by cmd_shell itself once the gate passes). If that shell never exported the var, cmd_shell silently falls back to bare `claude` with zero indication \u2014 this is the second silent headroom-disabled incident (see T-084/T-080 history). (1) Add a `headroom.enabled` field (bool, default true) to agentflow/config/schema.py + defaults.yaml \u2014 config-owned, not shell-ambient. cmd_shell wraps whenever this resolves true AND shutil.which(\"headroom\") succeeds. (2) Keep AGENTFLOW_ENABLE_HEADROOM as an explicit override only (env var wins over config if set), for anyone who wants to force-disable without editing config. (3) On PTY startup, print one line stating whether headroom wrap is active or inactive (and why, if inactive: not installed vs config-disabled vs env-override) \u2014 belt-and-suspenders so a future gap is visible, not silent. (4) Tests: config default-on behavior, env-override-wins behavior, and the startup banner text for all three inactive reasons.",
+    "owns": [
+      "agentflow/cli.py",
+      "agentflow/config/schema.py",
+      "agentflow/config/defaults.yaml",
+      "tests/test_cli_shell.py"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-087",
+    "title": "Add steady-state (post-regression-fix) savings percentage alongside lifetime total in report_builder.py",
+    "description": "Oracle re-spar 2026-07-02: combined_report.html currently reports one lifetime pct_saved blended across full ledger history, including the T-084 cache-mode regression window (compression steady-state <1%) and the T-086 silent-headroom-off window (compression 0 for hours) -- both real degradations, not measurement bugs, so they cannot be retroactively backfilled (see T-084/T-086). A single blended percentage understates current system capability for demo/investor use. (1) Add a second computed figure in report_builder.py: steady-state pct_saved, scoped to sessions closed after the later of T-084s and T-086s merge timestamps (fixes trading correctness), using the same total_saved formula as the lifetime figure. (2) Keep the existing lifetime pct_saved (full history) unchanged -- do not remove it, it is the more auditable/credible number and shows the regression-and-recovery trend. (3) Render both in combined_report.html: lifetime figure stays in Real Savings Realized; steady-state figure added as its own clearly-labeled stat (e.g. \"Current / Steady-State Savings\") near the top summary stats, not buried in the details section. (4) Keep report_builder.py under the 250-line cap -- extend via a small helper (e.g. steady_state.py in agentflow/reporting/) rather than growing report_builder.py inline, matching the T-085 pattern.",
+    "owns": [
+      "agentflow/reporting/report_builder.py",
+      "agentflow/reporting/steady_state.py",
+      "agentflow/reporting/dashboard_template.html",
+      "tests/test_steady_state.py"
+    ],
+    "status": "complete",
+    "pr": 51,
+    "merge_commit": "429bcdea4ea8281457c7f01bc56b9ef78456e473"
+  },
+  {
+    "task_id": "T-088",
+    "title": "Surface index-driven read savings as its own report line item",
+    "description": "Oracle re-spar 2026-07-02: report_builder.py computes file_reads_saved (baseline=25%-of-file vs actual bytes read, lines 162-184) across every read entry and rolls it into total_saved, but never surfaces it as its own row \u2014 the strategy list shows waste buckets (idx/no-reread/indexing-gap/state-docs) individually but the realized savings side is invisible, anonymously folded into the 'Total Tokens Saved' headline. Also file_reads_saved currently conflates idx-driven reduction with any generic offset/limit reduction (idx not required). (1) Split the per-entry loop into two accumulators: idx_savings (entries where idx_exists=True) vs offset_savings (entries with offset/limit but no idx) \u2014 same baseline/real formula, partitioned by idx_exists. (2) Add 'Targeted Reads \u2014 Savings Realized (idx)' as a new row under Real Savings Realized in dashboard_template.html and report_builder.py's template substitution, using idx_savings. (3) total_saved formula unchanged (idx_savings + offset_savings must still sum to the existing file_reads_saved so Total Tokens Saved doesn't shift). (4) Label clearly as measured (not modeled) \u2014 matches T-083's real-savings-vs-waste labeling split.",
+    "owns": [
+      "agentflow/reporting/report_builder.py",
+      "agentflow/reporting/dashboard_template.html"
+    ],
+    "status": "complete",
+    "merge_commit": "2c7a03393dbf7a13b6aa33144bb858dbb8dd1d72"
+  },
+  {
+    "task_id": "T-089",
+    "title": "Relabel Percentage Saved / Steady-State stats + reconcile windowing across all savings sources",
+    "description": "Oracle re-spar 2026-07-02 (session-recycling investigation): dashboard_template.html:134 labels \"Percentage Saved\" as \"(lifetime, all sessions)\" -- false since T-087's commit 4ad1fde windowed all of build_report()'s raw_entries to WINDOW_START (post T-084/T-086). Also \"Percentage Saved\" (file-reads+verbosity+compression only) and \"Current/Steady-State Savings\" (handoff/session-recycling only, via shadow_tracker.update_shadow's shadow_event) are two unrelated strategies presented as if comparable -- their 5x divergence (8.2% vs 42.4% at investigation time) reads as a bug when it's really an unscoped-label problem. Fix: (1) correct/remove the stale \"(lifetime, all sessions)\" label; (2) relabel both stats to name their actual scope (e.g. \"File-Read + Verbosity + Compression Savings\" vs \"Session-Recycling (Handoff) Savings\"); (3) reconcile windowing -- log-driven path filters raw_entries by WINDOW_START directly, steady_state.py uses ledger sessions closed >= WINDOW_START (N=5 at investigation time), but handoff_savings.py (T-085) ignores the window entirely and calibrates from all 108 lifetime closed sessions. Pick one consistent post-fix window and apply it everywhere before any of these numbers can be validly compared or combined.",
+    "owns": [
+      "agentflow/reporting/dashboard_template.html",
+      "agentflow/reporting/report_builder.py",
+      "agentflow/reporting/handoff_savings.py"
+    ],
+    "reads": [
+      "agentflow/reporting/steady_state.py",
+      "agentflow/shadow_tracker.py"
+    ],
+    "depends_on": [],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-090",
+    "title": "Combine all four savings strategies into one reconciled overall percentage",
+    "description": "No single number currently represents total AgentFlow savings: report_builder.py's \"Percentage Saved\" excludes handoff/session-recycling entirely -- the single largest lever, independently measured at ~42-45% by both steady_state.py (shadow_tracker per-session real-vs-shadow ratio) and handoff_savings.py (T-085's triangular-sum model) -- while get_bucketed_stats' waste buckets are separately excluded by design (T-083). Blocked on T-089 (needs consistent windowing first) and on resolving a compression double-count found during the 2026-07-02 investigation: compression_real (headroom's cumulative total_input_tokens delta) structurally overlaps the same file-read and verbosity content already counted once in file_reads_real/verbosity_real, because every API request re-sends prior context -- summing them into one total_real is apples-to-oranges and let compression's ~95%-of-denominator volume swamp the other two strategies' contribution in the investigated window. Approach: add handoff/session-recycling's real-vs-shadow delta (from shadow_tracker per-session shadow_event, windowed per T-089) into total_saved/total_real alongside the existing three \"real\" categories, only after compression's cumulative-cost basis is either normalized to a comparable per-event basis or kept as a separately-reported (not blended) figure.",
+    "owns": [
+      "agentflow/reporting/report_builder.py"
+    ],
+    "reads": [
+      "agentflow/shadow_tracker.py",
+      "agentflow/reporting/steady_state.py",
+      "agentflow/reporting/handoff_savings.py",
+      "agentflow_ledger.json"
+    ],
+    "depends_on": [
+      "T-089"
+    ],
+    "status": "complete"
+  },
   {
     "task_id": "T-091",
     "title": "Include compression savings in combined pct_saved headline",
@@ -392,5 +390,266 @@
     "status": "complete",
     "pr": 55,
     "note": "PR #55 merged 2026-07-03. Thin HTTP proxy (agentflow/proxy/server.py, 192 lines): loopback-only bind (127.0.0.1:0), headroom-ai library-mode compress(), proxy_log.jsonl telemetry (no content/headers). AgentFlowHooks (hooks.py, 59 lines): bias=999 for .idx line-range patterns. ProxyShell lifecycle (pty_shell.py, 79 lines): spawn subprocess, read port, set ANTHROPIC_BASE_URL, terminate on exit. cli.py drops headroom wrap (241 lines). pyproject.toml adds headroom-ai>=0.27.0. Key finding: headroom PyPI package is unrelated \u2014 correct package is headroom-ai. Pass 2 found 2 CRITICALs fixed in rework: (1) x-agentflow-token stripped from forwarded headers; (2) per-request token gate removed since Claude Code cannot include the header \u2014 loopback+ephemeral-port is the isolation mechanism. Dead token generation/storage remains in ProxyShell/server.py. 88 tests pass."
+  },
+  {
+    "task_id": "T-092",
+    "title": "Dashboard: per-strategy growth rate tracking + projected savings",
+    "description": "Oracle re-spar 2026-07-03. Three problems surfaced with the current combined_report.html:\n\n(1) WINDOW_START cuts 92% of shadow_reads.jsonl for idx_savings and state-docs buckets \u2014 these strategies are unaffected by the T-084/T-086 headroom regression that motivated the window. Fix: decouple per-strategy windows \u2014 idx_savings/state-docs use the full log (earliest entry timestamp); compression_savings keeps WINDOW_START; verbosity and handoff keep their existing window logic. This alone will surface the true accumulated idx savings (~13x the current figure).\n\n(2) Dashboard shows only cumulative totals \u2014 no sense of whether savings are growing, flat, or declining per session. Add a per-strategy growth-rate panel: bucket shadow_reads.jsonl entries by date (UTC day), compute daily idx_savings + no-reread + state-docs cost; bucket verbosity_log.jsonl by day for verbosity_savings; bucket proxy_savings.json history by day for compression_savings. Render as a small time-series chart (SVG sparklines or a simple bar-per-day, inline in the HTML, no external deps). Show 7-day rolling average alongside raw daily bars.\n\n(3) No projections. Add a 'Projected Savings (30-day)' section: fit a linear trend (least-squares, last 14 days) per strategy; extrapolate 30 days; display as a table (strategy | current 7-day rate | projected 30-day | annualized). Mark projections as 'modeled' not 'measured'. For idx_savings, also show what a 20% avg coverage ratio would yield vs current 55% (sensitivity column).\n\nOwns: agentflow/reporting/report_builder.py, agentflow/reporting/dashboard_template.html. Reads: agentflow/shadow/analyzer.py, agentflow/reporting/steady_state.py.",
+    "owns": [
+      "agentflow/reporting/report_builder.py",
+      "agentflow/reporting/dashboard_template.html"
+    ],
+    "reads": [
+      "agentflow/shadow/analyzer.py",
+      "agentflow/reporting/steady_state.py"
+    ],
+    "depends_on": [
+      "T-091"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-039",
+    "title": "Orchestrate skill \u2014 ledger-anchored rate cap derivation",
+    "description": "Update the rate calibration logic in commands/orchestrate.md. Replace single-session delta method (cap = session_tokens / delta_pct) with ledger-anchored method: at session end, read agentflow_ledger.json, filter sessions where start_time >= window_start (local time; datetime.now() no tz), sum billable tokens (uncached_input + cache_creation + output per session), then cap_5hr = total_5hr_tokens / (end_pct_5hr / 100) and cap_wkly = total_wkly_tokens / (end_pct_wkly / 100). Window starts: 5hr = reset_time_5hr - 5h; weekly = reset_time_wkly - 7d. Gap: current session tokens not yet flushed to ledger \u2014 correct by adding (end_pct - start_pct) * prior_cap_estimate as current-session delta if ledger read returns fewer tokens than expected. Write updated cap estimates to ~/.agentflow/rate_calibration.json alongside existing EWMA fields.",
+    "owns": [
+      "commands/claude/orchestrate.md"
+    ],
+    "reads": [
+      "agentflow_ledger.json"
+    ],
+    "depends_on": [
+      "T-038"
+    ],
+    "contracts": [],
+    "test_requirements": {
+      "unit": [
+        "commands/orchestrate.md instructs ledger read at session end",
+        "commands/orchestrate.md filters sessions by start_time >= window_start (local time)",
+        "commands/orchestrate.md sums uncached_input + cache_creation + output per session",
+        "commands/orchestrate.md derives cap_5hr = total_5hr_tokens / (end_pct_5hr / 100)",
+        "commands/orchestrate.md derives cap_wkly = total_wkly_tokens / (end_pct_wkly / 100)",
+        "commands/orchestrate.md documents current-session gap and correction"
+      ],
+      "integration": [],
+      "coverage_threshold": 80
+    },
+    "security_constraints": [],
+    "acceptance_criteria": "orchestrate.md rate calibration write uses ledger-anchored cap derivation; window start computation documented; current-session gap correction present",
+    "estimated_lines": 145,
+    "context_section": "commands/claude/orchestrate.md",
+    "status": "complete"
+  },
+  {
+    "task_id": "T-040",
+    "title": "Oracle skill \u2014 general .idx reading protocol",
+    "description": "Add a general Targeted Reads Rule section to commands/oracle.md. Currently oracle only checks .idx for architecture.md (Step 2a). All other file reads (lazy-loaded phase files: market.md 63L, checklist.md 113L, generation.md 133L; any future reads) have no .idx protocol. Add a 'Targeted Reads Rule' section matching the structure in commands/worker/system.md lines 51-78: compute HASH, check IDX path, grep for symbol, Read with offset+limit, fallback to full read if absent. Note: oracle's phase files (market.md, checklist.md, generation.md) are intentionally read in full when entering each phase \u2014 the rule applies to any targeted symbol/section lookup oracle makes outside of those full-phase loads.",
+    "owns": [
+      "commands/claude/oracle.md"
+    ],
+    "reads": [
+      "commands/worker/system.md"
+    ],
+    "depends_on": [
+      "T-038"
+    ],
+    "contracts": [],
+    "test_requirements": {
+      "unit": [
+        "commands/oracle.md contains a Targeted Reads Rule section",
+        "commands/oracle.md Targeted Reads Rule instructs HASH computation",
+        "commands/oracle.md Targeted Reads Rule instructs grep for symbol in .idx",
+        "commands/oracle.md Targeted Reads Rule instructs Read with offset+limit",
+        "commands/oracle.md Targeted Reads Rule has fallback to full read when .idx absent"
+      ],
+      "integration": [],
+      "coverage_threshold": 80
+    },
+    "security_constraints": [],
+    "acceptance_criteria": "oracle.md contains a general Targeted Reads Rule matching the worker protocol; existing Step 2a architecture.md-specific section preserved",
+    "estimated_lines": 130,
+    "context_section": "commands/claude/oracle.md",
+    "status": "complete"
+  },
+  {
+    "task_id": "T-050",
+    "title": "Add agentflow/__main__.py so `python -m agentflow` is executable",
+    "description": "Create agentflow/__main__.py as a thin shim that imports and calls agentflow.cli.main(). Currently `python -m agentflow shell` (and all subcommands) fail with 'No module named agentflow.__main__; agentflow is a package and cannot be directly executed'. The fix is a 2-line __main__.py: `from agentflow.cli import main; main()`. No logic \u2014 delegate entirely to cli.main().",
+    "owns": [
+      "agentflow/__main__.py"
+    ],
+    "reads": [
+      "agentflow/cli.py"
+    ],
+    "depends_on": [],
+    "contracts": [],
+    "test_requirements": {
+      "unit": [
+        "python -m agentflow --help exits 0 and prints usage",
+        "python -m agentflow shell --help exits 0 and includes 'PTY overlay shell'",
+        "__main__.py contains no logic beyond import + main() call"
+      ],
+      "integration": [],
+      "coverage_threshold": 80
+    },
+    "security_constraints": [],
+    "acceptance_criteria": "`python -m agentflow --help` and `python -m agentflow shell` work without error",
+    "estimated_lines": 5,
+    "context_section": "agentflow/__main__.py",
+    "status": "complete"
+  },
+  {
+    "task_id": "T-052",
+    "status": "complete",
+    "title": "PTY session manager \u2014 Read-event idx injection + proactive verbosity banners",
+    "description": "Two additions to SessionManager, no new files. (1) Read-event idx injection: in _handle_output, strip ANSI codes (re.sub), regex-match for Read + file path pattern, check if ~/.agentflow/cache/<hash>/index/<file>.idx exists, inject targeted [IDX] <file>.idx banner immediately if found. Add _ansi_strip(text) and _detect_read_path(text) as private helpers. Existing every-3-turns injection kept as fallback. (2) Proactive verbosity injection: inject verbosity constraint banner once at session start (write to PTY stdin before first user input); re-inject every ~60s via time.monotonic() timer checked in the relay loop \u2014 no turn counting, no output parsing. Banner text: \"[VERBOSITY] Target <=3 sentences (~150 tokens) per response.\" Timer state held in SessionManager; relay loop calls session_manager.tick() each iteration.",
+    "owns": [
+      "agentflow/shell/session_manager.py"
+    ],
+    "reads": [
+      "agentflow/shell/session_manager.py",
+      "agentflow/shell/pty_wrapper.py",
+      "agentflow/cli.py"
+    ],
+    "depends_on": [
+      "T-008"
+    ],
+    "contracts": [],
+    "test_requirements": {
+      "unit": [
+        "_ansi_strip strips standard ANSI escape sequences, leaves plain text unchanged",
+        "_detect_read_path returns file path when Read <path> pattern present in clean text",
+        "_detect_read_path returns None when no Read pattern found",
+        "_handle_output injects targeted [IDX] banner when .idx exists for detected file",
+        "_handle_output does not inject banner when no .idx exists for detected file",
+        "tick() injects verbosity banner when elapsed >= 60s",
+        "tick() does not inject when elapsed < 60s",
+        "existing every-3-turns idx injection still fires at turn boundaries"
+      ],
+      "integration": [],
+      "coverage_threshold": 80
+    },
+    "security_constraints": [],
+    "acceptance_criteria": "pytest tests/ passes; Read tool call for indexed file triggers targeted [IDX] banner; verbosity banner injected at session start and every ~60s; session_manager.py stays under 250 lines",
+    "estimated_lines": 45,
+    "context_section": "agentflow/shell/session_manager.py"
+  },
+  {
+    "task_id": "T-053",
+    "title": "Bug fixes: verbosity banner timing + absolute-path IDX guard",
+    "description": "Two bugs found and fixed in session_manager.py. (1) Static verbosity banner fired at __init__ time before child process was live \u2014 landed in input field on restart. Fixed by deferring injection to first _handle_output chunk. Added _initial_banner_sent flag. (2) T-052 IDX reactive banner never fired for real Read calls because _handle_output filtered out paths starting with '/' \u2014 but Read always uses absolute paths. Fixed by stripping cwd prefix from absolute paths before idx lookup; paths outside cwd silently dropped. Three pre-existing test failures fixed (verbosity threshold test missing 30s cooldown bypass; two tick() tests referencing removed method replaced with banner-timing tests).",
+    "owns": [
+      "agentflow/shell/session_manager.py",
+      "tests/shell/test_session_manager.py"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-057",
+    "title": "Reorganise skill dirs: commands/claude/ + commands/gemini/",
+    "description": "Restructure skill file locations to track Claude and Gemini skills under a unified commands/ tree. (1) Move all files under commands/ to commands/claude/ \u2014 preserving subdirectory structure (oracle/, orchestrator/, reviewer/, worker/). (2) Move Gemini skills from .agents/ to commands/gemini/ \u2014 AGENTS.md \u2192 commands/gemini/AGENTS.md; .agents/skills/drift/, handoff/, orchestrate/ \u2192 commands/gemini/skills/drift/, handoff/, orchestrate/. (3) Update all path references: design_status.md (Skill file location row), architecture.md (commands/ references in structure section and provider table), CLAUDE.md (structure block, skills dir entry), tasks.json (owns + context_section fields referencing commands/*.md), tests/prompts/test_oracle_prompts.py + test_reviewer_prompts.py + test_worker_prompts.py (ORACLE_DIR, REVIEWER_DIR, ORCHESTRATOR_DIR, WORKER_DIR constants). (4) Regenerate .idx cache: after moves, run the inline indexer against commands/claude/ and commands/gemini/ so ~/.agentflow/cache/<hash>/index/commands/claude/*.idx entries replace the stale commands/*.idx entries. Stale commands/*.idx entries must be deleted. (5) Copy target: update any copy instructions from commands/ \u2192 ~/.claude/commands/ to read from commands/claude/ instead.",
+    "owns": [
+      "commands/claude/",
+      "commands/gemini/",
+      "design_status.md",
+      "architecture.md",
+      "CLAUDE.md",
+      "tasks.json",
+      "tests/prompts/test_oracle_prompts.py",
+      "tests/prompts/test_reviewer_prompts.py",
+      "tests/prompts/test_worker_prompts.py"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-058g",
+    "title": "Align Gemini orchestrate and handoff skills with Claude equivalents",
+    "description": "Establish parity between Gemini skills under commands/gemini/skills/ and their Claude equivalents under commands/claude/. (1) Port the advanced ledger-anchored rate cap derivation logic (T-039/T-042) to commands/gemini/skills/orchestrate/SKILL.md, replacing the single-session delta heuristic. (2) Align targeted reads index rules, heuristics, and prompt boundaries in the Gemini orchestrate skill, compressing/refactoring where needed to respect prompt line limits. (3) Sync step details, worktree cleanup checks, and output formats in commands/gemini/skills/handoff/SKILL.md.",
+    "owns": [
+      "commands/gemini/skills/orchestrate/SKILL.md",
+      "commands/gemini/skills/handoff/SKILL.md"
+    ],
+    "reads": [
+      "commands/claude/orchestrate.md",
+      "commands/claude/handoff.md"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-061",
+    "title": "Explore Gemini CLI hook equivalents for .idx reminder injection",
+    "description": "Investigate whether Gemini CLI has hook mechanisms equivalent to Claude Code's UserPromptSubmit hook, for invisible turn-conditioned .idx reminder injection. Desired properties: fires before each user turn, invisible to user (not written to stdin/input field), turn-conditioned (every 3 turns), preserves recency effect in conversation context. Explore: (1) Gemini CLI hook/plugin system \u2014 any pre-turn or pre-request event hooks; (2) GEMINI_API_BASE_URL or equivalent env var for local proxy interception as fallback; (3) Gemini AGENTS.md or system prompt injection mechanism. Document findings in design_status.md as a new row: 'Gemini idx injection mechanism' \u2014 RESOLVED with chosen approach or DEFERRED if no clean equivalent exists.",
+    "owns": [
+      "design_status.md"
+    ],
+    "reads": [
+      "commands/gemini/skills/orchestrate/SKILL.md",
+      "commands/claude/orchestrate.md"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-074",
+    "title": "Wire headroom-ai into PTY shell \u2014 `headroom wrap <provider>` at session start",
+    "description": "Per T-071 findings (.agentflow/headroom_eval.md): headroom wrap does not touch stdin/stdout, so PTY shell can wrap it transparently. (1) agentflow/cli.py cmd_shell: if shutil.which('headroom') found, replace cmd with ['headroom','wrap',cmd] before constructing PTYWrapper; set HEADROOM_WORKSPACE_DIR to <project_root>/.headroom/ so ledger/cache stay project-local. Fall back to raw cmd if headroom not installed \u2014 no hard dependency. (2) Claude path (cmd=='claude') is primary \u2014 interception mechanism (ANTHROPIC_BASE_URL + ~/.claude/settings.json injection) confirmed Claude-Code-specific in the eval doc. Gemini path (cmd=='agy') is UNVERIFIED \u2014 eval doc never tested Gemini CLI env-var handling. Must empirically verify: spawn headroom-wrapped agy, confirm savings_events.jsonl gets entries from a real Gemini session. If not intercepted, ship Claude-only this task and log a DEFERRED note for Gemini in design_status.md \u2014 do not claim cross-provider savings without evidence. (3) Do not assume vendor's '60%+ context reduction' claim transfers to AgentFlow's actual traffic \u2014 idx targeted-reads already strip much of the large tool-output payload Headroom targets hardest; real number must be measured (T-072), not assumed. Tests: tests/test_cli_shell.py \u2014 cmd_shell wraps with headroom when present, falls back cleanly when absent, sets HEADROOM_WORKSPACE_DIR correctly.",
+    "owns": [
+      "agentflow/cli.py",
+      "tests/test_cli_shell.py"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-075",
+    "title": "Split agentflow.py (989 lines) into modules \u2014 retroactive 250-line enforcement",
+    "description": "agentflow.py has been 960+ lines since the project's first commit \u2014 predates T-058's size_check.py hook, which only fires on Write/Edit tool calls and never touched this pre-existing file. Split by responsibility boundary into agentflow/ submodules; audit for overlap with agentflow/cli.py before splitting further. No behavior change \u2014 mechanical extraction, preserve all CLI commands and existing test assertions. Each resulting file \u2264250 lines. Update only import paths if commands move modules.",
+    "owns": [
+      "agentflow.py"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-072",
+    "title": "`agentflow report` subcommand \u2014 aggregate + per-strategy savings dashboard",
+    "description": "Demo-facing artifact (design_status.md: Demo report generator, Monetization positioning, Report modes). Two output modes, not one blended number: (1) aggregate \u2014 single non-overlapping total tokens saved; (2) by-strategy \u2014 each strategy's savings shown separately. (A) agentflow/shadow/analyzer.py: fix double-count bug \u2014 _report_targeted_reads misses and _report_no_reread violations can both match the same shadow_reads.jsonl entry (idx_exists=True + rel in tasks.json reads + offset=None satisfies both filters); add priority-order bucketing (no-reread > targeted-reads > indexing-gap > state-docs) so each entry attributes to exactly one strategy for aggregate mode \u2014 by-strategy mode keeps the current per-filter view (overlap there is descriptive, not additive). (B) agentflow/shadow/analyzer.py: add _report_verbosity_compliance(project_root) \u2014 reads .agentflow/verbosity_log.jsonl (T-073), computes mean/p90 output tokens vs 150-token target per session type; replaces stale 'requires v2 PTY tracking' note at analyzer.py:199 (tracking now exists via T-073). (C) New agentflow/reporting/report_builder.py: for headroom, call headroom.storage.create_storage(store_url).get_summary_stats(...)['total_tokens_saved'] directly (not just generate_report()) so compression savings feed the numeric aggregate, in addition to calling generate_report(store_url, output_path) for the embedded HTML dashboard section. (D) Merge into combined_report.html with mode=aggregate|by_strategy: idx + no-reread + indexing-gap + state-docs + verbosity + compression \u2014 each attributed to its own strategy in by-strategy mode; single deduped sum in aggregate mode; no invented blended percentage, no double-counting. (E) agentflow/cli.py: add report subcommand -> cmd_report(mode) -> report_builder.build(mode). (F) Tests: tests/reporting/test_report_builder.py \u2014 mock headroom get_summary_stats/generate_report and shadow analyzer functions; assert aggregate mode sums without double-counting; assert by-strategy mode lists each strategy separately including verbosity and compression.",
+    "owns": [
+      "agentflow/reporting/report_builder.py",
+      "agentflow/shadow/analyzer.py",
+      "agentflow/cli.py",
+      "tests/reporting/test_report_builder.py"
+    ],
+    "depends_on": [
+      "T-074"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-078",
+    "title": "Unify `agentflow report` and `python agentflow.py report` into one command surface",
+    "description": "Oracle re-spar 2026-07-01: two competing report entrypoints found \u2014 `agentflow report --mode aggregate|split` (report_builder.py, T-072, global totals only, no per-session view, no agent filter) vs `python agentflow.py report --agent claude|agy` (legacy_report.py, per-session table + provider filter, genuinely used by the user). Decision: single command, same arg namespace, backing files stay separate. (A) agentflow/cli.py: add `--mode session` to the existing `report` subcommand's `--mode` choices (`aggregate`, `split`, `session`); add `--agent {claude,agy}` argument, valid only with `--mode session` (argparse error otherwise). (B) cmd_report in cli.py: when mode == \"session\", dispatch to `agentflow.legacy_report.cmd_report` (reuses existing per-session ledger table + agent filter as-is, no logic changes); otherwise dispatch to report_builder.build_report as today. (C) agentflow.py (root script): remove \"report\" from the command choices and dispatch table; drop the `cmd_report` import from legacy_report and the report-related epilog lines (8, 11, 46-48, 58). legacy_report.py itself is unchanged \u2014 only its call site moves. (D) Tests: tests/test_cli.py \u2014 assert `--mode session --agent claude` routes to legacy_report.cmd_report; assert `--agent` without `--mode session` raises a usage error; assert root agentflow.py no longer accepts \"report\" as a command choice.",
+    "owns": [
+      "agentflow/cli.py",
+      "agentflow.py",
+      "tests/test_cli.py"
+    ],
+    "depends_on": [
+      "T-072"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-094",
+    "title": "Automated verbosity A/B testing with PTY coin-flip assignment",
+    "description": "(1) Fix oracle session_type=null: emit AGENTFLOW_TASK_START with session_type='oracle' from oracle skill PTY signal. (2) PTY shell coin-flip at session start writes arm=on|off to .agentflow/verbosity_ab_arm.txt. (3) verbosity_reminder.py reads flag; suppresses injection when arm=off. (4) verbosity_ab.py filters by session_type for per-type arm analysis. Sequenced: orchestrator arm runs first (N=20 off-sessions target), oracle arm after tagging fix lands.",
+    "owns": [
+      "agentflow/hooks/verbosity_reminder.py",
+      "agentflow/shadow/verbosity_ab.py",
+      "agentflow/shell/pty_shell.py"
+    ],
+    "reads": [
+      "commands/claude/orchestrate.md",
+      "commands/claude/oracle.md"
+    ],
+    "depends_on": [],
+    "status": "complete"
   }
 ]

@@ -725,3 +725,6 @@
 {"event": "handoff", "timestamp": "2026-07-03T00:52:24.472580", "session_type": "orchestrator", "agent_tokens_in": 3240, "agent_tokens_out": 1987, "agents": 1}
 {"event": "handoff", "timestamp": "2026-07-03T01:45:25.756994", "session_type": "orchestrator", "agent_tokens_in": 7842, "agent_tokens_out": 1083, "agents": 2}
 {"event": "handoff", "timestamp": "2026-07-03T21:54:40Z", "session_type": "orchestrator", "agent_tokens_in": 173681, "agent_tokens_out": 43420, "agents": 3}
+{"event": "handoff", "timestamp": "2026-07-03T15:49:43.721523", "session_type": "orchestrator", "agent_tokens_in": 2785, "agent_tokens_out": 456, "agents": 1}
+{"event": "handoff", "timestamp": "2026-07-03T16:39:47.572731", "session_type": "orchestrator", "agent_tokens_in": 8500, "agent_tokens_out": 5200, "agents": 1}
+{"event": "handoff", "timestamp": "2026-07-03T19:33:16.187020", "session_type": "orchestrator", "agent_tokens_in": 0, "agent_tokens_out": 0, "agents": 0}
