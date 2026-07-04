@@ -29,10 +29,13 @@
     "T-069",
     "T-103",
     "T-099",
-    "T-098"
+    "T-098",
+    "T-107",
+    "T-108",
+    "T-113"
   ],
   "in_flight": [],
-  "next_round": "T-103, T-099",
+  "next_round": "T-107, T-113",
   "maintenance": [
     "cleanup_tasks.py added",
     "orchestrate.md merge step hardened"
