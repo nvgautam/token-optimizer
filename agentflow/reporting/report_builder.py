@@ -224,6 +224,14 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
     lifetime_recycle_pct = (shadow_extra_all / (shadow_extra_all + real_all) * 100) if (shadow_extra_all + real_all) > 0 else 0.0
     print(f"LIFETIME RECYCLING (N={n_all} sessions): {lifetime_recycle_pct:.1f}% vs shadow baseline (no-recycle model)")
 
+    # T-100: compute percentages of total savings (denominator = sum of the four real savings)
+    denom = idx_savings + compression_savings + verbosity_savings + handoff_saved
+    idx_savings_pct = (idx_savings / denom * 100) if denom > 0 else 0.0
+    verbosity_savings_pct = (verbosity_savings / denom * 100) if denom > 0 else 0.0
+    compression_savings_pct = (compression_savings / denom * 100) if denom > 0 else 0.0
+    handoff_savings_pct = (handoff_saved / denom * 100) if denom > 0 else 0.0
+    code_size_savings_pct = (code_size_saved / denom * 100) if denom > 0 else 0.0
+
     STRATEGY_ROWS = [
         ("stats_idx", "Symbol Index & Section loading (idx)", "waste", stats["targeted-reads"], ""),
         ("stats_no_reread", "No-re-read Rule compliance (no-reread)", "waste", stats["no-reread"], ""),
@@ -253,6 +261,11 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
         "{steady_state_pct_str}": f"{compression_savings:,} tokens",
         "{steady_state_methodology_str}": "Headroom compression; windowed to shadow-reads scope — included in combined %",
         "{lifetime_recycling_str}": f"Lifetime (N={n_all} sessions) — {lifetime_recycle_pct:.1f}% vs shadow baseline (no-recycle model)",
+        "{idx_savings_pct}": f"{idx_savings_pct:.1f}",
+        "{verbosity_savings_pct}": f"{verbosity_savings_pct:.1f}",
+        "{compression_savings_pct}": f"{compression_savings_pct:.1f}",
+        "{handoff_savings_pct}": f"{handoff_savings_pct:.1f}",
+        "{code_size_savings_pct}": f"{code_size_savings_pct:.1f}",
     }
     replacements.update({f"{{{ph}_str}}": f"{val:,}{note}" for ph, _, _, val, note in STRATEGY_ROWS})
     replacements["{trend_panel_html}"] = growth_tracker.render_sparklines_html(daily)

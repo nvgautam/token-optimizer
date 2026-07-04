@@ -87,6 +87,19 @@
             padding: 1rem 0;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
+        .strategy-row span:first-child {
+            flex: 1;
+        }
+        .strategy-pct {
+            flex: 0 0 100px;
+            text-align: right;
+            color: var(--text-muted);
+            margin-right: 1.5rem;
+        }
+        .strategy-row strong {
+            text-align: right;
+            white-space: nowrap;
+        }
         .headroom-section {
             margin-top: 4rem;
             background: rgba(255, 255, 255, 0.02);
@@ -175,6 +188,7 @@
             <h2>Real Savings Realized</h2>
             <div class="strategy-row">
                 <span>Targeted Reads — Savings Realized (idx)</span>
+                <span class="strategy-pct">{idx_savings_pct}% of total</span>
                 <strong>{idx_savings_str} tokens</strong>
             </div>
             <div class="strategy-row">
@@ -183,18 +197,22 @@
             </div>
             <div class="strategy-row">
                 <span>Output Verbosity Control (verbosity)</span>
+                <span class="strategy-pct">{verbosity_savings_pct}% of total</span>
                 <strong>{verbosity_savings_str} tokens</strong>
             </div>
             <div class="strategy-row">
                 <span>Headroom Compression (compression)</span>
+                <span class="strategy-pct">{compression_savings_pct}% of total</span>
                 <strong>{compression_savings_str} tokens</strong>
             </div>
             <div class="strategy-row">
                 <span>Session Recycling — measured from agentflow_ledger.json (handoff)</span>
+                <span class="strategy-pct">{handoff_savings_pct}% of total</span>
                 <strong>{handoff_savings_str} tokens</strong>
             </div>
             <div class="strategy-row">
                 <span>Code-Size Savings via file splitting (code-size)</span>
+                <span class="strategy-pct">{code_size_savings_pct}% of total</span>
                 <strong>{code_size_savings_str} tokens</strong>
             </div>
             <div class="strategy-row">
