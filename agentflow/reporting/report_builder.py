@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from agentflow.shadow.analyzer import _load_log, get_bucketed_stats
 from agentflow.shadow.verbosity_ab import load_baseline
-from agentflow.reporting import handoff_savings
 from agentflow.reporting.steady_state import _parse_ts, WINDOW_START
 from agentflow.reporting import growth_tracker
 from agentflow.reporting import code_size_savings
@@ -101,6 +100,23 @@ def _handoff_component(project_root: Path, window_start: str = WINDOW_START) -> 
         real += real_i
         n += 1
     return (saved, real, n)
+
+
+def _lifetime_recycling_callout(project_root: Path) -> tuple[int, int, int]:
+    """(shadow_extra_all, real_tokens_all, n_all) across ALL closed sessions — no window filter."""
+    try:
+        sessions = json.loads((project_root / "agentflow_ledger.json").read_text()).get("sessions", [])
+    except Exception:
+        return (0, 0, 0)
+    extra = real = n = 0
+    for s in sessions:
+        if s.get("status") != "closed":
+            continue
+        se = s.get("shadow_event") or {}
+        extra += se.get("shadow_extra", 0)
+        real += s.get("input_tokens", 0) + s.get("output_tokens", 0)
+        n += 1
+    return (extra, real, n)
 
 
 def build_report(project_root: Path, mode: str = "aggregate", output_path: str = "combined_report.html", store_url: str = None) -> int:
@@ -204,6 +220,9 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
 
     print(f"\nAGENTFLOW SAVINGS ({mode}): {pct_saved:.1f}% | {total_saved:,} saved / {shadow_mode_tokens:,} shadow")
     print(f"HANDOFF COMPONENT (N={n_sessions} sessions): {handoff_saved:,} saved from {handoff_real:,} real")
+    shadow_extra_all, real_all, n_all = _lifetime_recycling_callout(project_root)
+    lifetime_recycle_pct = (shadow_extra_all / (shadow_extra_all + real_all) * 100) if (shadow_extra_all + real_all) > 0 else 0.0
+    print(f"LIFETIME RECYCLING (N={n_all} sessions): {lifetime_recycle_pct:.1f}% vs shadow baseline (no-recycle model)")
 
     STRATEGY_ROWS = [
         ("stats_idx", "Symbol Index & Section loading (idx)", "waste", stats["targeted-reads"], ""),
@@ -213,7 +232,7 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
         ("stats_state_docs", "Compact State Documents — read volume, not savings (state-docs)", "real", stats["state-docs"], ""),
         ("verbosity_savings", "Output Verbosity Savings (verbosity)", "real", verbosity_savings, verbosity_annotation),
         ("compression_savings", "Compression Savings (compression)", "real", compression_savings, ""),
-        ("handoff_savings", "Session Recycling — Handoff/context cycling, MODELED not measured (handoff)", "modeled", (_hs := handoff_savings.compute_handoff_savings(project_root))["tokens_saved"], f" [{_hs['methodology']}]"),
+        ("handoff_savings", "Session Recycling — measured from agentflow_ledger.json (handoff)", "real", handoff_saved, f" [windowed N={n_sessions} sessions since WINDOW_START]"),
         ("code_size_savings", "Code-Size Savings via file splitting (code-size)", "real", code_size_saved, ""),
     ]
     print(f"Verbosity baseline (T-081):{verbosity_annotation}")
@@ -233,6 +252,7 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
         "{headroom_section_html}": headroom_section_html,
         "{steady_state_pct_str}": f"{compression_savings:,} tokens",
         "{steady_state_methodology_str}": "Headroom compression; windowed to shadow-reads scope — included in combined %",
+        "{lifetime_recycling_str}": f"Lifetime (N={n_all} sessions) — {lifetime_recycle_pct:.1f}% vs shadow baseline (no-recycle model)",
     }
     replacements.update({f"{{{ph}_str}}": f"{val:,}{note}" for ph, _, _, val, note in STRATEGY_ROWS})
     replacements["{trend_panel_html}"] = growth_tracker.render_sparklines_html(daily)
