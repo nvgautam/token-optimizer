@@ -291,16 +291,24 @@ Status: DEFERRED — Python CLI out of scope for v1
 
 Not demo-critical — code quality enforcement only, deferred to Round D.
 
+## Addendum: T-105 — Arm Re-Read per Session Start (filed 2026-07-05)
+
+| Task | Title | Depends on | Status |
+|---|---|---|---|
+| T-105 | session_manager — re-read arm file per session start, not just at init | — | PENDING |
+
+Blocks T-102/T-103 data quality: long-lived shells never pick up new arm flips, producing untagged entries. Prepend to Round A.
+
 | Round | Tasks | What ships |
 |---|---|---|
-| A | T-100 | Per-strategy % breakdown (T-101 already merged — T-102 now unblocked) |
+| A | T-105, T-100 | Arm re-read fix (unblocks A/B data collection) + per-strategy % breakdown |
 | B | T-102 | Verbosity A/B stopping criterion |
 | C | T-103, T-099 | Model A/B + Gemini oracle skill (parallel) |
 | D | T-098, T-063, T-104 | Model routing savings row + cross-provider claiming + size enforcement (parallel) |
 | E | T-064, T-068 | Rate headroom + token estimator (parallel) |
 | F | T-069 | Parallel worker scheduling |
 
-Priority rationale (2026-07-04): investor demo + design-partner sequence. T-101 is critical path — arm tagging unblocks verbosity A/B, which gates T-103 (model A/B), which gates T-098 (model routing savings). 42-44% session-recycling headline is credible; verbosity methodology needs arm fix before pitch.
+Priority rationale (2026-07-04): investor demo + design-partner sequence. T-101 is critical path — arm tagging unblocks verbosity A/B, which gates T-103 (model A/B), which gates T-098 (model routing savings). 42-44% session-recycling headline is credible; verbosity methodology needs arm fix before pitch. T-105 added 2026-07-05: long-lived shell sessions don't re-read arm at session restart — fix must land before A/B data is valid.
 
 ---
 

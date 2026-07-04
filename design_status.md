@@ -157,6 +157,12 @@ Oracle reads on startup. Handoff writes updates. Architecture.md = workers only.
 | Verbosity A/B stopping criterion | RESOLVED | T-102 filed: after T-101 lands, report emits "STILL COLLECTING n_on=X/20, n_off=Y/20" or "VERBOSITY A/B COMPLETE — n_on=X, n_off=Y, CI=[lo,hi]" banner. Stopping criterion: n>=20 per arm AND CI width < 100 tokens. T-103 blocked until verbosity A/B complete signal fires. |
 | Haiku vs Sonnet subagent A/B | RESOLVED | T-103 filed: PTY coin-flip writes model_ab_arm.txt (haiku/sonnet); proxy logs {model, input_tokens, output_tokens} per request to model_ab_log.jsonl; model_ab.py computes per-arm output token stats; report_builder adds model-routing row. Depends on T-101 (arm tagging pattern) + T-102 (verbosity A/B complete signal). Subagent contamination of verbosity_log (session_type=orchestrator conflates main+subagent turns) is a known limitation — T-101 fixes arm attribution but not subagent/main-session separation; deferred to T-103 scope via proxy-level request tagging. |
 
+## Oracle Direction — Sparred 2026-07-04d
+
+| Item | Status | Decision |
+|---|---|---|
+| Verbosity A/B data collection gap | RESOLVED | T-101 arm-field write works for new shells only. Long-lived shells started pre-T-101 produce MISSING-arm entries (8,409 post-merge). Root cause: SessionManager reads arm file once in __init__; never re-reads on session restart (turn resets to 1). Fix: extract _read_arm_file() helper; re-invoke at __init__ AND at turn=1 detection in _handle_output. T-105 filed, prepended to Round A. |
+
 ## Oracle Direction — Sparred 2026-07-04b
 
 | Item | Status | Decision |

@@ -122,33 +122,33 @@
     <div class="container">
         <header>
             <h1>AgentFlow Token Savings</h1>
-            <p class="subtitle">Real-time token optimization & waste analytics • Mode: SPLIT</p>
+            <p class="subtitle">Real-time token optimization & waste analytics • Mode: AGGREGATE</p>
         </header>
 
         <div class="grid">
             <div class="card">
                 <div class="stat-label">Total Tokens Saved</div>
-                <div class="stat-value">167,862,093</div>
+                <div class="stat-value">175,108,202</div>
                 <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Cumulative optimization savings</div>
             </div>
             <div class="card">
                 <div class="stat-label">Real Tokens Used</div>
-                <div class="stat-value">167,248,870</div>
+                <div class="stat-value">172,166,644</div>
                 <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Actual tokens consumed</div>
             </div>
             <div class="card">
                 <div class="stat-label">Shadow Mode Tokens</div>
-                <div class="stat-value">335,110,963</div>
+                <div class="stat-value">347,274,846</div>
                 <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Baseline unoptimized tokens</div>
             </div>
             <div class="card">
                 <div class="stat-label">Percentage Saved</div>
-                <div class="stat-value">50.1%</div>
+                <div class="stat-value">50.4%</div>
                 <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Combined Savings: File-Read + Verbosity + Session-Recycling (targeted reads, output verbosity, handoff -- report window)</div>
             </div>
             <div class="card">
                 <div class="stat-label">Lifetime Recycling</div>
-                <div class="stat-value" style="font-size: 1.4rem;">Lifetime (N=136 sessions) — 48.2% vs shadow baseline (no-recycle model)</div>
+                <div class="stat-value" style="font-size: 1.4rem;">Lifetime (N=137 sessions) — 48.3% vs shadow baseline (no-recycle model)</div>
                 <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">vs shadow baseline (no-recycle model) — all closed sessions, no window filter</div>
             </div>
             <div class="card">
@@ -158,7 +158,7 @@
             </div>
             <div class="card">
                 <div class="stat-label">Shadow Cost Avoided</div>
-                <div class="stat-value">482,754</div>
+                <div class="stat-value">486,776</div>
                 <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Avoided file I/O waste</div>
             </div>
             <div class="card">
@@ -188,17 +188,17 @@
             <h2>Real Savings Realized</h2>
             <div class="strategy-row">
                 <span>Targeted Reads — Savings Realized (idx)</span>
-                <span class="strategy-pct">1.0% of total</span>
-                <strong>1,611,926 tokens</strong>
+                <span class="strategy-pct">0.9% of total</span>
+                <strong>1,624,401 tokens</strong>
             </div>
             <div class="strategy-row">
                 <span>Compact State Documents — read volume, not savings (state-docs)</span>
-                <strong>458,061 tokens</strong>
+                <strong>462,083 tokens</strong>
             </div>
             <div class="strategy-row">
                 <span>Output Verbosity Control (verbosity)</span>
-                <span class="strategy-pct">5.9% of total</span>
-                <strong>9,814,577 [UNMEASURED baseline=600tok, n=0 -- run T-081 A/B comparison] tokens</strong>
+                <span class="strategy-pct">6.9% of total</span>
+                <strong>12,102,511 [UNMEASURED baseline=600tok, n=0 -- run T-081 A/B comparison] tokens</strong>
             </div>
             <div class="strategy-row">
                 <span>Headroom Compression (compression)</span>
@@ -207,8 +207,8 @@
             </div>
             <div class="strategy-row">
                 <span>Session Recycling — measured from agentflow_ledger.json (handoff)</span>
-                <span class="strategy-pct">91.7% of total</span>
-                <strong>153,636,411 [windowed N=33 sessions since WINDOW_START] tokens</strong>
+                <span class="strategy-pct">90.7% of total</span>
+                <strong>158,582,111 [windowed N=34 sessions since WINDOW_START] tokens</strong>
             </div>
             <div class="strategy-row">
                 <span>Code-Size Savings via file splitting (code-size)</span>
@@ -217,28 +217,359 @@
             </div>
             <div class="strategy-row">
                 <span>Total Real Savings (total_saved)</span>
-                <strong>167,862,093 tokens</strong>
+                <strong>175,108,202 tokens</strong>
             </div>
         </div>
 
         <div class="details-section">
             <h2>Daily Savings Trend <span class="section-caption">(last 14 days)</span></h2>
-            <div style="display:flex;align-items:center;gap:1rem;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.05);"><span style="min-width:160px;font-size:0.9rem;">Symbol Index (idx)</span><svg width="120" height="30" viewBox="0 0 120 30"><polyline points="2.0,28.0 18.6,23.8 35.1,24.1 51.7,26.4 68.3,8.7 84.9,2.0 101.4,11.4 118.0,25.7" fill="none" stroke="#4f46e5" stroke-width="1.5"/></svg></div>
-<div style="display:flex;align-items:center;gap:1rem;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.05);"><span style="min-width:160px;font-size:0.9rem;">Compression</span><svg width="120" height="30" viewBox="0 0 120 30"><polyline points="2.0,28.0 18.6,28.0 35.1,28.0 51.7,28.0 68.3,28.0 84.9,28.0 101.4,25.1 118.0,2.0" fill="none" stroke="#10b981" stroke-width="1.5"/></svg></div>
-<div style="display:flex;align-items:center;gap:1rem;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.05);"><span style="min-width:160px;font-size:0.9rem;">Verbosity</span><svg width="120" height="30" viewBox="0 0 120 30"><polyline points="2.0,28.0 18.6,28.0 35.1,28.0 51.7,28.0 68.3,28.0 84.9,28.0 101.4,22.0 118.0,2.0" fill="none" stroke="#f59e0b" stroke-width="1.5"/></svg></div>
+            <div style="display:flex;align-items:center;gap:1rem;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.05);"><span style="min-width:160px;font-size:0.9rem;">Symbol Index (idx)</span><svg width="120" height="30" viewBox="0 0 120 30"><polyline points="2.0,28.0 18.6,23.8 35.1,24.1 51.7,26.4 68.3,8.7 84.9,2.0 101.4,11.4 118.0,25.1" fill="none" stroke="#4f46e5" stroke-width="1.5"/></svg></div>
+<div style="display:flex;align-items:center;gap:1rem;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.05);"><span style="min-width:160px;font-size:0.9rem;">Compression</span><svg width="120" height="30" viewBox="0 0 120 30"><polyline points="2.0,28.0 18.6,28.0 35.1,28.0 51.7,28.0 68.3,28.0 84.9,28.0 101.4,25.2 118.0,2.0" fill="none" stroke="#10b981" stroke-width="1.5"/></svg></div>
+<div style="display:flex;align-items:center;gap:1rem;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.05);"><span style="min-width:160px;font-size:0.9rem;">Verbosity</span><svg width="120" height="30" viewBox="0 0 120 30"><polyline points="2.0,28.0 18.6,28.0 35.1,28.0 51.7,28.0 68.3,28.0 84.9,28.0 101.4,23.3 118.0,2.0" fill="none" stroke="#f59e0b" stroke-width="1.5"/></svg></div>
 <div style="display:flex;align-items:center;gap:1rem;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.05);"><span style="min-width:160px;font-size:0.9rem;">Code Size (splits)</span><svg width="120" height="30" viewBox="0 0 120 30"><polyline points="2.0,28.0 18.6,28.0 35.1,28.0 51.7,28.0 68.3,22.8 84.9,12.4 101.4,2.0 118.0,28.0" fill="none" stroke="#e11d48" stroke-width="1.5"/></svg></div>
         </div>
 
         <div class="details-section">
             <h2>30-Day Projection <span class="section-caption">(7-day rolling avg × 30)</span></h2>
-            <table style="width:100%;border-collapse:collapse;font-size:0.9rem;"><thead><tr style="color:#9ca3af;"><th style="text-align:left;padding:0.4rem 0;">Strategy</th><th style="text-align:right;padding:0.4rem 0;">7-day avg/day</th><th style="text-align:right;padding:0.4rem 0;">30-day Base</th><th style="text-align:right;padding:0.4rem 0;">30-day Optimistic</th></tr></thead><tbody><tr><td>Symbol Index (idx)</td><td style="text-align:right">229,932.1</td><td style="text-align:right">6,897,964</td><td style="text-align:right">13,795,928</td></tr>
-<tr><td>Compression</td><td style="text-align:right">473,630.9</td><td style="text-align:right">14,208,925</td><td style="text-align:right">14,208,925</td></tr>
-<tr><td>Verbosity</td><td style="text-align:right">1,402,082.4</td><td style="text-align:right">42,062,472</td><td style="text-align:right">42,062,472</td></tr>
+            <table style="width:100%;border-collapse:collapse;font-size:0.9rem;"><thead><tr style="color:#9ca3af;"><th style="text-align:left;padding:0.4rem 0;">Strategy</th><th style="text-align:right;padding:0.4rem 0;">7-day avg/day</th><th style="text-align:right;padding:0.4rem 0;">30-day Base</th><th style="text-align:right;padding:0.4rem 0;">30-day Optimistic</th></tr></thead><tbody><tr><td>Symbol Index (idx)</td><td style="text-align:right">231,714.3</td><td style="text-align:right">6,951,428</td><td style="text-align:right">13,902,857</td></tr>
+<tr><td>Compression</td><td style="text-align:right">489,133.1</td><td style="text-align:right">14,673,994</td><td style="text-align:right">14,673,994</td></tr>
+<tr><td>Verbosity</td><td style="text-align:right">1,728,930.1</td><td style="text-align:right">51,867,904</td><td style="text-align:right">51,867,904</td></tr>
 <tr><td>Code Size (splits)</td><td style="text-align:right">5,467.4</td><td style="text-align:right">164,022</td><td style="text-align:right">246,034</td></tr>
 </tbody></table>
         </div>
 
-        
+        <div class="headroom-section"><h2>Headroom Deep Analytics</h2>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Headroom Report - 2026-07-04 11:15:43</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        header p {
+            opacity: 0.9;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .stat-card h3 {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        .stat-card .value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #333;
+        }
+        .stat-card .value.positive {
+            color: #22c55e;
+        }
+        .stat-card .value.warning {
+            color: #f59e0b;
+        }
+        .section {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .section h2 {
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+        .histogram {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .bar-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .bar-label {
+            width: 120px;
+            font-size: 0.9em;
+            color: #666;
+        }
+        .bar-container {
+            flex: 1;
+            background: #eee;
+            border-radius: 4px;
+            height: 24px;
+            overflow: hidden;
+        }
+        .bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            padding: 0 10px;
+            color: white;
+            font-size: 0.8em;
+            min-width: fit-content;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background: #f9f9f9;
+            font-weight: 600;
+        }
+        tr:hover {
+            background: #f9f9f9;
+        }
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+        .tag.audit {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+        .tag.optimize {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+        .recommendations {
+            list-style: none;
+        }
+        .recommendations li {
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #667eea;
+        }
+        .recommendations li strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Headroom Context Analysis Report</h1>
+            <p>Generated: 2026-07-04 11:15:43 | Period: All time</p>
+        </header>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Total Requests</h3>
+                <div class="value">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Tokens Saved</h3>
+                <div class="value positive">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Avg Saved/Request</h3>
+                <div class="value positive">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Est. Cost Savings</h3>
+                <div class="value positive">$0.0000</div>
+            </div>
+            <div class="stat-card">
+                <h3>Cache Alignment</h3>
+                <div class="value ">0%</div>
+            </div>
+            <div class="stat-card">
+                <h3>TPM Headroom</h3>
+                <div class="value positive">1.0x</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Waste Histogram</h2>
+            <div class="histogram">
+                
+                <div class="bar-row">
+                    <span class="bar-label">Tool JSON Bloat</span>
+                    <div class="bar-container">
+                        <div class="bar" style="width: 0%;">
+                            0 tokens
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bar-row">
+                    <span class="bar-label">HTML Noise</span>
+                    <div class="bar-container">
+                        <div class="bar" style="width: 0%;">
+                            0 tokens
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bar-row">
+                    <span class="bar-label">Base64 Blobs</span>
+                    <div class="bar-container">
+                        <div class="bar" style="width: 0%;">
+                            0 tokens
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bar-row">
+                    <span class="bar-label">Whitespace</span>
+                    <div class="bar-container">
+                        <div class="bar" style="width: 0%;">
+                            0 tokens
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bar-row">
+                    <span class="bar-label">Dynamic Dates</span>
+                    <div class="bar-container">
+                        <div class="bar" style="width: 0%;">
+                            0 tokens
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bar-row">
+                    <span class="bar-label">Re-served Tool Results</span>
+                    <div class="bar-container">
+                        <div class="bar" style="width: 0%;">
+                            0 tokens
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bar-row">
+                    <span class="bar-label">Re-served After Compression</span>
+                    <div class="bar-container">
+                        <div class="bar" style="width: 0%;">
+                            0 tokens
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bar-row">
+                    <span class="bar-label">History Bloat</span>
+                    <div class="bar-container">
+                        <div class="bar" style="width: 0%;">
+                            0 tokens
+                        </div>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Top 10 High-Waste Requests</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Request ID</th>
+                        <th>Model</th>
+                        <th>Mode</th>
+                        <th>Tokens Before</th>
+                        <th>Tokens Saved</th>
+                        <th>Cache Align</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+                </tbody>
+            </table>
+        </div>
+
+        <div class="section">
+            <h2>Cache Alignment Analysis</h2>
+            <p style="margin-bottom: 15px;">
+                Average cache alignment score: <strong>0.0%</strong>
+            </p>
+            <p style="color: #666;">
+                
+                Low cache alignment detected. Review system prompts for dynamic content (dates, timestamps, variable data).
+                
+            </p>
+        </div>
+
+        <div class="section">
+            <h2>Recommendations</h2>
+            <ul class="recommendations">
+                
+                <li>
+                    <strong>Improve Cache Alignment</strong>
+                    Your cache alignment score is low. Consider moving dynamic content (dates, timestamps, session IDs) out of system prompts into user messages.
+                </li>
+                
+                <li>
+                    <strong>Get Started</strong>
+                    No optimizations applied yet. Try setting headroom_mode='optimize' on your next request to start seeing token savings.
+                </li>
+                
+            </ul>
+        </div>
+
+        <footer>
+            Generated by Headroom SDK v0.1.0
+        </footer>
+    </div>
+</body>
+</html></div>
     </div>
 </body>
 </html>
