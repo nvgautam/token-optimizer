@@ -134,6 +134,11 @@
                 <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Combined Savings: File-Read + Verbosity + Session-Recycling (targeted reads, output verbosity, handoff -- report window)</div>
             </div>
             <div class="card">
+                <div class="stat-label">Lifetime Recycling</div>
+                <div class="stat-value" style="font-size: 1.4rem;">{lifetime_recycling_str}</div>
+                <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">vs shadow baseline (no-recycle model) — all closed sessions, no window filter</div>
+            </div>
+            <div class="card">
                 <div class="stat-label">Compression Savings (not blended)</div>
                 <div class="stat-value">{steady_state_pct_str}</div>
                 <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">{steady_state_methodology_str}</div>
@@ -185,16 +190,16 @@
                 <strong>{compression_savings_str} tokens</strong>
             </div>
             <div class="strategy-row">
+                <span>Session Recycling — measured from agentflow_ledger.json (handoff)</span>
+                <strong>{handoff_savings_str} tokens</strong>
+            </div>
+            <div class="strategy-row">
+                <span>Code-Size Savings via file splitting (code-size)</span>
+                <strong>{code_size_savings_str} tokens</strong>
+            </div>
+            <div class="strategy-row">
                 <span>Total Real Savings (total_saved)</span>
                 <strong>{total_saved_str} tokens</strong>
-            </div>
-        </div>
-
-        <div class="details-section">
-            <h2>Modeled Projections <span class="section-caption">(not measured -- see methodology per row)</span></h2>
-            <div class="strategy-row">
-                <span>Session Recycling — Handoff/context cycling (handoff)</span>
-                <strong>{handoff_savings_str} tokens</strong>
             </div>
         </div>
 

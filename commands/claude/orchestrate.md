@@ -114,7 +114,11 @@ effective_rate = min(rate_5hr, rate_wkly)
 
 Close every prompt: `"End your final message with TOKENS: input=N output=N — nothing after that line."`
 
-Spawn one agent per group, `isolation: "worktree"`. Parallel only if no cross-dependencies and rate supports. Save `.agentflow/state.json` after each.
+**Model selection per task (before spawn):**
+- Mechanical (estimated_lines ≤ 80 OR title/description contains: test, fix, rename, stub, move, format, lint, config): `model: "claude-haiku-4-5-20251001"`
+- Default (exploratory, architecture, new module, algorithm): `model: "claude-sonnet-5"`
+
+Spawn one agent per group, `isolation: "worktree"`, with the selected `model`. Parallel only if no cross-dependencies and rate supports. Save `.agentflow/state.json` after each.
 
 ### Round Lifecycle & PTY Signals
 At the start of each round, write `.agentflow/current_round.json` with the following schema:

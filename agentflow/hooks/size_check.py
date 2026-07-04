@@ -15,7 +15,12 @@ def main() -> None:
         sys.exit(0)
 
     try:
-        file_path = data.get("tool_input", {}).get("file_path")
+        tool_input = data.get("tool_input", {})
+        file_path = (
+            tool_input.get("file_path")
+            or tool_input.get("AbsolutePath")
+            or tool_input.get("TargetFile")
+        )
         if not file_path:
             sys.exit(0)
 

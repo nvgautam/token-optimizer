@@ -237,6 +237,14 @@ Status: DEFERRED — Python CLI out of scope for v1
 
 ---
 
+## Addendum: T-097 — Session-Recycling Savings (MERGED PR #60 2026-07-03)
+
+| Task | Title | Status |
+|---|---|---|
+| T-097 | Session-recycling savings: windowed headline % + shadow-relative lifetime callout | MERGED bf59e5f |
+
+---
+
 ## Addendum: T-094/T-095/T-096 — Savings Infrastructure (filed 2026-07-03)
 
 | Task | Title | Status |
@@ -245,6 +253,22 @@ Status: DEFERRED — Python CLI out of scope for v1
 | T-094 | Automated verbosity A/B — PTY coin-flip + flag file + oracle tagging fix | MERGED 8ba2382 |
 | T-095 | Post-compaction re-onboarding cost in shadow model | MERGED ac44480 |
 | T-096 | Code-size savings as 5th dashboard strategy (git bootstrap + prospective family tracking) | MERGED 5fdfc18 |
+
+---
+
+## Addendum: T-098 — Model Routing Savings (filed 2026-07-04)
+
+| Task | Title | Status |
+|---|---|---|
+| T-098 | Model Routing Savings — track USD and token-class savings in combined report | PENDING |
+
+---
+
+## Addendum: T-099 — Gemini Oracle Skill (filed 2026-07-04)
+
+| Task | Title | Status |
+|---|---|---|
+| T-099 | Gemini Oracle Skill — create /oracle equivalent skill for Gemini | PENDING |
 
 ---
 

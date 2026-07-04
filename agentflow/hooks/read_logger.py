@@ -16,7 +16,11 @@ def main() -> None:
         sys.exit(0)
 
     tool_input = data.get("tool_input", {})
-    file_path = tool_input.get("file_path")
+    file_path = (
+        tool_input.get("file_path")
+        or tool_input.get("AbsolutePath")
+        or tool_input.get("TargetFile")
+    )
     if not file_path:
         sys.exit(0)
 
@@ -42,11 +46,28 @@ def main() -> None:
         file_lines = 0
         file_chars = 0
 
+    offset = tool_input.get("offset")
+    limit = tool_input.get("limit")
+    start_line = tool_input.get("StartLine")
+    end_line = tool_input.get("EndLine")
+
+    if start_line is not None and end_line is not None:
+        try:
+            offset = int(start_line)
+            limit = int(end_line) - offset + 1
+        except (ValueError, TypeError):
+            pass
+    elif start_line is not None:
+        try:
+            offset = int(start_line)
+        except (ValueError, TypeError):
+            pass
+
     entry = {
         "ts": datetime.now().isoformat(),
         "rel": rel,
-        "offset": tool_input.get("offset"),
-        "limit": tool_input.get("limit"),
+        "offset": offset,
+        "limit": limit,
         "idx_exists": idx_exists,
         "idx_sections": idx_sections,
         "file_lines": file_lines,

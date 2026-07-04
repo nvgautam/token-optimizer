@@ -393,19 +393,88 @@
     },
     {
       "task_id": "T-097",
-      "title": "Session-recycling savings: windowed headline % + shadow-relative lifetime callout",
-      "description": "Two fixes to combined_report.html for session-recycling representation.\n\n(1) Headline % (report_builder.py): session-recycling bucket currently uses lifetime ledger (all 108 sessions). Window it to WINDOW_START so all four strategies are on the same apples-to-apples basis. Use ledger entries where close_time >= WINDOW_START.\n\n(2) Separate callout row: show lifetime session-recycling savings as % vs shadow baseline, not vs total API spend. Shadow baseline = what would have been spent with no recycling (shadow_tracker's accumulated shadow_extra across all closed sessions). Formula: pct = shadow_extra_tokens / (shadow_extra_tokens + real_tokens) * 100. Label explicitly as 'Lifetime (N=X sessions) \u2014 vs shadow baseline (no-recycle model)'. This is the honest denominator: comparing recycling savings against the hypothetical cost, not diluting into total API spend.",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-098",
+      "title": "Model Routing Savings — track USD and token-class savings in combined report",
+      "description": "Extend agentflow reporting to calculate and display savings gained by routing subagent tasks to cheaper models (e.g. Claude Haiku vs. Sonnet). (1) Read agentflow_ledger.json sessions and log entries. (2) For each subagent run, check if a cheaper model (Haiku) was selected instead of the premium default (Sonnet). (3) Compute the shadow cost (what it would have cost on Sonnet) vs the actual cost (Haiku). (4) Integrate 'model_routing' as a new savings strategy row and daily trend in report_builder.py and combined_report.html. (5) Tests: write a test verifying the cost differential calculation and HTML output rendering.",
       "owns": [
-        "agentflow/reporting/report_builder.py"
+        "agentflow/reporting/report_builder.py",
+        "tests/reporting/test_report_builder.py"
       ],
       "reads": [
-        "agentflow_ledger.json",
-        ".agentflow/shadow_reads.jsonl"
+        "agentflow_ledger.json"
       ],
-      "depends_on": [
-        "T-092",
-        "T-089"
+      "depends_on": [],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-103",
+      "title": "Haiku vs Sonnet subagent A/B — measure output token delta from model routing",
+      "description": "Run a controlled A/B to measure how many output tokens subagents save when routed to Haiku vs Sonnet. (1) PTY shell coin-flip at session start writes haiku/sonnet to .agentflow/model_ab_arm.txt alongside verbosity_ab_arm.txt. (2) proxy/server.py already extracts `model` from each request — log {ts, model, input_tokens, output_tokens, session_type} to .agentflow/model_ab_log.jsonl per completed request (skip streaming chunks; write on request close). (3) agentflow/shadow/model_ab.py: compute per-arm output token stats (mean, p90, n, 95% CI) and persist to .agentflow/model_ab_baseline.json. (4) report_builder.py: add a model-routing row showing measured output-token delta × n_subagent_turns and annotate with CI. Stopping criterion: n>=30 per arm AND CI width < 100 tokens. Depends on T-101 (arm tagging pattern) and T-102 (stopping criterion signal in report). Do not begin until verbosity A/B stopping signal fires.",
+      "owns": [
+        "agentflow/proxy/server.py",
+        "agentflow/shell/pty_shell.py",
+        "agentflow/shadow/model_ab.py",
+        "agentflow/reporting/report_builder.py",
+        "tests/shadow/test_model_ab.py"
       ],
+      "reads": [],
+      "depends_on": ["T-101", "T-102"],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-102",
+      "title": "Verbosity A/B stopping criterion — report signals when sufficient data collected",
+      "description": "After T-101 lands, verbosity_ab_log.jsonl entries will have arm tags. Add a stopping criterion check so the report tells the user when to stop running verbosity A/B sessions. (1) In report_builder.py (or verbosity_ab.py), after run_ab_comparison(), check: n_hook_on >= 20 AND n_hook_off >= 20 AND (ci95_high - ci95_low) < 100 tokens for the hook_off arm. (2) If criterion met: emit a banner in combined_report.html — 'VERBOSITY A/B COMPLETE — sufficient data (n_on=X, n_off=Y, CI=[lo, hi])'. If not: emit 'STILL COLLECTING — n_on=X / 20, n_off=Y / 20'. (3) Also print the signal to stdout during report build so it surfaces in the terminal. Depends on T-101 (arm field in entries is prerequisite). Do not begin until T-101 is merged.",
+      "owns": [
+        "agentflow/reporting/report_builder.py",
+        "agentflow/shadow/verbosity_ab.py",
+        "tests/reporting/test_report_builder.py"
+      ],
+      "reads": [],
+      "depends_on": ["T-101"],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-101",
+      "title": "Tag verbosity_log.jsonl entries with arm at write time",
+      "description": "T-094 wired the coin-flip but session_manager.py writes verbosity_log.jsonl entries without an `arm` field, making retroactive arm attribution impossible. Fix: (1) In SessionManager.__init__, read the arm from .agentflow/verbosity_ab_arm.txt (fall back to None if absent). (2) Include `arm` in every entry written at session_manager.py:95-100. (3) Update import_from_verbosity_log() in verbosity_ab.py to filter by entry['arm'] instead of taking arm as a caller-supplied parameter — callers that pass arm explicitly should now get a deprecation warning. (4) Update run_ab_comparison() to derive arm membership from the entry field. Tests: test_verbosity_ab.py — assert written entries contain arm field; assert import correctly separates hook_on vs hook_off entries based on the field.",
+      "owns": [
+        "agentflow/shell/session_manager.py",
+        "agentflow/shadow/verbosity_ab.py",
+        "tests/shadow/test_verbosity_ab.py"
+      ],
+      "reads": [],
+      "depends_on": [],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-100",
+      "title": "Per-strategy % of total_saved column in combined report",
+      "description": "Add a pct_of_total column to the strategy rows table in combined_report.html. In report_builder.py, for each real savings strategy (idx, compression, verbosity, session-recycling), compute pct_of_total = strategy_tokens_saved / sum_of_all_real_savings * 100 and pass it to the template context. Template already has the row structure from T-092; only the % value is missing. Denominator = sum of idx_savings + compression_savings + verbosity_savings + session_recycling_savings (real measured values only, no modeled projections). Tests: extend test_report_builder.py to assert pct_of_total values sum to ~100% and each strategy's % is present in rendered HTML.",
+      "owns": [
+        "agentflow/reporting/report_builder.py",
+        "agentflow/reporting/dashboard_template.html",
+        "tests/reporting/test_report_builder.py"
+      ],
+      "reads": [],
+      "depends_on": [],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-099",
+      "title": "Gemini Oracle Skill — create /oracle equivalent skill for Gemini",
+      "description": "Implement /oracle skill for Gemini. Create commands/gemini/skills/oracle/SKILL.md (registered as .agents/skills/oracle/SKILL.md) outlining the Gemini Oracle flow. Update test_oracle_skill.py to assert correct structure for both Claude and Gemini.",
+      "owns": [
+        "commands/gemini/skills/oracle/SKILL.md",
+        "tests/prompts/test_oracle_skill.py"
+      ],
+      "reads": [
+        "commands/claude/oracle.md"
+      ],
+      "depends_on": [],
       "status": "pending"
     }
   ]

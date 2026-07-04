@@ -45,6 +45,42 @@ def test_silent_when_offset_already_set(tmp_path):
     assert out == ""
 
 
+def test_gemini_silent_when_start_line_already_set(tmp_path):
+    payload = {"tool_name": "view_file", "tool_input": {"AbsolutePath": "/some/file.py", "StartLine": 5}}
+    code, out = _run(payload, cwd=str(tmp_path))
+    assert code == 0
+    assert out == ""
+
+
+def test_gemini_blocks_when_idx_exists(tmp_path):
+    project = tmp_path / "project"
+    project.mkdir()
+    home = tmp_path / "home"
+    home.mkdir()
+    target = project / "module.py"
+    target.write_text("# code")
+    _make_idx(home, str(project), "module.py")
+    payload = {"tool_name": "view_file", "tool_input": {"AbsolutePath": str(target)}}
+    code, out = _run(payload, cwd=str(project), home=str(home))
+    assert code == 2
+    assert out != ""
+    assert "module.py" in out
+
+
+def test_gemini_blocks_on_large_range(tmp_path):
+    project = tmp_path / "project"
+    project.mkdir()
+    home = tmp_path / "home"
+    home.mkdir()
+    target = project / "module.py"
+    target.write_text("\n" * 100)
+    _make_idx(home, str(project), "module.py")
+    payload = {"tool_name": "view_file", "tool_input": {"AbsolutePath": str(target), "StartLine": 1, "EndLine": 80}}
+    code, out = _run(payload, cwd=str(project), home=str(home))
+    assert code == 1
+    assert "Large-range read" in out
+
+
 def test_silent_when_file_path_missing(tmp_path):
     payload = {"tool_name": "Read", "tool_input": {}}
     code, out = _run(payload, cwd=str(tmp_path))

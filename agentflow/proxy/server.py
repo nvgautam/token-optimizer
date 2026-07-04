@@ -30,6 +30,7 @@ try:
     from headroom.compress import compress
     _HEADROOM_AVAILABLE = True
 except ImportError:
+    compress = None
     _HEADROOM_AVAILABLE = False
 
 from agentflow.proxy.hooks import AgentFlowHooks

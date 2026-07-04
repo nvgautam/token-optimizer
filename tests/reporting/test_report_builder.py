@@ -316,7 +316,7 @@ def test_dashboard_template_no_stale_lifetime_label():
 def test_dashboard_template_cards_name_their_scope():
     html = _template_html()
     assert "File-Read" in html and "Verbosity" in html and "Compression" in html
-    assert "Session-Recycling" in html and "Handoff" in html
+    assert "Session-Recycling" in html and "handoff" in html.lower()
 
 def test_handoff_component_basic(tmp_path):
     ledger = {"sessions": [

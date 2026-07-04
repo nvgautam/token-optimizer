@@ -1,0 +1,70 @@
+{
+  "idx-reminder": {
+    "UserPromptSubmit": [
+      {
+        "type": "command",
+        "command": "python3 agentflow/hooks/idx_reminder.py"
+      }
+    ]
+  },
+  "verbosity-reminder": {
+    "UserPromptSubmit": [
+      {
+        "type": "command",
+        "command": "python3 agentflow/hooks/verbosity_reminder.py"
+      }
+    ]
+  },
+  "read-check": {
+    "PreToolUse": [
+      {
+        "matcher": "view_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 agentflow/hooks/read_check.py"
+          }
+        ]
+      }
+    ]
+  },
+  "read-logger": {
+    "PreToolUse": [
+      {
+        "matcher": "view_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 agentflow/hooks/read_logger.py"
+          }
+        ]
+      }
+    ]
+  },
+  "write-indexer": {
+    "PostToolUse": [
+      {
+        "matcher": "write_to_file|replace_file_content|multi_replace_file_content",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 agentflow/hooks/write_indexer.py"
+          }
+        ]
+      }
+    ]
+  },
+  "size-check": {
+    "PostToolUse": [
+      {
+        "matcher": "write_to_file|replace_file_content|multi_replace_file_content",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 agentflow/hooks/size_check.py"
+          }
+        ]
+      }
+    ]
+  }
+}

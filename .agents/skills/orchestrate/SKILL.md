@@ -5,6 +5,8 @@ description: Runs the agent orchestrator to implement milestone tasks, manage wo
 
 # /orchestrate — Agent Orchestration + Implementation
 
+**Verbosity:** ≤3 sentences (~150 tokens) per orchestrator status message.
+
 ## Startup
 
 ### Step 1 — Persona
@@ -113,7 +115,24 @@ Close every prompt: `"End your final message with TOKENS: input=N output=N — n
 
 Spawn one agent per group, `isolation: "worktree"`. Parallel only if no cross-dependencies and rate supports. Save `.agentflow/state.json` after each.
 
+### Round Lifecycle & PTY Signals
+At the start of each round, write `.agentflow/current_round.json` with the following schema:
+```json
+{
+  "round_id": "string",
+  "task_ids": ["string"],
+  "estimated_lines_per_task": {"task_id": "int"},
+  "file_counts_per_task": {"task_id": "int"},
+  "timestamp": "ISO8601"
+}
+```
+During the round execution, orchestrate the worker lifecycles with deterministic stdout print signals:
+- Before spawning each worker: print `AGENTFLOW_TASK_START:<task_id>`
+- After each worker completes: print `AGENTFLOW_TASK_COMPLETE:<task_id>`
+- After all round tasks complete: print `AGENTFLOW_ROUND_COMPLETE`
+
 ---
+
 
 ## Review
 
@@ -141,9 +160,10 @@ Embed `commands/claude/reviewer/code_review.md`, `commands/claude/reviewer/secur
 ```
 PR #N ready — [task_ids] ([module])
   ✓ Code  ✓ Security  [⚠ Drift: X if any]
+  Description: <brief description of changes>
 git diff main...<branch>
 Worktree: <absolute path>
-PR: <URL>
+PR: <URL> (always push branch to remote and show PR URL, or PR creation link)
 Reply: yes → merge | no [reason] → rework | skip → continue
 ```
 - **PR creation fallback:** Always push the task branch. If `gh pr create` encounters a sandbox permission failure, the agent must fallback to generating and providing the direct PR creation URL (e.g. `https://github.com/<owner>/<repo>/pull/new/<branch>`) instead of skipping.
@@ -156,12 +176,20 @@ Emit: `HANDOFF RECOMMENDED: PR #N open for [task_ids] — good stopping point be
 
 ## Merge
 
-1. Replace in `tasks.json`: `{"task_id": "T-NNN", "status": "complete"}`
-2. Append full definition to `.agentflow/tasks.archive.json`
-3. Mark `MERGED` in `execution_plan.md`
-4. Milestone complete → mark `COMPLETE`, decompose next milestone lazily
-5. Save `.agentflow/state.json`
-6. Emit: `HANDOFF RECOMMENDED: [task_id] merged — state saved, good stopping point before next round`
+**REQUIRED — do not skip, do not substitute with manual edits:**
+```bash
+python agentflow/tools/cleanup_tasks.py .
+```
+This is the ONLY permitted way to update tasks.json at merge time. Never set `status: complete` manually or edit task entries by hand — the cleanup script owns the trim + archive atomically.
+
+Then:
+1. (**Already handled by cleanup**) tasks.json: each completed task trimmed to `{"task_id": "T-NNN", "status": "complete"}`; full definition archived to `.agentflow/tasks.archive.json` (flat list — no nested batches).
+2. Mark `MERGED` in `execution_plan.md`
+3. Milestone complete → mark `COMPLETE`, decompose next milestone lazily
+4. Save `.agentflow/state.json`
+5. Emit: `HANDOFF RECOMMENDED: [task_id] merged — state saved, good stopping point before next round`
+
+**Do not manually edit task stubs or archive — always run the cleanup script.**
 
 ---
 
@@ -178,6 +206,7 @@ IDX=~/.agentflow/cache/$HASH/index/<relative-path>.idx
 
 ## Verbosity rules
 
+- Target ≤3 sentences (~150 tokens) per orchestrator status message.
 - Status: one line only
 - Round reports: table only — no prose between spawns
 - Don't narrate grouping logic, overlap scores, or round-sizing

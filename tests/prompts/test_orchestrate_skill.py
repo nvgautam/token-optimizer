@@ -158,4 +158,21 @@ def test_orchestrate_signals_and_round_json():
         assert "AGENTFLOW_ROUND_COMPLETE" in content, f"{f.name} must print AGENTFLOW_ROUND_COMPLETE"
 
 
+def test_orchestrate_skills_contain_verbosity_rules():
+    """Assert that all orchestrate skill files define the ≤3 sentences verbosity limit."""
+    for f in SKILL_FILES:
+        content = f.read_text(encoding="utf-8")
+        assert "≤3 sentences" in content or "<=3 sentences" in content or "less than or equal to 3 sentences" in content.lower(), \
+            f"{f.name} must specify ≤3 sentences verbosity rule"
+        assert "150 tokens" in content, f"{f.name} must specify 150 tokens verbosity limit"
+
+
+def test_orchestrate_skills_contain_cleanup_tasks_merge():
+    """Assert that all orchestrate skill files use the cleanup_tasks.py tool at merge time."""
+    for f in SKILL_FILES:
+        content = f.read_text(encoding="utf-8")
+        assert "cleanup_tasks.py" in content, f"{f.name} must specify running cleanup_tasks.py in merge protocol"
+
+
+
 

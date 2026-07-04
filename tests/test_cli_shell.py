@@ -77,6 +77,14 @@ def _run(wrapper, select_fn=None, headroom_config=None, which_result=None):
             patch("select.select", side_effect=select_fn)
         )
         mocks["exit"] = stack.enter_context(patch("sys.exit"))
+        
+        # Mock ProxyShell to avoid spawning real subprocesses in unit tests
+        mock_proxy_cls = stack.enter_context(patch("agentflow.shell.pty_shell.ProxyShell"))
+        mock_proxy = MagicMock()
+        mock_proxy.banner.return_value = "[agentflow] proxy: inactive (headroom not available)"
+        mock_proxy_cls.return_value = mock_proxy
+        mocks["proxy"] = mock_proxy
+        
         cmd_shell(_args())
 
     return mocks
@@ -262,31 +270,27 @@ class TestSysExit:
 # ---------------------------------------------------------------------------
 
 
-class TestHeadroomWrap:
-    def test_cmd_shell_sets_headroom_mode_token_when_enabled(self):
+class TestProxyShellWrap:
+    def test_cmd_shell_starts_and_stops_proxy_when_enabled(self):
         with patch.dict(
             os.environ, {"AGENTFLOW_ENABLE_HEADROOM": "1"}, clear=False
         ):
-            _run(_wrapper(exited=True), which_result="/usr/bin/headroom")
-            assert os.environ["HEADROOM_MODE"] == "token"
+            m = _run(_wrapper(exited=True), which_result="/usr/bin/headroom")
+            m["proxy"].start.assert_called_once()
+            m["proxy"].stop.assert_called_once()
 
-    def test_cmd_shell_does_not_set_headroom_mode_when_disabled(self):
+    def test_cmd_shell_still_starts_proxy_when_disabled(self):
+        """ProxyShell is started unconditionally to act as thin owned proxy."""
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("AGENTFLOW_ENABLE_HEADROOM", None)
             os.environ.pop("HEADROOM_MODE", None)
-            _run(
+            m = _run(
                 _wrapper(exited=True),
                 headroom_config=AgentFlowConfig(headroom=HeadroomConfig(enabled=False)),
                 which_result="/usr/bin/headroom",
             )
-            assert "HEADROOM_MODE" not in os.environ
-
-    def test_cmd_shell_sets_headroom_workspace_dir_when_enabled(self):
-        with patch.dict(
-            os.environ, {"AGENTFLOW_ENABLE_HEADROOM": "1"}, clear=False
-        ):
-            _run(_wrapper(exited=True), which_result="/usr/bin/headroom")
-            assert "HEADROOM_WORKSPACE_DIR" in os.environ
+            m["proxy"].start.assert_called_once()
+            m["proxy"].stop.assert_called_once()
 
 
 # ---------------------------------------------------------------------------
@@ -298,12 +302,12 @@ class TestHeadroomConfigDefault:
     def test_headroom_config_defaults_to_enabled(self):
         assert AgentFlowConfig().headroom.enabled is True
 
-    def test_cmd_shell_wraps_by_default_when_config_enabled_and_installed(self):
-        """No env var set — config default (enabled=True) + installed → wraps."""
+    def test_cmd_shell_starts_proxy_by_default(self):
+        """No env var set — config default (enabled=True) + installed → proxy started."""
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("AGENTFLOW_ENABLE_HEADROOM", None)
-            _run(_wrapper(exited=True), which_result="/usr/bin/headroom")
-            assert os.environ["HEADROOM_MODE"] == "token"
+            m = _run(_wrapper(exited=True), which_result="/usr/bin/headroom")
+            m["proxy"].start.assert_called_once()
 
 
 class TestEnvOverridePrecedence:
@@ -336,6 +340,6 @@ class TestHeadroomBanner:
         """cmd_shell actually prints the banner (wiring check, not just the formatter)."""
         with patch.dict(os.environ, {"AGENTFLOW_ENABLE_HEADROOM": "0"}, clear=False):
             _run(_wrapper(exited=True), which_result="/usr/bin/headroom")
-        assert "inactive (disabled via AGENTFLOW_ENABLE_HEADROOM override)" in capsys.readouterr().out
+        assert "[agentflow] proxy: inactive (headroom not available)" in capsys.readouterr().out
 
 
