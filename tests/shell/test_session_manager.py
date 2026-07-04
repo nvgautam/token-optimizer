@@ -271,3 +271,60 @@ def test_session_manager_arm_reread(tmp_path):
         
         # The arm should now have been re-read and updated to new_arm!
         assert sm._arm == "new_arm"
+
+
+def test_manual_handoff_reset_on_clear(tmp_path):
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+    sm, pty, _ = make_manager()
+    sm._manual_handoff = True
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+        fire_output(sm, pty, "/clear\n")
+    assert sm._manual_handoff is False
+
+
+def test_pty_audit_logging(tmp_path):
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+    tok = FakeTokenizer(fixed_return=100)
+    sm, pty, _ = make_manager(config={"oracle_threshold_tokens": 1000}, tokenizer=tok)
+    
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+        # 1. Transition session type
+        fire_output(sm, pty, "/oracle\n")
+        
+        # 2. Manual handoff set
+        fire_output(sm, pty, "/handoff\n")
+        
+        # 3. Clear / reset
+        fire_output(sm, pty, "/clear\n")
+        
+        # 4. Trigger auto handoff
+        tok._fixed = 2000
+        sm.session_type = "oracle"
+        
+        # Mock trigger_handoff for the auto-trigger check in _handle_output
+        with patch.object(sm, "trigger_handoff") as mock_hf:
+            fire_output(sm, pty, "some text")
+            mock_hf.assert_called_once()
+            
+        # 5. Call trigger_handoff directly to test its logging and restart
+        pty.read_output = lambda timeout=1.0: b"HANDOFF_COMPLETE\n"
+        with patch("agentflow.shell.session_manager.countdown") as mock_cd:
+            mock_cd.side_effect = lambda s, on_complete, **kw: on_complete()
+            sm.trigger_handoff(trigger="manual")
+            sm.trigger_handoff(trigger="auto")
+            
+    log_path = tmp_path / ".agentflow" / "pty_audit.jsonl"
+    assert log_path.exists()
+    lines = log_path.read_text(encoding="utf-8").strip().split("\n")
+    events = [json.loads(line) for line in lines]
+    
+    event_names = [e["event"] for e in events]
+    assert "session_type_transition" in event_names
+    assert "manual_handoff_set" in event_names
+    assert "clear_detected" in event_names
+    assert "manual_handoff_reset" in event_names
+    assert "token_evaluation" in event_names
+    assert "trigger_handoff" in event_names
+    assert "restart_session" in event_names

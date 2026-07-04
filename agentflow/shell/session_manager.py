@@ -33,40 +33,48 @@ class SessionManager:
         try:
             with open(pathlib.Path.home() / ".agentflow" / "config.toml", "rb") as fh:
                 cfg.update(tomllib.load(fh).get("shell", {}))
-        except Exception: pass
-        cfg.update(config or {})
-        self._config = cfg
+        except Exception:
+            pass
+        self._config = {**cfg, **(config or {})}
         self._pty = pty_wrapper
         self._tokenizer = tokenizer
         self.session_type: Optional[str] = None
         self._turn_count = 0
         self._manual_handoff = self._injecting = self._handoff_in_progress = self._last_had_content = False
-        self._current_turn_output_tokens = 0
-        self._turn_output_history: list[int] = []
-        self._task_start_tokens: dict[str, int] = {}
-
+        self._current_turn_output_tokens, self._turn_output_history, self._task_start_tokens = 0, [], {}
         self._arm = self._read_arm_file()
-
-        cwd = os.getcwd()
-        self._cwd_hash = hashlib.sha256(cwd.encode()).hexdigest()
-        self._last_idx_injected: str | None = None
-
+        self._cwd_hash = hashlib.sha256(os.getcwd().encode()).hexdigest()
+        self._last_idx_injected = None
         pty_wrapper._on_output = self._handle_output
         pty_wrapper._on_exit = self._on_session_exit
 
     def _read_arm_file(self) -> str | None:
         try:
             f = pathlib.Path.cwd() / ".agentflow" / "verbosity_ab_arm.txt"
-            return f.read_text(encoding="utf-8").strip() or None if f.exists() else None
+            return f.read_text(encoding="utf-8").strip() or None
         except Exception:
             return None
+
+    def _log_audit(self, entry: dict) -> None:
+        log_path = pathlib.Path.cwd() / ".agentflow" / "pty_audit.jsonl"
+        if not log_path.parent.exists():
+            return
+        try:
+            entry = dict(entry)
+            entry["ts"] = datetime.datetime.now().isoformat()
+            sid = os.environ.get("AGENTFLOW_SESSION_ID")
+            if sid:
+                entry["session_id"] = sid
+            with open(log_path, "a", encoding="utf-8") as fh:
+                fh.write(json.dumps(entry) + "\n")
+        except Exception:
+            pass
 
     def on_idle_tick(self) -> None:
         pass
 
     def _handle_output(self, chunk: bytes) -> None:
         text = chunk.decode("utf-8", errors="replace")
-
         clean = self._ansi_strip(text)
         detected_path = self._detect_read_path(clean)
         if detected_path and detected_path.startswith("/"):
@@ -76,24 +84,26 @@ class SessionManager:
             self._last_idx_injected = detected_path
 
         if "/clear" in text:
-            self.session_type = None
-            self._turn_count = 0
+            self._log_audit({"event": "clear_detected"})
+            if self.session_type is not None:
+                self._log_audit({"event": "session_type_transition", "old": self.session_type, "new": None})
+            self.session_type, self._turn_count = None, 0
+            if self._manual_handoff:
+                self._manual_handoff = False
+                self._log_audit({"event": "manual_handoff_reset"})
             self._update_session_file()
 
         if self.session_type is None:
-            if "/oracle" in text:
-                self.session_type = "oracle"
-                self._turn_count = 0
-                self._arm = self._read_arm_file()
-                self._update_session_file()
-            elif "/orchestrate" in text:
-                self.session_type = "orchestrator"
-                self._turn_count = 0
-                self._arm = self._read_arm_file()
+            new_st = "oracle" if "/oracle" in text else "orchestrator" if "/orchestrate" in text else None
+            if new_st:
+                self._log_audit({"event": "session_type_transition", "old": self.session_type, "new": new_st})
+                self.session_type, self._turn_count, self._arm = new_st, 0, self._read_arm_file()
                 self._update_session_file()
 
         if not self._injecting and "/handoff" in text:
-            self._manual_handoff = True
+            if not self._manual_handoff:
+                self._manual_handoff = True
+                self._log_audit({"event": "manual_handoff_set"})
 
         if self._last_had_content and "\n\n" in text:
             self._turn_count += 1
@@ -104,25 +114,17 @@ class SessionManager:
             if len(self._turn_output_history) > 10:
                 self._turn_output_history = self._turn_output_history[-10:]
 
-            # Incremental write of verbosity turn data to verbosity_log.jsonl
             log_path = pathlib.Path.cwd() / ".agentflow" / "verbosity_log.jsonl"
             if log_path.parent.exists():
                 try:
-                    entry = {
-                        "ts": datetime.datetime.now().isoformat(),
-                        "session_type": self.session_type,
-                        "turn": self._turn_count,
-                        "output_tokens": self._current_turn_output_tokens,
-                        "arm": self._arm,
-                    }
-                    session_id = os.environ.get("AGENTFLOW_SESSION_ID")
-                    if session_id:
-                        entry["session_id"] = session_id
+                    entry = {"ts": datetime.datetime.now().isoformat(), "session_type": self.session_type, "turn": self._turn_count, "output_tokens": self._current_turn_output_tokens, "arm": self._arm}
+                    sid = os.environ.get("AGENTFLOW_SESSION_ID")
+                    if sid:
+                        entry["session_id"] = sid
                     with open(log_path, "a", encoding="utf-8") as fh:
                         fh.write(json.dumps(entry) + "\n")
                 except Exception:
                     pass
-
             self._current_turn_output_tokens = 0
             self._last_idx_injected = None
 
@@ -132,7 +134,6 @@ class SessionManager:
         self._current_turn_output_tokens += self._tokenizer.count_tokens(text, "claude")
         total = self._tokenizer.accumulate(text, "claude")
 
-        # T-067 task bracketing checks
         start_m = re.search(r"AGENTFLOW_TASK_START:([A-Za-z0-9_-]+)", clean)
         if start_m:
             self._task_start_tokens[start_m.group(1)] = total
@@ -147,32 +148,25 @@ class SessionManager:
             st = self.session_type
             thresh = self._config["oracle_threshold_tokens" if st == "oracle" else "orchestrator_threshold_tokens"]
             floor = thresh * self._config.get("handoff_token_floor_pct", 0.30)
-            
+            self._log_audit({"event": "token_evaluation", "accumulated_tokens": total, "threshold": thresh, "floor": floor})
             triggered = False
             if "AGENTFLOW_ROUND_COMPLETE" in text:
                 rp = pathlib.Path.cwd() / ".agentflow" / "current_round.json"
                 try:
-                    with open(rp, "r", encoding="utf-8") as f:
-                        d = json.load(f)
+                    d = json.loads(rp.read_text(encoding="utf-8")) if rp.exists() else {}
                     if d.get("closed") or d.get("status") == "closed":
                         if total >= floor:
                             self._handoff_in_progress = True
-                            self.trigger_handoff()
+                            self.trigger_handoff(trigger="auto")
                             self._handoff_in_progress = False
                             triggered = True
                         else:
                             lp = pathlib.Path.cwd() / ".agentflow" / "verbosity_log.jsonl"
                             if lp.parent.exists():
-                                entry = {
-                                    "ts": datetime.datetime.now().isoformat(),
-                                    "event": "round-complete-low-tokens",
-                                    "session_type": st,
-                                    "accumulated_tokens": total,
-                                    "floor": floor,
-                                }
-                                session_id = os.environ.get("AGENTFLOW_SESSION_ID")
-                                if session_id:
-                                    entry["session_id"] = session_id
+                                entry = {"ts": datetime.datetime.now().isoformat(), "event": "round-complete-low-tokens", "session_type": st, "accumulated_tokens": total, "floor": floor}
+                                sid = os.environ.get("AGENTFLOW_SESSION_ID")
+                                if sid:
+                                    entry["session_id"] = sid
                                 with open(lp, "a", encoding="utf-8") as f:
                                     f.write(json.dumps(entry) + "\n")
                             rp.unlink(missing_ok=True)
@@ -180,20 +174,17 @@ class SessionManager:
                     pass
             if not triggered and (total > thresh or total > thresh * self._config["threshold_pct"]):
                 self._handoff_in_progress = True
-                self.trigger_handoff()
+                self.trigger_handoff(trigger="auto")
                 self._handoff_in_progress = False
 
     def _record_task_tokens(self, task_id: str, delta: int) -> None:
-        rp = pathlib.Path.cwd() / ".agentflow" / "current_round.json"
-        el = fc = 0
-        if rp.exists():
-            try:
-                with open(rp, "r", encoding="utf-8") as f:
-                    d = json.load(f)
-                el = d.get("estimated_lines_per_task", {}).get(task_id, 0)
-                fc = d.get("file_counts_per_task", {}).get(task_id, 0)
-            except Exception:
-                pass
+        rp, el, fc = pathlib.Path.cwd() / ".agentflow" / "current_round.json", 0, 0
+        try:
+            d = json.loads(rp.read_text(encoding="utf-8")) if rp.exists() else {}
+            el = d.get("estimated_lines_per_task", {}).get(task_id, 0)
+            fc = d.get("file_counts_per_task", {}).get(task_id, 0)
+        except Exception:
+            pass
         log_path = pathlib.Path.home() / ".agentflow" / "task_token_log.jsonl"
         log_path.parent.mkdir(parents=True, exist_ok=True)
         entry = {"task_id": task_id, "session_type": self.session_type, "token_delta": delta, "estimated_lines": el, "file_count": fc, "timestamp": datetime.datetime.now().isoformat()}
@@ -210,22 +201,22 @@ class SessionManager:
     def _on_session_exit(self, exit_code: int) -> None:
         pass
 
-    def trigger_handoff(self) -> None:
+    def trigger_handoff(self, trigger: str = "auto") -> None:
+        self._log_audit({"event": "trigger_handoff", "trigger": trigger})
         self._injecting = True
         self._pty.write_input("/handoff\n")
         self._injecting = False
-
         deadline = time.monotonic() + 120
         while time.monotonic() < deadline:
             chunk = self._pty.read_output(timeout=1.0)
             text = chunk.decode("utf-8", errors="replace") if chunk else ""
             if "HANDOFF_COMPLETE" in text:
                 break
-
         self._pty.write_input("/clear\n")
         countdown(self._config["restart_delay_seconds"], on_complete=self._restart_session)
 
     def _restart_session(self) -> None:
+        self._log_audit({"event": "restart_session"})
         cmd = "oracle" if self.session_type == "oracle" else "orchestrate" if self.session_type == "orchestrator" else None
         if cmd:
             self._pty.write_input(f"/{cmd}\n")
@@ -234,17 +225,15 @@ class SessionManager:
         session_id = os.environ.get("AGENTFLOW_SESSION_ID")
         if not session_id:
             return
-        session_file = pathlib.Path.home() / ".agentflow" / "sessions" / f"{session_id}.json"
+        sf = pathlib.Path.home() / ".agentflow" / "sessions" / f"{session_id}.json"
         try:
+            data = json.loads(sf.read_text(encoding="utf-8")) if sf.exists() else {}
+        except Exception:
             data = {}
-            if session_file.exists():
-                try:
-                    data = json.loads(session_file.read_text(encoding="utf-8"))
-                except Exception:
-                    pass
+        try:
             data.setdefault("started_at", datetime.datetime.now().isoformat())
             data.update({"arm": self._arm, "session_type": self.session_type})
-            session_file.parent.mkdir(parents=True, exist_ok=True)
-            session_file.write_text(json.dumps(data), encoding="utf-8")
+            sf.parent.mkdir(parents=True, exist_ok=True)
+            sf.write_text(json.dumps(data), encoding="utf-8")
         except Exception:
             pass
