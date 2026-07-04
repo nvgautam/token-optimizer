@@ -230,3 +230,44 @@ def test_task_token_bracketing_logs(tmp_path):
         assert record["file_count"] == 2
         assert "timestamp" in record
         assert "T-067" not in sm._task_start_tokens
+
+def test_session_manager_arm_reread(tmp_path):
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+    arm_file = agentflow_dir / "verbosity_ab_arm.txt"
+    
+    # 1. Write initial arm value
+    arm_file.write_text("initial_arm", encoding="utf-8")
+    
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+        sm, pty, _ = make_manager()
+        assert sm._arm == "initial_arm"
+        
+        # Simulating first session start
+        fire_output(sm, pty, "/oracle\r\n")
+        assert sm.session_type == "oracle"
+        
+        # Simulating some outputs
+        fire_output(sm, pty, "response content")
+        fire_output(sm, pty, "\n\n")
+        assert sm._turn_count == 1
+        
+        # 2. Write new arm value (simulating deployment/restart/coin-flip)
+        arm_file.write_text("new_arm", encoding="utf-8")
+        
+        # Simulating a /clear and restart session
+        fire_output(sm, pty, "/clear\r\n")
+        assert sm.session_type is None
+        assert sm._turn_count == 0
+        
+        # Simulating next session start
+        fire_output(sm, pty, "/oracle\r\n")
+        assert sm.session_type == "oracle"
+        
+        # Simulating first turn boundary of next session
+        fire_output(sm, pty, "response content")
+        fire_output(sm, pty, "\n\n")
+        assert sm._turn_count == 1
+        
+        # The arm should now have been re-read and updated to new_arm!
+        assert sm._arm == "new_arm"

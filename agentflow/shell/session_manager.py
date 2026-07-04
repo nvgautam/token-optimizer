@@ -51,15 +51,7 @@ class SessionManager:
         self._turn_output_history: list[int] = []
         self._task_start_tokens: dict[str, int] = {}
 
-        self._arm: str | None = None
-        try:
-            arm_file = pathlib.Path.cwd() / ".agentflow" / "verbosity_ab_arm.txt"
-            if arm_file.exists():
-                content = arm_file.read_text(encoding="utf-8").strip()
-                if content:
-                    self._arm = content
-        except Exception:
-            pass
+        self._arm = self._read_arm_file()
 
         cwd = os.getcwd()
         self._cwd_hash = hashlib.sha256(cwd.encode()).hexdigest()
@@ -67,6 +59,17 @@ class SessionManager:
 
         pty_wrapper._on_output = self._handle_output
         pty_wrapper._on_exit = self._on_session_exit
+
+    def _read_arm_file(self) -> str | None:
+        try:
+            arm_file = pathlib.Path.cwd() / ".agentflow" / "verbosity_ab_arm.txt"
+            if arm_file.exists():
+                content = arm_file.read_text(encoding="utf-8").strip()
+                if content:
+                    return content
+        except Exception:
+            pass
+        return None
 
     def on_idle_tick(self) -> None:
         pass
@@ -82,17 +85,27 @@ class SessionManager:
         if detected_path and detected_path != self._last_idx_injected:
             self._last_idx_injected = detected_path
 
+        if "/clear" in text:
+            self.session_type = None
+            self._turn_count = 0
+
         if self.session_type is None:
             if "/oracle" in text:
                 self.session_type = "oracle"
+                self._turn_count = 0
+                self._arm = self._read_arm_file()
             elif "/orchestrate" in text:
                 self.session_type = "orchestrator"
+                self._turn_count = 0
+                self._arm = self._read_arm_file()
 
         if not self._injecting and "/handoff" in text:
             self._manual_handoff = True
 
         if self._last_had_content and "\n\n" in text:
             self._turn_count += 1
+            if self._turn_count == 1:
+                self._arm = self._read_arm_file()
             self._last_had_content = False
             self._turn_output_history.append(self._current_turn_output_tokens)
             if len(self._turn_output_history) > 10:
