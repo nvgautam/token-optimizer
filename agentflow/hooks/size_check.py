@@ -2,7 +2,9 @@
 """PostToolUse hook: block Write/Edit when file exceeds line limit."""
 
 import json
+import os
 import sys
+from datetime import datetime
 from pathlib import Path
 
 
@@ -65,6 +67,20 @@ def main() -> None:
                 "split by responsibility boundary before proceeding.",
                 file=sys.stderr,
             )
+            try:
+                violations_path = Path(os.getcwd()) / ".agentflow" / "size_violations.jsonl"
+                violations_path.parent.mkdir(parents=True, exist_ok=True)
+                entry = {
+                    "file": rel_path_str,
+                    "blocked_lines": n_lines,
+                    "actual_lines": n_lines,
+                    "limit": limit,
+                    "ts": datetime.now().isoformat(),
+                }
+                with violations_path.open("a", encoding="utf-8") as _f:
+                    _f.write(json.dumps(entry) + "\n")
+            except Exception:
+                pass
             sys.exit(1)
 
     except Exception:

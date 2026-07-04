@@ -6,6 +6,7 @@ from agentflow.shadow.verbosity_ab import load_baseline
 from agentflow.reporting import handoff_savings
 from agentflow.reporting.steady_state import _parse_ts, WINDOW_START
 from agentflow.reporting import growth_tracker
+from agentflow.reporting import code_size_savings
 
 
 def _reporting_window(entries: list[dict]) -> tuple[str, str] | None:
@@ -177,16 +178,23 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
     offset_savings = _all_stats["offset_savings"]
     file_reads_real = _win_stats["file_reads_real"]
 
+    # Code-size savings via file splitting (T-096).
+    _families = code_size_savings.load_file_families(project_root / ".agentflow" / "file_families.jsonl")
+    _cs_result = code_size_savings.compute_code_size_savings(all_shadow_entries, _families)
+    code_size_saved = _cs_result["total_saved_tokens"]
+    _cs_by_date = {e["date"]: e["code_size"] for e in code_size_savings.daily_code_size_savings(all_shadow_entries, _families)}
+
     # Daily trend + 30-day projection for dashboard panels.
     _proxy_log_path = project_root / ".agentflow" / "proxy_log.jsonl"
     daily = growth_tracker.daily_savings(
-        all_shadow_entries, _proxy_log_path, windowed_verb_entries, baseline_tokens
+        all_shadow_entries, _proxy_log_path, windowed_verb_entries, baseline_tokens,
+        code_size_by_date=_cs_by_date,
     )
     proj = growth_tracker.projections(daily)
 
     file_reads_saved = idx_savings + offset_savings
     handoff_saved, handoff_real, n_sessions = _handoff_component(project_root)
-    total_saved = file_reads_saved + verbosity_savings + handoff_saved + compression_savings
+    total_saved = file_reads_saved + verbosity_savings + handoff_saved + compression_savings + code_size_saved
 
     # Same window as verbosity_savings -- cost and savings must match scope.
     verbosity_real = sum(e.get("output_tokens", 0) for e in windowed_verb_entries)
@@ -206,6 +214,7 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
         ("verbosity_savings", "Output Verbosity Savings (verbosity)", "real", verbosity_savings, verbosity_annotation),
         ("compression_savings", "Compression Savings (compression)", "real", compression_savings, ""),
         ("handoff_savings", "Session Recycling — Handoff/context cycling, MODELED not measured (handoff)", "modeled", (_hs := handoff_savings.compute_handoff_savings(project_root))["tokens_saved"], f" [{_hs['methodology']}]"),
+        ("code_size_savings", "Code-Size Savings via file splitting (code-size)", "real", code_size_saved, ""),
     ]
     print(f"Verbosity baseline (T-081):{verbosity_annotation}")
 

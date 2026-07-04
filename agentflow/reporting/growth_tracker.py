@@ -5,8 +5,9 @@ from pathlib import Path
 import json
 
 IDX_OPTIMISTIC_MULTIPLIER = 2.0  # 90% compliance vs ~45% current ≈ 2x uplift
+CODE_SIZE_OPTIMISTIC_MULTIPLIER = 1.5  # more splits over time
 
-_STRATEGIES = ("idx", "compression", "verbosity")
+_STRATEGIES = ("idx", "compression", "verbosity", "code_size")
 
 
 def _entry_idx_saved(e: dict) -> int:
@@ -76,6 +77,7 @@ def daily_savings(
     verb_entries: list[dict],
     baseline_tokens: int,
     days: int = 14,
+    code_size_by_date: dict[str, int] | None = None,
 ) -> list[dict]:
     """Return list of {date, idx, compression, verbosity} dicts for last `days` days."""
     idx_by_date: dict[str, int] = defaultdict(int)
@@ -108,12 +110,19 @@ def daily_savings(
         if d:
             verb_by_date[d] += max(0, baseline_tokens - e.get("output_tokens", 0))
 
-    all_dates = sorted(set(list(idx_by_date) + list(comp_by_date) + list(verb_by_date)))
+    cs = code_size_by_date or {}
+    all_dates = sorted(set(list(idx_by_date) + list(comp_by_date) + list(verb_by_date) + list(cs)))
     if not all_dates:
         return []
 
     return [
-        {"date": d, "idx": idx_by_date[d], "compression": comp_by_date[d], "verbosity": verb_by_date[d]}
+        {
+            "date": d,
+            "idx": idx_by_date[d],
+            "compression": comp_by_date[d],
+            "verbosity": verb_by_date[d],
+            "code_size": cs.get(d, 0),
+        }
         for d in all_dates[-days:]
     ]
 
@@ -134,6 +143,8 @@ def projections(daily: list[dict], horizon_days: int = 30) -> list[dict]:
         base = int(avg * horizon_days)
         if s == "idx":
             optimistic = int(avg * IDX_OPTIMISTIC_MULTIPLIER * horizon_days)
+        elif s == "code_size":
+            optimistic = int(avg * CODE_SIZE_OPTIMISTIC_MULTIPLIER * horizon_days)
         else:
             optimistic = base
         result.append({"strategy": s, "avg_per_day": round(avg, 1), "base_30d": base, "optimistic_30d": optimistic})
@@ -168,8 +179,8 @@ def _sparkline_svg(values: list[float], width: int = 120, height: int = 30, colo
 def render_sparklines_html(daily: list[dict]) -> str:
     """Return HTML with inline SVG sparklines (120×30px) per strategy.
     Pure SVG polylines — no JS, no CDN."""
-    colors = {"idx": "#4f46e5", "compression": "#10b981", "verbosity": "#f59e0b"}
-    labels = {"idx": "Symbol Index (idx)", "compression": "Compression", "verbosity": "Verbosity"}
+    colors = {"idx": "#4f46e5", "compression": "#10b981", "verbosity": "#f59e0b", "code_size": "#e11d48"}
+    labels = {"idx": "Symbol Index (idx)", "compression": "Compression", "verbosity": "Verbosity", "code_size": "Code Size (splits)"}
     rows = []
     for s in _STRATEGIES:
         values = [d.get(s, 0) for d in daily]
@@ -185,7 +196,7 @@ def render_sparklines_html(daily: list[dict]) -> str:
 
 def render_projection_table_html(proj: list[dict]) -> str:
     """Return an HTML <table> string for the projection section."""
-    labels = {"idx": "Symbol Index (idx)", "compression": "Compression", "verbosity": "Verbosity"}
+    labels = {"idx": "Symbol Index (idx)", "compression": "Compression", "verbosity": "Verbosity", "code_size": "Code Size (splits)"}
     header = (
         '<thead><tr style="color:#9ca3af;">'
         '<th style="text-align:left;padding:0.4rem 0;">Strategy</th>'
