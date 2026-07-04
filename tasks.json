@@ -505,6 +505,16 @@
       ],
       "depends_on": [],
       "status": "pending"
+    },
+    {
+      "task_id": "T-114",
+      "title": "Code review Pass 2 \u2014 route to Sonnet unconditionally, not Haiku",
+      "description": "In orchestrate skill, code review Pass 2 (LLM reviewer agent) currently spawns Haiku regardless of implementing agent. Change: spawn Sonnet (claude-sonnet-5) for Pass 2 always \u2014 reviewer must be strictly more capable than the implementer tier to catch Haiku blind spots. Update orchestrate.md reviewer spawn block.",
+      "owns": [
+        "commands/claude/orchestrate.md"
+      ],
+      "depends_on": [],
+      "status": "pending"
     }
   ]
 }

@@ -331,6 +331,16 @@ PTY generates UUID at launch → sets `AGENTFLOW_SESSION_ID=<uuid>` env var + wr
 
 ---
 
+## Addendum: T-114 — Code Review Pass 2 Model Upgrade (filed 2026-07-04)
+
+| Task | Title | Depends on | Status |
+|---|---|---|---|
+| T-114 | Code review Pass 2 — route to Sonnet unconditionally, not Haiku | — | PENDING |
+
+Reviewer must be strictly more capable than the implementer. Haiku reviewing Haiku output shares the same blind spots — change Pass 2 spawn to `claude-sonnet-5` unconditionally in orchestrate.md. Round C.
+
+---
+
 ## Addendum: T-113 — PTY Stale Index Guard (filed 2026-07-04)
 
 | Task | Title | Depends on | Status |
