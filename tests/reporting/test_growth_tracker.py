@@ -128,3 +128,51 @@ def test_render_projection_table_html_contains_rows():
     # header + 3 data rows = 4 <tr
     assert html.count("<tr") >= 3
     assert "6,000" in html
+
+
+# --------------------------------------------------------------------------- #
+# T-096: code_size support (scenarios 8-9)
+# --------------------------------------------------------------------------- #
+
+
+def test_growth_tracker_daily_includes_code_size(tmp_path):
+    """daily_savings() accepts code_size_by_date and returns code_size key."""
+    entries = [_shadow("2026-07-01", offset=10, limit=20)]
+    cs_by_date = {"2026-07-01": 1200, "2026-07-02": 800}
+    result = daily_savings(
+        entries, tmp_path / "missing.jsonl", [], 600,
+        code_size_by_date=cs_by_date,
+    )
+    assert len(result) >= 1
+    dates = {r["date"] for r in result}
+    assert "2026-07-01" in dates or "2026-07-02" in dates
+    for r in result:
+        assert "code_size" in r
+    july1 = next((r for r in result if r["date"] == "2026-07-01"), None)
+    if july1:
+        assert july1["code_size"] == 1200
+
+
+def test_growth_tracker_daily_code_size_zero_when_not_provided(tmp_path):
+    """code_size defaults to 0 when code_size_by_date not provided."""
+    entries = [_shadow("2026-07-01", offset=10, limit=20)]
+    result = daily_savings(entries, tmp_path / "missing.jsonl", [], 600)
+    assert len(result) == 1
+    assert result[0]["code_size"] == 0
+
+
+def test_growth_tracker_projections_includes_code_size():
+    """projections() returns code_size strategy row with optimistic = base × 1.5."""
+    daily = [
+        {"date": f"2026-07-{i+1:02d}", "idx": 100, "compression": 50, "verbosity": 200, "code_size": 300}
+        for i in range(7)
+    ]
+    result = projections(daily)
+    strategies = {p["strategy"] for p in result}
+    assert "code_size" in strategies
+
+    cs_proj = next(p for p in result if p["strategy"] == "code_size")
+    assert cs_proj["avg_per_day"] == pytest.approx(300.0, abs=0.1)
+    assert cs_proj["base_30d"] == 300 * 30
+    # optimistic = base × 1.5
+    assert cs_proj["optimistic_30d"] == int(300 * 1.5 * 30)

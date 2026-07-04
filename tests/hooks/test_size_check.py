@@ -161,3 +161,24 @@ def test_outputs_go_to_stderr(tmp_path, monkeypatch, capsys):
     assert "FILE TOO LARGE" in captured.err
     assert captured.out == ""
 
+
+def test_size_check_logs_violation(tmp_path, monkeypatch, capsys):
+    """On blocked write (n_lines > limit), appends to size_violations.jsonl."""
+    target = tmp_path / "module.py"
+    target.write_text("print('hello')\n" * 260)
+    monkeypatch.setattr(os, "getcwd", lambda: str(tmp_path))
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps({"tool_input": {"file_path": str(target)}})))
+
+    with pytest.raises(SystemExit) as exc_info:
+        size_check.main()
+    assert exc_info.value.code == 1
+
+    violations_path = tmp_path / ".agentflow" / "size_violations.jsonl"
+    assert violations_path.exists(), "size_violations.jsonl not created"
+    entry = json.loads(violations_path.read_text().strip())
+    assert "module.py" in entry["file"]  # may be absolute or relative path
+    assert entry["blocked_lines"] == 260
+    assert entry["actual_lines"] == 260
+    assert entry["limit"] == 250
+    assert "ts" in entry
+
