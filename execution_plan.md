@@ -316,7 +316,7 @@ Priority rationale (2026-07-04): investor demo + design-partner sequence. T-101 
 
 | Task | Title | Depends on | Status |
 |---|---|---|---|
-| T-106 | PTY session identity — env var + session file for deterministic AgentFlow detection | T-105 | PENDING |
+| T-106 | PTY session identity — env var + session file for deterministic AgentFlow detection | T-105 | MERGED |
 
 PTY generates UUID at launch → sets `AGENTFLOW_SESSION_ID=<uuid>` env var + writes `~/.agentflow/sessions/<uuid>.json` with `{arm, session_type, started_at}`. Hooks read env var and append `session_id` to verbosity_log.jsonl entries. Enables: (1) deterministic "is AgentFlow session?" check, (2) retrospective session→arm mapping, (3) clean join between session metadata and log entries. Prepend to Round B (after T-105 merges).
 

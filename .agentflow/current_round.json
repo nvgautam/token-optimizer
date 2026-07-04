@@ -3,5 +3,6 @@
   "task_ids": ["T-106"],
   "estimated_lines_per_task": {"T-106": 80},
   "file_counts_per_task": {"T-106": 2},
-  "timestamp": "2026-07-04T11:40:00-07:00"
+  "timestamp": "2026-07-04T11:40:00-07:00",
+  "status": "closed"
 }

@@ -485,29 +485,7 @@
     },
     {
       "task_id": "T-106",
-      "title": "PTY session identity — env var + session file for deterministic AgentFlow detection",
-      "description": "PTY generates UUID at launch — sets AGENTFLOW_SESSION_ID=<uuid> env var + writes ~/.agentflow/sessions/<uuid>.json with {arm, session_type, started_at}. Hooks read env var and append session_id to verbosity_log.jsonl entries.",
-      "owns": [
-        "agentflow/cli.py",
-        "agentflow/shell/session_manager.py"
-      ],
-      "reads": [
-        "agentflow/shell/pty_shell.py"
-      ],
-      "depends_on": [
-        "T-105"
-      ],
-      "test_requirements": {
-        "unit": [
-          "Verify UUID generation and session JSON writing at CLI shell startup",
-          "Verify session_type updates inside SessionManager update the session file",
-          "Verify session_id is recorded in verbosity_log.jsonl entries"
-        ],
-        "coverage_threshold": 85
-      },
-      "acceptance_criteria": "PTY session identity is written to ~/.agentflow/sessions/<uuid>.json and logged in verbosity_log.jsonl.",
-      "estimated_lines": 80,
-      "status": "pending"
+      "status": "complete"
     }
   ]
 }
