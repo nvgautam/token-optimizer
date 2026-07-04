@@ -385,17 +385,7 @@
     },
     {
       "task_id": "T-095",
-      "title": "Post-compaction re-onboarding cost in shadow model",
-      "description": "shadow_tracker.py models /compact at 70% of 200K but treats compacted context as fully usable, understating handoff savings (conservative direction). Fix: after each compaction_event, add per-turn overhead = estimated_state_doc_tokens x turns_until_next_compaction, using p25 conservative multiplier derived from ledger sessions. Measure state doc read costs from shadow_reads.jsonl to set the base estimate.",
-      "owns": [
-        "agentflow/shadow_tracker.py"
-      ],
-      "reads": [
-        "agentflow_ledger.json",
-        ".agentflow/shadow_reads.jsonl"
-      ],
-      "depends_on": [],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-096",
@@ -413,6 +403,23 @@
         ".agentflow/shadow_reads.jsonl"
       ],
       "depends_on": [],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-097",
+      "title": "Session-recycling savings: windowed headline % + shadow-relative lifetime callout",
+      "description": "Two fixes to combined_report.html for session-recycling representation.\n\n(1) Headline % (report_builder.py): session-recycling bucket currently uses lifetime ledger (all 108 sessions). Window it to WINDOW_START so all four strategies are on the same apples-to-apples basis. Use ledger entries where close_time >= WINDOW_START.\n\n(2) Separate callout row: show lifetime session-recycling savings as % vs shadow baseline, not vs total API spend. Shadow baseline = what would have been spent with no recycling (shadow_tracker's accumulated shadow_extra across all closed sessions). Formula: pct = shadow_extra_tokens / (shadow_extra_tokens + real_tokens) * 100. Label explicitly as 'Lifetime (N=X sessions) \u2014 vs shadow baseline (no-recycle model)'. This is the honest denominator: comparing recycling savings against the hypothetical cost, not diluting into total API spend.",
+      "owns": [
+        "agentflow/shadow/report_builder.py"
+      ],
+      "reads": [
+        "agentflow_ledger.json",
+        ".agentflow/shadow_reads.jsonl"
+      ],
+      "depends_on": [
+        "T-092",
+        "T-089"
+      ],
       "status": "pending"
     }
   ]

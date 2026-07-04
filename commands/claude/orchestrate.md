@@ -177,10 +177,11 @@ Emit: `HANDOFF RECOMMENDED: PR #N open for [task_ids] — good stopping point be
 
 ## Merge
 
-Run cleanup first (enforces both invariants atomically):
+**REQUIRED — do not skip, do not substitute with manual edits:**
 ```bash
 python agentflow/tools/cleanup_tasks.py .
 ```
+This is the ONLY permitted way to update tasks.json at merge time. Never set `status: complete` manually or edit task entries by hand — the cleanup script owns the trim + archive atomically.
 
 Then:
 1. (**Already handled by cleanup**) tasks.json: each completed task trimmed to `{"task_id": "T-NNN", "status": "complete"}`; full definition archived to `.agentflow/tasks.archive.json` (flat list — no nested batches).

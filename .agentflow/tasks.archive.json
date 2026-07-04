@@ -651,5 +651,21 @@
     ],
     "depends_on": [],
     "status": "complete"
+  },
+  {
+    "task_id": "T-095",
+    "title": "Post-compaction re-onboarding cost in shadow model",
+    "description": "shadow_tracker.py models /compact at 70% of 200K but treats compacted context as fully usable, understating handoff savings (conservative direction). Fix: after each compaction_event, add per-turn overhead = estimated_state_doc_tokens x turns_until_next_compaction, using p25 conservative multiplier derived from ledger sessions. Measure state doc read costs from shadow_reads.jsonl to set the base estimate.",
+    "owns": [
+      "agentflow/shadow_tracker.py"
+    ],
+    "reads": [
+      "agentflow_ledger.json",
+      ".agentflow/shadow_reads.jsonl"
+    ],
+    "depends_on": [],
+    "status": "complete",
+    "merged": "ac44480b1b3b81108ae6f1abbac5b50dc118dd7d",
+    "merged_at": "2026-07-03T20:11:04.993492"
   }
 ]
