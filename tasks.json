@@ -448,16 +448,7 @@
     },
     {
       "task_id": "T-100",
-      "title": "Per-strategy % of total_saved column in combined report",
-      "description": "Add a pct_of_total column to the strategy rows table in combined_report.html. In report_builder.py, for each real savings strategy (idx, compression, verbosity, session-recycling), compute pct_of_total = strategy_tokens_saved / sum_of_all_real_savings * 100 and pass it to the template context. Template already has the row structure from T-092; only the % value is missing. Denominator = sum of idx_savings + compression_savings + verbosity_savings + session_recycling_savings (real measured values only, no modeled projections). Tests: extend test_report_builder.py to assert pct_of_total values sum to ~100% and each strategy's % is present in rendered HTML.",
-      "owns": [
-        "agentflow/reporting/report_builder.py",
-        "agentflow/reporting/dashboard_template.html",
-        "tests/reporting/test_report_builder.py"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-099",
