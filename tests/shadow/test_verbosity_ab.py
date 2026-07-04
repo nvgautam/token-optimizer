@@ -5,7 +5,6 @@ sys.path.insert(0, str(Path(__file__).parents[2]))
 import json
 
 from agentflow.shadow.verbosity_ab import (
-    ARMS,
     FALLBACK_BASELINE_TOKENS,
     record_turn,
     import_from_verbosity_log,

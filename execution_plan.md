@@ -272,6 +272,28 @@ Status: DEFERRED — Python CLI out of scope for v1
 
 ---
 
+## Addendum: T-100/T-101/T-102/T-103 — Measurement Chain (filed 2026-07-04)
+
+| Task | Title | Depends on | Status |
+|---|---|---|---|
+| T-100 | Per-strategy % of total_saved column in combined report | — | PENDING |
+| T-101 | Tag verbosity_log.jsonl entries with arm at write time | — | PENDING |
+| T-102 | Verbosity A/B stopping criterion — report signals when sufficient data collected | T-101 | PENDING |
+| T-103 | Haiku vs Sonnet subagent A/B — measure output token delta from model routing | T-101, T-102 | PENDING |
+
+| Round | Tasks | What ships |
+|---|---|---|
+| A | T-101, T-100 | Verbosity arm fix (unblocks A/B chain) + per-strategy % (report polish) |
+| B | T-102 | Verbosity A/B stopping criterion |
+| C | T-103, T-099 | Model A/B + Gemini oracle skill (parallel) |
+| D | T-098, T-063 | Model routing savings row + cross-provider claiming (parallel) |
+| E | T-064, T-068 | Rate headroom + token estimator (parallel) |
+| F | T-069 | Parallel worker scheduling |
+
+Priority rationale (2026-07-04): investor demo + design-partner sequence. T-101 is critical path — arm tagging unblocks verbosity A/B, which gates T-103 (model A/B), which gates T-098 (model routing savings). 42-44% session-recycling headline is credible; verbosity methodology needs arm fix before pitch.
+
+---
+
 ## Deferred
 - AgentFlow user-facing CLI (subcommands for config management, T-002): backlog.json
 - Headless automation layer: confirmed dead 2026-07-01 — oracle/orchestrator/worker/reviewer/tools API-mode subtree (includes M7/T-030's context builder) never wired into cli.py or any skill; see architecture.md "Deferred (v2)" section for the full file list. Not v1 scope; do not resume from this snapshot if ever revived.
