@@ -366,12 +366,12 @@ def test_report_builder_pct_of_total(tmp_path):
     out_html = tmp_path / "combined_report.html"
     with patch("agentflow.reporting.report_builder.get_bucketed_stats", return_value={"targeted-reads": 0, "no-reread": 0, "indexing-gap": 0, "state-docs": 0}), \
          patch("agentflow.reporting.report_builder.growth_tracker.compute_file_read_stats", return_value={"idx_savings": 1000, "offset_savings": 0, "file_reads_real": 0, "file_reads_baseline": 0}), \
-         patch("agentflow.reporting.report_builder._handoff_component", return_value=(4000, 5000, 3)), \
+         patch("agentflow.reporting.report_builder._handoff_component", return_value=(3000, 5000, 3)), \
          patch("agentflow.reporting.report_builder._compression_delta_from_history", return_value=3000), \
          patch("agentflow.reporting.report_builder.load_baseline", return_value={"baseline_tokens": 2000, "measured": True, "sample_size": 3, "ci95_low": 1800, "ci95_high": 2200}), \
          patch("agentflow.reporting.report_builder._filter_by_window", return_value=[{"output_tokens": 0}]), \
          patch("agentflow.reporting.report_builder.code_size_savings.load_file_families", return_value=[]), \
-         patch("agentflow.reporting.report_builder.code_size_savings.compute_code_size_savings", return_value={"total_saved_tokens": 0}):
+         patch("agentflow.reporting.report_builder.code_size_savings.compute_code_size_savings", return_value={"total_saved_tokens": 1000}):
         
         build_report(project_root=tmp_path, mode="aggregate", output_path=out_html, store_url="sqlite:///dummy.db")
         
@@ -380,6 +380,6 @@ def test_report_builder_pct_of_total(tmp_path):
     assert "10.0% of total" in html
     assert "20.0% of total" in html
     assert "30.0% of total" in html
-    assert "40.0% of total" in html
-    assert "0.0% of total" in html
+    assert "30.0% of total" in html
+    assert "10.0% of total" in html
 
