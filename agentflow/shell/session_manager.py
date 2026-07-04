@@ -51,6 +51,16 @@ class SessionManager:
         self._turn_output_history: list[int] = []
         self._task_start_tokens: dict[str, int] = {}
 
+        self._arm: str | None = None
+        try:
+            arm_file = pathlib.Path.cwd() / ".agentflow" / "verbosity_ab_arm.txt"
+            if arm_file.exists():
+                content = arm_file.read_text(encoding="utf-8").strip()
+                if content:
+                    self._arm = content
+        except Exception:
+            pass
+
         cwd = os.getcwd()
         self._cwd_hash = hashlib.sha256(cwd.encode()).hexdigest()
         self._last_idx_injected: str | None = None
@@ -97,6 +107,7 @@ class SessionManager:
                         "session_type": self.session_type,
                         "turn": self._turn_count,
                         "output_tokens": self._current_turn_output_tokens,
+                        "arm": self._arm,
                     }
                     with open(log_path, "a", encoding="utf-8") as fh:
                         fh.write(json.dumps(entry) + "\n")

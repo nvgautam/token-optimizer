@@ -38,17 +38,17 @@ def test_record_turn_rejects_unknown_arm(tmp_path):
 
 
 def test_import_from_verbosity_log_no_source_file(tmp_path):
-    assert import_from_verbosity_log(tmp_path, arm="hook_on") == 0
+    assert import_from_verbosity_log(tmp_path) == 0
 
 
 def test_import_from_verbosity_log_tags_entries(tmp_path):
     src = tmp_path / ".agentflow" / "verbosity_log.jsonl"
     src.parent.mkdir(parents=True, exist_ok=True)
     src.write_text(
-        json.dumps({"ts": "2026-07-01T10:00:00", "session_type": "worker", "turn": 1, "output_tokens": 200}) + "\n" +
-        json.dumps({"ts": "2026-07-01T10:01:00", "session_type": "worker", "turn": 2, "output_tokens": 300}) + "\n"
+        json.dumps({"ts": "2026-07-01T10:00:00", "session_type": "worker", "turn": 1, "output_tokens": 200, "arm": "hook_on"}) + "\n" +
+        json.dumps({"ts": "2026-07-01T10:01:00", "session_type": "worker", "turn": 2, "output_tokens": 300, "arm": "hook_on"}) + "\n"
     )
-    count = import_from_verbosity_log(tmp_path, arm="hook_on")
+    count = import_from_verbosity_log(tmp_path)
     assert count == 2
     entries = load_arm_entries(tmp_path, "hook_on")
     assert len(entries) == 2
@@ -60,10 +60,10 @@ def test_import_from_verbosity_log_since_ts_filters(tmp_path):
     src = tmp_path / ".agentflow" / "verbosity_log.jsonl"
     src.parent.mkdir(parents=True, exist_ok=True)
     src.write_text(
-        json.dumps({"ts": "2026-07-01T10:00:00", "session_type": "worker", "turn": 1, "output_tokens": 200}) + "\n" +
-        json.dumps({"ts": "2026-07-01T11:00:00", "session_type": "worker", "turn": 2, "output_tokens": 300}) + "\n"
+        json.dumps({"ts": "2026-07-01T10:00:00", "session_type": "worker", "turn": 1, "output_tokens": 200, "arm": "hook_off"}) + "\n" +
+        json.dumps({"ts": "2026-07-01T11:00:00", "session_type": "worker", "turn": 2, "output_tokens": 300, "arm": "hook_off"}) + "\n"
     )
-    count = import_from_verbosity_log(tmp_path, arm="hook_off", since_ts="2026-07-01T10:30:00")
+    count = import_from_verbosity_log(tmp_path, since_ts="2026-07-01T10:30:00")
     assert count == 1
     entries = load_arm_entries(tmp_path, "hook_off")
     assert entries[0]["output_tokens"] == 300
@@ -73,11 +73,11 @@ def test_import_from_verbosity_log_rerun_without_since_ts_is_idempotent(tmp_path
     src = tmp_path / ".agentflow" / "verbosity_log.jsonl"
     src.parent.mkdir(parents=True, exist_ok=True)
     src.write_text(
-        json.dumps({"ts": "2026-07-01T10:00:00", "session_type": "worker", "turn": 1, "output_tokens": 200}) + "\n" +
-        json.dumps({"ts": "2026-07-01T10:01:00", "session_type": "worker", "turn": 2, "output_tokens": 300}) + "\n"
+        json.dumps({"ts": "2026-07-01T10:00:00", "session_type": "worker", "turn": 1, "output_tokens": 200, "arm": "hook_on"}) + "\n" +
+        json.dumps({"ts": "2026-07-01T10:01:00", "session_type": "worker", "turn": 2, "output_tokens": 300, "arm": "hook_on"}) + "\n"
     )
-    first = import_from_verbosity_log(tmp_path, arm="hook_on")
-    second = import_from_verbosity_log(tmp_path, arm="hook_on")
+    first = import_from_verbosity_log(tmp_path)
+    second = import_from_verbosity_log(tmp_path)
     assert first == 2
     assert second == 0
     assert len(load_arm_entries(tmp_path, "hook_on")) == 2
@@ -217,3 +217,116 @@ def test_run_ab_comparison_session_type_mismatch_returns_empty(tmp_path):
     assert result["arms"]["hook_off"]["n"] == 0
     assert result["measured"] is False
     assert (tmp_path / ".agentflow" / "verbosity_baseline.json").exists()
+
+
+def test_session_manager_reads_arm_from_file_present(tmp_path):
+    from agentflow.shell.session_manager import SessionManager
+    from unittest.mock import patch, MagicMock
+
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir(exist_ok=True)
+    arm_file = agentflow_dir / "verbosity_ab_arm.txt"
+    arm_file.write_text("hook_on\n", encoding="utf-8")
+
+    pty = MagicMock()
+    tok = MagicMock()
+    tok.count_tokens.return_value = 5
+    tok.accumulate.return_value = 5
+
+    with patch("pathlib.Path.cwd", return_value=tmp_path):
+        sm = SessionManager(pty, tok, {})
+        assert sm._arm == "hook_on"
+
+
+def test_session_manager_reads_arm_from_file_absent(tmp_path):
+    from agentflow.shell.session_manager import SessionManager
+    from unittest.mock import patch, MagicMock
+
+    pty = MagicMock()
+    tok = MagicMock()
+
+    with patch("pathlib.Path.cwd", return_value=tmp_path):
+        sm = SessionManager(pty, tok, {})
+        assert sm._arm is None
+
+
+def test_session_manager_writes_entries_with_arm(tmp_path):
+    from agentflow.shell.session_manager import SessionManager
+    from unittest.mock import patch, MagicMock
+
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir(exist_ok=True)
+    arm_file = agentflow_dir / "verbosity_ab_arm.txt"
+    arm_file.write_text("hook_off\n", encoding="utf-8")
+
+    pty = MagicMock()
+    tok = MagicMock()
+    tok.count_tokens.return_value = 10
+    tok.accumulate.return_value = 10
+
+    with patch("pathlib.Path.cwd", return_value=tmp_path):
+        sm = SessionManager(pty, tok, {})
+        sm.session_type = "oracle"
+        
+        # Simulate some output to trigger log write on turn boundary
+        sm._last_had_content = True
+        
+        # Invoke callback registered on pty
+        sm._handle_output(b"\n\n")
+
+    log_path = agentflow_dir / "verbosity_log.jsonl"
+    assert log_path.exists()
+    lines = log_path.read_text(encoding="utf-8").strip().splitlines()
+    assert len(lines) == 1
+    entry = json.loads(lines[0])
+    assert entry["arm"] == "hook_off"
+
+
+def test_import_from_verbosity_log_uses_entry_arm_and_warns(tmp_path):
+    import warnings
+    from agentflow.shadow.verbosity_ab import import_from_verbosity_log, load_arm_entries
+
+    src = tmp_path / ".agentflow" / "verbosity_log.jsonl"
+    src.parent.mkdir(parents=True, exist_ok=True)
+    src.write_text(
+        json.dumps({"ts": "2026-07-01T10:00:00", "session_type": "worker", "turn": 1, "output_tokens": 200, "arm": "hook_on"}) + "\n" +
+        json.dumps({"ts": "2026-07-01T10:01:00", "session_type": "worker", "turn": 2, "output_tokens": 300, "arm": "hook_off"}) + "\n" +
+        json.dumps({"ts": "2026-07-01T10:02:00", "session_type": "worker", "turn": 3, "output_tokens": 400}) + "\n"
+    )
+
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        count = import_from_verbosity_log(tmp_path, arm="hook_on")
+        assert len(w) == 1
+        assert issubclass(w[0].category, DeprecationWarning)
+        assert "deprecated" in str(w[0].message)
+
+    assert count == 2
+
+    hook_on_entries = load_arm_entries(tmp_path, "hook_on")
+    hook_off_entries = load_arm_entries(tmp_path, "hook_off")
+    assert len(hook_on_entries) == 1
+    assert hook_on_entries[0]["output_tokens"] == 200
+    assert len(hook_off_entries) == 1
+    assert hook_off_entries[0]["output_tokens"] == 300
+
+
+def test_import_from_verbosity_log_no_arm_passed(tmp_path):
+    from agentflow.shadow.verbosity_ab import import_from_verbosity_log, load_arm_entries
+
+    src = tmp_path / ".agentflow" / "verbosity_log.jsonl"
+    src.parent.mkdir(parents=True, exist_ok=True)
+    src.write_text(
+        json.dumps({"ts": "2026-07-01T10:00:00", "session_type": "worker", "turn": 1, "output_tokens": 200, "arm": "hook_on"}) + "\n" +
+        json.dumps({"ts": "2026-07-01T10:01:00", "session_type": "worker", "turn": 2, "output_tokens": 300, "arm": "hook_off"}) + "\n"
+    )
+
+    import warnings
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter("always")
+        count = import_from_verbosity_log(tmp_path)
+        assert len(w) == 0
+
+    assert count == 2
+    assert len(load_arm_entries(tmp_path, "hook_on")) == 1
+    assert len(load_arm_entries(tmp_path, "hook_off")) == 1

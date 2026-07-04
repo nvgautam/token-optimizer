@@ -31,6 +31,7 @@ from __future__ import annotations
 import json
 import math
 import statistics
+import warnings
 from datetime import datetime
 from pathlib import Path
 
@@ -90,23 +91,32 @@ def record_turn(
         fh.write(json.dumps(entry) + "\n")
 
 
-def import_from_verbosity_log(project_root: Path, arm: str, since_ts: str | None = None) -> int:
+_SENTINEL = object()
+
+
+def import_from_verbosity_log(
+    project_root: Path, arm: str | None = _SENTINEL, since_ts: str | None = None
+) -> int:
     """Re-tag entries from the live verbosity_log.jsonl (written by
     session_manager.py during a real session) into the dedicated A/B log.
     Returns the number of entries imported.
 
     Idempotent regardless of since_ts: entries already present in the
-    destination arm's log (matched by ts+turn+session_type) are skipped,
+    destination log (matched by ts+turn+session_type) are skipped,
     so re-running with no arguments never double-imports."""
-    if arm not in ARMS:
-        raise ValueError(f"arm must be one of {ARMS}, got {arm!r}")
+    if arm is not _SENTINEL:
+        warnings.warn(
+            "The 'arm' parameter is deprecated and will be ignored. Arm membership is now derived from the log entries.",
+            category=DeprecationWarning,
+            stacklevel=2,
+        )
     src_path = project_root / ".agentflow" / "verbosity_log.jsonl"
     if not src_path.exists():
         return 0
 
     already_imported = {
         (e.get("ts"), e.get("turn"), e.get("session_type"))
-        for e in load_arm_entries(project_root, arm)
+        for e in _load_ab_entries(project_root)
     }
 
     count = 0
@@ -119,6 +129,9 @@ def import_from_verbosity_log(project_root: Path, arm: str, since_ts: str | None
             continue
         if "output_tokens" not in entry:
             continue
+        entry_arm = entry.get("arm")
+        if entry_arm not in ARMS:
+            continue
         if since_ts is not None and entry.get("ts", "") <= since_ts:
             continue
         key = (entry.get("ts"), entry.get("turn", 0), entry.get("session_type", "unknown"))
@@ -129,7 +142,7 @@ def import_from_verbosity_log(project_root: Path, arm: str, since_ts: str | None
             session_type=entry.get("session_type", "unknown"),
             turn=entry.get("turn", 0),
             output_tokens=entry.get("output_tokens", 0),
-            arm=arm,
+            arm=entry_arm,
             ts=entry.get("ts"),
         )
         already_imported.add(key)
