@@ -312,6 +312,25 @@ Priority rationale (2026-07-04): investor demo + design-partner sequence. T-101 
 
 ---
 
+## Addendum: T-106 — AgentFlow Session Identity (filed 2026-07-04)
+
+| Task | Title | Depends on | Status |
+|---|---|---|---|
+| T-106 | PTY session identity — env var + session file for deterministic AgentFlow detection | T-105 | PENDING |
+
+PTY generates UUID at launch → sets `AGENTFLOW_SESSION_ID=<uuid>` env var + writes `~/.agentflow/sessions/<uuid>.json` with `{arm, session_type, started_at}`. Hooks read env var and append `session_id` to verbosity_log.jsonl entries. Enables: (1) deterministic "is AgentFlow session?" check, (2) retrospective session→arm mapping, (3) clean join between session metadata and log entries. Prepend to Round B (after T-105 merges).
+
+| Round | Tasks | What ships |
+|---|---|---|
+| A | T-105 | Arm re-read fix (MERGED) |
+| B | T-106, T-102 | Session identity + verbosity A/B stopping criterion |
+| C | T-103, T-099 | Model A/B + Gemini oracle skill (parallel) |
+| D | T-098, T-063, T-104 | Model routing savings row + cross-provider claiming + size enforcement (parallel) |
+| E | T-064, T-068 | Rate headroom + token estimator (parallel) |
+| F | T-069 | Parallel worker scheduling |
+
+---
+
 ## Deferred
 - AgentFlow user-facing CLI (subcommands for config management, T-002): backlog.json
 - Headless automation layer: confirmed dead 2026-07-01 — oracle/orchestrator/worker/reviewer/tools API-mode subtree (includes M7/T-030's context builder) never wired into cli.py or any skill; see architecture.md "Deferred (v2)" section for the full file list. Not v1 scope; do not resume from this snapshot if ever revived.
