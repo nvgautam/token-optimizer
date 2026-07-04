@@ -765,5 +765,20 @@
     "acceptance_criteria": "PTY session identity is written to ~/.agentflow/sessions/<uuid>.json and logged in verbosity_log.jsonl.",
     "estimated_lines": 80,
     "status": "complete"
+  },
+  {
+    "task_id": "T-102",
+    "title": "Verbosity A/B stopping criterion \u2014 report signals when sufficient data collected",
+    "description": "After T-101 lands, verbosity_ab_log.jsonl entries will have arm tags. Add a stopping criterion check so the report tells the user when to stop running verbosity A/B sessions. (1) In report_builder.py (or verbosity_ab.py), after run_ab_comparison(), check: n_hook_on >= 20 AND n_hook_off >= 20 AND (ci95_high - ci95_low) < 100 tokens for the hook_off arm. (2) If criterion met: emit a banner in combined_report.html \u2014 'VERBOSITY A/B COMPLETE \u2014 sufficient data (n_on=X, n_off=Y, CI=[lo, hi])'. If not: emit 'STILL COLLECTING \u2014 n_on=X / 20, n_off=Y / 20'. (3) Also print the signal to stdout during report build so it surfaces in the terminal. Depends on T-101 (arm field in entries is prerequisite). Do not begin until T-101 is merged.",
+    "owns": [
+      "agentflow/reporting/report_builder.py",
+      "agentflow/shadow/verbosity_ab.py",
+      "tests/reporting/test_report_builder.py"
+    ],
+    "reads": [],
+    "depends_on": [
+      "T-101"
+    ],
+    "status": "complete"
   }
 ]

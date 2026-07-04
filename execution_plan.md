@@ -278,7 +278,7 @@ Status: DEFERRED — Python CLI out of scope for v1
 |---|---|---|---|
 | T-100 | Per-strategy % of total_saved column in combined report | — | MERGED |
 | T-101 | Tag verbosity_log.jsonl entries with arm at write time | — | MERGED |
-| T-102 | Verbosity A/B stopping criterion — report signals when sufficient data collected | T-101 | PENDING |
+| T-102 | Verbosity A/B stopping criterion — report signals when sufficient data collected | T-101 | MERGED |
 | T-103 | Haiku vs Sonnet subagent A/B — measure output token delta from model routing | T-101, T-102 | PENDING |
 
 ---
