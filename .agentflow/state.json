@@ -4,22 +4,23 @@
   "tasks_completed": [
     "T-092",
     "T-094",
-    "T-095"
+    "T-095",
+    "T-096"
   ],
   "prs_merged": [
     57,
-    58
+    58,
+    59
   ],
   "pending": [
     "T-063",
     "T-064",
     "T-068",
     "T-069",
-    "T-096",
     "T-097"
   ],
   "in_flight": [],
-  "next_round": "T-096 alone (first-agent-solo) \u2192 T-097 (report fix) \u2192 T-063/T-064/T-068/T-069",
+  "next_round": "Round C: T-097 + T-063 + T-068 parallel \u2192 Round D: T-064 + T-069",
   "maintenance": [
     "cleanup_tasks.py added",
     "orchestrate.md merge step hardened"

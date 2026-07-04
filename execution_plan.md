@@ -244,7 +244,7 @@ Status: DEFERRED — Python CLI out of scope for v1
 | T-092 addendum | Session recycling in sparklines/projections + per-strategy % breakdown | pending |
 | T-094 | Automated verbosity A/B — PTY coin-flip + flag file + oracle tagging fix | MERGED 8ba2382 |
 | T-095 | Post-compaction re-onboarding cost in shadow model | MERGED ac44480 |
-| T-096 | Code-size savings as 5th dashboard strategy (git bootstrap + prospective family tracking) | pending |
+| T-096 | Code-size savings as 5th dashboard strategy (git bootstrap + prospective family tracking) | MERGED 5fdfc18 |
 
 ---
 

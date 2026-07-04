@@ -667,5 +667,23 @@
     "status": "complete",
     "merged": "ac44480b1b3b81108ae6f1abbac5b50dc118dd7d",
     "merged_at": "2026-07-03T20:11:04.993492"
+  },
+  {
+    "task_id": "T-096",
+    "title": "Code-size savings as 5th dashboard strategy",
+    "description": "Two-track implementation. (1) Retrospective bootstrap: agentflow/reporting/code_size_bootstrap.py git-walks to reconstruct file families \u2014 commits where file A shrinks dramatically and sibling files appear in same commit = split event; writes .agentflow/file_families.jsonl as seed. (2) Prospective: size_check.py logs {file, blocked_lines, actual_lines, ts} to .agentflow/size_violations.jsonl on blocked writes; logs {parent, children, ts} to .agentflow/file_families.jsonl when split detected (file shrinks + new siblings appear in session). (3) agentflow/reporting/code_size_savings.py: shadow size per family = sum of current member sizes; savings per read = max(shadow_size_at_T - actual_size_at_T, 0); joins file_families.jsonl with shadow_reads.jsonl by file+timestamp. (4) Add 'code_size' to growth_tracker._STRATEGIES; add strategy row + sparkline + 30-day projection to combined_report.html. No configurable prior \u2014 families provide the baseline.",
+    "owns": [
+      "agentflow/hooks/size_check.py",
+      "agentflow/reporting/code_size_savings.py",
+      "agentflow/reporting/code_size_bootstrap.py",
+      "agentflow/reporting/growth_tracker.py",
+      "agentflow/reporting/report_builder.py"
+    ],
+    "reads": [
+      "agentflow_ledger.json",
+      ".agentflow/shadow_reads.jsonl"
+    ],
+    "depends_on": [],
+    "status": "complete"
   }
 ]

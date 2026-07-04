@@ -1,13 +1,13 @@
 {
-  "round_id": "A",
+  "round_id": "B",
   "task_ids": [
-    "T-063"
+    "T-096"
   ],
   "estimated_lines_per_task": {
-    "T-063": 30
+    "T-096": 5
   },
   "file_counts_per_task": {
-    "T-063": 3
+    "T-096": 5
   },
-  "timestamp": "2026-07-03T15:45:40.813635"
+  "timestamp": "2026-07-03T20:45:00"
 }
