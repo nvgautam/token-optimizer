@@ -780,5 +780,18 @@
       "T-101"
     ],
     "status": "complete"
+  },
+  {
+    "task_id": "T-107",
+    "title": "PTY auto-trigger bug: _manual_handoff never resets on /clear + add pty_audit.jsonl",
+    "description": "Add self._manual_handoff = False to /clear detection block in agentflow/shell/session_manager.py. Add pty_audit.jsonl event log in .agentflow/ capturing: _manual_handoff set/reset, token threshold evaluations, trigger_handoff calls (auto vs manual), _restart_session calls, session_type transitions, /clear detections. Unit tests verifying manual handoff reset and logging.",
+    "owns": [
+      "agentflow/shell/session_manager.py",
+      "tests/shell/test_session_manager.py"
+    ],
+    "depends_on": [
+      "T-105"
+    ],
+    "status": "complete"
   }
 ]
