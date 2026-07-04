@@ -1,13 +1,7 @@
 {
-  "round_id": "B",
-  "task_ids": [
-    "T-096"
-  ],
-  "estimated_lines_per_task": {
-    "T-096": 5
-  },
-  "file_counts_per_task": {
-    "T-096": 5
-  },
-  "timestamp": "2026-07-03T20:45:00"
+  "round_id": "C-T097",
+  "task_ids": ["T-097"],
+  "estimated_lines_per_task": {"T-097": 30},
+  "file_counts_per_task": {"T-097": 2},
+  "timestamp": "2026-07-03T22:15:00"
 }
