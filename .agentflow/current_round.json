@@ -1,11 +1,7 @@
 {
-  "round_id": "round-t101",
-  "task_ids": ["T-101"],
-  "estimated_lines_per_task": {
-    "T-101": 35
-  },
-  "file_counts_per_task": {
-    "T-101": 3
-  },
-  "timestamp": "2026-07-04T01:34:00Z"
+  "round_id": "Round B",
+  "task_ids": ["T-106"],
+  "estimated_lines_per_task": {"T-106": 80},
+  "file_counts_per_task": {"T-106": 2},
+  "timestamp": "2026-07-04T11:40:00-07:00"
 }

@@ -57,47 +57,36 @@ def cmd_init(args: argparse.Namespace) -> int:
 
 
 def cmd_oracle(args: argparse.Namespace) -> int:
-    print("agentflow oracle — start the oracle skill in your AI CLI (claude or agy)")
-    print("  Use /oracle in Claude Code or the agy CLI.")
+    print("agentflow oracle — start the oracle skill in your AI CLI (claude or agy)\n  Use /oracle in Claude Code or the agy CLI.")
     return 0
 
 
 def cmd_orchestrate_start(args: argparse.Namespace) -> int:
-    print("agentflow orchestrate start — not yet implemented")
-    return 0
+    print("agentflow orchestrate start — not yet implemented"); return 0
 
 
 def cmd_orchestrate_status(args: argparse.Namespace) -> int:
-    print("agentflow orchestrate status — not yet implemented")
-    return 0
+    print("agentflow orchestrate status — not yet implemented"); return 0
 
 
 def cmd_orchestrate_merge(args: argparse.Namespace) -> int:
-    print("agentflow orchestrate merge — not yet implemented")
-    return 0
+    print("agentflow orchestrate merge — not yet implemented"); return 0
 
 
 def cmd_report(args: argparse.Namespace) -> int:
     if args.mode == "session":
         from agentflow.legacy_report import cmd_report as legacy_cmd_report
-        legacy_cmd_report(args)
-        return 0
+        legacy_cmd_report(args); return 0
     from agentflow.reporting.report_builder import build_report
-    return build_report(
-        project_root=Path.cwd(),
-        mode=args.mode,
-        output_path=args.output
-    )
+    return build_report(project_root=Path.cwd(), mode=args.mode, output_path=args.output)
 
 
 def cmd_validate(args: argparse.Namespace) -> int:
-    print("agentflow validate — not yet implemented")
-    return 0
+    print("agentflow validate — not yet implemented"); return 0
 
 
 def cmd_scan(args: argparse.Namespace) -> int:
-    print("agentflow scan — not yet implemented")
-    return 0
+    print("agentflow scan — not yet implemented"); return 0
 
 
 def cmd_shell(args: argparse.Namespace) -> int:
@@ -113,6 +102,34 @@ def cmd_shell(args: argparse.Namespace) -> int:
     proxy = ProxyShell(project_root=Path.cwd())
     proxy.start()
     print(proxy.banner())  # pre-raw-mode: OPOST intact
+
+    import uuid
+    import json
+    import datetime
+
+    session_id = str(uuid.uuid4())
+    os.environ["AGENTFLOW_SESSION_ID"] = session_id
+
+    arm = None
+    try:
+        arm_file = Path.cwd() / ".agentflow" / "verbosity_ab_arm.txt"
+        if arm_file.exists():
+            arm = arm_file.read_text(encoding="utf-8").strip()
+    except Exception:
+        pass
+
+    session_data = {
+        "arm": arm,
+        "session_type": None,
+        "started_at": datetime.datetime.now().isoformat(),
+    }
+
+    try:
+        sessions_dir = Path.home() / ".agentflow" / "sessions"
+        sessions_dir.mkdir(parents=True, exist_ok=True)
+        (sessions_dir / f"{session_id}.json").write_text(json.dumps(session_data), encoding="utf-8")
+    except Exception:
+        pass
 
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
@@ -179,23 +196,9 @@ def build_parser() -> argparse.ArgumentParser:
     orch_sub.add_parser("merge", help="Trigger DAG-ordered merge of approved PRs")
 
     report = sub.add_parser("report", help="Show token usage report across sessions")
-    report.add_argument(
-        "--mode",
-        choices=["aggregate", "split", "session"],
-        default="aggregate",
-        help="Report mode (default: aggregate)",
-    )
-    report.add_argument(
-        "--output",
-        default="combined_report.html",
-        help="Path to write the HTML report (default: combined_report.html)",
-    )
-    report.add_argument(
-        "--agent",
-        choices=["claude", "agy"],
-        default=None,
-        help="Filter by agent (valid only with --mode session)",
-    )
+    report.add_argument("--mode", choices=["aggregate", "split", "session"], default="aggregate", help="Report mode (default: aggregate)")
+    report.add_argument("--output", default="combined_report.html", help="Path to write the HTML report (default: combined_report.html)")
+    report.add_argument("--agent", choices=["claude", "agy"], default=None, help="Filter by agent (valid only with --mode session)")
 
     validate = sub.add_parser("validate", help="Validate tasks.json schema and ownership rules")
     validate.add_argument("tasks_file", nargs="?", default="tasks.json", metavar="FILE")

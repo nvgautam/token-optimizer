@@ -14,12 +14,9 @@ import time
 from typing import Optional
 
 try:
-    import tomllib  # Python 3.11+
+    import tomllib
 except ImportError:
-    try:
-        import tomli as tomllib  # type: ignore[no-redef]
-    except ImportError:
-        tomllib = None  # type: ignore[assignment]
+    import tomli as tomllib  # type: ignore
 
 from agentflow.shell.countdown import countdown
 
@@ -33,13 +30,10 @@ class SessionManager:
 
     def __init__(self, pty_wrapper, tokenizer, config: dict) -> None:
         cfg = dict(_DEFAULTS)
-        if tomllib is not None:
-            try:
-                with open(pathlib.Path.home() / ".agentflow" / "config.toml", "rb") as fh:
-                    cfg.update(tomllib.load(fh).get("shell", {}))
-            except Exception:
-                pass
-
+        try:
+            with open(pathlib.Path.home() / ".agentflow" / "config.toml", "rb") as fh:
+                cfg.update(tomllib.load(fh).get("shell", {}))
+        except Exception: pass
         cfg.update(config or {})
         self._config = cfg
         self._pty = pty_wrapper
@@ -62,14 +56,10 @@ class SessionManager:
 
     def _read_arm_file(self) -> str | None:
         try:
-            arm_file = pathlib.Path.cwd() / ".agentflow" / "verbosity_ab_arm.txt"
-            if arm_file.exists():
-                content = arm_file.read_text(encoding="utf-8").strip()
-                if content:
-                    return content
+            f = pathlib.Path.cwd() / ".agentflow" / "verbosity_ab_arm.txt"
+            return f.read_text(encoding="utf-8").strip() or None if f.exists() else None
         except Exception:
-            pass
-        return None
+            return None
 
     def on_idle_tick(self) -> None:
         pass
@@ -88,16 +78,19 @@ class SessionManager:
         if "/clear" in text:
             self.session_type = None
             self._turn_count = 0
+            self._update_session_file()
 
         if self.session_type is None:
             if "/oracle" in text:
                 self.session_type = "oracle"
                 self._turn_count = 0
                 self._arm = self._read_arm_file()
+                self._update_session_file()
             elif "/orchestrate" in text:
                 self.session_type = "orchestrator"
                 self._turn_count = 0
                 self._arm = self._read_arm_file()
+                self._update_session_file()
 
         if not self._injecting and "/handoff" in text:
             self._manual_handoff = True
@@ -122,6 +115,9 @@ class SessionManager:
                         "output_tokens": self._current_turn_output_tokens,
                         "arm": self._arm,
                     }
+                    session_id = os.environ.get("AGENTFLOW_SESSION_ID")
+                    if session_id:
+                        entry["session_id"] = session_id
                     with open(log_path, "a", encoding="utf-8") as fh:
                         fh.write(json.dumps(entry) + "\n")
                 except Exception:
@@ -167,8 +163,18 @@ class SessionManager:
                         else:
                             lp = pathlib.Path.cwd() / ".agentflow" / "verbosity_log.jsonl"
                             if lp.parent.exists():
+                                entry = {
+                                    "ts": datetime.datetime.now().isoformat(),
+                                    "event": "round-complete-low-tokens",
+                                    "session_type": st,
+                                    "accumulated_tokens": total,
+                                    "floor": floor,
+                                }
+                                session_id = os.environ.get("AGENTFLOW_SESSION_ID")
+                                if session_id:
+                                    entry["session_id"] = session_id
                                 with open(lp, "a", encoding="utf-8") as f:
-                                    f.write(json.dumps({"ts": datetime.datetime.now().isoformat(), "event": "round-complete-low-tokens", "session_type": st, "accumulated_tokens": total, "floor": floor}) + "\n")
+                                    f.write(json.dumps(entry) + "\n")
                             rp.unlink(missing_ok=True)
                 except Exception:
                     pass
@@ -220,7 +226,25 @@ class SessionManager:
         countdown(self._config["restart_delay_seconds"], on_complete=self._restart_session)
 
     def _restart_session(self) -> None:
-        if self.session_type == "oracle":
-            self._pty.write_input("/oracle\n")
-        elif self.session_type == "orchestrator":
-            self._pty.write_input("/orchestrate\n")
+        cmd = "oracle" if self.session_type == "oracle" else "orchestrate" if self.session_type == "orchestrator" else None
+        if cmd:
+            self._pty.write_input(f"/{cmd}\n")
+
+    def _update_session_file(self) -> None:
+        session_id = os.environ.get("AGENTFLOW_SESSION_ID")
+        if not session_id:
+            return
+        session_file = pathlib.Path.home() / ".agentflow" / "sessions" / f"{session_id}.json"
+        try:
+            data = {}
+            if session_file.exists():
+                try:
+                    data = json.loads(session_file.read_text(encoding="utf-8"))
+                except Exception:
+                    pass
+            data.setdefault("started_at", datetime.datetime.now().isoformat())
+            data.update({"arm": self._arm, "session_type": self.session_type})
+            session_file.parent.mkdir(parents=True, exist_ok=True)
+            session_file.write_text(json.dumps(data), encoding="utf-8")
+        except Exception:
+            pass
