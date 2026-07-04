@@ -472,6 +472,21 @@
       ],
       "depends_on": [],
       "status": "pending"
+    },
+    {
+      "task_id": "T-104",
+      "title": "cleanup_tasks.py \u2014 auto-file split tasks from size_violations.jsonl",
+      "description": "cleanup_tasks.py reads .agentflow/size_violations.jsonl at round start and auto-files a split task for each unresolved violation. Dedupes by file+ts (idempotent). Covers commands/ (150L limit) and .py (250L limit) files. Prerequisite: size_check.py cwd fix already landed via $CLAUDE_PROJECT_DIR anchoring.",
+      "owns": [
+        "agentflow/shell/cleanup_tasks.py",
+        "tests/test_cleanup_tasks.py"
+      ],
+      "reads": [
+        ".agentflow/size_violations.jsonl",
+        "agentflow/hooks/size_check.py"
+      ],
+      "depends_on": [],
+      "status": "pending"
     }
   ]
 }

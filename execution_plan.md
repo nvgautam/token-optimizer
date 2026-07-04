@@ -277,16 +277,26 @@ Status: DEFERRED — Python CLI out of scope for v1
 | Task | Title | Depends on | Status |
 |---|---|---|---|
 | T-100 | Per-strategy % of total_saved column in combined report | — | PENDING |
-| T-101 | Tag verbosity_log.jsonl entries with arm at write time | — | MERGED |
+| T-101 | Tag verbosity_log.jsonl entries with arm at write time | — | PENDING |
 | T-102 | Verbosity A/B stopping criterion — report signals when sufficient data collected | T-101 | PENDING |
 | T-103 | Haiku vs Sonnet subagent A/B — measure output token delta from model routing | T-101, T-102 | PENDING |
 
+---
+
+## Addendum: T-104 — Size Enforcement Closure (filed 2026-07-04)
+
+| Task | Title | Depends on | Status |
+|---|---|---|---|
+| T-104 | cleanup_tasks.py — auto-file split tasks from size_violations.jsonl | — | PENDING |
+
+Not demo-critical — code quality enforcement only, deferred to Round D.
+
 | Round | Tasks | What ships |
 |---|---|---|
-| A | T-101, T-100 | Verbosity arm fix (unblocks A/B chain) + per-strategy % (report polish) |
+| A | T-100 | Per-strategy % breakdown (T-101 already merged — T-102 now unblocked) |
 | B | T-102 | Verbosity A/B stopping criterion |
 | C | T-103, T-099 | Model A/B + Gemini oracle skill (parallel) |
-| D | T-098, T-063 | Model routing savings row + cross-provider claiming (parallel) |
+| D | T-098, T-063, T-104 | Model routing savings row + cross-provider claiming + size enforcement (parallel) |
 | E | T-064, T-068 | Rate headroom + token estimator (parallel) |
 | F | T-069 | Parallel worker scheduling |
 
