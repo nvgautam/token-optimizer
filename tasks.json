@@ -475,6 +475,18 @@
     {
       "task_id": "T-106",
       "status": "complete"
+    },
+    {
+      "task_id": "T-113",
+      "title": "PTY stale index guard \u2014 detect and rebuild .idx files when source file is newer",
+      "description": "At session start, PTY walks ~/.agentflow/cache/<hash>/index/ and compares mtime of each .idx against its source file in the project. Stale or missing .idx files are queued for rebuild via the indexer CLI. Also: write_indexer hook must be invoked on every file write during a session \u2014 audit hook registration to ensure no writes are missed (e.g. files edited outside Claude Code). Prevents the class of stale-idx bugs where oracle/worker reads ghost content from a prior file version.",
+      "owns": [
+        "agentflow/shell/session_manager.py",
+        "agentflow/hooks/write_indexer.py",
+        "tests/shell/test_stale_idx_guard.py"
+      ],
+      "depends_on": [],
+      "status": "pending"
     }
   ]
 }

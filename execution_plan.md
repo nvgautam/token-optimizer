@@ -322,12 +322,58 @@ PTY generates UUID at launch → sets `AGENTFLOW_SESSION_ID=<uuid>` env var + wr
 
 | Round | Tasks | What ships |
 |---|---|---|
-| A | T-105 | Arm re-read fix (MERGED) |
-| B | T-106, T-102 | Session identity + verbosity A/B stopping criterion |
-| C | T-103, T-099 | Model A/B + Gemini oracle skill (parallel) |
-| D | T-098, T-063, T-104 | Model routing savings row + cross-provider claiming + size enforcement (parallel) |
-| E | T-064, T-068 | Rate headroom + token estimator (parallel) |
-| F | T-069 | Parallel worker scheduling |
+| A (MERGED) | T-105 | Arm re-read fix |
+| B (MERGED) | T-106, T-102 | Session identity + verbosity A/B stopping criterion |
+| C | T-107, T-108 | PTY auto-trigger fixes (sequential within round) |
+| D | T-103, T-099, T-098, T-068 | Model A/B + Gemini oracle + routing savings + token estimator (parallel; T-103 needs T-102✓) |
+| E | T-063, T-104 | Cross-provider claiming + size enforcement (parallel) |
+| F | T-064, T-069 | Rate headroom + parallel scheduling (deps: T-063, T-068) |
+
+---
+
+## Addendum: T-113 — PTY Stale Index Guard (filed 2026-07-04)
+
+| Task | Title | Depends on | Status |
+|---|---|---|---|
+| T-113 | PTY stale index guard — detect and rebuild .idx files when source file is newer | — | PENDING |
+
+At session start, PTY walks `~/.agentflow/cache/<hash>/index/` and compares mtime of each `.idx` against its source file. Stale or missing `.idx` files are queued for rebuild via indexer CLI. Also: audit write_indexer hook registration to ensure no file writes are missed (e.g. files edited outside Claude Code). Prevents stale-idx bugs where oracle/worker reads ghost content from a prior file version. Round C (alongside T-107).
+
+---
+
+## Addendum: T-107 + T-108 — PTY Auto-Trigger Fixes (filed 2026-07-04)
+
+| Task | Title | Depends on | Status |
+|---|---|---|---|
+| T-107 | PTY auto-trigger bug: `_manual_handoff` never resets on `/clear` + add pty_audit.jsonl state machine logging | T-105 | PENDING |
+| T-108 | `AGENTFLOW_ROUND_COMPLETE` never fires: investigate emission gap in orchestrate skill + fix | T-107 | PENDING |
+
+**T-107:** Add `self._manual_handoff = False` to `/clear` detection block (session_manager.py:78–90). Add `pty_audit.jsonl` event log capturing: `_manual_handoff` set/reset, token threshold evaluations, `trigger_handoff` calls (auto vs manual), `_restart_session` calls, session_type transitions, `/clear` detections. Round A.
+
+**T-108:** Two fixes: (1) Zero `AGENTFLOW_ROUND_COMPLETE` events in verbosity_log.jsonl — orchestrate skill never emits this signal; audit and add emission after PR filed + human gate passed. (2) Orchestrate startup missing Step 4b — add: read round table → identify first round with all PENDING tasks and satisfied deps → announce "Picking up Round X: T-xxx" → proceed without prompting. Depends on T-107. Round A.
+
+---
+
+## Milestone 8: IP Protection
+Status: PENDING
+Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key server live.
+
+| Task | Title | Depends on | Status |
+|---|---|---|---|
+| T-109 | Key server — auth + ephemeral key issuance + encrypted skill serving | — | PENDING |
+| T-110 | Skill encryption pipeline — encrypt all skill .md files at rest, bundle with binary | T-109 | PENDING |
+| T-111 | PTY — fetch + decrypt skills at session start; generate skill .idx ephemerally in memory, never on disk | T-110 | PENDING |
+| T-112 | Nuitka compilation — compile PTY + hooks into binary; smoke-test distribution | T-111 | PENDING |
+
+**Pre-condition (business, not engineering gate):** File provisional patent on targeted-read method (USPTO, ~$320) before onboarding any design partner.
+
+**Design partner package:** compiled binary + NDA. No source, no plaintext skills, no .idx for skills on disk.
+
+| Round | Tasks | What ships |
+|---|---|---|
+| A | T-109 | Key server live — revocable access primitive |
+| B | T-110, T-111 | Encrypted skills + ephemeral .idx in PTY |
+| C | T-112 | Compiled binary — design partner distributable |
 
 ---
 
