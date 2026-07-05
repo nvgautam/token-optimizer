@@ -542,7 +542,7 @@
       "acceptance_criteria": "Encryption pipeline processes all skill markdown files and outputs valid encrypted payloads.",
       "estimated_lines": 120,
       "context_section": "architecture.md#security-model",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-111",
@@ -639,7 +639,7 @@
         "tests/hooks/test_jailbreak_check.py"
       ],
       "estimated_lines": 60,
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-120",
@@ -654,6 +654,10 @@
         "T-112"
       ],
       "estimated_lines": 120,
+      "status": "pending"
+    },
+    {
+      "task_id": "T-121",
       "status": "pending"
     }
   ]
