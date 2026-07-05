@@ -38,6 +38,11 @@ Gate files: same staleness rule as Step 3 — fresh read, re-read on any stale/g
 
 Check `.agentflow/state.json`. Present → report resumed state and ask "Continue?". Absent → identify first incomplete milestone. `/orchestrate debug` → reveal grouping plan and ask "Proceed?".
 
+### Step 4b — Select round
+Read the round table for the active milestone in `execution_plan.md` and check task statuses in `tasks.json`. Identify the first round that contains PENDING tasks whose dependencies are fully satisfied (i.e. marked as MERGED or complete).
+Announce: `Picking up Round X: T-xxx` (where `X` is the round identifier, e.g., `C`, and `T-xxx` represents the pending task IDs in that round).
+Proceed directly to execute or decompose the round without prompting the user.
+
 ### Step 5 — Load prior calibration
 Load `~/.agentflow/rate_calibration_claude.json` (if absent and `~/.agentflow/rate_calibration.json` exists, load `~/.agentflow/rate_calibration.json` as a one-time compat fallback); init EWMA: `ewma_mean_tokens=2500, ewma_cv=0.0, sample_count=0, ewma_alpha=0.3` if generic also absent.
 
@@ -172,6 +177,8 @@ PR: <URL> (always push branch to remote and show PR URL, or PR creation link)
 Reply: yes → merge | no [reason] → rework | skip → continue
 ```
 - **PR creation fallback:** Always push the task branch. If `gh pr create` encounters a sandbox permission failure, the agent must fallback to generating and providing the direct PR creation URL (e.g. `https://github.com/<owner>/<repo>/pull/new/<branch>`) instead of skipping.
+
+Once the user replies "yes" (human gate passed), print `AGENTFLOW_ROUND_COMPLETE` to stdout.
 
 Emit: `HANDOFF RECOMMENDED: PR #N open for [task_ids] — good stopping point before you review`
 
