@@ -4976,10 +4976,80 @@
         "compaction": null
       },
       "status": "closed"
+    },
+    {
+      "session_id": "20260705_013829",
+      "agent": "agy",
+      "task_ids": "",
+      "start_time": "2026-07-05T01:38:29.239859",
+      "end_time": "2026-07-05T01:38:29.239870",
+      "context_at_start": 20898,
+      "input_tokens": 14465975,
+      "output_tokens": 41786,
+      "token_detail": {
+        "uncached_input": 1461505,
+        "cache_creation": 0,
+        "cache_read": 13004470,
+        "output": 41786,
+        "n_turns": 106,
+        "initial_ctx": 20898,
+        "final_ctx": 248053
+      },
+      "n_turns": 106,
+      "final_ctx": 248053,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 27559940,
+        "shadow_output": 163404,
+        "shadow_extra": 12723604,
+        "compaction": {
+          "before": 347481,
+          "after": 121618,
+          "cost_tokens": 121618,
+          "reonboarding_overhead": 22880
+        }
+      },
+      "status": "closed"
+    },
+    {
+      "session_id": "20260705_014322",
+      "agent": "agy",
+      "task_ids": "",
+      "start_time": "2026-07-05T01:43:22.875410",
+      "end_time": "2026-07-05T01:43:22.875421",
+      "context_at_start": 20898,
+      "input_tokens": 16346062,
+      "output_tokens": 46548,
+      "token_detail": {
+        "uncached_input": 1642019,
+        "cache_creation": 0,
+        "cache_read": 14704043,
+        "output": 46548,
+        "n_turns": 119,
+        "initial_ctx": 20898,
+        "final_ctx": 142941
+      },
+      "n_turns": 119,
+      "final_ctx": 142941,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 31214039,
+        "shadow_output": 131897,
+        "shadow_extra": 14472542,
+        "compaction": {
+          "before": 243855,
+          "after": 85349,
+          "cost_tokens": 85349,
+          "reonboarding_overhead": 151580
+        }
+      },
+      "status": "closed"
     }
   ],
   "shadow_state": {
-    "accumulated_context": 120034,
-    "compaction_events": 98
+    "accumulated_context": 85349,
+    "compaction_events": 100
   }
 }
