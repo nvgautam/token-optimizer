@@ -490,13 +490,7 @@
     },
     {
       "task_id": "T-114",
-      "title": "Code review Pass 2 \u2014 cross-tier model routing (Haiku\u2194Sonnet)",
-      "description": "Route Pass 2 reviewer to the opposite tier from the implementer: Haiku-implemented tasks \u2192 Sonnet reviewer; Sonnet-implemented tasks \u2192 Haiku reviewer. Rationale: cross-tier review catches blind spots cheaply; human gate backstops cases where Haiku misses subtle issues in Sonnet output. Update orchestrate.md Pass 2 spawn block to read implementing agent model and select reviewer accordingly.",
-      "owns": [
-        "commands/claude/orchestrate.md"
-      ],
-      "depends_on": [],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-115",

@@ -345,7 +345,7 @@ Replace unreliable raw-token 5hr cap with percentage-based capacity model: track
 
 | Task | Title | Depends on | Status |
 |---|---|---|---|
-| T-114 | Code review Pass 2 — route to Sonnet unconditionally, not Haiku | — | PENDING |
+| T-114 | Code review Pass 2 — route to Sonnet unconditionally, not Haiku | — | MERGED |
 
 Cross-tier review: Haiku-implemented → Sonnet reviewer; Sonnet-implemented → Haiku reviewer. Human gate backstops cases where Haiku misses subtle issues in Sonnet output. Update orchestrate.md Pass 2 spawn block to read implementing agent model and select reviewer accordingly. Round C.
 
