@@ -7,6 +7,25 @@ from pathlib import Path
 
 
 def main() -> None:
+    is_pytest = len(sys.argv) > 0 and ("pytest" in sys.argv[0] or "py.test" in sys.argv[0])
+    if len(sys.argv) > 1 and not is_pytest:
+        for arg in sys.argv[1:]:
+            try:
+                path = Path(arg)
+                if path.suffix not in (".py", ".md"):
+                    continue
+                try:
+                    contents = path.read_text(encoding="utf-8")
+                except OSError:
+                    continue
+                if len(contents.splitlines()) < 50:
+                    continue
+                from agentflow.indexer.index_manager import update
+                update(path, contents)
+            except Exception:
+                pass
+        sys.exit(0)
+
     try:
         data = json.load(sys.stdin)
     except (json.JSONDecodeError, ValueError):
