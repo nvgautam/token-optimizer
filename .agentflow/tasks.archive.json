@@ -883,5 +883,16 @@
     "estimated_lines": 180,
     "context_section": "architecture.md#security-model",
     "status": "complete"
+  },
+  {
+    "task_id": "T-116",
+    "status": "complete",
+    "title": "PTY trigger_handoff non-blocking \u2014 move handoff wait+countdown off main event loop",
+    "description": "trigger_handoff() is called synchronously from _handle_output (on the main select loop). The inner read loop blocks up to 120s waiting for HANDOFF_COMPLETE, then countdown() blocks 5s. During this window stdin is not forwarded and the shell is unresponsive. Fix: run the HANDOFF_COMPLETE wait + countdown in a daemon thread; main loop continues relaying I/O. Gate: thread sets _handoff_in_progress=True before starting, clears it and injects the restart command on completion. Stdlib threading only \u2014 no new deps.",
+    "files": [
+      "agentflow/shell/session_manager.py",
+      "tests/shell/test_session_manager.py"
+    ],
+    "estimated_lines": 40
   }
 ]
