@@ -38,7 +38,7 @@ def test_oracle_skill_declares_three_personas():
         assert re.search(r"Designer", content), f"Designer persona missing in {f.name}"
         # Must be declared together (same line or block)
         lines = content.splitlines()
-        persona_lines = [l for l in lines if "Engineer" in l and ("PM" in l or "Product" in l) and "Designer" in l]
+        persona_lines = [line for line in lines if "Engineer" in line and ("PM" in line or "Product" in line) and "Designer" in line]
         assert persona_lines, \
             f"{f.name} must declare all three personas (Engineer, PM, Designer) on the same line or block"
 
@@ -179,3 +179,34 @@ def test_oracle_cv_adjustment_logic_present_without_notification():
         # The user-facing notification line must NOT be present
         assert not re.search(r"CV=.*high.*sizing tasks more conservatively", phase3_content), \
             f"Phase 3 of {f.name} must NOT emit user-facing CV notification (IP protection)"
+# T-108: Orchestrate skill fixes tests (round complete emission + Step 4b startup)
+def test_orchestrate_skill_emits_round_complete_on_human_gate_yes():
+    orchestrate_files = [
+        Path("commands/claude/orchestrate.md"),
+        Path("commands/gemini/skills/orchestrate/SKILL.md"),
+    ]
+    for f in orchestrate_files:
+        content = f.read_text(encoding="utf-8")
+        assert "AGENTFLOW_ROUND_COMPLETE" in content, f"{f.name} must print AGENTFLOW_ROUND_COMPLETE"
+        
+        # Check that it instructs to print it on human gate passed/yes response
+        human_gate_section = content.split("## Human gate")[1].split("## Merge")[0]
+        assert "AGENTFLOW_ROUND_COMPLETE" in human_gate_section,             f"{f.name} must print AGENTFLOW_ROUND_COMPLETE in the Human gate section"
+        assert "yes" in human_gate_section,             f"{f.name} must mention 'yes' in the Human gate section"
+
+
+def test_orchestrate_skill_has_step_4b_startup():
+    orchestrate_files = [
+        Path("commands/claude/orchestrate.md"),
+        Path("commands/gemini/skills/orchestrate/SKILL.md"),
+    ]
+    for f in orchestrate_files:
+        content = f.read_text(encoding="utf-8")
+        assert "Step 4b" in content, f"{f.name} must contain Step 4b"
+        
+        # Check that Step 4b instructs to read round table, identify PENDING tasks, and announce "Picking up Round"
+        startup_section = content.split("## Decomposition")[0]
+        assert "Step 4b" in startup_section, f"Step 4b must appear in the Startup section in {f.name}"
+        assert "round table" in startup_section.lower(), f"Step 4b must mention 'round table' in {f.name}"
+        assert "pending" in startup_section.lower(), f"Step 4b must mention 'PENDING' in {f.name}"
+        assert "picking up round" in startup_section.lower(), f"Step 4b must announce 'Picking up Round X: T-xxx' in {f.name}"
