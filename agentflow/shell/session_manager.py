@@ -40,6 +40,7 @@ class SessionManager:
         self._arm = self._read_arm_file()
         self._cwd_hash = hashlib.sha256(os.getcwd().encode()).hexdigest()
         self._last_idx_injected = None
+        self._last_accumulated_tokens = 0
         pty_wrapper._on_output = self._handle_output
         pty_wrapper._on_exit = self._on_session_exit
         self._run_stale_index_guard()
@@ -120,7 +121,8 @@ class SessionManager:
             if self._manual_handoff:
                 self._manual_handoff = False
                 self._log_audit({"event": "manual_handoff_reset"})
-            self._tokenizer.reset()
+            if hasattr(self._tokenizer, "reset"):
+                self._tokenizer.reset()
             self._update_session_file()
 
         if self.session_type is None:
@@ -161,6 +163,7 @@ class SessionManager:
 
         self._current_turn_output_tokens += self._tokenizer.count_tokens(text, "claude")
         total = self._tokenizer.accumulate(text, "claude")
+        self._last_accumulated_tokens = total
 
         start_m = re.search(r"AGENTFLOW_TASK_START:([A-Za-z0-9_-]+)", clean)
         if start_m:
@@ -227,22 +230,47 @@ class SessionManager:
     def trigger_handoff(self, trigger: str = "auto") -> None:
         self._log_audit({"event": "trigger_handoff", "trigger": trigger})
         self._injecting = True
-        self._pty.write_input("/handoff\n")
+        try:
+            self._pty.write_input("/handoff\n")
+        except OSError:
+            self._log_audit({"event": "handoff_aborted", "trigger": trigger, "tokens": getattr(self, "_last_accumulated_tokens", 0)})
+            self._handoff_in_progress = False
+            self._injecting = False
+            return
         self._injecting = False
         deadline = time.monotonic() + 120
+        handoff_complete = False
         while time.monotonic() < deadline:
             chunk = self._pty.read_output(timeout=1.0)
+            if chunk:
+                try:
+                    os.write(1, chunk)
+                except OSError:
+                    pass
             text = chunk.decode("utf-8", errors="replace") if chunk else ""
             if "HANDOFF_COMPLETE" in text:
+                handoff_complete = True
                 break
-        self._pty.write_input("/clear\n")
+            if getattr(self._pty, "_exited", False):
+                break
+        if not handoff_complete:
+            self._log_audit({"event": "handoff_aborted", "trigger": trigger, "tokens": getattr(self, "_last_accumulated_tokens", 0)})
+            self._handoff_in_progress = False
+            return
+        try:
+            self._pty.write_input("/clear\n")
+        except OSError:
+            pass
         countdown(self._config["restart_delay_seconds"], on_complete=self._restart_session)
 
     def _restart_session(self) -> None:
         self._log_audit({"event": "restart_session"})
         cmd = "oracle" if self.session_type == "oracle" else "orchestrate" if self.session_type == "orchestrator" else None
         if cmd:
-            self._pty.write_input(f"/{cmd}\n")
+            try:
+                self._pty.write_input(f"/{cmd}\n")
+            except OSError:
+                pass
 
     def _update_session_file(self) -> None:
         sid = os.environ.get("AGENTFLOW_SESSION_ID")
