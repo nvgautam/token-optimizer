@@ -3,7 +3,6 @@
 Stdlib-only. Zero LLM calls. Fully deterministic.
 """
 from __future__ import annotations
-
 import datetime
 import hashlib
 import json
@@ -12,16 +11,13 @@ import pathlib
 import re
 import time
 from typing import Optional
-
 try:
     import tomllib
 except ImportError:
     import tomli as tomllib  # type: ignore
-
 from agentflow.shell.countdown import countdown
 
 _DEFAULTS = {"oracle_threshold_tokens": 60000, "orchestrator_threshold_tokens": 30000, "threshold_pct": 0.30, "restart_delay_seconds": 5, "handoff_token_floor_pct": 0.30}
-
 _ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;]*[mGKHFABCDhJlsu]")
 _READ_PATH_RE = re.compile(r"Read\([^)]*?file_path\s*=\s*[\"']([^\"']+\.(?:py|md|json|toml|yaml|yml|txt))[\"']|Read\([\"']([^\s\"')]+\.(?:py|md|json|toml|yaml|yml|txt))[\"']\)|(?:^|\b)Read\s+tool\s+[\"']?([^\s\"']+\.(?:py|md|json|toml|yaml|yml|txt))[\"']?", re.MULTILINE)
 
@@ -36,8 +32,7 @@ class SessionManager:
         except Exception:
             pass
         self._config = {**cfg, **(config or {})}
-        self._pty = pty_wrapper
-        self._tokenizer = tokenizer
+        self._pty, self._tokenizer = pty_wrapper, tokenizer
         self.session_type: Optional[str] = None
         self._turn_count = 0
         self._manual_handoff = self._injecting = self._handoff_in_progress = self._last_had_content = False
@@ -47,11 +42,11 @@ class SessionManager:
         self._last_idx_injected = None
         pty_wrapper._on_output = self._handle_output
         pty_wrapper._on_exit = self._on_session_exit
+        self._run_stale_index_guard()
 
     def _read_arm_file(self) -> str | None:
         try:
-            f = pathlib.Path.cwd() / ".agentflow" / "verbosity_ab_arm.txt"
-            return f.read_text(encoding="utf-8").strip() or None
+            return (pathlib.Path.cwd() / ".agentflow" / "verbosity_ab_arm.txt").read_text("utf-8").strip() or None
         except Exception:
             return None
 
@@ -60,18 +55,52 @@ class SessionManager:
         if not log_path.parent.exists():
             return
         try:
-            entry = dict(entry)
-            entry["ts"] = datetime.datetime.now().isoformat()
-            sid = os.environ.get("AGENTFLOW_SESSION_ID")
-            if sid:
-                entry["session_id"] = sid
+            entry = {**entry, "ts": datetime.datetime.now().isoformat(), "session_id": os.environ.get("AGENTFLOW_SESSION_ID")}
             with open(log_path, "a", encoding="utf-8") as fh:
                 fh.write(json.dumps(entry) + "\n")
         except Exception:
             pass
 
     def on_idle_tick(self) -> None:
-        pass
+        now = time.monotonic()
+        if not hasattr(self, "_last_guard_tick") or now - self._last_guard_tick > 2.0:
+            self._last_guard_tick = now
+            self._run_stale_index_guard()
+
+    def _run_stale_index_guard(self) -> None:
+        try:
+            root = pathlib.Path.cwd().resolve()
+            h = hashlib.sha256(str(root).encode()).hexdigest()
+            cd = pathlib.Path("~/.agentflow/cache").expanduser().resolve() / h / "index"
+            files = []
+            if cd.exists():
+                for r, _, fs in os.walk(cd):
+                    for f in fs:
+                        if f.endswith(".idx"):
+                            ip = pathlib.Path(r) / f
+                            sp = root / str(ip.relative_to(cd))[:-4]
+                            if sp.exists() and sp.stat().st_mtime > ip.stat().st_mtime:
+                                files.append(str(sp))
+            for r, ds, fs in os.walk(root):
+                ds[:] = [d for d in ds if d not in {".git", ".venv", "node_modules", "__pycache__", ".agentflow", ".pytest_cache"}]
+                for f in fs:
+                    sp = pathlib.Path(r) / f
+                    if sp.suffix in (".py", ".md"):
+                        ip = cd / sp.relative_to(root).parent / f"{f}.idx"
+                        if not ip.exists():
+                            try:
+                                with open(sp, "r", encoding="utf-8", errors="ignore") as fh:
+                                    if len([fh.readline() for _ in range(50)]) >= 50:
+                                        files.append(str(sp))
+                            except Exception:
+                                pass
+            files = list(set(files))
+            if files:
+                import subprocess
+                import sys
+                subprocess.run([sys.executable, str(pathlib.Path(__file__).parent.parent / "hooks" / "write_indexer.py")] + files, capture_output=True)
+        except Exception:
+            pass
 
     def _handle_output(self, chunk: bytes) -> None:
         text = chunk.decode("utf-8", errors="replace")
@@ -114,19 +143,17 @@ class SessionManager:
             if len(self._turn_output_history) > 10:
                 self._turn_output_history = self._turn_output_history[-10:]
 
-            log_path = pathlib.Path.cwd() / ".agentflow" / "verbosity_log.jsonl"
-            if log_path.parent.exists():
+            lp = pathlib.Path.cwd() / ".agentflow" / "verbosity_log.jsonl"
+            if lp.parent.exists():
                 try:
-                    entry = {"ts": datetime.datetime.now().isoformat(), "session_type": self.session_type, "turn": self._turn_count, "output_tokens": self._current_turn_output_tokens, "arm": self._arm}
-                    sid = os.environ.get("AGENTFLOW_SESSION_ID")
-                    if sid:
-                        entry["session_id"] = sid
-                    with open(log_path, "a", encoding="utf-8") as fh:
+                    entry = {"ts": datetime.datetime.now().isoformat(), "session_type": self.session_type, "turn": self._turn_count, "output_tokens": self._current_turn_output_tokens, "arm": self._arm, "session_id": os.environ.get("AGENTFLOW_SESSION_ID")}
+                    with open(lp, "a", encoding="utf-8") as fh:
                         fh.write(json.dumps(entry) + "\n")
                 except Exception:
                     pass
             self._current_turn_output_tokens = 0
             self._last_idx_injected = None
+            self._run_stale_index_guard()
 
         if text.strip():
             self._last_had_content = True
@@ -163,10 +190,7 @@ class SessionManager:
                         else:
                             lp = pathlib.Path.cwd() / ".agentflow" / "verbosity_log.jsonl"
                             if lp.parent.exists():
-                                entry = {"ts": datetime.datetime.now().isoformat(), "event": "round-complete-low-tokens", "session_type": st, "accumulated_tokens": total, "floor": floor}
-                                sid = os.environ.get("AGENTFLOW_SESSION_ID")
-                                if sid:
-                                    entry["session_id"] = sid
+                                entry = {"ts": datetime.datetime.now().isoformat(), "event": "round-complete-low-tokens", "session_type": st, "accumulated_tokens": total, "floor": floor, "session_id": os.environ.get("AGENTFLOW_SESSION_ID")}
                                 with open(lp, "a", encoding="utf-8") as f:
                                     f.write(json.dumps(entry) + "\n")
                             rp.unlink(missing_ok=True)
@@ -180,7 +204,7 @@ class SessionManager:
     def _record_task_tokens(self, task_id: str, delta: int) -> None:
         rp, el, fc = pathlib.Path.cwd() / ".agentflow" / "current_round.json", 0, 0
         try:
-            d = json.loads(rp.read_text(encoding="utf-8")) if rp.exists() else {}
+            d = json.loads(rp.read_text("utf-8")) if rp.exists() else {}
             el = d.get("estimated_lines_per_task", {}).get(task_id, 0)
             fc = d.get("file_counts_per_task", {}).get(task_id, 0)
         except Exception:
@@ -222,12 +246,12 @@ class SessionManager:
             self._pty.write_input(f"/{cmd}\n")
 
     def _update_session_file(self) -> None:
-        session_id = os.environ.get("AGENTFLOW_SESSION_ID")
-        if not session_id:
+        sid = os.environ.get("AGENTFLOW_SESSION_ID")
+        if not sid:
             return
-        sf = pathlib.Path.home() / ".agentflow" / "sessions" / f"{session_id}.json"
+        sf = pathlib.Path.home() / ".agentflow" / "sessions" / f"{sid}.json"
         try:
-            data = json.loads(sf.read_text(encoding="utf-8")) if sf.exists() else {}
+            data = json.loads(sf.read_text("utf-8")) if sf.exists() else {}
         except Exception:
             data = {}
         try:
