@@ -454,6 +454,26 @@ User-reported: after handoff fires, PTY "broke out of the shell" and the same nu
 
 **Depends on:** T-116, T-117 (MERGED). Blocks T-111 (modifies session_manager.py). Runs parallel with T-110 (disjoint files).
 
+## Addendum: T-120 — PTY installer: hook merge + binary-relative commands (filed 2026-07-05)
+
+**Goal:** Safe hook registration in customer environments at install time; no customer config clobbered.
+
+**Files:** `agentflow/ip/installer.py` (new, ~80L), `agentflow/cli.py` (add `install`/`uninstall`/`hooks` subcommands), `tests/ip/test_installer.py`.
+
+**Protocol:** `agentflow install` reads `~/.claude/settings.json`, deep-merges agentflow hook entries (idempotent: command-string match), writes atomically via `os.replace`. `agentflow uninstall` removes only agentflow entries. Hook commands in installed config reference binary: `agentflow hooks <name>` — Nuitka binary dispatches internally. Dev `settings.json` (tracked in git) keeps `$CLAUDE_PROJECT_DIR` paths unchanged.
+
+**Depends on:** T-112 (binary must exist before hook commands can reference it).
+
+## Addendum: T-119 — UserPromptSubmit jailbreak hook (filed 2026-07-05, subtask of T-111)
+
+**Goal:** Block known extraction/jailbreak prompts before they reach Claude, as defense-in-depth alongside T-111's meta-instruction preamble.
+
+**Why hook, not stdin filter:** UserPromptSubmit fires on the complete submitted message — not raw keystrokes. Consistent with existing hook pattern (read_check.py, verbosity_reminder.py). Non-zero exit blocks the message from reaching Claude.
+
+**Files:** `agentflow/hooks/jailbreak_check.py` (new, ~60L), `tests/hooks/test_jailbreak_check.py` (new). Register in `.claude/settings.json` under `hooks.UserPromptSubmit`.
+
+**Protocol:** Fuzzy case-insensitive match. On match: exit non-zero + write `{ts, pattern_matched, raw_input}` to `.agentflow/sanitizer_blocked.jsonl`. On clean: exit 0. Stdlib only. Ships with T-111.
+
 ## Deferred
 - AgentFlow user-facing CLI (subcommands for config management, T-002): backlog.json
 - Headless automation layer: confirmed dead 2026-07-01 — oracle/orchestrator/worker/reviewer/tools API-mode subtree (includes M7/T-030's context builder) never wired into cli.py or any skill; see architecture.md "Deferred (v2)" section for the full file list. Not v1 scope; do not resume from this snapshot if ever revived.
