@@ -121,7 +121,7 @@ Close every prompt: `"End your final message with TOKENS: input=N output=N — n
 
 **Model selection per task (before spawn):**
 - Mechanical (estimated_lines ≤ 80 OR title/description contains: test, fix, rename, stub, move, format, lint, config): `model: "claude-haiku-4-5-20251001"`
-- Default (exploratory, architecture, new module, algorithm): `model: "claude-sonnet-5"`
+- Default (exploratory, architecture, new module, algorithm): `model: "claude-sonnet-4-6"`
 
 Spawn one agent per group, `isolation: "worktree"`, with the selected `model`. Parallel only if no cross-dependencies and rate supports. Save `.agentflow/state.json` after each.
 
@@ -159,8 +159,8 @@ CRITICAL: hardcoded secrets, signal injection. WARNING: bare except, size > 250 
 
 **Pass 2 — LLM Reviewer (cross-tier model routing):**
 Select the reviewer model based on the model used by the implementing agent to implement the task (opposite tier routing):
-- Haiku-implemented tasks (`claude-haiku-4-5-20251001`) → Route to Sonnet reviewer (`claude-sonnet-5`)
-- Sonnet-implemented tasks (`claude-sonnet-5`) → Route to Haiku reviewer (`claude-haiku-4-5-20251001`)
+- Haiku-implemented tasks (`claude-haiku-4-5-20251001`) → Route to Sonnet reviewer (`claude-sonnet-4-6`)
+- Sonnet-implemented tasks (`claude-sonnet-4-6`) → Route to Haiku reviewer (`claude-haiku-4-5-20251001`)
 *Rationale:* Cross-tier review catches blind spots cheaply, while the subsequent human gate backstops cases where a Haiku reviewer misses subtle issues in Sonnet output.
 
 Embed `commands/claude/reviewer/code_review.md`, `commands/claude/reviewer/security_review.md`, `commands/claude/reviewer/test_review.md`. Include pre-filter findings, changed files, diff (max 300 lines).
