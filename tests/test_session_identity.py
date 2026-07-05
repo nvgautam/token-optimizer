@@ -301,19 +301,15 @@ def test_session_id_recorded_in_verbosity_log_entries(tmp_path):
         assert record["session_id"] == session_id
         assert record["session_type"] == "oracle"
 
-        # Trigger round-complete-low-tokens event
-        round_file = af_dir / "current_round.json"
-        round_file.write_text(json.dumps({"closed": True}), encoding="utf-8")
-        
-        # Set tokenizer behavior to keep total below floor (default threshold 30000, floor 9000)
-        tok._total = 1000
-        pty._on_output(b"AGENTFLOW_ROUND_COMPLETE")
+        # Trigger a second turn boundary write — session_id must persist across turns
+        pty._on_output(b"second response")
+        pty._on_output(b"\n\n")
 
         lines = log_path.read_text(encoding="utf-8").strip().split("\n")
         assert len(lines) == 2
         record2 = json.loads(lines[1])
-        assert record2["event"] == "round-complete-low-tokens"
         assert record2["session_id"] == session_id
+        assert record2["session_type"] == "oracle"
 
 
 def test_restart_session():

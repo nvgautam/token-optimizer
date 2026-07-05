@@ -59,17 +59,35 @@ def test_trigger_handoff_writes_commands():
     assert "/clear\n" in pty.inputs
     assert pty.inputs.index("/handoff\n") < pty.inputs.index("/clear\n")
 
-def test_threshold_fires_for_oracle():
-    tok = FakeTokenizer(fixed_return=61_000)
-    sm, pty, _ = make_manager(config={"oracle_threshold_tokens": 60_000}, tokenizer=tok)
+def test_safety_net_fires_no_task_in_flight():
+    tok = FakeTokenizer(fixed_return=121_000)
+    sm, pty, _ = make_manager(config={"handoff_safety_tokens": 120_000}, tokenizer=tok)
     sm.session_type = "oracle"
     with patch.object(sm, "trigger_handoff") as mock_hf:
         fire_output(sm, pty, "some output chunk")
         mock_hf.assert_called_once()
 
+def test_safety_net_suppressed_when_task_in_flight():
+    tok = FakeTokenizer(fixed_return=121_000)
+    sm, pty, _ = make_manager(config={"handoff_safety_tokens": 120_000, "handoff_hard_ceiling_tokens": 200_000}, tokenizer=tok)
+    sm.session_type = "oracle"
+    sm._task_start_tokens["T-001"] = 50_000
+    with patch.object(sm, "trigger_handoff") as mock_hf:
+        fire_output(sm, pty, "some output chunk")
+        mock_hf.assert_not_called()
+
+def test_hard_ceiling_fires_even_with_task_in_flight():
+    tok = FakeTokenizer(fixed_return=151_000)
+    sm, pty, _ = make_manager(config={"handoff_hard_ceiling_tokens": 150_000}, tokenizer=tok)
+    sm.session_type = "oracle"
+    sm._task_start_tokens["T-001"] = 50_000
+    with patch.object(sm, "trigger_handoff") as mock_hf:
+        fire_output(sm, pty, "some output chunk")
+        mock_hf.assert_called_once()
+
 def test_manual_handoff_suppresses_auto():
-    tok = FakeTokenizer(fixed_return=61_000)
-    sm, pty, _ = make_manager(config={"oracle_threshold_tokens": 60_000}, tokenizer=tok)
+    tok = FakeTokenizer(fixed_return=121_000)
+    sm, pty, _ = make_manager(config={"handoff_safety_tokens": 120_000}, tokenizer=tok)
     sm.session_type = "oracle"
     sm._manual_handoff = True
     with patch.object(sm, "trigger_handoff") as mock_hf:
@@ -168,36 +186,38 @@ def test_detect_read_path():
     assert sm._detect_read_path("no read call here at all") is None
     assert sm._detect_read_path("read the config.py file for details") is None
 
-def test_round_complete_above_floor(tmp_path):
-    agentflow_dir = tmp_path / ".agentflow"
-    agentflow_dir.mkdir()
-    round_file = agentflow_dir / "current_round.json"
-    round_file.write_text(json.dumps({"closed": True}), encoding="utf-8")
-    tok = FakeTokenizer(fixed_return=10_000)
-    sm, pty, _ = make_manager(config={"orchestrator_threshold_tokens": 30_000, "handoff_token_floor_pct": 0.30}, tokenizer=tok)
+def test_primary_fires_on_task_complete_above_threshold():
+    tok = FakeTokenizer(fixed_return=85_000)
+    sm, pty, _ = make_manager(config={"handoff_primary_tokens": 80_000}, tokenizer=tok)
     sm.session_type = "orchestrator"
-    with patch.object(sm, "trigger_handoff") as mock_hf, patch.object(pathlib.Path, "cwd", return_value=tmp_path):
-        fire_output(sm, pty, "AGENTFLOW_ROUND_COMPLETE")
+    with patch.object(sm, "trigger_handoff") as mock_hf:
+        fire_output(sm, pty, "AGENTFLOW_TASK_COMPLETE:T-001")
         mock_hf.assert_called_once()
 
-def test_round_complete_below_floor(tmp_path):
-    agentflow_dir = tmp_path / ".agentflow"
-    agentflow_dir.mkdir()
-    round_file = agentflow_dir / "current_round.json"
-    round_file.write_text(json.dumps({"closed": True}), encoding="utf-8")
-    tok = FakeTokenizer(fixed_return=5000)
-    sm, pty, _ = make_manager(config={"orchestrator_threshold_tokens": 30_000, "handoff_token_floor_pct": 0.30}, tokenizer=tok)
+def test_primary_suppressed_when_task_still_in_flight():
+    tok = FakeTokenizer(fixed_return=85_000)
+    sm, pty, _ = make_manager(config={"handoff_primary_tokens": 80_000, "handoff_safety_tokens": 200_000, "handoff_hard_ceiling_tokens": 300_000}, tokenizer=tok)
     sm.session_type = "orchestrator"
-    with patch.object(sm, "trigger_handoff") as mock_hf, patch.object(pathlib.Path, "cwd", return_value=tmp_path):
-        fire_output(sm, pty, "AGENTFLOW_ROUND_COMPLETE")
+    sm._task_start_tokens["T-002"] = 40_000  # second task still running
+    with patch.object(sm, "trigger_handoff") as mock_hf:
+        fire_output(sm, pty, "AGENTFLOW_TASK_COMPLETE:T-001")
         mock_hf.assert_not_called()
-        log_path = agentflow_dir / "verbosity_log.jsonl"
-        assert log_path.exists()
-        lines = log_path.read_text(encoding="utf-8").strip().split("\n")
-        assert len(lines) == 1
-        record = json.loads(lines[0])
-        assert record["event"] == "round-complete-low-tokens"
-        assert not round_file.exists()
+
+def test_primary_suppressed_when_below_threshold():
+    tok = FakeTokenizer(fixed_return=50_000)
+    sm, pty, _ = make_manager(config={"handoff_primary_tokens": 80_000, "handoff_safety_tokens": 200_000, "handoff_hard_ceiling_tokens": 300_000}, tokenizer=tok)
+    sm.session_type = "orchestrator"
+    with patch.object(sm, "trigger_handoff") as mock_hf:
+        fire_output(sm, pty, "AGENTFLOW_TASK_COMPLETE:T-001")
+        mock_hf.assert_not_called()
+
+def test_primary_suppressed_when_no_task_complete_signal():
+    tok = FakeTokenizer(fixed_return=85_000)
+    sm, pty, _ = make_manager(config={"handoff_primary_tokens": 80_000, "handoff_safety_tokens": 200_000, "handoff_hard_ceiling_tokens": 300_000}, tokenizer=tok)
+    sm.session_type = "orchestrator"
+    with patch.object(sm, "trigger_handoff") as mock_hf:
+        fire_output(sm, pty, "some regular output above 80K")
+        mock_hf.assert_not_called()
 
 def test_task_token_bracketing_logs(tmp_path):
     agentflow_dir = tmp_path / ".agentflow"
@@ -287,7 +307,7 @@ def test_pty_audit_logging(tmp_path):
     agentflow_dir = tmp_path / ".agentflow"
     agentflow_dir.mkdir()
     tok = FakeTokenizer(fixed_return=100)
-    sm, pty, _ = make_manager(config={"oracle_threshold_tokens": 1000}, tokenizer=tok)
+    sm, pty, _ = make_manager(config={"handoff_hard_ceiling_tokens": 1000}, tokenizer=tok)
     
     with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
         # 1. Transition session type

@@ -17,7 +17,7 @@ except ImportError:
     import tomli as tomllib  # type: ignore
 from agentflow.shell.countdown import countdown
 
-_DEFAULTS = {"oracle_threshold_tokens": 60000, "orchestrator_threshold_tokens": 30000, "threshold_pct": 0.30, "restart_delay_seconds": 5, "handoff_token_floor_pct": 0.30}
+_DEFAULTS = {"handoff_primary_tokens": 80000, "handoff_safety_tokens": 120000, "handoff_hard_ceiling_tokens": 150000, "restart_delay_seconds": 5}
 _ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;]*[mGKHFABCDhJlsu]")
 _READ_PATH_RE = re.compile(r"Read\([^)]*?file_path\s*=\s*[\"']([^\"']+\.(?:py|md|json|toml|yaml|yml|txt))[\"']|Read\([\"']([^\s\"')]+\.(?:py|md|json|toml|yaml|yml|txt))[\"']\)|(?:^|\b)Read\s+tool\s+[\"']?([^\s\"']+\.(?:py|md|json|toml|yaml|yml|txt))[\"']?", re.MULTILINE)
 
@@ -172,33 +172,31 @@ class SessionManager:
                 self._record_task_tokens(tid, total - self._task_start_tokens.pop(tid))
 
         if not self._manual_handoff and not self._handoff_in_progress:
-            st = self.session_type
-            thresh = self._config["oracle_threshold_tokens" if st == "oracle" else "orchestrator_threshold_tokens"]
-            floor = thresh * self._config.get("handoff_token_floor_pct", 0.30)
-            self._log_audit({"event": "token_evaluation", "accumulated_tokens": total, "threshold": thresh, "floor": floor})
+            primary = self._config["handoff_primary_tokens"]
+            safety = self._config["handoff_safety_tokens"]
+            ceiling = self._config["handoff_hard_ceiling_tokens"]
+            self._log_audit({"event": "token_evaluation", "accumulated_tokens": total, "primary": primary, "safety": safety, "ceiling": ceiling})
             triggered = False
-            if "AGENTFLOW_ROUND_COMPLETE" in text:
-                rp = pathlib.Path.cwd() / ".agentflow" / "current_round.json"
-                try:
-                    d = json.loads(rp.read_text(encoding="utf-8")) if rp.exists() else {}
-                    if d.get("closed") or d.get("status") == "closed":
-                        if total >= floor:
-                            self._handoff_in_progress = True
-                            self.trigger_handoff(trigger="auto")
-                            self._handoff_in_progress = False
-                            triggered = True
-                        else:
-                            lp = pathlib.Path.cwd() / ".agentflow" / "verbosity_log.jsonl"
-                            if lp.parent.exists():
-                                entry = {"ts": datetime.datetime.now().isoformat(), "event": "round-complete-low-tokens", "session_type": st, "accumulated_tokens": total, "floor": floor, "session_id": os.environ.get("AGENTFLOW_SESSION_ID")}
-                                with open(lp, "a", encoding="utf-8") as f:
-                                    f.write(json.dumps(entry) + "\n")
-                            rp.unlink(missing_ok=True)
-                except Exception:
-                    pass
-            if not triggered and (total > thresh or total > thresh * self._config["threshold_pct"]):
+
+            # Primary: 80K + a scheduled task just completed (no task in-flight)
+            task_just_completed = complete_m is not None
+            if not triggered and total >= primary and task_just_completed and not self._task_start_tokens:
                 self._handoff_in_progress = True
-                self.trigger_handoff(trigger="auto")
+                self.trigger_handoff(trigger="auto-primary")
+                self._handoff_in_progress = False
+                triggered = True
+
+            # Safety net: 120K + no task in-flight
+            if not triggered and total >= safety and not self._task_start_tokens:
+                self._handoff_in_progress = True
+                self.trigger_handoff(trigger="auto-safety")
+                self._handoff_in_progress = False
+                triggered = True
+
+            # Hard ceiling: 150K unconditional
+            if not triggered and total >= ceiling:
+                self._handoff_in_progress = True
+                self.trigger_handoff(trigger="auto-ceiling")
                 self._handoff_in_progress = False
 
     def _record_task_tokens(self, task_id: str, delta: int) -> None:
