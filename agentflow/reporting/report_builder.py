@@ -80,6 +80,31 @@ def _lifetime_recycling_callout(project_root: Path) -> tuple[int, int, int]:
     return (sum((s.get("shadow_event") or {}).get("shadow_extra", 0) for s in cl),
             sum(s.get("input_tokens", 0) + s.get("output_tokens", 0) for s in cl), len(cl))
 
+
+def _load_calibration_html() -> str:
+    cal_dir = Path.home() / ".agentflow"
+    cards = []
+    for agent in ["claude", "gemini"]:
+        path = cal_dir / f"rate_calibration_{agent}.json"
+        if path.exists():
+            try:
+                data = json.loads(path.read_text())
+                if isinstance(data, dict):
+                    ewma = data.get("ewma_pct_per_task")
+                    rem = data.get("tasks_remaining")
+                    if ewma is not None or rem is not None:
+                        ewma_str = f"{ewma:.2f}%" if isinstance(ewma, (int, float)) else "N/A"
+                        rem_str = f"{rem}" if rem is not None else "N/A"
+                        cards.append(f"""
+            <div class="card">
+                <div class="stat-label">Capacity Calibration ({agent.capitalize()})</div>
+                <div class="stat-value" style="font-size: 1.8rem; color: #a78bfa;">{rem_str} tasks remaining</div>
+                <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">EWMA per task: {ewma_str}</div>
+            </div>""")
+            except Exception:
+                pass
+    return "".join(cards)
+
 def build_report(project_root: Path, mode: str = "aggregate", output_path: str = "combined_report.html", store_url: str = None) -> int:
     try:
         import_from_verbosity_log(project_root)
@@ -165,6 +190,10 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
     print(f"Verbosity baseline (T-081):{verbosity_annotation}")
     print(f"Verbosity A/B stopping criterion status: {stopping_status}")
     html_template = (Path(__file__).parent / "dashboard_template.html").read_text(encoding="utf-8")
+    html_template = html_template.replace(
+        '            <div class="card">\n                <div class="stat-label">Compression Savings</div>\n                <div class="stat-value">{compression_savings_str}</div>\n                <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Headroom context reduction</div>\n            </div>',
+        '            <div class="card">\n                <div class="stat-label">Compression Savings</div>\n                <div class="stat-value">{compression_savings_str}</div>\n                <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Headroom context reduction</div>\n            </div>\n            {capacity_calibration_html}'
+    )
     headroom_section_html = f'<div class="headroom-section"><h2>Headroom Deep Analytics</h2>{headroom_html}</div>' if headroom_html else ''
     banner_style = "background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); color: var(--success);" if stopping_met else "background: rgba(245, 158, 11, 0.1); border: 1px solid #f59e0b; color: #f59e0b;"
     banner_icon = "✓" if stopping_met else "⚠"
@@ -178,7 +207,7 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
         "{lifetime_recycling_str}": f"Lifetime (N={n_all} sessions) — {lifetime_recycle_pct:.1f}% vs shadow baseline (no-recycle model)",
         "{idx_savings_pct}": f"{idx_savings_pct:.1f}", "{verbosity_savings_pct}": f"{verbosity_savings_pct:.1f}",
         "{compression_savings_pct}": f"{compression_savings_pct:.1f}", "{handoff_savings_pct}": f"{handoff_savings_pct:.1f}",
-        "{code_size_savings_pct}": f"{code_size_savings_pct:.1f}", "{verbosity_ab_banner_html}": banner_html
+        "{code_size_savings_pct}": f"{code_size_savings_pct:.1f}", "{verbosity_ab_banner_html}": banner_html, "{capacity_calibration_html}": _load_calibration_html()
     }
     replacements.update({f"{{{ph}_str}}": f"{val:,}{note}" for ph, _, _, val, note in STRATEGY_ROWS})
     replacements["{trend_panel_html}"] = growth_tracker.render_sparklines_html(daily)
