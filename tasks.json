@@ -510,6 +510,127 @@
     {
       "task_id": "T-117",
       "status": "complete"
+    },
+    {
+      "task_id": "T-109",
+      "title": "Key server \u2014 auth + ephemeral key issuance + encrypted skill serving",
+      "description": "Implement a lightweight HTTP key server for authentication, ephemeral decryption key issuance, and encrypted skill distribution. Secure the server endpoint, use standard cryptography, and ensure it runs locally or remotely.",
+      "owns": [
+        "agentflow/ip/key_server.py"
+      ],
+      "reads": [],
+      "depends_on": [],
+      "contracts": [],
+      "test_requirements": {
+        "unit": [
+          "Validate client authentication token",
+          "Verify ephemeral key generation and issuance",
+          "Test serving encrypted skills on valid authentication"
+        ],
+        "integration": [
+          "End-to-end exchange between client and key server"
+        ],
+        "coverage_threshold": 85
+      },
+      "security_constraints": [
+        "No hardcoded credentials or keys in source files"
+      ],
+      "acceptance_criteria": "Key server authenticates client and returns ephemeral decryption keys.",
+      "estimated_lines": 180,
+      "context_section": "architecture.md#security-model",
+      "status": "pending"
+    },
+    {
+      "task_id": "T-110",
+      "title": "Skill encryption pipeline \u2014 encrypt all skill .md files at rest, bundle with binary",
+      "description": "Create an automated pipeline to encrypt the markdown files under commands/claude/ and commands/gemini/ using AES-256-GCM. Save the encrypted payloads and ensure they can be bundled in the final package.",
+      "owns": [
+        "agentflow/ip/encrypt_pipeline.py"
+      ],
+      "reads": [
+        "commands/claude/oracle.md",
+        "commands/claude/orchestrate.md"
+      ],
+      "depends_on": [
+        "T-109"
+      ],
+      "contracts": [],
+      "test_requirements": {
+        "unit": [
+          "Ensure AES-256-GCM encryption of markdown files",
+          "Verify decrypted content matches original markdown exactly"
+        ],
+        "integration": [
+          "Run entire pipeline and verify encrypted outputs are correctly outputted"
+        ],
+        "coverage_threshold": 85
+      },
+      "security_constraints": [
+        "Encrypted files must not contain plaintext metadata or keys"
+      ],
+      "acceptance_criteria": "Encryption pipeline processes all skill markdown files and outputs valid encrypted payloads.",
+      "estimated_lines": 120,
+      "context_section": "architecture.md#security-model",
+      "status": "pending"
+    },
+    {
+      "task_id": "T-111",
+      "title": "PTY \u2014 fetch + decrypt skills at session start; generate skill .idx ephemerally in memory, never on disk",
+      "description": "Modify the PTY shell and session manager to retrieve the ephemeral decryption key from the key server, decrypt skill files in memory, and generate the index entry structure ephemerally without writing index files or skills to disk.",
+      "owns": [
+        "agentflow/shell/session_manager.py"
+      ],
+      "reads": [
+        "agentflow/indexer/index_manager.py"
+      ],
+      "depends_on": [
+        "T-110"
+      ],
+      "contracts": [],
+      "test_requirements": {
+        "unit": [
+          "Mock key server to check key fetching and skill decryption in memory",
+          "Ensure skill index (.idx) is created ephemerally and never written to disk"
+        ],
+        "integration": [
+          "Run session manager with mock key server and verify skills are correctly loaded in memory"
+        ],
+        "coverage_threshold": 85
+      },
+      "security_constraints": [
+        "Plaintext skills must never be persisted to disk or logs"
+      ],
+      "acceptance_criteria": "Session manager decrypts skills and constructs indexing tables entirely in-memory.",
+      "estimated_lines": 200,
+      "context_section": "architecture.md#pty-shell-design",
+      "status": "pending"
+    },
+    {
+      "task_id": "T-112",
+      "title": "Nuitka compilation \u2014 compile PTY + hooks into binary; smoke-test distribution",
+      "description": "Develop a compilation script using Nuitka to compile the PTY shell, session manager, and hooks into a standalone executable. Run verification tests on the compiled binary to ensure compatibility and correct startup execution.",
+      "owns": [
+        "agentflow/ip/compile.sh"
+      ],
+      "reads": [],
+      "depends_on": [
+        "T-111"
+      ],
+      "contracts": [],
+      "test_requirements": {
+        "unit": [
+          "Test script outputs valid Nuitka build command"
+        ],
+        "integration": [
+          "Compile the PTY shell and execute smoke tests on the binary"
+        ],
+        "coverage_threshold": 85
+      },
+      "security_constraints": [],
+      "acceptance_criteria": "Nuitka compiler produces a standalone executable that runs without source code present.",
+      "estimated_lines": 80,
+      "context_section": "architecture.md#pty-shell-design",
+      "status": "pending"
     }
   ]
 }
