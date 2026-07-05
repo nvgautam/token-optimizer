@@ -437,6 +437,8 @@ User-reported: after handoff fires, PTY "broke out of the shell" and the same nu
 
 ## Addendum: T-118 — PTY State Machine Refactor (filed 2026-07-05)
 
+**Status:** MERGED
+
 **Goal:** Replace flag-soup session_manager.py with explicit state machine; all signals file-based, no timers.
 
 **States:** `IDLE → TASK_RUNNING → TASK_COMPLETE → HANDOFF_PENDING → RESTARTING → IDLE`; `DEAD_CHILD` recovery from any state.
