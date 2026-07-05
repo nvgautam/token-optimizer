@@ -494,15 +494,7 @@
     },
     {
       "task_id": "T-115",
-      "title": "Capacity calibration \u2014 tasks-per-5hr-window as scheduling primitive",
-      "description": "Replace unreliable raw-token 5hr cap with a percentage-based capacity model. Track: (1) 5hr window % consumed per task (start_pct - end_pct from ledger), (2) EWMA of % per task, (3) tasks_remaining = floor(current_pct_remaining / ewma_pct_per_task). Write to rate_calibration_claude.json. Orchestrate reads tasks_remaining before each spawn to gate parallelism. Separate from T-068 (token regression) \u2014 this tracks rate-limit headroom, not token count.",
-      "owns": [
-        "agentflow/shadow/capacity_calibrator.py",
-        "agentflow/reporting/report_builder.py",
-        "tests/shadow/test_capacity_calibrator.py"
-      ],
-      "depends_on": [],
-      "status": "pending"
+      "status": "complete"
     }
   ]
 }

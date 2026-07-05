@@ -335,7 +335,7 @@ PTY generates UUID at launch → sets `AGENTFLOW_SESSION_ID=<uuid>` env var + wr
 
 | Task | Title | Depends on | Status |
 |---|---|---|---|
-| T-115 | Capacity calibration — tasks-per-5hr-window as scheduling primitive | — | PENDING |
+| T-115 | Capacity calibration — tasks-per-5hr-window as scheduling primitive | — | MERGED |
 
 Replace unreliable raw-token 5hr cap with percentage-based capacity model: track 5hr window % consumed per task, EWMA of % per task, derive `tasks_remaining = floor(current_pct / ewma_pct_per_task)`. Orchestrate reads this before each spawn. Complements T-068 (token regression) — this tracks rate-limit headroom, not token count. Round D.
 
