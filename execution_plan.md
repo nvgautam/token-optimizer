@@ -337,7 +337,7 @@ PTY generates UUID at launch → sets `AGENTFLOW_SESSION_ID=<uuid>` env var + wr
 |---|---|---|---|
 | T-114 | Code review Pass 2 — route to Sonnet unconditionally, not Haiku | — | PENDING |
 
-Reviewer must be strictly more capable than the implementer. Haiku reviewing Haiku output shares the same blind spots — change Pass 2 spawn to `claude-sonnet-5` unconditionally in orchestrate.md. Round C.
+Cross-tier review: Haiku-implemented → Sonnet reviewer; Sonnet-implemented → Haiku reviewer. Human gate backstops cases where Haiku misses subtle issues in Sonnet output. Update orchestrate.md Pass 2 spawn block to read implementing agent model and select reviewer accordingly. Round C.
 
 ---
 
