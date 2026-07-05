@@ -49,12 +49,22 @@ def test_session_types():
     fire_output(sm2, pty2, "/orchestrate\r\n")
     assert sm2.session_type == "orchestrator"
 
-def test_trigger_handoff_writes_commands():
+def test_trigger_handoff_writes_commands(tmp_path):
     sm, pty, _ = make_manager()
-    pty.read_output = lambda timeout=1.0: b"HANDOFF_COMPLETE\n"
-    with patch("agentflow.shell.session_manager.countdown") as mock_cd:
-        mock_cd.side_effect = lambda s, on_complete, **kw: on_complete()
-        sm.trigger_handoff()
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+        # Intercept write_input to write handoff complete file synchronously in test
+        original_write = pty.write_input
+        def mock_write_input(text):
+            original_write(text)
+            if "/handoff" in text:
+                sm._handoff_complete_path.parent.mkdir(parents=True, exist_ok=True)
+                sm._handoff_complete_path.write_text("{}", encoding="utf-8")
+        pty.write_input = mock_write_input
+        
+        with patch("agentflow.shell.session_manager.countdown") as mock_cd:
+            mock_cd.side_effect = lambda s, on_complete, **kw: on_complete()
+            sm.trigger_handoff()
+            
     assert "/handoff\n" in pty.inputs
     assert "/clear\n" in pty.inputs
     assert pty.inputs.index("/handoff\n") < pty.inputs.index("/clear\n")
@@ -254,6 +264,10 @@ def test_pty_audit_logging(tmp_path):
     tok = FakeTokenizer(fixed_return=100)
     sm, pty, _ = make_manager(config={"handoff_hard_ceiling_tokens": 1000}, tokenizer=tok)
     with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+        sm._project_root = tmp_path
+        sm._task_complete_path = tmp_path / ".agentflow" / "task_complete.json"
+        sm._handoff_complete_path = tmp_path / ".agentflow" / "handoff_complete.json"
+
         fire_output(sm, pty, "/oracle\n")
         fire_output(sm, pty, "/handoff\n")
         fire_output(sm, pty, "/clear\n")
@@ -262,15 +276,21 @@ def test_pty_audit_logging(tmp_path):
         with patch.object(sm, "trigger_handoff") as mock_hf:
             fire_output(sm, pty, "some text")
             mock_hf.assert_called_once()
-        pty.read_output = lambda timeout=1.0: b"HANDOFF_COMPLETE\n"
+        
         with patch("agentflow.shell.session_manager.countdown") as mock_cd:
             mock_cd.side_effect = lambda s, on_complete, **kw: on_complete()
+            # Force async so it doesn't trigger synchronous pytest fallback
+            sm._force_async_handoff = True
             sm.trigger_handoff(trigger="manual")
-            if hasattr(sm, "_handoff_thread") and sm._handoff_thread:
-                sm._handoff_thread.join(timeout=5.0)
+            
+            # Simulate the write of handoff complete file to transition HANDOFF_PENDING -> RESTARTING -> IDLE
+            sm._handoff_complete_path.parent.mkdir(parents=True, exist_ok=True)
+            sm._handoff_complete_path.write_text("{}", encoding="utf-8")
+            sm.poll()
+
             sm.trigger_handoff(trigger="auto")
-            if hasattr(sm, "_handoff_thread") and sm._handoff_thread:
-                sm._handoff_thread.join(timeout=5.0)
+            sm.poll()
+            
     log_path = tmp_path / ".agentflow" / "pty_audit.jsonl"
     assert log_path.exists()
     events = [json.loads(line) for line in log_path.read_text(encoding="utf-8").strip().split("\n")]
@@ -278,41 +298,56 @@ def test_pty_audit_logging(tmp_path):
     for ev in ["session_type_transition", "manual_handoff_set", "clear_detected", "manual_handoff_reset", "token_evaluation", "trigger_handoff", "restart_session"]:
         assert ev in event_names
 
-def test_async_trigger_handoff_success():
+def test_async_trigger_handoff_success(tmp_path):
     sm, pty, _ = make_manager()
     sm._force_async_handoff = True
-    pty.read_output = lambda timeout=1.0: b"HANDOFF_COMPLETE\n"
-    t0 = time.monotonic()
-    with patch("agentflow.shell.session_manager.countdown") as mock_cd:
-        mock_cd.side_effect = lambda s, on_complete, **kw: on_complete()
-        sm.trigger_handoff()
-        duration = time.monotonic() - t0
-        assert duration < 0.5
-        assert sm._handoff_in_progress is True
-        if hasattr(sm, "_handoff_thread") and sm._handoff_thread:
-            sm._handoff_thread.join(timeout=5.0)
+    
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+        sm._project_root = tmp_path
+        sm._task_complete_path = tmp_path / ".agentflow" / "task_complete.json"
+        sm._handoff_complete_path = tmp_path / ".agentflow" / "handoff_complete.json"
+        
+        t0 = time.monotonic()
+        with patch("agentflow.shell.session_manager.countdown") as mock_cd:
+            mock_cd.side_effect = lambda s, on_complete, **kw: on_complete()
+            sm.trigger_handoff()
+            duration = time.monotonic() - t0
+            assert duration < 0.5
+            assert sm._handoff_in_progress is True
+            
+            # Simulate handoff complete file being written
+            sm._handoff_complete_path.parent.mkdir(parents=True, exist_ok=True)
+            sm._handoff_complete_path.write_text("{}", encoding="utf-8")
+            sm.poll()
+            
     assert sm._handoff_in_progress is False
     assert "/handoff\n" in pty.inputs
     assert "/clear\n" in pty.inputs
 
-def test_async_trigger_handoff_unexpected_exit():
+def test_async_trigger_handoff_unexpected_exit(tmp_path):
     sm, pty, _ = make_manager()
     sm._force_async_handoff = True
     pty._exited = True
-    with patch("agentflow.shell.session_manager.countdown") as mock_cd:
-        sm.trigger_handoff()
-        if hasattr(sm, "_handoff_thread") and sm._handoff_thread:
-            sm._handoff_thread.join(timeout=5.0)
-        mock_cd.assert_not_called()
+    
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+        sm._project_root = tmp_path
+        sm._handoff_complete_path = tmp_path / ".agentflow" / "handoff_complete.json"
+        with patch("agentflow.shell.session_manager.countdown") as mock_cd:
+            sm.trigger_handoff()
+            mock_cd.assert_not_called()
+            
     assert sm._handoff_in_progress is False
 
-def test_async_trigger_handoff_oserror():
+def test_async_trigger_handoff_oserror(tmp_path):
     sm, pty, _ = make_manager()
     sm._force_async_handoff = True
     def failing_write_input(text):
         raise OSError("closed")
     pty.write_input = failing_write_input
-    sm.trigger_handoff()
-    if hasattr(sm, "_handoff_thread") and sm._handoff_thread:
-        sm._handoff_thread.join(timeout=5.0)
+    
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+        sm._project_root = tmp_path
+        sm._handoff_complete_path = tmp_path / ".agentflow" / "handoff_complete.json"
+        sm.trigger_handoff()
+        
     assert sm._handoff_in_progress is False
