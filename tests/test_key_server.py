@@ -215,6 +215,25 @@ def test_serving_skill_encryption_error(test_server, auth_token):
         assert response.status_code == 500
         assert "Encryption failed" in response.text
 
+def test_serving_skill_path_traversal(test_server, auth_token):
+    _, url = test_server
+    headers = {"Authorization": f"Bearer {auth_token}"}
+    key_resp = httpx.get(f"{url}/key", headers=headers)
+    key_id = key_resp.json()["key_id"]
+    
+    skill_headers = {
+        "Authorization": f"Bearer {auth_token}",
+        "X-Key-ID": key_id
+    }
+    # 1. Direct traversal (client may normalize path to /etc/passwd -> 404)
+    response = httpx.get(f"{url}/skill/../../etc/passwd", headers=skill_headers)
+    assert response.status_code in (400, 404)
+
+    # 2. Encoded traversal (decoded on server -> /skill/../../etc/passwd -> 400)
+    response = httpx.get(f"{url}/skill/..%2f..%2fetc/passwd", headers=skill_headers)
+    assert response.status_code == 400
+    assert "Invalid skill path" in response.text
+
 def test_main_missing_token():
     with patch("sys.argv", ["key_server"]), \
          patch.dict(os.environ, {}, clear=True), \

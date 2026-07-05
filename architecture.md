@@ -120,6 +120,8 @@ agentflow/
     defaults.yaml                 # shipped defaults
   reporting/
     report_builder.py             # aggregate and split dashboard generation (HTML/stdout)
+  ip/
+    key_server.py                 # lightweight HTTP key server for auth, ephemeral keys, and serving encrypted skills
 pyproject.toml
 ```
 

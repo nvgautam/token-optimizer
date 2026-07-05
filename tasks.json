@@ -513,32 +513,7 @@
     },
     {
       "task_id": "T-109",
-      "title": "Key server \u2014 auth + ephemeral key issuance + encrypted skill serving",
-      "description": "Implement a lightweight HTTP key server for authentication, ephemeral decryption key issuance, and encrypted skill distribution. Secure the server endpoint, use standard cryptography, and ensure it runs locally or remotely.",
-      "owns": [
-        "agentflow/ip/key_server.py"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "contracts": [],
-      "test_requirements": {
-        "unit": [
-          "Validate client authentication token",
-          "Verify ephemeral key generation and issuance",
-          "Test serving encrypted skills on valid authentication"
-        ],
-        "integration": [
-          "End-to-end exchange between client and key server"
-        ],
-        "coverage_threshold": 85
-      },
-      "security_constraints": [
-        "No hardcoded credentials or keys in source files"
-      ],
-      "acceptance_criteria": "Key server authenticates client and returns ephemeral decryption keys.",
-      "estimated_lines": 180,
-      "context_section": "architecture.md#security-model",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-110",

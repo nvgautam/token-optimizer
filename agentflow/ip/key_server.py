@@ -8,7 +8,7 @@ import threading
 import argparse
 from pathlib import Path
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse, parse_qs, unquote
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 class KeyServer(HTTPServer):
@@ -53,7 +53,7 @@ class KeyServerHandler(BaseHTTPRequestHandler):
             return
 
         parsed_url = urlparse(self.path)
-        path = parsed_url.path
+        path = unquote(parsed_url.path)
         query = parse_qs(parsed_url.query)
 
         if path == "/key":
@@ -95,19 +95,35 @@ class KeyServerHandler(BaseHTTPRequestHandler):
 
         self.server.clean_expired_keys()
 
+        key_bytes = None
         with self.server.lock:
-            if key_id not in self.server.active_keys:
-                self.send_error_response(400, "Invalid key ID or key expired")
-                return
-            key_bytes, _ = self.server.active_keys[key_id]
+            if key_id in self.server.active_keys:
+                key_bytes, _ = self.server.active_keys[key_id]
 
-        skills_dir = Path(self.server.skills_dir)
-        skill_file = skills_dir / skill_name / "SKILL.md"
-        if not skill_file.is_file():
-            skill_file = skills_dir / skill_name
-            if not skill_file.is_file():
-                self.send_error_response(404, "Skill not found")
-                return
+        if not key_bytes:
+            self.send_error_response(400, "Invalid key ID or key expired")
+            return
+
+        skills_dir = Path(self.server.skills_dir).resolve()
+        candidate_1 = (skills_dir / skill_name / "SKILL.md").resolve()
+        candidate_2 = (skills_dir / skill_name).resolve()
+
+        try:
+            candidate_1.relative_to(skills_dir)
+            candidate_2.relative_to(skills_dir)
+        except ValueError:
+            self.send_error_response(400, "Invalid skill path")
+            return
+
+        skill_file = None
+        if candidate_1.is_file():
+            skill_file = candidate_1
+        elif candidate_2.is_file():
+            skill_file = candidate_2
+
+        if not skill_file:
+            self.send_error_response(404, "Skill not found")
+            return
 
         try:
             content = skill_file.read_bytes()
