@@ -41,6 +41,7 @@ class SessionManager:
         self._cwd_hash = hashlib.sha256(os.getcwd().encode()).hexdigest()
         self._last_idx_injected = None
         self._last_accumulated_tokens = 0
+        self._last_restart_ts: float = 0.0
         pty_wrapper._on_output = self._handle_output
         pty_wrapper._on_exit = self._on_session_exit
         self._run_stale_index_guard()
@@ -175,7 +176,9 @@ class SessionManager:
             if tid in self._task_start_tokens:
                 self._record_task_tokens(tid, total - self._task_start_tokens.pop(tid))
 
-        if not self._manual_handoff and not self._handoff_in_progress:
+        _restart_cooldown = 30.0
+        _since_restart = time.monotonic() - self._last_restart_ts
+        if not self._manual_handoff and not self._handoff_in_progress and _since_restart >= _restart_cooldown:
             primary = self._config["handoff_primary_tokens"]
             safety = self._config["handoff_safety_tokens"]
             ceiling = self._config["handoff_hard_ceiling_tokens"]
@@ -264,6 +267,7 @@ class SessionManager:
         countdown(self._config["restart_delay_seconds"], on_complete=self._restart_session)
 
     def _restart_session(self) -> None:
+        self._last_restart_ts = time.monotonic()
         self._log_audit({"event": "restart_session"})
         cmd = "oracle" if self.session_type == "oracle" else "orchestrate" if self.session_type == "orchestrator" else None
         if cmd:

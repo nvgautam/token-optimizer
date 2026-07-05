@@ -177,7 +177,7 @@ def test_format_baseline_annotation():
 
 def test_report_builder_uses_measured_baseline_not_hardcoded_600(tmp_path):
     for tok in (400, 500, 600):
-        record_turn(tmp_path, session_type="oracle", turn=1, output_tokens=tok, arm="hook_off")
+        record_turn(tmp_path, session_type="oracle", turn=1, output_tokens=tok, arm="off")
     run_ab_comparison(tmp_path)
 
     verb_log = tmp_path / ".agentflow" / "verbosity_log.jsonl"
@@ -404,8 +404,8 @@ def test_verbosity_ab_stopping_criterion(tmp_path):
     # We need n_on >= 20, n_off >= 20, and CI width for hook_off < 100.
     log_content = ""
     for i in range(20):
-        log_content += json.dumps({"ts": f"2026-07-04T12:00:{i:02d}", "session_type": "oracle", "turn": i + 1, "output_tokens": 100, "arm": "hook_on"}) + "\n"
-        log_content += json.dumps({"ts": f"2026-07-04T12:01:{i:02d}", "session_type": "oracle", "turn": i + 1, "output_tokens": 100, "arm": "hook_off"}) + "\n"
+        log_content += json.dumps({"ts": f"2026-07-04T12:00:{i:02d}", "session_type": "oracle", "turn": i + 1, "output_tokens": 100, "arm": "on"}) + "\n"
+        log_content += json.dumps({"ts": f"2026-07-04T12:01:{i:02d}", "session_type": "oracle", "turn": i + 1, "output_tokens": 100, "arm": "off"}) + "\n"
         
     (af_dir / "verbosity_log.jsonl").write_text(log_content)
     

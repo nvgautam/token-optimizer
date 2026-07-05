@@ -17,14 +17,14 @@ from agentflow.shadow.verbosity_ab import (
 
 
 def test_record_turn_appends_tagged_entry(tmp_path):
-    record_turn(tmp_path, session_type="oracle", turn=1, output_tokens=123, arm="hook_off")
+    record_turn(tmp_path, session_type="oracle", turn=1, output_tokens=123, arm="off")
     log_path = tmp_path / ".agentflow" / "verbosity_ab_log.jsonl"
     assert log_path.exists()
     entry = json.loads(log_path.read_text().splitlines()[0])
     assert entry["session_type"] == "oracle"
     assert entry["turn"] == 1
     assert entry["output_tokens"] == 123
-    assert entry["arm"] == "hook_off"
+    assert entry["arm"] == "off"
     assert "ts" in entry
 
 
@@ -44,14 +44,14 @@ def test_import_from_verbosity_log_tags_entries(tmp_path):
     src = tmp_path / ".agentflow" / "verbosity_log.jsonl"
     src.parent.mkdir(parents=True, exist_ok=True)
     src.write_text(
-        json.dumps({"ts": "2026-07-01T10:00:00", "session_type": "worker", "turn": 1, "output_tokens": 200, "arm": "hook_on"}) + "\n" +
-        json.dumps({"ts": "2026-07-01T10:01:00", "session_type": "worker", "turn": 2, "output_tokens": 300, "arm": "hook_on"}) + "\n"
+        json.dumps({"ts": "2026-07-01T10:00:00", "session_type": "worker", "turn": 1, "output_tokens": 200, "arm": "on"}) + "\n" +
+        json.dumps({"ts": "2026-07-01T10:01:00", "session_type": "worker", "turn": 2, "output_tokens": 300, "arm": "on"}) + "\n"
     )
     count = import_from_verbosity_log(tmp_path)
     assert count == 2
-    entries = load_arm_entries(tmp_path, "hook_on")
+    entries = load_arm_entries(tmp_path, "on")
     assert len(entries) == 2
-    assert all(e["arm"] == "hook_on" for e in entries)
+    assert all(e["arm"] == "on" for e in entries)
     assert {e["output_tokens"] for e in entries} == {200, 300}
 
 
@@ -59,12 +59,12 @@ def test_import_from_verbosity_log_since_ts_filters(tmp_path):
     src = tmp_path / ".agentflow" / "verbosity_log.jsonl"
     src.parent.mkdir(parents=True, exist_ok=True)
     src.write_text(
-        json.dumps({"ts": "2026-07-01T10:00:00", "session_type": "worker", "turn": 1, "output_tokens": 200, "arm": "hook_off"}) + "\n" +
-        json.dumps({"ts": "2026-07-01T11:00:00", "session_type": "worker", "turn": 2, "output_tokens": 300, "arm": "hook_off"}) + "\n"
+        json.dumps({"ts": "2026-07-01T10:00:00", "session_type": "worker", "turn": 1, "output_tokens": 200, "arm": "off"}) + "\n" +
+        json.dumps({"ts": "2026-07-01T11:00:00", "session_type": "worker", "turn": 2, "output_tokens": 300, "arm": "off"}) + "\n"
     )
     count = import_from_verbosity_log(tmp_path, since_ts="2026-07-01T10:30:00")
     assert count == 1
-    entries = load_arm_entries(tmp_path, "hook_off")
+    entries = load_arm_entries(tmp_path, "off")
     assert entries[0]["output_tokens"] == 300
 
 
@@ -72,26 +72,26 @@ def test_import_from_verbosity_log_rerun_without_since_ts_is_idempotent(tmp_path
     src = tmp_path / ".agentflow" / "verbosity_log.jsonl"
     src.parent.mkdir(parents=True, exist_ok=True)
     src.write_text(
-        json.dumps({"ts": "2026-07-01T10:00:00", "session_type": "worker", "turn": 1, "output_tokens": 200, "arm": "hook_on"}) + "\n" +
-        json.dumps({"ts": "2026-07-01T10:01:00", "session_type": "worker", "turn": 2, "output_tokens": 300, "arm": "hook_on"}) + "\n"
+        json.dumps({"ts": "2026-07-01T10:00:00", "session_type": "worker", "turn": 1, "output_tokens": 200, "arm": "on"}) + "\n" +
+        json.dumps({"ts": "2026-07-01T10:01:00", "session_type": "worker", "turn": 2, "output_tokens": 300, "arm": "on"}) + "\n"
     )
     first = import_from_verbosity_log(tmp_path)
     second = import_from_verbosity_log(tmp_path)
     assert first == 2
     assert second == 0
-    assert len(load_arm_entries(tmp_path, "hook_on")) == 2
+    assert len(load_arm_entries(tmp_path, "on")) == 2
 
 
 def test_load_arm_entries_filters_by_arm(tmp_path):
-    record_turn(tmp_path, session_type="oracle", turn=1, output_tokens=100, arm="hook_on")
-    record_turn(tmp_path, session_type="oracle", turn=2, output_tokens=200, arm="hook_off")
-    assert len(load_arm_entries(tmp_path, "hook_on")) == 1
-    assert len(load_arm_entries(tmp_path, "hook_off")) == 1
-    assert load_arm_entries(tmp_path, "hook_on")[0]["output_tokens"] == 100
+    record_turn(tmp_path, session_type="oracle", turn=1, output_tokens=100, arm="on")
+    record_turn(tmp_path, session_type="oracle", turn=2, output_tokens=200, arm="off")
+    assert len(load_arm_entries(tmp_path, "on")) == 1
+    assert len(load_arm_entries(tmp_path, "off")) == 1
+    assert load_arm_entries(tmp_path, "on")[0]["output_tokens"] == 100
 
 
 def test_load_arm_entries_empty_when_no_log(tmp_path):
-    assert load_arm_entries(tmp_path, "hook_on") == []
+    assert load_arm_entries(tmp_path, "on") == []
 
 
 def test_compute_arm_stats_empty():
@@ -132,16 +132,16 @@ def test_run_ab_comparison_no_data_uses_fallback(tmp_path):
 
 def test_run_ab_comparison_with_data(tmp_path):
     for tok in (400, 500, 600):
-        record_turn(tmp_path, session_type="oracle", turn=1, output_tokens=tok, arm="hook_off")
+        record_turn(tmp_path, session_type="oracle", turn=1, output_tokens=tok, arm="off")
     for tok in (100, 150, 200):
-        record_turn(tmp_path, session_type="oracle", turn=1, output_tokens=tok, arm="hook_on")
+        record_turn(tmp_path, session_type="oracle", turn=1, output_tokens=tok, arm="on")
 
     result = run_ab_comparison(tmp_path)
     assert result["measured"] is True
     assert result["baseline_tokens"] == 500
     assert result["sample_size"] == 3
-    assert result["arms"]["hook_on"]["mean"] == 150
-    assert result["arms"]["hook_off"]["mean"] == 500
+    assert result["arms"]["on"]["mean"] == 150
+    assert result["arms"]["off"]["mean"] == 500
 
 
 def test_load_baseline_returns_fallback_when_missing(tmp_path):
@@ -152,7 +152,7 @@ def test_load_baseline_returns_fallback_when_missing(tmp_path):
 
 
 def test_load_baseline_returns_persisted_result(tmp_path):
-    record_turn(tmp_path, session_type="oracle", turn=1, output_tokens=450, arm="hook_off")
+    record_turn(tmp_path, session_type="oracle", turn=1, output_tokens=450, arm="off")
     run_ab_comparison(tmp_path)
     baseline = load_baseline(tmp_path)
     assert baseline["measured"] is True
@@ -170,7 +170,7 @@ def test_load_baseline_handles_corrupt_file(tmp_path):
 
 def test_run_verbosity_ab_returns_comparison_result(tmp_path, capsys):
     for tok in (300, 400):
-        record_turn(tmp_path, session_type="worker", turn=1, output_tokens=tok, arm="hook_off")
+        record_turn(tmp_path, session_type="worker", turn=1, output_tokens=tok, arm="off")
     result = run_verbosity_ab(tmp_path)
     assert result["measured"] is True
     assert result["baseline_tokens"] == 350
@@ -187,33 +187,33 @@ def test_run_verbosity_ab_defaults_to_cwd(tmp_path, monkeypatch):
 def test_run_ab_comparison_session_type_none_returns_all(tmp_path):
     """session_type=None includes entries from all session types."""
     for tok in (400, 500):
-        record_turn(tmp_path, session_type="orchestrator", turn=1, output_tokens=tok, arm="hook_off")
+        record_turn(tmp_path, session_type="orchestrator", turn=1, output_tokens=tok, arm="off")
     for tok in (300, 350):
-        record_turn(tmp_path, session_type="oracle", turn=1, output_tokens=tok, arm="hook_off")
+        record_turn(tmp_path, session_type="oracle", turn=1, output_tokens=tok, arm="off")
 
     result = run_ab_comparison(tmp_path, session_type=None)
-    assert result["arms"]["hook_off"]["n"] == 4
+    assert result["arms"]["off"]["n"] == 4
 
 
 def test_run_ab_comparison_filters_by_session_type(tmp_path):
     """session_type='orchestrator' includes only orchestrator entries."""
     for tok in (400, 500, 600):
-        record_turn(tmp_path, session_type="orchestrator", turn=1, output_tokens=tok, arm="hook_off")
+        record_turn(tmp_path, session_type="orchestrator", turn=1, output_tokens=tok, arm="off")
     for tok in (100, 200):
-        record_turn(tmp_path, session_type="oracle", turn=1, output_tokens=tok, arm="hook_off")
+        record_turn(tmp_path, session_type="oracle", turn=1, output_tokens=tok, arm="off")
 
     result = run_ab_comparison(tmp_path, session_type="orchestrator")
-    assert result["arms"]["hook_off"]["n"] == 3
-    assert result["arms"]["hook_off"]["mean"] == 500.0
+    assert result["arms"]["off"]["n"] == 3
+    assert result["arms"]["off"]["mean"] == 500.0
 
 
 def test_run_ab_comparison_session_type_mismatch_returns_empty(tmp_path):
     """session_type that matches no entries returns unmeasured fallback."""
     for tok in (400, 500):
-        record_turn(tmp_path, session_type="orchestrator", turn=1, output_tokens=tok, arm="hook_off")
+        record_turn(tmp_path, session_type="orchestrator", turn=1, output_tokens=tok, arm="off")
 
     result = run_ab_comparison(tmp_path, session_type="worker")
-    assert result["arms"]["hook_off"]["n"] == 0
+    assert result["arms"]["off"]["n"] == 0
     assert result["measured"] is False
     assert (tmp_path / ".agentflow" / "verbosity_baseline.json").exists()
 
@@ -225,7 +225,7 @@ def test_session_manager_reads_arm_from_file_present(tmp_path):
     agentflow_dir = tmp_path / ".agentflow"
     agentflow_dir.mkdir(exist_ok=True)
     arm_file = agentflow_dir / "verbosity_ab_arm.txt"
-    arm_file.write_text("hook_on\n", encoding="utf-8")
+    arm_file.write_text("on\n", encoding="utf-8")
 
     pty = MagicMock()
     tok = MagicMock()
@@ -234,7 +234,7 @@ def test_session_manager_reads_arm_from_file_present(tmp_path):
 
     with patch("pathlib.Path.cwd", return_value=tmp_path):
         sm = SessionManager(pty, tok, {})
-        assert sm._arm == "hook_on"
+        assert sm._arm == "on"
 
 
 def test_session_manager_reads_arm_from_file_absent(tmp_path):
@@ -256,7 +256,7 @@ def test_session_manager_writes_entries_with_arm(tmp_path):
     agentflow_dir = tmp_path / ".agentflow"
     agentflow_dir.mkdir(exist_ok=True)
     arm_file = agentflow_dir / "verbosity_ab_arm.txt"
-    arm_file.write_text("hook_off\n", encoding="utf-8")
+    arm_file.write_text("off\n", encoding="utf-8")
 
     pty = MagicMock()
     tok = MagicMock()
@@ -278,7 +278,7 @@ def test_session_manager_writes_entries_with_arm(tmp_path):
     lines = log_path.read_text(encoding="utf-8").strip().splitlines()
     assert len(lines) == 1
     entry = json.loads(lines[0])
-    assert entry["arm"] == "hook_off"
+    assert entry["arm"] == "off"
 
 
 def test_import_from_verbosity_log_uses_entry_arm_and_warns(tmp_path):
@@ -288,22 +288,22 @@ def test_import_from_verbosity_log_uses_entry_arm_and_warns(tmp_path):
     src = tmp_path / ".agentflow" / "verbosity_log.jsonl"
     src.parent.mkdir(parents=True, exist_ok=True)
     src.write_text(
-        json.dumps({"ts": "2026-07-01T10:00:00", "session_type": "worker", "turn": 1, "output_tokens": 200, "arm": "hook_on"}) + "\n" +
-        json.dumps({"ts": "2026-07-01T10:01:00", "session_type": "worker", "turn": 2, "output_tokens": 300, "arm": "hook_off"}) + "\n" +
+        json.dumps({"ts": "2026-07-01T10:00:00", "session_type": "worker", "turn": 1, "output_tokens": 200, "arm": "on"}) + "\n" +
+        json.dumps({"ts": "2026-07-01T10:01:00", "session_type": "worker", "turn": 2, "output_tokens": 300, "arm": "off"}) + "\n" +
         json.dumps({"ts": "2026-07-01T10:02:00", "session_type": "worker", "turn": 3, "output_tokens": 400}) + "\n"
     )
 
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
-        count = import_from_verbosity_log(tmp_path, arm="hook_on")
+        count = import_from_verbosity_log(tmp_path, arm="on")
         assert len(w) == 1
         assert issubclass(w[0].category, DeprecationWarning)
         assert "deprecated" in str(w[0].message)
 
     assert count == 2
 
-    hook_on_entries = load_arm_entries(tmp_path, "hook_on")
-    hook_off_entries = load_arm_entries(tmp_path, "hook_off")
+    hook_on_entries = load_arm_entries(tmp_path, "on")
+    hook_off_entries = load_arm_entries(tmp_path, "off")
     assert len(hook_on_entries) == 1
     assert hook_on_entries[0]["output_tokens"] == 200
     assert len(hook_off_entries) == 1
@@ -316,8 +316,8 @@ def test_import_from_verbosity_log_no_arm_passed(tmp_path):
     src = tmp_path / ".agentflow" / "verbosity_log.jsonl"
     src.parent.mkdir(parents=True, exist_ok=True)
     src.write_text(
-        json.dumps({"ts": "2026-07-01T10:00:00", "session_type": "worker", "turn": 1, "output_tokens": 200, "arm": "hook_on"}) + "\n" +
-        json.dumps({"ts": "2026-07-01T10:01:00", "session_type": "worker", "turn": 2, "output_tokens": 300, "arm": "hook_off"}) + "\n"
+        json.dumps({"ts": "2026-07-01T10:00:00", "session_type": "worker", "turn": 1, "output_tokens": 200, "arm": "on"}) + "\n" +
+        json.dumps({"ts": "2026-07-01T10:01:00", "session_type": "worker", "turn": 2, "output_tokens": 300, "arm": "off"}) + "\n"
     )
 
     import warnings
@@ -327,5 +327,5 @@ def test_import_from_verbosity_log_no_arm_passed(tmp_path):
         assert len(w) == 0
 
     assert count == 2
-    assert len(load_arm_entries(tmp_path, "hook_on")) == 1
-    assert len(load_arm_entries(tmp_path, "hook_off")) == 1
+    assert len(load_arm_entries(tmp_path, "on")) == 1
+    assert len(load_arm_entries(tmp_path, "off")) == 1

@@ -181,4 +181,35 @@ Oracle reads on startup. Handoff writes updates. Architecture.md = workers only.
 | Demo/investor pitch sequence | RESOLVED | Priority round table written to execution_plan.md (2026-07-04b). Round A = T-100; B = T-102; C = T-103+T-099; D = T-098+T-063+T-104; E = T-064+T-068; F = T-069. Rationale: verbosity A/B methodology must be complete before pitch; session-recycling 42% headline is already credible. |
 | size_check.py PostToolUse gap | RESOLVED | PostToolUse fires after write — can't prevent oversized commands/ files, only notify. Violations log wasn't written due to cwd bug (now fixed via $CLAUDE_PROJECT_DIR). Cleanest fix: cleanup_tasks.py reads size_violations.jsonl, auto-files split task per violation. PreToolUse is correct hook type for commands/ (true block) but deferred — T-104 filed; not demo-critical, Round D. |
 
+## Oracle Direction — Sparred 2026-07-04f
+
+| Item | Status | Decision |
+|---|---|---|
+| PTY auto-handoff trigger redesign | RESOLVED | Three conditions: (1) primary: 80K + TASK_COMPLETE signal + no task in-flight; (2) safety: 120K + no task in-flight; (3) hard ceiling: 150K unconditional. Replaces bugged ROUND_COMPLETE + OR-threshold logic. Implemented in session_manager.py; tests updated 641/641 pass. |
+| Parallel task threshold scaling | RESOLVED | With N parallel tasks, primary/safety thresholds should scale by N (e.g., 2 tasks → 160K primary). Orchestrate writes parallel_count to current_round.json; session_manager reads and scales. Not yet implemented — deferred to T-068/T-069 round. |
+| Gemini orchestrate autonomy | RESOLVED | Two levers: (1) pass `--yolo` flag to Gemini CLI at spawn to suppress tool confirmations; (2) add "proceed without confirming" directive to orchestrate skill prompt. Root cause determines priority — tool confirmations vs mid-task clarifying questions. |
+| Task token estimation — T-115 status | RESOLVED | T-115 (capacity calibration) confirmed merged per state.json + git log (445424b). tasks.json stale — shows pending. Orchestrate now uses EWMA % per task from rate_calibration_claude.json, not 2500 constant. T-068 (token regression model from task_token_log.jsonl, 36 samples) still pending — complements T-115. |
+
+## Oracle Direction — Sparred 2026-07-04k
+
+| Item | Status | Decision |
+|---|---|---|
+| PTY infinite handoff loop | RESOLVED | Root cause: tokenizer never reset on /clear → threshold refired on every post-restart chunk. Fix: self._tokenizer.reset() in /clear block (session_manager.py:123). Committed 8b2eadc. Regression test added. |
+| PTY blocking during handoff | RESOLVED | trigger_handoff() blocks main select loop: 120s HANDOFF_COMPLETE wait + 5s countdown. Stdin not forwarded → shell unresponsive. Filed as T-116: move wait+countdown to daemon thread. |
+
+## Oracle Direction — Sparred 2026-07-04j
+
+| Item | Status | Decision |
+|---|---|---|
+| M8 patent gate | RESOLVED | Patent filing runs in parallel with engineering — not an implementation prerequisite. Patent gates design-partner handoff (code distribution) only. |
+| M8 round priority | RESOLVED | M8 promoted to Round D (first active round). All 4 tasks run sequentially within the round: T-109 → T-110 → T-111 → T-112. Demo measurement tasks shift to Round E; scheduling tasks to Round F. |
+
+## Oracle Direction — Sparred 2026-07-05 (continued)
+
+| Item | Status | Decision |
+|---|---|---|
+| T-117 PTY handoff robustness | RESOLVED | User-reported: after handoff fires, PTY "broke out" and same number printed repeatedly. Root mechanism: trigger_handoff()'s inner read loop calls read_output() which fires _handle_output but discards output (not forwarded to stdout). If PTY child exits during 120s wait, read_output returns b"" immediately → busy-spin; then write_input("/clear\n") on dead master_fd raises OSError EIO that propagates unhandled through _on_output into cli.py's main loop (no try/except around read_output() call there). Five fixes assigned to T-117: dead-PTY break in inner loop, OSError guards on write_input, output forwarding during inner loop, handoff_aborted audit event on unexpected exit, reset _handoff_in_progress on abort. Complements T-116 (blocking issue). |
+| T-102 verbosity A/B data validity | RESOLVED | A/B stopping criterion was falsely met — off-arm n=3,679 was 97% bug noise from session `38073e1c` (infinite handoff loop, 3,586 turns in 33 min). After purge: on=221, off=0 real oracle entries. Three fixes applied: (1) ARMS renamed `hook_on`/`hook_off` → `on`/`off` to match pty_shell.py write; (2) `import_from_verbosity_log` now filters anomalous sessions (>30 turns/min) and `session_type=None` PTY-chunk entries; (3) ab_log purged and re-imported. Arm file currently `off` — real off-arm data accumulates as new sessions run. A/B will re-trigger once n_off ≥ 20. |
+| Verbosity A/B arm imbalance root cause | RESOLVED | off-arm data shortage is structural: the one long off-arm session was the bug session. Flip imbalance (87 on vs 23 off at session starts) is real but secondary — primary gap is no clean off-arm data survived purge. No code fix needed; data will accumulate naturally. |
+
 2026-07-02 (oracle re-spar, headroom compression investigation): Root cause of T-082/T-083/T-084 garbled-Read class confirmed — `protect_recent_reads_fraction` (ContentRouterConfig, content_router.py:647) hardcoded to 0.3 in `server.py:637` inside `is_token_mode()` branch, no CLI/env override exists. In `--mode token`, Read/Glob outputs older than the most-recent-30%-of-messages window fall through DEFAULT_EXCLUDE_TOOLS into compression (content_router.py:2525,2944). Not a regression bug — deliberate upstream tradeoff, wrong default for AgentFlow's precision-critical state-doc rereads (design_status.md, tasks.json, architecture.md). Separately confirmed Bash tool output (never excluded) also degrades under context-pressure-adaptive compression as session grows — same session, same `cat design_status.md` command produced clean output early, garbled output later. Decision: DEFERRED — vendor headroom (Apache 2.0, github.com/chopratejas/headroom, has Rust core in crates/) via git clone rather than patch installed site-packages; add env-var override (~3 lines, server.py + proxy.py, matching existing `_get_env_*` pattern) defaulting to 0.3 (upstream behavior) but settable to 0.0 for AgentFlow's bundled config. Next: clone chopratejas/headroom, apply patch, confirm Python-only (no Rust rebuild needed) before locking vendoring strategy (submodule vs maintained fork, license notice, patch-vs-upstream-update story) — architectural decision, needs its own oracle sparring pass.

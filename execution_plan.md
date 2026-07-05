@@ -391,9 +391,46 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 
 | Round | Tasks | What ships |
 |---|---|---|
-| A | T-109 | Key server live — revocable access primitive |
-| B | T-110, T-111 | Encrypted skills + ephemeral .idx in PTY |
-| C | T-112 | Compiled binary — design partner distributable |
+| D (master) | T-109 → T-110 → T-111 → T-112 (sequential within round) | Full IP protection stack |
+
+---
+
+## Master Round Table (updated 2026-07-05)
+
+| Round | Tasks | What ships |
+|---|---|---|
+| A–C (MERGED) | T-105,T-106,T-102,T-107,T-108,T-113,T-114,T-115 | PTY fixes + measurement chain |
+| D | T-116, T-117 (parallel), then T-109→T-110→T-111→T-112 (sequential) | PTY handoff blocking + robustness, then IP protection stack |
+| E | T-103, T-099, T-068, T-063, T-104 (parallel) | Model A/B + Gemini oracle + token estimator + cross-provider claiming + size enforcement |
+| F | T-098, T-064, T-069 (parallel; deps met after E) | Model routing savings + rate headroom + parallel scheduling |
+
+Priority rationale (2026-07-05): T-116 (non-blocking handoff) and T-117 (handoff robustness / repeated-output bug) prepend Round D — PTY must be stable before compiling the IP-protected binary. IP protection stack (T-109–T-112) follows.
+
+---
+
+## Addendum: T-116 — PTY Non-Blocking Handoff (filed 2026-07-04)
+
+| Field | Value |
+|---|---|
+| Task | T-116 |
+| Title | PTY trigger_handoff non-blocking — move handoff wait+countdown off main event loop |
+| Files | agentflow/shell/session_manager.py, tests/shell/test_session_manager.py |
+| Est. lines | 40 |
+| Status | pending |
+
+`trigger_handoff()` blocks the main select loop: up to 120s waiting for HANDOFF_COMPLETE + 5s countdown. Stdin is not forwarded during this window → shell unresponsive. Fix: daemon thread handles the wait + countdown + restart injection; main loop continues relaying I/O. Thread sets `_handoff_in_progress=True` before start, clears on completion. Stdlib threading only.
+
+## Addendum: T-117 — PTY Handoff Robustness (filed 2026-07-05)
+
+| Field | Value |
+|---|---|
+| Task | T-117 |
+| Title | PTY handoff robustness — dead-PTY failure modes and repeated-output symptom |
+| Files | agentflow/shell/session_manager.py, tests/shell/test_session_manager.py |
+| Est. lines | 55 |
+| Status | MERGED |
+
+User-reported: after handoff fires, PTY "broke out of the shell" and the same number printed repeatedly. Five fixes: (1) investigate audit log for exact event sequence; (2) break inner read loop immediately if `_pty._exited` becomes True (currently busy-spins 120s on dead fd); (3) wrap `write_input("/clear\n")` and restart injection in try/except OSError (EIO on dead master_fd currently propagates unhandled through `_on_output` to cli.py's main loop); (4) forward chunks from inner read loop to stdout so user sees handoff progress; (5) on unexpected PTY exit during handoff, log `handoff_aborted` audit event and reset `_handoff_in_progress` without attempting `/clear` or countdown. Complements T-116 (blocking) — orthogonal fixes.
 
 ---
 

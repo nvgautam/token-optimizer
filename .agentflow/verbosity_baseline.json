@@ -1,26 +1,26 @@
 {
-  "computed_at": "2026-07-04T17:27:26.477801",
-  "baseline_tokens": 600,
-  "sample_size": 0,
-  "ci95_low": null,
-  "ci95_high": null,
-  "measured": false,
+  "computed_at": "2026-07-05T01:23:47.957792",
+  "baseline_tokens": 2907,
+  "sample_size": 5,
+  "ci95_low": -1105.5925577961293,
+  "ci95_high": 6919.992557796129,
+  "measured": true,
   "arms": {
-    "hook_on": {
-      "n": 0,
-      "mean": 0.0,
-      "p90": 0.0,
-      "ci95_low": null,
-      "ci95_high": null
+    "on": {
+      "n": 1682,
+      "mean": 199.30321046373365,
+      "p90": 412,
+      "ci95_low": 166.6243417986624,
+      "ci95_high": 231.98207912880488
     },
-    "hook_off": {
-      "n": 0,
-      "mean": 0.0,
-      "p90": 0.0,
-      "ci95_low": null,
-      "ci95_high": null
+    "off": {
+      "n": 5,
+      "mean": 2907.2,
+      "p90": 10983,
+      "ci95_low": -1105.5925577961293,
+      "ci95_high": 6919.992557796129
     }
   },
   "stopping_met": false,
-  "stopping_status": "STILL COLLECTING \u2014 n_on=0 / 20, n_off=0 / 20"
+  "stopping_status": "STILL COLLECTING \u2014 n_on=1682 / 20, n_off=5 / 20"
 }

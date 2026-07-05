@@ -841,5 +841,17 @@
     ],
     "depends_on": [],
     "status": "complete"
+  },
+  {
+    "task_id": "T-117",
+    "status": "complete",
+    "title": "PTY handoff robustness \u2014 dead-PTY failure modes and repeated-output symptom",
+    "description": "User-reported: after handoff fires, the shell 'broke out' and then the same number printed repeatedly. Investigate and harden the full trigger_handoff() flow against dead-PTY failure modes.\n\n(1) Investigation: read .agentflow/pty_audit.jsonl to identify the exact event sequence at the time of the incident (look for trigger_handoff, clear_detected, restart_session entries and what followed). Identify what the 'same number' is \u2014 correlate with token accumulator value, countdown output, or PTY echo.\n\n(2) Dead-PTY guard in inner read loop: in trigger_handoff(), after each read_output() call, check if self._pty._exited is True \u2014 if so, break immediately instead of waiting for the full 120s deadline. Currently spins as a busy-wait for the remaining window when PTY is dead.\n\n(3) Guard write_input() calls: wrap self._pty.write_input('/clear\\n') and self._pty.write_input(f'/{cmd}\\n') in try/except OSError so EIO on a dead master_fd does not propagate unhandled up through _on_output into cli.py's main loop (which has no try/except around wrapper.read_output()).\n\n(4) Output forwarding during inner loop: trigger_handoff() currently reads and silently discards PTY output (never calls os.write(1, chunk)). Forward each non-empty chunk to stdout so the user sees handoff progress instead of a blank screen.\n\n(5) Session state after unexpected exit: if the PTY child exits during trigger_handoff (before HANDOFF_COMPLETE), log an audit event 'handoff_aborted' with trigger and token count; reset _handoff_in_progress to False; do not attempt /clear or countdown on dead fd.\n\nOwns: agentflow/shell/session_manager.py, tests/shell/test_session_manager.py\nDepends on: none (complements T-116 which addresses the blocking issue; these are orthogonal)",
+    "owns": [
+      "agentflow/shell/session_manager.py",
+      "tests/shell/test_session_manager.py"
+    ],
+    "depends_on": [],
+    "estimated_lines": 55
   }
 ]

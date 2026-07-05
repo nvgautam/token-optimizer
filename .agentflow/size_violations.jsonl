@@ -1,1 +1,16 @@
 {"file": "commands/claude/orchestrate.md", "blocked_lines": 227, "actual_lines": 227, "limit": 150, "ts": "2026-07-03T23:07:04.906539"}
+{"file": "agentflow/shell/session_manager.py", "blocked_lines": 263, "actual_lines": 263, "limit": 250, "ts": "2026-07-04T17:44:33.317580"}
+{"file": "agentflow/shell/session_manager.py", "blocked_lines": 266, "actual_lines": 266, "limit": 250, "ts": "2026-07-04T17:44:46.677571"}
+{"file": "tests/shell/test_session_manager.py", "blocked_lines": 353, "actual_lines": 353, "limit": 350, "ts": "2026-07-04T17:46:26.323676"}
+{"file": "tests/shell/test_session_manager.py", "blocked_lines": 353, "actual_lines": 353, "limit": 350, "ts": "2026-07-04T17:46:34.527650"}
+{"file": "agentflow/shell/session_manager.py", "blocked_lines": 261, "actual_lines": 261, "limit": 250, "ts": "2026-07-04T18:15:04.295910"}
+{"file": "agentflow/shell/session_manager.py", "blocked_lines": 262, "actual_lines": 262, "limit": 250, "ts": "2026-07-04T23:30:57.724546"}
+{"file": "tests/shell/test_session_manager.py", "blocked_lines": 367, "actual_lines": 367, "limit": 350, "ts": "2026-07-04T23:31:35.448572"}
+{"file": "tests/shell/test_session_manager.py", "blocked_lines": 377, "actual_lines": 377, "limit": 350, "ts": "2026-07-04T23:32:27.656122"}
+{"file": "agentflow/shadow/verbosity_ab.py", "blocked_lines": 286, "actual_lines": 286, "limit": 250, "ts": "2026-07-05T00:03:39.694308"}
+{"file": "agentflow/shadow/verbosity_ab.py", "blocked_lines": 329, "actual_lines": 329, "limit": 250, "ts": "2026-07-05T00:18:00.995603"}
+{"file": "agentflow/shadow/verbosity_ab.py", "blocked_lines": 329, "actual_lines": 329, "limit": 250, "ts": "2026-07-05T00:18:49.024096"}
+{"file": "agentflow/shadow/verbosity_ab.py", "blocked_lines": 331, "actual_lines": 331, "limit": 250, "ts": "2026-07-05T00:19:18.989648"}
+{"file": "agentflow/shell/session_manager.py", "blocked_lines": 291, "actual_lines": 291, "limit": 250, "ts": "2026-07-05T01:06:16.572660"}
+{"file": "agentflow/shell/session_manager.py", "blocked_lines": 293, "actual_lines": 293, "limit": 250, "ts": "2026-07-05T01:06:25.327069"}
+{"file": "agentflow/shell/session_manager.py", "blocked_lines": 294, "actual_lines": 294, "limit": 250, "ts": "2026-07-05T01:06:38.572287"}

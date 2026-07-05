@@ -13,9 +13,9 @@ To compare arms without touching session_manager.py:
   1. An operator runs N sessions with AGENTFLOW_VERBOSITY_HOOK_DISABLED=1
      set (hook off) using the normal PTY shell, then imports that run's
      verbosity_log.jsonl entries into the dedicated A/B log with
-     `import_from_verbosity_log(root, arm="hook_off")`.
+     `import_from_verbosity_log(root, arm="off")`.
   2. Runs N sessions with the hook enabled (env var unset) and imports with
-     `arm="hook_on"`.
+     `arm="on"`.
   3. Calls `run_verbosity_ab()` (or `run_ab_comparison()` directly) to
      compute per-arm mean/p90/n/95% CI and persist the measured hook-off
      baseline to `.agentflow/verbosity_baseline.json` for
@@ -37,7 +37,7 @@ from pathlib import Path
 
 AB_LOG_FILENAME = "verbosity_ab_log.jsonl"
 BASELINE_FILENAME = "verbosity_baseline.json"
-ARMS = ("hook_on", "hook_off")
+ARMS = ("on", "off")
 
 # Fallback used only when no A/B data has been collected yet — the original,
 # never-measured design-time estimate from
@@ -96,12 +96,48 @@ def record_turn(
 _SENTINEL = object()
 
 
+_MAX_TURNS_PER_MINUTE = 30  # sessions above this rate are bug/loop noise
+
+
+def _anomalous_sessions(entries: list[dict]) -> set[str]:
+    """Return session_ids whose turn rate exceeds _MAX_TURNS_PER_MINUTE.
+
+    Used to exclude infinite-handoff-loop artifacts (e.g. 3,586 turns in 33
+    minutes from a single session) from A/B data."""
+    from collections import defaultdict
+    from datetime import datetime, timezone
+
+    by_sid: dict[str, list[str]] = defaultdict(list)
+    for e in entries:
+        sid = e.get("session_id")
+        if sid and e.get("ts"):
+            by_sid[sid].append(e["ts"])
+
+    bad: set[str] = set()
+    for sid, timestamps in by_sid.items():
+        if len(timestamps) < 2:
+            continue
+        try:
+            ts_sorted = sorted(timestamps)
+            t0 = datetime.fromisoformat(ts_sorted[0]).replace(tzinfo=timezone.utc)
+            t1 = datetime.fromisoformat(ts_sorted[-1]).replace(tzinfo=timezone.utc)
+            minutes = max((t1 - t0).total_seconds() / 60, 1.0)
+            if len(timestamps) / minutes > _MAX_TURNS_PER_MINUTE:
+                bad.add(sid)
+        except Exception:
+            continue
+    return bad
+
+
 def import_from_verbosity_log(
     project_root: Path, arm: str | None = _SENTINEL, since_ts: str | None = None
 ) -> int:
     """Re-tag entries from the live verbosity_log.jsonl (written by
     session_manager.py during a real session) into the dedicated A/B log.
     Returns the number of entries imported.
+
+    Sessions whose turn rate exceeds _MAX_TURNS_PER_MINUTE are excluded as
+    bug/loop noise (e.g. infinite handoff loop artifacts).
 
     Idempotent regardless of since_ts: entries already present in the
     destination log (matched by ts+turn+session_type) are skipped,
@@ -116,18 +152,27 @@ def import_from_verbosity_log(
     if not src_path.exists():
         return 0
 
+    raw: list[dict] = []
+    for line in src_path.read_text().splitlines():
+        if not line.strip():
+            continue
+        try:
+            raw.append(json.loads(line))
+        except Exception:
+            continue
+
+    bad_sessions = _anomalous_sessions(raw)
+
     already_imported = {
         (e.get("ts"), e.get("turn"), e.get("session_type"))
         for e in _load_ab_entries(project_root)
     }
 
     count = 0
-    for line in src_path.read_text().splitlines():
-        if not line.strip():
+    for entry in raw:
+        if entry.get("session_id") in bad_sessions:
             continue
-        try:
-            entry = json.loads(line)
-        except Exception:
+        if entry.get("session_type") is None:
             continue
         if "output_tokens" not in entry:
             continue
@@ -207,9 +252,9 @@ def run_ab_comparison(project_root: Path, session_type: str | None = None) -> di
         for arm in ARMS
     }
 
-    n_on = arm_stats["hook_on"]["n"]
-    n_off = arm_stats["hook_off"]["n"]
-    hook_off = arm_stats["hook_off"]
+    n_on = arm_stats["on"]["n"]
+    n_off = arm_stats["off"]["n"]
+    hook_off = arm_stats["off"]
     measured = n_off > 0
     ci_low = hook_off["ci95_low"]
     ci_high = hook_off["ci95_high"]
@@ -265,8 +310,8 @@ def run_verbosity_ab(project_root: Path | None = None, session_type: str | None 
     If session_type is given, only entries matching that session_type are used."""
     root = project_root if project_root is not None else Path.cwd()
     result = run_ab_comparison(root, session_type=session_type)
-    hook_on = result["arms"]["hook_on"]
-    hook_off = result["arms"]["hook_off"]
+    hook_on = result["arms"]["on"]
+    hook_off = result["arms"]["off"]
 
     print("\n=== Verbosity Hook A/B Comparison ===")
     print(f"  hook_off (baseline): n={hook_off['n']:<4} mean={hook_off['mean']:.1f}  p90={hook_off['p90']:.1f}")
