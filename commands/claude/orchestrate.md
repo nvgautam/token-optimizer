@@ -157,7 +157,12 @@ grep -nE "(password|secret|api_key|token)\s*=\s*['\"][^'\"]{8,}" $(cat /tmp/rf.t
 ```
 CRITICAL: hardcoded secrets, signal injection. WARNING: bare except, size > 250 lines.
 
-**Pass 2 — LLM (fresh haiku agent):**
+**Pass 2 — LLM Reviewer (cross-tier model routing):**
+Select the reviewer model based on the model used by the implementing agent to implement the task (opposite tier routing):
+- Haiku-implemented tasks (`claude-haiku-4-5-20251001`) → Route to Sonnet reviewer (`claude-sonnet-5`)
+- Sonnet-implemented tasks (`claude-sonnet-5`) → Route to Haiku reviewer (`claude-haiku-4-5-20251001`)
+*Rationale:* Cross-tier review catches blind spots cheaply, while the subsequent human gate backstops cases where a Haiku reviewer misses subtle issues in Sonnet output.
+
 Embed `commands/claude/reviewer/code_review.md`, `commands/claude/reviewer/security_review.md`, `commands/claude/reviewer/test_review.md`. Include pre-filter findings, changed files, diff (max 300 lines).
 
 - `CRITICAL` → rework (one retry; escalate on second failure)

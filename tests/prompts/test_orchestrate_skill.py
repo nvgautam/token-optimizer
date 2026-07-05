@@ -176,3 +176,13 @@ def test_orchestrate_skills_contain_cleanup_tasks_merge():
 
 
 
+
+
+def test_orchestrate_pass2_cross_tier_routing():
+    """T-114: Route Pass 2 reviewer to the opposite tier from the implementer."""
+    content = CLAUDE_ORCHESTRATE.read_text(encoding="utf-8")
+    assert "Pass 2" in content
+    # Assert cross-tier reviewer routing rule is present
+    assert "opposite tier" in content.lower() or "cross-tier" in content.lower()
+    assert "haiku-implemented" in content.lower()
+    assert "sonnet-implemented" in content.lower()
