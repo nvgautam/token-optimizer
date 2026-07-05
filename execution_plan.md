@@ -395,16 +395,17 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 
 ---
 
-## Master Round Table (updated 2026-07-05)
+## Master Round Table (updated 2026-07-05b)
 
 | Round | Tasks | What ships |
 |---|---|---|
 | A–C (MERGED) | T-105,T-106,T-102,T-107,T-108,T-113,T-114,T-115 | PTY fixes + measurement chain |
-| D | T-116, T-117 (parallel), then T-109→T-110→T-111→T-112 (sequential) | PTY handoff blocking + robustness, then IP protection stack |
+| D (MERGED) | T-116, T-117, T-109 | PTY handoff non-blocking + robustness + key server |
+| D2 | T-118 ‖ T-110 (parallel), then T-111→T-112 (sequential) | PTY state machine refactor + IP protection stack |
 | E | T-103, T-099, T-068, T-063, T-104 (parallel) | Model A/B + Gemini oracle + token estimator + cross-provider claiming + size enforcement |
 | F | T-098, T-064, T-069 (parallel; deps met after E) | Model routing savings + rate headroom + parallel scheduling |
 
-Priority rationale (2026-07-05): T-116 (non-blocking handoff) and T-117 (handoff robustness / repeated-output bug) prepend Round D — PTY must be stable before compiling the IP-protected binary. IP protection stack (T-109–T-112) follows.
+Priority rationale (2026-07-05b): T-118 (state machine refactor) prepends IP protection stack — T-111 modifies session_manager.py, which must be stable and split before that. T-118 ‖ T-110 parallel because they own disjoint files; T-111 depends on both.
 
 ---
 
@@ -433,6 +434,25 @@ Priority rationale (2026-07-05): T-116 (non-blocking handoff) and T-117 (handoff
 User-reported: after handoff fires, PTY "broke out of the shell" and the same number printed repeatedly. Five fixes: (1) investigate audit log for exact event sequence; (2) break inner read loop immediately if `_pty._exited` becomes True (currently busy-spins 120s on dead fd); (3) wrap `write_input("/clear\n")` and restart injection in try/except OSError (EIO on dead master_fd currently propagates unhandled through `_on_output` to cli.py's main loop); (4) forward chunks from inner read loop to stdout so user sees handoff progress; (5) on unexpected PTY exit during handoff, log `handoff_aborted` audit event and reset `_handoff_in_progress` without attempting `/clear` or countdown. Complements T-116 (blocking) — orthogonal fixes.
 
 ---
+
+## Addendum: T-118 — PTY State Machine Refactor (filed 2026-07-05)
+
+**Goal:** Replace flag-soup session_manager.py with explicit state machine; all signals file-based, no timers.
+
+**States:** `IDLE → TASK_RUNNING → TASK_COMPLETE → HANDOFF_PENDING → RESTARTING → IDLE`; `DEAD_CHILD` recovery from any state.
+
+**File signals:**
+- `current_round.json` written by orchestrate → TASK_RUNNING
+- `.agentflow/task_complete.json` written by cleanup_tasks.py → TASK_COMPLETE
+- tokens ≥ 80K (PTY local measurement) → HANDOFF_PENDING
+- `.agentflow/handoff_complete.json` written by agentflow.py handoff → RESTARTING
+- PTY master fd EOF (select) → DEAD_CHILD
+
+**Session restart:** `os.kill(SIGTERM)` → `os.waitpid` poll → `SIGKILL` if alive after 2s → fresh `subprocess.Popen`. No timers.
+
+**Files:** `agentflow/shell/state_machine.py` (new, ~100L), `agentflow/shell/session_manager.py` (refactor, net reduction), `agentflow/shell/cleanup_tasks.py` (add signal write), `agentflow/handoff.py` (add signal write), `tests/shell/test_state_machine.py` (new), `tests/shell/test_session_manager.py` (update).
+
+**Depends on:** T-116, T-117 (MERGED). Blocks T-111 (modifies session_manager.py). Runs parallel with T-110 (disjoint files).
 
 ## Deferred
 - AgentFlow user-facing CLI (subcommands for config management, T-002): backlog.json

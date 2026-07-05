@@ -498,7 +498,7 @@
     },
     {
       "task_id": "T-116",
-      "status": "pending",
+      "status": "complete",
       "title": "PTY trigger_handoff non-blocking \u2014 move handoff wait+countdown off main event loop",
       "description": "trigger_handoff() is called synchronously from _handle_output (on the main select loop). The inner read loop blocks up to 120s waiting for HANDOFF_COMPLETE, then countdown() blocks 5s. During this window stdin is not forwarded and the shell is unresponsive. Fix: run the HANDOFF_COMPLETE wait + countdown in a daemon thread; main loop continues relaying I/O. Gate: thread sets _handoff_in_progress=True before starting, clears it and injects the restart command on completion. Stdlib threading only \u2014 no new deps.",
       "files": [
@@ -605,6 +605,29 @@
       "acceptance_criteria": "Nuitka compiler produces a standalone executable that runs without source code present.",
       "estimated_lines": 80,
       "context_section": "architecture.md#pty-shell-design",
+      "status": "pending"
+    },
+    {
+      "task_id": "T-118",
+      "title": "PTY state machine refactor \u2014 file-based signals, predictable transitions",
+      "description": "Replace session_manager.py flag soup with an explicit state machine driven entirely by file writes. No timers \u2014 all transitions via file events or PTY fd events. (1) New agentflow/shell/state_machine.py: define States enum (IDLE, TASK_RUNNING, TASK_COMPLETE, HANDOFF_PENDING, RESTARTING, DEAD_CHILD); StateMachine class with transition(event) -> State, guard functions, and on_enter_{state} hooks. Transitions: IDLE\u2192TASK_RUNNING on current_round.json written; TASK_RUNNING\u2192TASK_COMPLETE on task_complete.json written by cleanup_tasks.py; TASK_COMPLETE\u2192HANDOFF_PENDING when tokens >= 80K (local measurement); HANDOFF_PENDING\u2192RESTARTING on handoff_complete.json written by agentflow.py handoff; RESTARTING\u2192IDLE after os.kill(claude_pid, SIGTERM) + fresh subprocess.Popen (SIGKILL if child still alive after 2s via os.waitpid poll); any state\u2192DEAD_CHILD on PTY master fd EOF (select returns readable + read returns b\"\"). (2) Refactor session_manager.py to drive the state machine: remove _handoff_in_progress/_task_in_progress flags; file-poll loop (10ms interval, stdlib only) replaces scattered flag checks; no daemon threads needed. (3) cleanup_tasks.py: write .agentflow/task_complete.json atomically on every task completion (json.dump + os.replace). (4) agentflow/handoff.py (or agentflow.py handoff subcommand): write .agentflow/handoff_complete.json atomically before exit. (5) PTY restart: kill claude child (SIGTERM, waitpid 2s, SIGKILL), clear signal files, spawn fresh subprocess, transition IDLE. (6) Tests: test_state_machine.py \u2014 assert all transitions, guard functions, DEAD_CHILD from every state; test_session_manager.py \u2014 update for file-poll driver.",
+      "owns": [
+        "agentflow/shell/state_machine.py",
+        "agentflow/shell/session_manager.py",
+        "agentflow/shell/cleanup_tasks.py",
+        "tests/shell/test_state_machine.py",
+        "tests/shell/test_session_manager.py"
+      ],
+      "reads": [
+        ".agentflow/task_complete.json",
+        ".agentflow/handoff_complete.json",
+        ".agentflow/current_round.json"
+      ],
+      "depends_on": [
+        "T-116",
+        "T-117"
+      ],
+      "estimated_lines": 180,
       "status": "pending"
     }
   ]
