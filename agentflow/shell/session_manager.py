@@ -317,9 +317,22 @@ class SessionManager:
                 if not killed:
                     try:
                         os.kill(pid, signal.SIGKILL)
-                        os.waitpid(pid, 0)
                     except OSError:
                         pass
+                    # Bounded wait after SIGKILL — never block indefinitely.
+                    # On macOS, PTY session leaders can stay in ?Es (kernel exit cleanup)
+                    # for seconds; waitpid(pid, 0) without a timeout deadlocks the shell.
+                    t1 = time.monotonic()
+                    while time.monotonic() - t1 < 5.0:
+                        try:
+                            p, _ = os.waitpid(pid, os.WNOHANG)
+                            if p == pid:
+                                break
+                        except ChildProcessError:
+                            break
+                        except OSError:
+                            break
+                        time.sleep(0.05)
             except OSError:
                 pass
 
