@@ -1,0 +1,26 @@
+{
+  "computed_at": "2026-07-04T17:27:26.477801",
+  "baseline_tokens": 600,
+  "sample_size": 0,
+  "ci95_low": null,
+  "ci95_high": null,
+  "measured": false,
+  "arms": {
+    "hook_on": {
+      "n": 0,
+      "mean": 0.0,
+      "p90": 0.0,
+      "ci95_low": null,
+      "ci95_high": null
+    },
+    "hook_off": {
+      "n": 0,
+      "mean": 0.0,
+      "p90": 0.0,
+      "ci95_low": null,
+      "ci95_high": null
+    }
+  },
+  "stopping_met": false,
+  "stopping_status": "STILL COLLECTING \u2014 n_on=0 / 20, n_off=0 / 20"
+}

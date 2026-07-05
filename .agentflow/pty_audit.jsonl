@@ -1,0 +1,237 @@
+{"event": "session_type_transition", "old": null, "new": "oracle", "ts": "2026-07-04T16:47:58.556695"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "threshold": 60000, "floor": 18000.0, "ts": "2026-07-04T16:47:58.557920"}
+{"event": "session_type_transition", "old": null, "new": "orchestrator", "ts": "2026-07-04T16:47:58.560443"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.560765"}
+{"event": "trigger_handoff", "trigger": "auto", "ts": "2026-07-04T16:47:58.563330"}
+{"event": "restart_session", "ts": "2026-07-04T16:47:58.563741"}
+{"event": "token_evaluation", "accumulated_tokens": 61000, "threshold": 60000, "floor": 18000.0, "ts": "2026-07-04T16:47:58.566190"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.583795"}
+{"event": "token_evaluation", "accumulated_tokens": 2, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.584111"}
+{"event": "token_evaluation", "accumulated_tokens": 3, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.584340"}
+{"event": "token_evaluation", "accumulated_tokens": 4, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.584889"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.587033"}
+{"event": "token_evaluation", "accumulated_tokens": 2, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.587632"}
+{"event": "token_evaluation", "accumulated_tokens": 3, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.587848"}
+{"event": "token_evaluation", "accumulated_tokens": 4, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.588252"}
+{"event": "token_evaluation", "accumulated_tokens": 5, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.588463"}
+{"event": "token_evaluation", "accumulated_tokens": 6, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.588866"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.591126"}
+{"event": "token_evaluation", "accumulated_tokens": 2, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.591724"}
+{"event": "token_evaluation", "accumulated_tokens": 3, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.592031"}
+{"event": "token_evaluation", "accumulated_tokens": 4, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.592542"}
+{"event": "token_evaluation", "accumulated_tokens": 5, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.592792"}
+{"event": "token_evaluation", "accumulated_tokens": 6, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.593263"}
+{"event": "token_evaluation", "accumulated_tokens": 7, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.593492"}
+{"event": "token_evaluation", "accumulated_tokens": 8, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.593928"}
+{"event": "token_evaluation", "accumulated_tokens": 9, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.594162"}
+{"event": "token_evaluation", "accumulated_tokens": 10, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.594586"}
+{"event": "token_evaluation", "accumulated_tokens": 11, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.594816"}
+{"event": "token_evaluation", "accumulated_tokens": 12, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.595250"}
+{"event": "token_evaluation", "accumulated_tokens": 13, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.595477"}
+{"event": "token_evaluation", "accumulated_tokens": 14, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.595903"}
+{"event": "token_evaluation", "accumulated_tokens": 15, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.596123"}
+{"event": "token_evaluation", "accumulated_tokens": 16, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.596520"}
+{"event": "token_evaluation", "accumulated_tokens": 17, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.596724"}
+{"event": "token_evaluation", "accumulated_tokens": 18, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.597175"}
+{"event": "token_evaluation", "accumulated_tokens": 19, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.597386"}
+{"event": "token_evaluation", "accumulated_tokens": 20, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.597789"}
+{"event": "token_evaluation", "accumulated_tokens": 21, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.598004"}
+{"event": "token_evaluation", "accumulated_tokens": 22, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.598401"}
+{"event": "token_evaluation", "accumulated_tokens": 23, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.598607"}
+{"event": "token_evaluation", "accumulated_tokens": 24, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.599013"}
+{"event": "token_evaluation", "accumulated_tokens": 25, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.599221"}
+{"event": "token_evaluation", "accumulated_tokens": 26, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.599615"}
+{"event": "token_evaluation", "accumulated_tokens": 27, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.599871"}
+{"event": "token_evaluation", "accumulated_tokens": 28, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.600463"}
+{"event": "token_evaluation", "accumulated_tokens": 29, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.600789"}
+{"event": "token_evaluation", "accumulated_tokens": 30, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:47:58.601383"}
+{"event": "session_type_transition", "old": null, "new": "oracle", "ts": "2026-07-04T16:48:10.155355"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "threshold": 60000, "floor": 18000.0, "ts": "2026-07-04T16:48:10.156702"}
+{"event": "session_type_transition", "old": null, "new": "orchestrator", "ts": "2026-07-04T16:48:10.159087"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.159399"}
+{"event": "trigger_handoff", "trigger": "auto", "ts": "2026-07-04T16:48:10.162191"}
+{"event": "restart_session", "ts": "2026-07-04T16:48:10.162632"}
+{"event": "token_evaluation", "accumulated_tokens": 61000, "threshold": 60000, "floor": 18000.0, "ts": "2026-07-04T16:48:10.164898"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.183516"}
+{"event": "token_evaluation", "accumulated_tokens": 2, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.183932"}
+{"event": "token_evaluation", "accumulated_tokens": 3, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.184164"}
+{"event": "token_evaluation", "accumulated_tokens": 4, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.184800"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.187205"}
+{"event": "token_evaluation", "accumulated_tokens": 2, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.187799"}
+{"event": "token_evaluation", "accumulated_tokens": 3, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.188024"}
+{"event": "token_evaluation", "accumulated_tokens": 4, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.188438"}
+{"event": "token_evaluation", "accumulated_tokens": 5, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.188658"}
+{"event": "token_evaluation", "accumulated_tokens": 6, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.189065"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.191407"}
+{"event": "token_evaluation", "accumulated_tokens": 2, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.192001"}
+{"event": "token_evaluation", "accumulated_tokens": 3, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.192213"}
+{"event": "token_evaluation", "accumulated_tokens": 4, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.192672"}
+{"event": "token_evaluation", "accumulated_tokens": 5, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.192881"}
+{"event": "token_evaluation", "accumulated_tokens": 6, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.193272"}
+{"event": "token_evaluation", "accumulated_tokens": 7, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.193484"}
+{"event": "token_evaluation", "accumulated_tokens": 8, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.193875"}
+{"event": "token_evaluation", "accumulated_tokens": 9, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.194084"}
+{"event": "token_evaluation", "accumulated_tokens": 10, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.194471"}
+{"event": "token_evaluation", "accumulated_tokens": 11, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.194677"}
+{"event": "token_evaluation", "accumulated_tokens": 12, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.195122"}
+{"event": "token_evaluation", "accumulated_tokens": 13, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.195392"}
+{"event": "token_evaluation", "accumulated_tokens": 14, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.195820"}
+{"event": "token_evaluation", "accumulated_tokens": 15, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.196041"}
+{"event": "token_evaluation", "accumulated_tokens": 16, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.196447"}
+{"event": "token_evaluation", "accumulated_tokens": 17, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.196659"}
+{"event": "token_evaluation", "accumulated_tokens": 18, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.197055"}
+{"event": "token_evaluation", "accumulated_tokens": 19, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.197264"}
+{"event": "token_evaluation", "accumulated_tokens": 20, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.197652"}
+{"event": "token_evaluation", "accumulated_tokens": 21, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.197860"}
+{"event": "token_evaluation", "accumulated_tokens": 22, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.198254"}
+{"event": "token_evaluation", "accumulated_tokens": 23, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.198466"}
+{"event": "token_evaluation", "accumulated_tokens": 24, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.198860"}
+{"event": "token_evaluation", "accumulated_tokens": 25, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.199069"}
+{"event": "token_evaluation", "accumulated_tokens": 26, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.199464"}
+{"event": "token_evaluation", "accumulated_tokens": 27, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.199671"}
+{"event": "token_evaluation", "accumulated_tokens": 28, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.200064"}
+{"event": "token_evaluation", "accumulated_tokens": 29, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.200278"}
+{"event": "token_evaluation", "accumulated_tokens": 30, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:10.200681"}
+{"event": "session_type_transition", "old": null, "new": "oracle", "ts": "2026-07-04T16:48:30.244271"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "threshold": 60000, "floor": 18000.0, "ts": "2026-07-04T16:48:30.245365"}
+{"event": "session_type_transition", "old": null, "new": "orchestrator", "ts": "2026-07-04T16:48:30.247762"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.248107"}
+{"event": "trigger_handoff", "trigger": "auto", "ts": "2026-07-04T16:48:30.250574"}
+{"event": "restart_session", "ts": "2026-07-04T16:48:30.250958"}
+{"event": "token_evaluation", "accumulated_tokens": 61000, "threshold": 60000, "floor": 18000.0, "ts": "2026-07-04T16:48:30.253497"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.271795"}
+{"event": "token_evaluation", "accumulated_tokens": 2, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.272086"}
+{"event": "token_evaluation", "accumulated_tokens": 3, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.272311"}
+{"event": "token_evaluation", "accumulated_tokens": 4, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.272871"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.275022"}
+{"event": "token_evaluation", "accumulated_tokens": 2, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.275621"}
+{"event": "token_evaluation", "accumulated_tokens": 3, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.275844"}
+{"event": "token_evaluation", "accumulated_tokens": 4, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.276247"}
+{"event": "token_evaluation", "accumulated_tokens": 5, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.276455"}
+{"event": "token_evaluation", "accumulated_tokens": 6, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.276853"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.279113"}
+{"event": "token_evaluation", "accumulated_tokens": 2, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.279704"}
+{"event": "token_evaluation", "accumulated_tokens": 3, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.279933"}
+{"event": "token_evaluation", "accumulated_tokens": 4, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.280331"}
+{"event": "token_evaluation", "accumulated_tokens": 5, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.280555"}
+{"event": "token_evaluation", "accumulated_tokens": 6, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.280963"}
+{"event": "token_evaluation", "accumulated_tokens": 7, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.281174"}
+{"event": "token_evaluation", "accumulated_tokens": 8, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.281566"}
+{"event": "token_evaluation", "accumulated_tokens": 9, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.281773"}
+{"event": "token_evaluation", "accumulated_tokens": 10, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.282169"}
+{"event": "token_evaluation", "accumulated_tokens": 11, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.282380"}
+{"event": "token_evaluation", "accumulated_tokens": 12, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.282781"}
+{"event": "token_evaluation", "accumulated_tokens": 13, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.282996"}
+{"event": "token_evaluation", "accumulated_tokens": 14, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.283394"}
+{"event": "token_evaluation", "accumulated_tokens": 15, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.283604"}
+{"event": "token_evaluation", "accumulated_tokens": 16, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.283997"}
+{"event": "token_evaluation", "accumulated_tokens": 17, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.284203"}
+{"event": "token_evaluation", "accumulated_tokens": 18, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.284584"}
+{"event": "token_evaluation", "accumulated_tokens": 19, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.284786"}
+{"event": "token_evaluation", "accumulated_tokens": 20, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.285174"}
+{"event": "token_evaluation", "accumulated_tokens": 21, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.285452"}
+{"event": "token_evaluation", "accumulated_tokens": 22, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.285857"}
+{"event": "token_evaluation", "accumulated_tokens": 23, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.286068"}
+{"event": "token_evaluation", "accumulated_tokens": 24, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.286463"}
+{"event": "token_evaluation", "accumulated_tokens": 25, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.286669"}
+{"event": "token_evaluation", "accumulated_tokens": 26, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.287106"}
+{"event": "token_evaluation", "accumulated_tokens": 27, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.287371"}
+{"event": "token_evaluation", "accumulated_tokens": 28, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.287797"}
+{"event": "token_evaluation", "accumulated_tokens": 29, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.288016"}
+{"event": "token_evaluation", "accumulated_tokens": 30, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:30.288429"}
+{"event": "session_type_transition", "old": null, "new": "oracle", "ts": "2026-07-04T16:48:49.791807"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "threshold": 60000, "floor": 18000.0, "ts": "2026-07-04T16:48:49.792329"}
+{"event": "session_type_transition", "old": null, "new": "orchestrator", "ts": "2026-07-04T16:48:49.795191"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.795808"}
+{"event": "trigger_handoff", "trigger": "auto", "ts": "2026-07-04T16:48:49.801048"}
+{"event": "restart_session", "ts": "2026-07-04T16:48:49.801704"}
+{"event": "token_evaluation", "accumulated_tokens": 61000, "threshold": 60000, "floor": 18000.0, "ts": "2026-07-04T16:48:49.805646"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.823853"}
+{"event": "token_evaluation", "accumulated_tokens": 2, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.824171"}
+{"event": "token_evaluation", "accumulated_tokens": 3, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.824411"}
+{"event": "token_evaluation", "accumulated_tokens": 4, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.824989"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.827320"}
+{"event": "token_evaluation", "accumulated_tokens": 2, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.827932"}
+{"event": "token_evaluation", "accumulated_tokens": 3, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.828178"}
+{"event": "token_evaluation", "accumulated_tokens": 4, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.828620"}
+{"event": "token_evaluation", "accumulated_tokens": 5, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.828847"}
+{"event": "token_evaluation", "accumulated_tokens": 6, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.829280"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.831767"}
+{"event": "token_evaluation", "accumulated_tokens": 2, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.832439"}
+{"event": "token_evaluation", "accumulated_tokens": 3, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.832685"}
+{"event": "token_evaluation", "accumulated_tokens": 4, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.833110"}
+{"event": "token_evaluation", "accumulated_tokens": 5, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.833333"}
+{"event": "token_evaluation", "accumulated_tokens": 6, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.833778"}
+{"event": "token_evaluation", "accumulated_tokens": 7, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.834008"}
+{"event": "token_evaluation", "accumulated_tokens": 8, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.834774"}
+{"event": "token_evaluation", "accumulated_tokens": 9, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.837060"}
+{"event": "token_evaluation", "accumulated_tokens": 10, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.838025"}
+{"event": "token_evaluation", "accumulated_tokens": 11, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.838411"}
+{"event": "token_evaluation", "accumulated_tokens": 12, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.839076"}
+{"event": "token_evaluation", "accumulated_tokens": 13, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.839427"}
+{"event": "token_evaluation", "accumulated_tokens": 14, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.840093"}
+{"event": "token_evaluation", "accumulated_tokens": 15, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.840456"}
+{"event": "token_evaluation", "accumulated_tokens": 16, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.841341"}
+{"event": "token_evaluation", "accumulated_tokens": 17, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.841819"}
+{"event": "token_evaluation", "accumulated_tokens": 18, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.842387"}
+{"event": "token_evaluation", "accumulated_tokens": 19, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.842678"}
+{"event": "token_evaluation", "accumulated_tokens": 20, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.843297"}
+{"event": "token_evaluation", "accumulated_tokens": 21, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.843620"}
+{"event": "token_evaluation", "accumulated_tokens": 22, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.844113"}
+{"event": "token_evaluation", "accumulated_tokens": 23, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.844376"}
+{"event": "token_evaluation", "accumulated_tokens": 24, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.844862"}
+{"event": "token_evaluation", "accumulated_tokens": 25, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.845110"}
+{"event": "token_evaluation", "accumulated_tokens": 26, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.845562"}
+{"event": "token_evaluation", "accumulated_tokens": 27, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.845799"}
+{"event": "token_evaluation", "accumulated_tokens": 28, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.846240"}
+{"event": "token_evaluation", "accumulated_tokens": 29, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.846474"}
+{"event": "token_evaluation", "accumulated_tokens": 30, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:49.846916"}
+{"event": "restart_session", "ts": "2026-07-04T16:48:51.668697", "session_id": "d3e3fc2b-d9e5-4777-8a47-b1a7b5663a74"}
+{"event": "restart_session", "ts": "2026-07-04T16:48:51.670543", "session_id": "d3e3fc2b-d9e5-4777-8a47-b1a7b5663a74"}
+{"event": "session_type_transition", "old": null, "new": "oracle", "ts": "2026-07-04T16:48:59.649682"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "threshold": 60000, "floor": 18000.0, "ts": "2026-07-04T16:48:59.650875"}
+{"event": "session_type_transition", "old": null, "new": "orchestrator", "ts": "2026-07-04T16:48:59.653362"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.653681"}
+{"event": "trigger_handoff", "trigger": "auto", "ts": "2026-07-04T16:48:59.656622"}
+{"event": "restart_session", "ts": "2026-07-04T16:48:59.657006"}
+{"event": "token_evaluation", "accumulated_tokens": 61000, "threshold": 60000, "floor": 18000.0, "ts": "2026-07-04T16:48:59.659629"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.678127"}
+{"event": "token_evaluation", "accumulated_tokens": 2, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.678461"}
+{"event": "token_evaluation", "accumulated_tokens": 3, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.678694"}
+{"event": "token_evaluation", "accumulated_tokens": 4, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.679223"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.681390"}
+{"event": "token_evaluation", "accumulated_tokens": 2, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.681989"}
+{"event": "token_evaluation", "accumulated_tokens": 3, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.682211"}
+{"event": "token_evaluation", "accumulated_tokens": 4, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.682605"}
+{"event": "token_evaluation", "accumulated_tokens": 5, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.682818"}
+{"event": "token_evaluation", "accumulated_tokens": 6, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.683229"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.685374"}
+{"event": "token_evaluation", "accumulated_tokens": 2, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.685979"}
+{"event": "token_evaluation", "accumulated_tokens": 3, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.686211"}
+{"event": "token_evaluation", "accumulated_tokens": 4, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.686606"}
+{"event": "token_evaluation", "accumulated_tokens": 5, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.686810"}
+{"event": "token_evaluation", "accumulated_tokens": 6, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.687191"}
+{"event": "token_evaluation", "accumulated_tokens": 7, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.687393"}
+{"event": "token_evaluation", "accumulated_tokens": 8, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.687778"}
+{"event": "token_evaluation", "accumulated_tokens": 9, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.688004"}
+{"event": "token_evaluation", "accumulated_tokens": 10, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.688397"}
+{"event": "token_evaluation", "accumulated_tokens": 11, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.688606"}
+{"event": "token_evaluation", "accumulated_tokens": 12, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.688994"}
+{"event": "token_evaluation", "accumulated_tokens": 13, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.689200"}
+{"event": "token_evaluation", "accumulated_tokens": 14, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.689588"}
+{"event": "token_evaluation", "accumulated_tokens": 15, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.689795"}
+{"event": "token_evaluation", "accumulated_tokens": 16, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.690184"}
+{"event": "token_evaluation", "accumulated_tokens": 17, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.690411"}
+{"event": "token_evaluation", "accumulated_tokens": 18, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.690818"}
+{"event": "token_evaluation", "accumulated_tokens": 19, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.691025"}
+{"event": "token_evaluation", "accumulated_tokens": 20, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.691421"}
+{"event": "token_evaluation", "accumulated_tokens": 21, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.691625"}
+{"event": "token_evaluation", "accumulated_tokens": 22, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.692007"}
+{"event": "token_evaluation", "accumulated_tokens": 23, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.692208"}
+{"event": "token_evaluation", "accumulated_tokens": 24, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.692664"}
+{"event": "token_evaluation", "accumulated_tokens": 25, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.692862"}
+{"event": "token_evaluation", "accumulated_tokens": 26, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.693242"}
+{"event": "token_evaluation", "accumulated_tokens": 27, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.693448"}
+{"event": "token_evaluation", "accumulated_tokens": 28, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.693838"}
+{"event": "token_evaluation", "accumulated_tokens": 29, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.694039"}
+{"event": "token_evaluation", "accumulated_tokens": 30, "threshold": 30000, "floor": 9000.0, "ts": "2026-07-04T16:48:59.694417"}

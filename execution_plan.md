@@ -355,7 +355,7 @@ Cross-tier review: Haiku-implemented → Sonnet reviewer; Sonnet-implemented →
 
 | Task | Title | Depends on | Status |
 |---|---|---|---|
-| T-113 | PTY stale index guard — detect and rebuild .idx files when source file is newer | — | PENDING |
+| T-113 | PTY stale index guard — detect and rebuild .idx files when source file is newer | — | MERGED |
 
 At session start, PTY walks `~/.agentflow/cache/<hash>/index/` and compares mtime of each `.idx` against its source file. Stale or missing `.idx` files are queued for rebuild via indexer CLI. Also: audit write_indexer hook registration to ensure no file writes are missed (e.g. files edited outside Claude Code). Prevents stale-idx bugs where oracle/worker reads ghost content from a prior file version. Round C (alongside T-107).
 
@@ -366,7 +366,7 @@ At session start, PTY walks `~/.agentflow/cache/<hash>/index/` and compares mtim
 | Task | Title | Depends on | Status |
 |---|---|---|---|
 | T-107 | PTY auto-trigger bug: `_manual_handoff` never resets on `/clear` + add pty_audit.jsonl state machine logging | T-105 | MERGED |
-| T-108 | `AGENTFLOW_ROUND_COMPLETE` never fires: investigate emission gap in orchestrate skill + fix | T-107 | PENDING |
+| T-108 | `AGENTFLOW_ROUND_COMPLETE` never fires: investigate emission gap in orchestrate skill + fix | T-107 | MERGED |
 
 **T-107:** Add `self._manual_handoff = False` to `/clear` detection block (session_manager.py:78–90). Add `pty_audit.jsonl` event log capturing: `_manual_handoff` set/reset, token threshold evaluations, `trigger_handoff` calls (auto vs manual), `_restart_session` calls, session_type transitions, `/clear` detections. Round A.
 

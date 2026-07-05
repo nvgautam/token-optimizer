@@ -793,5 +793,31 @@
       "T-105"
     ],
     "status": "complete"
+  },
+  {
+    "task_id": "T-108",
+    "title": "AGENTFLOW_ROUND_COMPLETE never fires: investigate emission gap in orchestrate skill + fix",
+    "description": "Two fixes: (1) Zero AGENTFLOW_ROUND_COMPLETE events in verbosity_log.jsonl \u2014 orchestrate skill never emits this signal; audit and add emission after PR filed + human gate passed. (2) Orchestrate startup missing Step 4b \u2014 add: read round table \u2192 identify first round with all PENDING tasks and satisfied deps \u2192 announce 'Picking up Round X: T-xxx' \u2192 proceed without prompting. Depends on T-107.",
+    "owns": [
+      "commands/claude/orchestrate.md",
+      "commands/gemini/skills/orchestrate/SKILL.md",
+      "tests/prompts/test_orchestrate_skill.py"
+    ],
+    "depends_on": [
+      "T-107"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-113",
+    "title": "PTY stale index guard \u2014 detect and rebuild .idx files when source file is newer",
+    "description": "At session start, PTY walks ~/.agentflow/cache/<hash>/index/ and compares mtime of each .idx against its source file in the project. Stale or missing .idx files are queued for rebuild via the indexer CLI. Also: write_indexer hook must be invoked on every file write during a session \u2014 audit hook registration to ensure no writes are missed (e.g. files edited outside Claude Code). Prevents the class of stale-idx bugs where oracle/worker reads ghost content from a prior file version.",
+    "owns": [
+      "agentflow/shell/session_manager.py",
+      "agentflow/hooks/write_indexer.py",
+      "tests/shell/test_stale_idx_guard.py"
+    ],
+    "depends_on": [],
+    "status": "complete"
   }
 ]
