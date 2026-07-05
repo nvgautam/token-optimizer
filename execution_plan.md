@@ -416,7 +416,7 @@ Priority rationale (2026-07-05): T-116 (non-blocking handoff) and T-117 (handoff
 | Title | PTY trigger_handoff non-blocking — move handoff wait+countdown off main event loop |
 | Files | agentflow/shell/session_manager.py, tests/shell/test_session_manager.py |
 | Est. lines | 40 |
-| Status | pending |
+| Status | MERGED |
 
 `trigger_handoff()` blocks the main select loop: up to 120s waiting for HANDOFF_COMPLETE + 5s countdown. Stdin is not forwarded during this window → shell unresponsive. Fix: daemon thread handles the wait + countdown + restart injection; main loop continues relaying I/O. Thread sets `_handoff_in_progress=True` before start, clears on completion. Stdlib threading only.
 
