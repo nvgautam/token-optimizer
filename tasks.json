@@ -520,7 +520,8 @@
       "title": "Skill encryption pipeline \u2014 encrypt all skill .md files at rest, bundle with binary",
       "description": "Create an automated pipeline to encrypt the markdown files under commands/claude/ and commands/gemini/ using AES-256-GCM. Save the encrypted payloads and ensure they can be bundled in the final package.",
       "owns": [
-        "agentflow/ip/encrypt_pipeline.py"
+        "agentflow/ip/encrypt_pipeline.py",
+        "tests/test_encrypt_pipeline.py"
       ],
       "reads": [
         "commands/claude/oracle.md",
