@@ -165,6 +165,16 @@ Oracle reads on startup. Handoff writes updates. Architecture.md = workers only.
 
 ## Oracle Direction — Sparred 2026-07-04b
 
+## Oracle Direction — Sparred 2026-07-04e
+
+| Item | Status | Decision |
+|---|---|---|
+| Code review model routing | RESOLVED | Cross-tier: Haiku-implemented → Sonnet reviewer; Sonnet-implemented → Haiku reviewer. Human gate backstops Haiku missing subtle issues in Sonnet output. Opus not used — cost unjustified given human gate. T-114 filed, Round C. |
+| Capacity calibration model | RESOLVED | Raw token 5hr cap (310M) is unreliable — n=1 session at measurement, fallback from weekly. Real constraint is rate-limit %. Replace with EWMA of % consumed per task → tasks_remaining = floor(current_pct / ewma_pct_per_task). Observed: ~80K tokens/task, 4-6 tasks/5hr window. T-115 filed, Round D. |
+| Round table update post-T-107 merge | RESOLVED | T-105/T-106 marked MERGED. T-107 confirmed merged. New Round C: T-107(done), T-108, T-113, T-114 (parallel after T-107). Round D: T-103, T-099, T-098, T-068. Execution_plan.md and tasks.json updated and pushed. |
+| Stale .idx root cause | RESOLVED | .idx built at index time, never auto-rebuilt. write_indexer hook misses edits outside Claude Code. T-113 filed: PTY stale-index guard — mtime check at session start + hook audit. |
+| Fundraising strategy | RESOLVED | Solo founder, Atlassian HoE pedigree, warm VC/founder/VP-Eng relationships, Palo Alto. Target: seed VCs ($500K-$2M SAFE), not angels. Sequence: warm VC coffee → VP-Eng NDA/early access → pitch deck → LinkedIn post (after ≥2 warm conversations). File provisional patent now ($320 USPTO). No design partner confirmation required before raise. |
+
 | Item | Status | Decision |
 |---|---|---|
 | Competitive positioning vs RTK/Caveman/Headroom | RESOLVED | Independent study (614M tokens, $926 real spend): RTK+Caveman+Headroom combined = ~3.7% wallet savings. Root cause matches AgentFlow's thesis — tools target terminal output + prose output (small % of bill); nobody targets the cache/context accumulation trap. Session recycling (42–44% pct_reduction, N=108 sessions) is an order of magnitude larger. Pitch frame: "they solve 3–4%, we solve 40–50%. Here's the ledger." |
