@@ -120,6 +120,7 @@ class SessionManager:
             if self._manual_handoff:
                 self._manual_handoff = False
                 self._log_audit({"event": "manual_handoff_reset"})
+            self._tokenizer.reset()
             self._update_session_file()
 
         if self.session_type is None:

@@ -303,6 +303,33 @@ def test_manual_handoff_reset_on_clear(tmp_path):
     assert sm._manual_handoff is False
 
 
+def test_tokenizer_resets_on_clear_prevents_rehangoff(tmp_path):
+    """Regression: token total must reset on /clear so safety threshold doesn't immediately re-fire."""
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+
+    class PreloadedTokenizer(FakeTokenizer):
+        """Accumulates normally but starts pre-seeded above a threshold."""
+        def __init__(self, seed: int = 0):
+            super().__init__()
+            self._total = seed
+        def accumulate(self, text, provider="claude"):
+            self._total += 1
+            return self._total
+        def reset(self):
+            self._total = 0
+
+    tok = PreloadedTokenizer(seed=130_000)
+    sm, pty, _ = make_manager(config={"handoff_safety_tokens": 120_000}, tokenizer=tok)
+    sm.session_type = "oracle"
+
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+        with patch.object(sm, "trigger_handoff") as mock_hf:
+            fire_output(sm, pty, "/clear\n")      # reset() called → total drops to 1
+            fire_output(sm, pty, "Welcome back")  # total = 2, below threshold
+            mock_hf.assert_not_called()
+
+
 def test_pty_audit_logging(tmp_path):
     agentflow_dir = tmp_path / ".agentflow"
     agentflow_dir.mkdir()
