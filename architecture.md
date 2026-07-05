@@ -94,6 +94,8 @@ agentflow/
     tokenizer.py                  # local token counting per provider (tiktoken)
     session_manager.py            # threshold watch, session type, restart coordination
     countdown.py                  # configurable countdown with SIGINT handler
+    state_machine.py              # PTY session state machine (file-based transitions)
+    cleanup_tasks.py              # write task completion signal file atomically
   hooks/
     read_check.py                 # PostToolUse: blocks full-file Read if .idx exists — T-052
     idx_reminder.py               # UserPromptSubmit: periodic [IDX] banner injection

@@ -1,11 +1,11 @@
 {
   "round_id": "D2",
-  "task_ids": ["T-110"],
+  "task_ids": ["T-118"],
   "estimated_lines_per_task": {
-    "T-110": 120
+    "T-118": 180
   },
   "file_counts_per_task": {
-    "T-110": 1
+    "T-118": 5
   },
-  "timestamp": "2026-07-05T11:30:00Z"
+  "timestamp": "2026-07-05T12:35:00Z"
 }
