@@ -5081,10 +5081,80 @@
         }
       },
       "status": "closed"
+    },
+    {
+      "session_id": "20260705_021606",
+      "agent": "agy",
+      "task_ids": "",
+      "start_time": "2026-07-05T02:16:06.722205",
+      "end_time": "2026-07-05T02:16:06.722221",
+      "context_at_start": 21132,
+      "input_tokens": 9246011,
+      "output_tokens": 33709,
+      "token_detail": {
+        "uncached_input": 508514,
+        "cache_creation": 0,
+        "cache_read": 8737497,
+        "output": 33709,
+        "n_turns": 92,
+        "initial_ctx": 21132,
+        "final_ctx": 149164
+      },
+      "n_turns": 92,
+      "final_ctx": 149164,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 15894322,
+        "shadow_output": 102593,
+        "shadow_extra": 6305588,
+        "compaction": {
+          "before": 196812,
+          "after": 68884,
+          "cost_tokens": 68884,
+          "reonboarding_overhead": 145911
+        }
+      },
+      "status": "closed"
+    },
+    {
+      "session_id": "20260705_021717",
+      "agent": "agy",
+      "task_ids": "",
+      "start_time": "2026-07-05T02:17:17.269126",
+      "end_time": "2026-07-05T02:17:17.269134",
+      "context_at_start": 21132,
+      "input_tokens": 11499601,
+      "output_tokens": 38368,
+      "token_detail": {
+        "uncached_input": 562733,
+        "cache_creation": 0,
+        "cache_read": 10936868,
+        "output": 38368,
+        "n_turns": 106,
+        "initial_ctx": 21132,
+        "final_ctx": 183193
+      },
+      "n_turns": 106,
+      "final_ctx": 183193,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 19141139,
+        "shadow_output": 119258,
+        "shadow_extra": 7301704,
+        "compaction": {
+          "before": 231116,
+          "after": 80890,
+          "cost_tokens": 80890,
+          "reonboarding_overhead": 108718
+        }
+      },
+      "status": "closed"
     }
   ],
   "shadow_state": {
-    "accumulated_context": 68539,
-    "compaction_events": 101
+    "accumulated_context": 80890,
+    "compaction_events": 103
   }
 }

@@ -1007,3 +1007,5 @@
 {"trace_id": "4c079ba5-35a9-4b9c-a172-3119eb4e442f", "span": "worker.context_built", "timestamp": "2026-07-05T09:14:34.775200+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
 {"trace_id": "bbda4c33-fa17-4069-b636-9b849e73be62", "span": "worker.context_built", "timestamp": "2026-07-05T09:14:34.780846+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
 {"trace_id": "d25b645e-f445-4ba6-9eed-b4db46290e99", "span": "worker.context_built", "timestamp": "2026-07-05T09:14:34.786594+00:00", "task_id": "T-TEST", "model": null, "tokens_in": 163, "tokens_out": 0, "duration_ms": 0, "status": "ok", "metadata": {}}
+{"event": "session_complete", "timestamp": "2026-07-05T02:16:00-07:00", "tasks": 1, "groups": 1}
+{"event": "handoff", "timestamp": "2026-07-05T02:16:00-07:00", "session_type": "orchestrator", "agent_tokens_in": 9246011, "agent_tokens_out": 33709, "agents": 2}
