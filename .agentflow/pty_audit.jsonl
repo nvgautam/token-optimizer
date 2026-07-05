@@ -16483,3 +16483,316 @@
 {"event": "token_evaluation", "accumulated_tokens": 1441, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:26:41.693842", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
 {"event": "restart_session", "ts": "2026-07-05T01:26:43.890746", "session_id": "19e76774-4f64-4d78-aa3e-2fd3258826ad"}
 {"event": "restart_session", "ts": "2026-07-05T01:26:43.891159", "session_id": "19e76774-4f64-4d78-aa3e-2fd3258826ad"}
+{"event": "session_type_transition", "old": null, "new": "oracle", "ts": "2026-07-05T01:27:52.323432", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:52.324414", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "session_type_transition", "old": null, "new": "orchestrator", "ts": "2026-07-05T01:27:52.444689", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:52.445714", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "trigger_handoff", "trigger": "auto", "ts": "2026-07-05T01:27:52.565029", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "restart_session", "ts": "2026-07-05T01:27:52.565483", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 121000, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:52.697787", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 121000, "primary": 80000, "safety": 120000, "ceiling": 200000, "ts": "2026-07-05T01:27:52.824208", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 151000, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:52.947598", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:53.220489", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 2, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:53.220876", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 3, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:53.221310", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 4, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:53.338289", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:53.459653", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 2, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:53.583443", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 3, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:53.583861", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 4, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:53.705794", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 5, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:53.706327", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 6, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:53.823225", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:53.951636", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 2, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:54.075183", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 3, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:54.075657", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 4, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:54.210835", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 5, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:54.211369", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 6, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:54.331434", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 7, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:54.331937", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 8, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:54.441854", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 9, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:54.442297", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 10, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:54.555823", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 11, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:54.556272", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 12, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:54.674934", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 13, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:54.675463", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 14, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:54.793422", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 15, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:54.793924", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 16, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:54.906241", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 17, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:54.906674", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 18, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:55.021989", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 19, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:55.022547", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 20, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:55.134297", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 21, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:55.134799", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 22, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:55.259613", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 23, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:55.260127", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 24, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:55.381073", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 25, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:55.381524", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 26, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:55.520546", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 27, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:55.521104", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 28, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:55.638662", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 29, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:55.639189", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 30, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:55.756716", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 85000, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:27:56.519848", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 85000, "primary": 80000, "safety": 200000, "ceiling": 300000, "ts": "2026-07-05T01:27:56.645480", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 50000, "primary": 80000, "safety": 200000, "ceiling": 300000, "ts": "2026-07-05T01:27:56.771172", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 85000, "primary": 80000, "safety": 200000, "ceiling": 300000, "ts": "2026-07-05T01:27:56.887264", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "restart_session", "ts": "2026-07-05T01:27:59.461046", "session_id": "0c15ccbc-56af-4280-ae80-84c04a21ac80"}
+{"event": "restart_session", "ts": "2026-07-05T01:27:59.461412", "session_id": "0c15ccbc-56af-4280-ae80-84c04a21ac80"}
+{"event": "session_type_transition", "old": null, "new": "oracle", "ts": "2026-07-05T01:29:18.507732", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:18.508899", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 2, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:18.509144", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "trigger_handoff", "trigger": "auto", "ts": "2026-07-05T01:29:18.831883", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "restart_session", "ts": "2026-07-05T01:29:18.832438", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 121000, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:18.972152", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 121000, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:19.106315", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 151000, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:19.107140", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:19.270542", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 2, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:19.270999", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 3, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:19.271234", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 4, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:19.395135", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:19.516108", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 2, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:19.642277", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 3, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:19.642876", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 4, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:19.774593", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 5, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:19.775125", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 6, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:19.897736", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 7, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:19.898252", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 8, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:20.021369", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 9, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:20.021861", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 10, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:20.147489", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 11, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:20.148075", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 12, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:20.281455", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 13, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:20.282126", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 14, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:20.413159", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 15, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:20.413690", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 16, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:20.549662", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 17, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:20.550146", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 18, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:20.677330", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 19, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:20.677872", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 20, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:20.813524", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 21, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:20.814103", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 22, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:20.960913", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 23, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:20.961432", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 24, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:21.093140", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 25, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:21.093649", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 26, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:21.219404", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 27, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:21.219915", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 28, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:21.342225", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 29, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:21.342716", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 30, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:21.458783", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 85000, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:22.107383", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 85000, "primary": 80000, "safety": 200000, "ceiling": 300000, "ts": "2026-07-05T01:29:22.237706", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 50000, "primary": 80000, "safety": 200000, "ceiling": 300000, "ts": "2026-07-05T01:29:22.238784", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 85000, "primary": 80000, "safety": 200000, "ceiling": 300000, "ts": "2026-07-05T01:29:22.239400", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "trigger_handoff", "trigger": "auto", "ts": "2026-07-05T01:29:22.889043", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "restart_session", "ts": "2026-07-05T01:29:22.889483", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "trigger_handoff", "trigger": "auto", "ts": "2026-07-05T01:29:23.010858", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "handoff_aborted", "trigger": "auto", "tokens": 0, "ts": "2026-07-05T01:29:23.011228", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "trigger_handoff", "trigger": "auto", "ts": "2026-07-05T01:29:23.138925", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "handoff_aborted", "trigger": "auto", "tokens": 0, "ts": "2026-07-05T01:29:23.139307", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "restart_session", "ts": "2026-07-05T01:29:25.305186", "session_id": "050a7ea8-339d-4fe1-90e5-5ef8fb14c519"}
+{"event": "restart_session", "ts": "2026-07-05T01:29:25.305534", "session_id": "050a7ea8-339d-4fe1-90e5-5ef8fb14c519"}
+{"event": "session_type_transition", "old": null, "new": "oracle", "ts": "2026-07-05T01:29:56.569846", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:56.571199", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "session_type_transition", "old": null, "new": "orchestrator", "ts": "2026-07-05T01:29:56.723195", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:56.724390", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "trigger_handoff", "trigger": "auto", "ts": "2026-07-05T01:29:56.877148", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "restart_session", "ts": "2026-07-05T01:29:56.877713", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 121000, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:57.031093", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 121000, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:57.199293", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 151000, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:57.200411", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:57.376728", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 2, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:57.377208", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 3, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:57.377507", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 4, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:57.510708", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:57.631533", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 2, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:57.769615", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 3, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:57.770205", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 4, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:57.908882", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 5, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:57.909458", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 6, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:58.037443", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 7, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:58.037918", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 8, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:58.156724", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 9, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:58.157253", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 10, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:58.281598", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 11, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:58.282148", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 12, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:58.402545", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 13, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:58.403033", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 14, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:58.524159", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 15, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:58.524651", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 16, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:58.661383", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 17, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:58.661943", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 18, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:58.797094", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 19, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:58.797646", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 20, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:58.938898", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 21, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:58.939431", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 22, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:59.082599", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 23, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:59.083229", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 24, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:59.257657", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 25, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:59.258354", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 26, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:59.445488", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 27, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:59.446114", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 28, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:59.626554", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 29, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:59.627180", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 30, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:29:59.926259", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 85000, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:00.971183", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 85000, "primary": 80000, "safety": 200000, "ceiling": 300000, "ts": "2026-07-05T01:30:01.140302", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 50000, "primary": 80000, "safety": 200000, "ceiling": 300000, "ts": "2026-07-05T01:30:01.141257", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 85000, "primary": 80000, "safety": 200000, "ceiling": 300000, "ts": "2026-07-05T01:30:01.141952", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "trigger_handoff", "trigger": "auto", "ts": "2026-07-05T01:30:02.306618", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "restart_session", "ts": "2026-07-05T01:30:02.307262", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "trigger_handoff", "trigger": "auto", "ts": "2026-07-05T01:30:02.498926", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "handoff_aborted", "trigger": "auto", "tokens": 0, "ts": "2026-07-05T01:30:02.499362", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "trigger_handoff", "trigger": "auto", "ts": "2026-07-05T01:30:02.680411", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "handoff_aborted", "trigger": "auto", "tokens": 0, "ts": "2026-07-05T01:30:02.680891", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "restart_session", "ts": "2026-07-05T01:30:05.300007", "session_id": "99a6f4c8-9473-4965-a9bf-a3956052da61"}
+{"event": "restart_session", "ts": "2026-07-05T01:30:05.300371", "session_id": "99a6f4c8-9473-4965-a9bf-a3956052da61"}
+{"event": "session_type_transition", "old": null, "new": "oracle", "ts": "2026-07-05T01:30:45.837343", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:45.838504", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "session_type_transition", "old": null, "new": "orchestrator", "ts": "2026-07-05T01:30:45.958526", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:45.959600", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "trigger_handoff", "trigger": "auto", "ts": "2026-07-05T01:30:46.085507", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "restart_session", "ts": "2026-07-05T01:30:46.086024", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 121000, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:46.220804", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 121000, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:46.349605", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 151000, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:46.350565", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:46.482812", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 2, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:46.483342", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 3, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:46.483576", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 4, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:46.603247", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 1, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:46.727905", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 2, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:46.842521", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 3, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:46.842974", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 4, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:46.957487", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 5, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:46.957939", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 6, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:47.098122", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 7, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:47.098693", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 8, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:47.237351", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 9, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:47.237925", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 10, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:47.363450", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 11, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:47.363961", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 12, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:47.479149", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 13, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:47.479646", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 14, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:47.596940", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 15, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:47.597406", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 16, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:47.726415", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 17, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:47.726961", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 18, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:47.850546", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 19, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:47.851086", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 20, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:47.968184", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 21, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:47.968614", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 22, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:48.082316", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 23, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:48.082757", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 24, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:48.197745", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 25, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:48.198251", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 26, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:48.320300", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 27, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:48.320842", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 28, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:48.439233", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 29, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:48.446447", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 30, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:48.567602", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 85000, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:30:49.333276", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 85000, "primary": 80000, "safety": 200000, "ceiling": 300000, "ts": "2026-07-05T01:30:49.462346", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 50000, "primary": 80000, "safety": 200000, "ceiling": 300000, "ts": "2026-07-05T01:30:49.463193", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "token_evaluation", "accumulated_tokens": 85000, "primary": 80000, "safety": 200000, "ceiling": 300000, "ts": "2026-07-05T01:30:49.463815", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "trigger_handoff", "trigger": "auto", "ts": "2026-07-05T01:30:50.105987", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "restart_session", "ts": "2026-07-05T01:30:50.106490", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "trigger_handoff", "trigger": "auto", "ts": "2026-07-05T01:30:50.230276", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "handoff_aborted", "trigger": "auto", "tokens": 0, "ts": "2026-07-05T01:30:50.230582", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "trigger_handoff", "trigger": "auto", "ts": "2026-07-05T01:30:50.352320", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "handoff_aborted", "trigger": "auto", "tokens": 0, "ts": "2026-07-05T01:30:50.352686", "session_id": "b1bf987a-11d4-462a-8514-5602331ab3aa"}
+{"event": "restart_session", "ts": "2026-07-05T01:30:52.508169", "session_id": "3882ac70-94bb-4307-a0f3-d419ccb0a710"}
+{"event": "restart_session", "ts": "2026-07-05T01:30:52.508585", "session_id": "3882ac70-94bb-4307-a0f3-d419ccb0a710"}
+{"event": "token_evaluation", "accumulated_tokens": 1465, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:31:55.041315", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 1489, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:02.205447", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 1525, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:02.213708", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 1552, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:02.332444", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 1565, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:02.451424", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 1593, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:02.733838", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 1621, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:02.813371", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 1648, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:02.943529", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 1661, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:02.997059", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 1689, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:03.132244", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 1716, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:03.224507", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 1743, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:03.436693", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 1770, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:03.505228", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 1797, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:03.682911", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 1826, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:04.023609", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 1853, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:04.288580", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 1880, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:04.424142", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 1907, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:04.472201", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 1935, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:04.672501", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 1962, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:04.784914", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 1990, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:04.909004", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2018, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:05.021031", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2045, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:05.289978", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2058, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:05.354640", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2085, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:05.662239", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2112, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:05.748318", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2139, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:05.841339", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2167, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:06.070660", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2194, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:06.264658", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2207, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:06.267057", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2235, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:06.383122", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2262, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:06.442272", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2289, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:06.618565", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2317, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:06.833015", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2344, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:06.909596", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2371, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:07.158675", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2399, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:07.382008", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2412, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:07.440530", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2440, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:07.607576", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2467, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:07.715002", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2494, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:07.948786", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2521, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:08.086776", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2534, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:08.147601", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2562, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:08.331782", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2589, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:08.398462", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2602, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:08.461786", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2629, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:08.696763", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2656, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:09.354138", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2683, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:09.589162", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2710, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:09.744142", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2737, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:09.988968", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2764, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:10.108462", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2792, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:10.318720", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2805, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:10.383237", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2833, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:10.556333", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2860, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:11.069385", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2873, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:11.192459", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2901, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:11.297549", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2929, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:11.476976", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2956, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:11.562881", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2969, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:11.630435", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2997, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:11.792813", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 3024, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:11.924210", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 3052, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:12.138867", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 3065, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:12.350002", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 3093, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:12.626006", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 3120, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:12.734082", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 3148, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:12.935023", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 3175, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:13.067565", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 3188, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:13.350342", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 3216, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:13.649918", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 3244, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:13.734812", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 3271, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:13.863190", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 3299, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:13.964590", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 3327, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:14.481955", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 3346, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:15.528961", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "manual_handoff_set", "ts": "2026-07-05T01:32:15.535761", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "clear_detected", "ts": "2026-07-05T01:32:15.537283", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "manual_handoff_reset", "ts": "2026-07-05T01:32:15.537548", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "manual_handoff_set", "ts": "2026-07-05T01:32:15.538986", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "clear_detected", "ts": "2026-07-05T01:32:25.983977", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "manual_handoff_reset", "ts": "2026-07-05T01:32:25.984395", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "manual_handoff_set", "ts": "2026-07-05T01:32:25.985080", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "clear_detected", "ts": "2026-07-05T01:32:26.091257", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "manual_handoff_reset", "ts": "2026-07-05T01:32:26.091696", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 410, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:26.093533", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 884, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:26.094807", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 1319, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:26.095891", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 1715, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:26.097338", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2155, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:26.098866", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2179, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:32:33.109413", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2203, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:33:04.594281", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2227, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:33:25.511162", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}
+{"event": "token_evaluation", "accumulated_tokens": 2228, "primary": 80000, "safety": 120000, "ceiling": 150000, "ts": "2026-07-05T01:33:26.257572", "session_id": "e63c45bb-23a9-496f-bd20-13c37ef91821"}

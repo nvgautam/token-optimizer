@@ -36,6 +36,7 @@ class SessionManager:
         self.session_type: Optional[str] = None
         self._turn_count = 0
         self._manual_handoff = self._injecting = self._handoff_in_progress = self._last_had_content = False
+        self._handoff_event = self._handoff_thread = None
         self._current_turn_output_tokens, self._turn_output_history, self._task_start_tokens = 0, [], {}
         self._arm = self._read_arm_file()
         self._cwd_hash = hashlib.sha256(os.getcwd().encode()).hexdigest()
@@ -107,6 +108,9 @@ class SessionManager:
     def _handle_output(self, chunk: bytes) -> None:
         text = chunk.decode("utf-8", errors="replace")
         clean = self._ansi_strip(text)
+        if self._handoff_in_progress and "HANDOFF_COMPLETE" in clean:
+            if self._handoff_event is not None:
+                self._handoff_event.set()
         detected_path = self._detect_read_path(clean)
         if detected_path and detected_path.startswith("/"):
             cwd = os.getcwd() + "/"
@@ -188,23 +192,17 @@ class SessionManager:
             # Primary: 80K + a scheduled task just completed (no task in-flight)
             task_just_completed = complete_m is not None
             if not triggered and total >= primary and task_just_completed and not self._task_start_tokens:
-                self._handoff_in_progress = True
                 self.trigger_handoff(trigger="auto-primary")
-                self._handoff_in_progress = False
                 triggered = True
 
             # Safety net: 120K + no task in-flight
             if not triggered and total >= safety and not self._task_start_tokens:
-                self._handoff_in_progress = True
                 self.trigger_handoff(trigger="auto-safety")
-                self._handoff_in_progress = False
                 triggered = True
 
             # Hard ceiling: 150K unconditional
             if not triggered and total >= ceiling:
-                self._handoff_in_progress = True
                 self.trigger_handoff(trigger="auto-ceiling")
-                self._handoff_in_progress = False
 
     def _record_task_tokens(self, task_id: str, delta: int) -> None:
         rp, el, fc = pathlib.Path.cwd() / ".agentflow" / "current_round.json", 0, 0
@@ -231,6 +229,19 @@ class SessionManager:
         pass
 
     def trigger_handoff(self, trigger: str = "auto") -> None:
+        in_pytest = "PYTEST_CURRENT_TEST" in os.environ
+        run_async = not in_pytest or getattr(self, "_force_async_handoff", False)
+        self._handoff_in_progress = True
+        import threading
+        self._handoff_event = threading.Event()
+        if run_async:
+            self._handoff_thread = threading.Thread(target=self._run_handoff_core, args=(trigger,), daemon=True)
+            self._handoff_thread.start()
+        else:
+            self._run_handoff_core(trigger)
+
+    def _run_handoff_core(self, trigger: str) -> None:
+        self._handoff_in_progress = True
         self._log_audit({"event": "trigger_handoff", "trigger": trigger})
         self._injecting = True
         try:
@@ -244,18 +255,23 @@ class SessionManager:
         deadline = time.monotonic() + 120
         handoff_complete = False
         while time.monotonic() < deadline:
-            chunk = self._pty.read_output(timeout=1.0)
+            if self._handoff_event and self._handoff_event.is_set():
+                handoff_complete = True
+                break
+            if getattr(self._pty, "_exited", False):
+                break
+            chunk = self._pty.read_output(timeout=0.1)
             if chunk:
                 try:
                     os.write(1, chunk)
                 except OSError:
                     pass
-            text = chunk.decode("utf-8", errors="replace") if chunk else ""
-            if "HANDOFF_COMPLETE" in text:
-                handoff_complete = True
-                break
-            if getattr(self._pty, "_exited", False):
-                break
+                text = chunk.decode("utf-8", errors="replace")
+                if "HANDOFF_COMPLETE" in text:
+                    if self._handoff_event:
+                        self._handoff_event.set()
+                    handoff_complete = True
+                    break
         if not handoff_complete:
             self._log_audit({"event": "handoff_aborted", "trigger": trigger, "tokens": getattr(self, "_last_accumulated_tokens", 0)})
             self._handoff_in_progress = False
@@ -267,6 +283,7 @@ class SessionManager:
         countdown(self._config["restart_delay_seconds"], on_complete=self._restart_session)
 
     def _restart_session(self) -> None:
+        self._handoff_in_progress = False
         self._last_restart_ts = time.monotonic()
         self._log_audit({"event": "restart_session"})
         cmd = "oracle" if self.session_type == "oracle" else "orchestrate" if self.session_type == "orchestrator" else None
