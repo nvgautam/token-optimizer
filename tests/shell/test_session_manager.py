@@ -73,6 +73,7 @@ def test_safety_and_ceiling_triggers():
     tok = FakeTokenizer(fixed_return=121_000)
     sm, pty, _ = make_manager(config={"handoff_safety_tokens": 120_000, "handoff_hard_ceiling_tokens": 150_000}, tokenizer=tok)
     sm.session_type = "oracle"
+    sm._auto_reset_enabled = True
     with patch.object(sm, "trigger_handoff") as mock_hf:
         fire_output(sm, pty, "some output chunk")
         mock_hf.assert_called_once()
@@ -80,6 +81,7 @@ def test_safety_and_ceiling_triggers():
     # Suppressed when task in flight
     sm, pty, _ = make_manager(config={"handoff_safety_tokens": 120_000, "handoff_hard_ceiling_tokens": 150_000}, tokenizer=tok)
     sm.session_type = "oracle"
+    sm._auto_reset_enabled = True
     sm._task_start_tokens["T-001"] = 50_000
     with patch.object(sm, "trigger_handoff") as mock_hf:
         fire_output(sm, pty, "some output chunk")
@@ -167,6 +169,7 @@ def test_primary_triggers():
     tok = FakeTokenizer(fixed_return=85_000)
     sm, pty, _ = make_manager(config={"handoff_primary_tokens": 80_000}, tokenizer=tok)
     sm.session_type = "orchestrator"
+    sm._auto_reset_enabled = True
     with patch.object(sm, "trigger_handoff") as mock_hf:
         fire_output(sm, pty, "AGENTFLOW_TASK_COMPLETE:T-001")
         mock_hf.assert_called_once()
@@ -258,6 +261,39 @@ def test_tokenizer_resets_on_clear_prevents_rehangoff(tmp_path):
             fire_output(sm, pty, "Welcome back")
             mock_hf.assert_not_called()
 
+def test_tokenizer_resets_on_spawn_prevents_ceiling_loop(tmp_path):
+    """Regression: tokenizer must reset when child restarts, not just on /clear.
+
+    Bug: on_enter_restarting() kills the old child before /clear is processed, so
+    the /clear detection in _handle_output never fires.  The new child inherits the
+    old accumulated count and immediately re-triggers the ceiling threshold, causing
+    the handoff skill output to repeat indefinitely ("numbers repeated").
+    """
+    class SeededTokenizer(FakeTokenizer):
+        def __init__(self, seed: int):
+            super().__init__()
+            self._total = seed
+        def accumulate(self, text, provider="claude"):
+            self._total += 1
+            return self._total
+
+    tok = SeededTokenizer(seed=150_000)
+    sm, pty, _ = make_manager(config={"handoff_hard_ceiling_tokens": 150_000}, tokenizer=tok)
+
+    # _spawn_new_child skips PTY fork when _command is absent (FakePTY has none)
+    sm._spawn_new_child()
+
+    assert sm._last_accumulated_tokens == 0
+    assert tok._total == 0
+
+    # Subsequent output must NOT immediately re-trigger ceiling
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+        sm._project_root = tmp_path
+        with patch.object(sm, "trigger_handoff") as mock_hf:
+            fire_output(sm, pty, "Orchestrating new round")
+            mock_hf.assert_not_called()
+
+
 def test_pty_audit_logging(tmp_path):
     agentflow_dir = tmp_path / ".agentflow"
     agentflow_dir.mkdir()
@@ -273,6 +309,7 @@ def test_pty_audit_logging(tmp_path):
         fire_output(sm, pty, "/clear\n")
         tok._fixed = 2000
         sm.session_type = "oracle"
+        sm._auto_reset_enabled = True
         with patch.object(sm, "trigger_handoff") as mock_hf:
             fire_output(sm, pty, "some text")
             mock_hf.assert_called_once()

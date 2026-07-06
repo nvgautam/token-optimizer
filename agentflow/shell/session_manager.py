@@ -70,6 +70,7 @@ class SessionManager:
         self._state_machine.on_enter_idle = self.on_enter_idle
         self._state_machine.on_enter_dead_child = self.on_enter_dead_child
         self._just_restarted = False
+        self._auto_reset_enabled = False  # disabled pending crash investigation
 
         self._update_last_current_round_mtime()
 
@@ -341,6 +342,12 @@ class SessionManager:
         self._state_machine.transition("restart_done")
 
     def _spawn_new_child(self) -> None:
+        # Fresh child = fresh context; reset accumulator so thresholds are relative to
+        # this session, not the previous one that just handed off.
+        if hasattr(self._tokenizer, "reset"):
+            self._tokenizer.reset()
+        self._last_accumulated_tokens = 0
+
         command = getattr(self._pty, "_command", None)
         if not command:
             if hasattr(self._pty, "_exited"):
@@ -471,7 +478,7 @@ class SessionManager:
 
         _restart_cooldown = 30.0
         _since_restart = time.monotonic() - self._last_restart_ts
-        if not self._manual_handoff and self._state_machine.state not in (States.HANDOFF_PENDING, States.RESTARTING) and _since_restart >= _restart_cooldown:
+        if self._auto_reset_enabled and not self._manual_handoff and self._state_machine.state not in (States.HANDOFF_PENDING, States.RESTARTING) and _since_restart >= _restart_cooldown:
             primary = self._config["handoff_primary_tokens"]
             safety = self._config["handoff_safety_tokens"]
             ceiling = self._config["handoff_hard_ceiling_tokens"]
