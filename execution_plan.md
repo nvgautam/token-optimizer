@@ -287,7 +287,7 @@ Status: DEFERRED — Python CLI out of scope for v1
 
 | Task | Title | Depends on | Status |
 |---|---|---|---|
-| T-104 | cleanup_tasks.py — auto-file split tasks from size_violations.jsonl | — | PENDING |
+| T-104 | cleanup_tasks.py — auto-file split tasks from size_violations.jsonl | — | MERGED |
 
 Not demo-critical — code quality enforcement only, deferred to Round D.
 
