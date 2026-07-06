@@ -32,7 +32,106 @@ def flatten_archive(archive_path: Path) -> list:
     return flat
 
 
+def auto_file_size_violations(project_root: Path) -> None:
+    violations_path = project_root / ".agentflow" / "size_violations.jsonl"
+    if not violations_path.exists():
+        return
+
+    tasks_path = project_root / "tasks.json"
+    if not tasks_path.exists():
+        return
+
+    try:
+        tasks_data = _load_json(tasks_path)
+    except Exception:
+        return
+
+    archive_path = project_root / ".agentflow" / "tasks.archive.json"
+    archive_tasks = []
+    if archive_path.exists():
+        try:
+            archive_tasks = flatten_archive(archive_path)
+        except Exception:
+            pass
+
+    all_tasks = tasks_data.get("tasks", []) + archive_tasks
+
+    import re
+    max_id = 0
+    id_pattern = re.compile(r"^T-(\d+)$")
+    for t in all_tasks:
+        tid = t.get("task_id", "")
+        m = id_pattern.match(tid)
+        if m:
+            max_id = max(max_id, int(m.group(1)))
+
+    violations = []
+    try:
+        with violations_path.open(encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    violations.append(json.loads(line))
+                except Exception:
+                    pass
+    except Exception:
+        return
+
+    new_tasks = []
+    for v in violations:
+        filename = v.get("file")
+        limit = v.get("limit")
+        ts = v.get("ts")
+        if not filename or not limit or not ts:
+            continue
+
+        file_path = project_root / filename
+        if not file_path.exists():
+            continue
+
+        try:
+            current_lines = len(file_path.read_text(encoding="utf-8").splitlines())
+        except Exception:
+            continue
+
+        if current_lines <= limit:
+            continue
+
+        # Check if already filed
+        already_filed = False
+        for t in all_tasks + new_tasks:
+            desc = t.get("description", "")
+            if filename in desc and ts in desc:
+                already_filed = True
+                break
+
+        if already_filed:
+            continue
+
+        max_id += 1
+        new_task_id = f"T-{max_id:03d}"
+        new_task = {
+            "task_id": new_task_id,
+            "title": f"Split {filename} — size violation",
+            "description": f"Split {filename} to resolve size violation of {current_lines} lines (limit: {limit}). Violation timestamp: {ts}.",
+            "owns": [filename],
+            "reads": [],
+            "depends_on": [],
+            "status": "pending"
+        }
+        new_tasks.append(new_task)
+
+    if new_tasks:
+        tasks_data["tasks"].extend(new_tasks)
+        _write_json(tasks_path, tasks_data)
+        print(f"  auto-filed {len(new_tasks)} size violation split task(s)")
+
+
 def cleanup(project_root: Path) -> None:
+    auto_file_size_violations(project_root)
+
     tasks_path = project_root / "tasks.json"
     archive_path = project_root / ".agentflow" / "tasks.archive.json"
 
