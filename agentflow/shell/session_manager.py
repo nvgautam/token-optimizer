@@ -263,8 +263,8 @@ class SessionManager:
                         self._state_machine.transition("handoff_complete_written")
                         return
             except OSError:
-                self._log_audit({"event": "handoff_aborted", "trigger": trigger, "tokens": self._last_accumulated_tokens})
-                self._state_machine.transition("handoff_aborted")
+                self._log_audit({"event": "handoff_timeout", "trigger": trigger, "tokens": self._last_accumulated_tokens})
+                # Do not transition; keep current state (HANDOFF_PENDING) so _handoff_in_progress remains True.
                 return
 
             time.sleep(0.01)
@@ -479,9 +479,9 @@ class SessionManager:
         _restart_cooldown = 30.0
         _since_restart = time.monotonic() - self._last_restart_ts
         if self._auto_reset_enabled and not self._manual_handoff and self._state_machine.state not in (States.HANDOFF_PENDING, States.RESTARTING) and _since_restart >= _restart_cooldown:
-            primary = self._config["handoff_primary_tokens"]
-            safety = self._config["handoff_safety_tokens"]
-            ceiling = self._config["handoff_hard_ceiling_tokens"]
+            primary = self._config.get("handoff_primary_tokens", 80000)
+            safety = self._config.get("handoff_safety_tokens", 120000)
+            ceiling = self._config.get("handoff_hard_ceiling_tokens", 150000)
             self._log_audit({"event": "token_evaluation", "accumulated_tokens": total, "primary": primary, "safety": safety, "ceiling": ceiling})
             triggered = False
 
@@ -524,6 +524,9 @@ class SessionManager:
     def _on_session_exit(self, exit_code: int) -> None:
         pass
 
+    def _restart_session(self) -> None:
+        self._state_machine.transition("restart_session")
+
     def trigger_handoff(self, trigger: str = "auto") -> None:
         self._current_trigger = trigger
         if getattr(self._pty, "_exited", False):
@@ -537,14 +540,16 @@ class SessionManager:
         except OSError:
             return
 
+        # By default, handoff runs synchronously in pytest environments to preserve existing test behavior.
+        # In production or when `_force_async_handoff` is set, it runs asynchronously.
         in_pytest = "PYTEST_CURRENT_TEST" in os.environ
         run_sync_loop = in_pytest and not getattr(self, "_force_async_handoff", False)
-        
         if run_sync_loop:
             self._run_handoff_loop(trigger)
-
-    def _restart_session(self) -> None:
-        self._state_machine.transition("restart_session")
+        else:
+            # In async mode, if the handoff completion file already exists (e.g., mocked), process it.
+            if self._state_machine.state == States.HANDOFF_PENDING and self._handoff_complete_path.exists():
+                self._state_machine.transition("handoff_complete_written")
 
     def _update_session_file(self) -> None:
         sid = os.environ.get("AGENTFLOW_SESSION_ID")

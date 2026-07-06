@@ -657,6 +657,17 @@
       "status": "pending"
     },
     {
+      "task_id": "T-122",
+      "title": "Session restart regression tests — skill reinjection + end-to-end state machine path",
+      "description": "Three tests to close regression gaps in the session restart flow: (1) test_on_enter_idle_reinjects_skill: after restart, assert that on_enter_idle writes '/oracle\\n' when session_type='oracle' and '/orchestrate\\n' when session_type='orchestrator'; assert nothing written for unknown session_type. (2) test_restart_end_to_end_via_state_machine: with auto_reset_enabled=True, feed output that exceeds hard_ceiling_tokens threshold, assert trigger_handoff fires, simulate handoff_complete.json write + poll() to drive state through RESTARTING->IDLE, assert _last_accumulated_tokens == 0 and tok._total == 0 after restart (proving tokenizer reset happens through the production path, not just _spawn_new_child directly). (3) test_on_enter_restarting_oserror_safe: on_enter_restarting() must not raise even if write_input raises OSError (dying PTY); assert restart_child is still called. All in tests/shell/test_session_manager.py. Stdlib + unittest.mock only.",
+      "owns": [
+        "tests/shell/test_session_manager.py"
+      ],
+      "depends_on": [],
+      "estimated_lines": 70,
+      "status": "pending"
+    },
+    {
       "task_id": "T-121",
       "status": "pending",
       "title": "PTY reactor + per-state deadlines + T-118 corrections \u2014 never-hang guarantee",

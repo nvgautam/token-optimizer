@@ -388,3 +388,62 @@ def test_async_trigger_handoff_oserror(tmp_path):
         sm.trigger_handoff()
         
     assert sm._handoff_in_progress is False
+
+def test_on_enter_idle_reinjects_skill():
+    sm, pty, _ = make_manager()
+    # Simulate a restart that sets just_restarted flag
+    sm._just_restarted = True
+    sm.session_type = "oracle"
+    sm.on_enter_idle()
+    assert "/oracle\n" in pty.inputs
+
+    sm._just_restarted = True
+    sm.session_type = "orchestrator"
+    sm.on_enter_idle()
+    assert "/orchestrate\n" in pty.inputs
+
+    sm._just_restarted = True
+    sm.session_type = "unknown"
+    sm.on_enter_idle()
+    # No command should be written for unknown session type
+    assert not any(cmd.startswith("/unknown") for cmd in pty.inputs)
+
+def test_restart_end_to_end_via_state_machine(tmp_path):
+    # Tokenizer that will exceed hard ceiling to trigger handoff
+    tok = FakeTokenizer(fixed_return=151_000)
+    sm, pty, _ = make_manager(config={"handoff_hard_ceiling_tokens": 150_000}, tokenizer=tok)
+    sm.session_type = "oracle"
+    sm._auto_reset_enabled = True
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+        sm._project_root = tmp_path
+        sm._handoff_complete_path = tmp_path / ".agentflow" / "handoff_complete.json"
+        # Patch countdown to return immediately
+        with patch("agentflow.shell.session_manager.countdown") as mock_cd:
+            mock_cd.side_effect = lambda s, on_complete, **kw: on_complete()
+            # Fire output that exceeds ceiling and triggers handoff synchronously
+            fire_output(sm, pty, "big output chunk")
+            # At this point handoff should be in progress
+            assert sm._handoff_in_progress is True
+            # Simulate handoff completion file
+            sm._handoff_complete_path.parent.mkdir(parents=True, exist_ok=True)
+            sm._handoff_complete_path.write_text("{}", encoding="utf-8")
+            sm.poll()
+            # After poll the state machine should have completed restart
+            assert sm._handoff_in_progress is False
+            # Tokenizer should have been reset and accumulated tokens cleared
+            assert sm._last_accumulated_tokens == 0
+            assert getattr(tok, "_total", None) == 0
+
+def test_on_enter_restarting_oserror_safe(tmp_path):
+    sm, pty, _ = make_manager()
+    # Make write_input raise OSError
+    def failing_write_input(text):
+        raise OSError("closed")
+    pty.write_input = failing_write_input
+    # Patch restart_child to track call
+    with patch.object(sm, "restart_child") as mock_restart:
+        sm.on_enter_restarting()
+        mock_restart.assert_called_once()
+        # Ensure no exception propagates and _just_restarted flag is set
+        assert sm._just_restarted is True
+
