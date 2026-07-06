@@ -203,11 +203,14 @@ class SessionManager:
                         self._state_machine.transition("current_round_written")
                 except Exception:
                     pass
-            elif not self._auto_handoff_disabled() and (
-                self._last_accumulated_tokens >= self._config.get("handoff_safety_tokens", 120000) or
-                self._last_accumulated_tokens >= self._config.get("handoff_hard_ceiling_tokens", 150000)
-            ):
-                self._state_machine.transition("trigger_handoff")
+            elif not self._manual_handoff and not self._auto_handoff_disabled():
+                task_in_flight = bool(self._task_start_tokens) or self._state_machine.state == States.TASK_RUNNING
+                safety = self._config.get("handoff_safety_tokens", 120000)
+                ceiling = self._config.get("handoff_hard_ceiling_tokens", 150000)
+                if self._last_accumulated_tokens >= ceiling:
+                    self.trigger_handoff(trigger="auto-ceiling")
+                elif self._last_accumulated_tokens >= safety and not task_in_flight:
+                    self.trigger_handoff(trigger="auto-safety")
 
         elif state == States.TASK_RUNNING:
             if self._task_complete_path.exists():

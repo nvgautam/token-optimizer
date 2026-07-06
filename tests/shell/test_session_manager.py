@@ -4,9 +4,15 @@ import json
 import pathlib
 import time
 from unittest.mock import MagicMock, patch
+import pytest
 from agentflow.shell.session_manager import SessionManager
 from agentflow.shell.state_machine import States
 from agentflow.shell.countdown import countdown
+
+@pytest.fixture(autouse=True)
+def mock_cwd(tmp_path):
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+        yield
 
 class FakePTY:
     def __init__(self):
@@ -36,6 +42,7 @@ def make_manager(config=None, tokenizer=None):
     pty = FakePTY()
     tok = tokenizer or FakeTokenizer()
     return SessionManager(pty, tok, config or {}), pty, tok
+
 
 def fire_output(sm: SessionManager, pty: FakePTY, text: str) -> None:
     if pty._on_output:
@@ -315,18 +322,21 @@ def test_on_enter_restarting_calls_restart_child():
 def test_idle_state_token_threshold_trigger(tmp_path):
     with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
         sm, pty, _ = make_manager(config={"handoff_safety_tokens": 120_000, "handoff_hard_ceiling_tokens": 150_000})
+        sm._force_async_handoff = True
         sm._state_machine.state = States.IDLE
         sm._last_accumulated_tokens = 125_000
         sm.poll()
         assert sm._state_machine.state == States.HANDOFF_PENDING
 
         sm2, pty2, _ = make_manager(config={"handoff_safety_tokens": 120_000, "handoff_hard_ceiling_tokens": 150_000})
+        sm2._force_async_handoff = True
         sm2._state_machine.state = States.IDLE
         sm2._last_accumulated_tokens = 155_000
         sm2.poll()
         assert sm2._state_machine.state == States.HANDOFF_PENDING
 
         sm3, pty3, _ = make_manager(config={"handoff_safety_tokens": 120_000, "handoff_hard_ceiling_tokens": 150_000})
+        sm3._force_async_handoff = True
         sm3._state_machine.state = States.IDLE
         sm3._last_accumulated_tokens = 80_000
         sm3.poll()
