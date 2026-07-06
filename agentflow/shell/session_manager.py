@@ -70,6 +70,7 @@ class SessionManager:
         self._state_machine.on_enter_idle = self.on_enter_idle
         self._state_machine.on_enter_dead_child = self.on_enter_dead_child
         self._just_restarted = False
+        self._auto_reset_enabled = True  # enabled after fixing token reset bug
 
         self._update_last_current_round_mtime()
 
@@ -317,9 +318,22 @@ class SessionManager:
                 if not killed:
                     try:
                         os.kill(pid, signal.SIGKILL)
-                        os.waitpid(pid, 0)
                     except OSError:
                         pass
+                    # Bounded wait after SIGKILL — never block indefinitely.
+                    # On macOS, PTY session leaders can stay in ?Es (kernel exit cleanup)
+                    # for seconds; waitpid(pid, 0) without a timeout deadlocks the shell.
+                    t1 = time.monotonic()
+                    while time.monotonic() - t1 < 5.0:
+                        try:
+                            p, _ = os.waitpid(pid, os.WNOHANG)
+                            if p == pid:
+                                break
+                        except ChildProcessError:
+                            break
+                        except OSError:
+                            break
+                        time.sleep(0.05)
             except OSError:
                 pass
 
@@ -328,6 +342,12 @@ class SessionManager:
         self._state_machine.transition("restart_done")
 
     def _spawn_new_child(self) -> None:
+        # Fresh child = fresh context; reset accumulator so thresholds are relative to
+        # this session, not the previous one that just handed off.
+        if hasattr(self._tokenizer, "reset"):
+            self._tokenizer.reset()
+        self._last_accumulated_tokens = 0
+
         command = getattr(self._pty, "_command", None)
         if not command:
             if hasattr(self._pty, "_exited"):
@@ -458,7 +478,7 @@ class SessionManager:
 
         _restart_cooldown = 30.0
         _since_restart = time.monotonic() - self._last_restart_ts
-        if not self._manual_handoff and self._state_machine.state not in (States.HANDOFF_PENDING, States.RESTARTING) and _since_restart >= _restart_cooldown:
+        if self._auto_reset_enabled and not self._manual_handoff and self._state_machine.state not in (States.HANDOFF_PENDING, States.RESTARTING) and _since_restart >= _restart_cooldown:
             primary = self._config["handoff_primary_tokens"]
             safety = self._config["handoff_safety_tokens"]
             ceiling = self._config["handoff_hard_ceiling_tokens"]

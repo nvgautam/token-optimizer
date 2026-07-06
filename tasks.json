@@ -542,7 +542,7 @@
       "acceptance_criteria": "Encryption pipeline processes all skill markdown files and outputs valid encrypted payloads.",
       "estimated_lines": 120,
       "context_section": "architecture.md#security-model",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-111",
@@ -639,7 +639,7 @@
         "tests/hooks/test_jailbreak_check.py"
       ],
       "estimated_lines": 60,
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-120",
@@ -655,6 +655,37 @@
       ],
       "estimated_lines": 120,
       "status": "pending"
+    },
+    {
+      "task_id": "T-121",
+      "status": "pending",
+      "title": "PTY reactor + per-state deadlines + T-118 corrections \u2014 never-hang guarantee",
+      "description": "Three changes in one pass: (1) Reactor: replace file-polling in poll() with kqueue (macOS) / inotify (Linux) fd registered in the main select() call \u2014 select() becomes the only blocking call. (2) Deadlines: record entered_at on every state transition; on select() timeout check time.monotonic()-entered_at > deadline[state]; on expiry SIGKILL child \u2192 IDLE. (3) T-118 corrections: add atomic handoff_complete.json write to agentflow/handoff.py; remove output-scraping (HANDOFF_COMPLETE detection) from session_manager.py; remove _run_handoff_loop and its pytest-only branch so tests exercise the same poll() path as production.",
+      "owns": [
+        "agentflow/shell/session_manager.py",
+        "agentflow/shell/state_machine.py",
+        "agentflow/handoff.py",
+        "tests/shell/test_session_manager.py"
+      ],
+      "depends_on": [
+        "T-118",
+        "T-112"
+      ],
+      "test_requirements": {
+        "unit": [
+          "Each state times out to IDLE (SIGKILL child) when deadline elapses \u2014 verified with mock clock",
+          "agentflow/handoff.py writes handoff_complete.json atomically",
+          "poll() drives state transitions without any time.sleep or blocking waitpid in the hot loop"
+        ],
+        "integration": [
+          "Full handoff cycle completes via poll() path (no _run_handoff_loop)",
+          "PTY loop does not hang when handoff_complete.json is never written (deadline fires)"
+        ],
+        "coverage_threshold": 85
+      },
+      "acceptance_criteria": "PTY loop never blocks indefinitely: select() is the only blocking call, every state has a deadline that forces IDLE on expiry, handoff_complete.json is written by agentflow/handoff.py (not scraped from output), and tests exercise the production poll() path.",
+      "estimated_lines": 190,
+      "context_section": "execution_plan.md#addendum-t-121"
     }
   ]
 }

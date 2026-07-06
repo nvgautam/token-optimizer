@@ -402,7 +402,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | A–C (MERGED) | T-105,T-106,T-102,T-107,T-108,T-113,T-114,T-115 | PTY fixes + measurement chain |
 | D (MERGED) | T-116, T-117, T-109 | PTY handoff non-blocking + robustness + key server |
 | D2 | T-118 ‖ T-110 (parallel), then T-111→T-112 (sequential) | PTY state machine refactor + IP protection stack |
-| E | T-103, T-099, T-068, T-063, T-104 (parallel) | Model A/B + Gemini oracle + token estimator + cross-provider claiming + size enforcement |
+| E | T-121, T-103, T-099, T-068, T-063, T-104 (parallel; T-121 top of round) | PTY reactor + deadlines (never-hang guarantee) + Model A/B + Gemini oracle + token estimator + cross-provider claiming + size enforcement |
 | F | T-098, T-064, T-069 (parallel; deps met after E) | Model routing savings + rate headroom + parallel scheduling |
 
 Priority rationale (2026-07-05b): T-118 (state machine refactor) prepends IP protection stack — T-111 modifies session_manager.py, which must be stable and split before that. T-118 ‖ T-110 parallel because they own disjoint files; T-111 depends on both.
@@ -475,6 +475,26 @@ User-reported: after handoff fires, PTY "broke out of the shell" and the same nu
 **Files:** `agentflow/hooks/jailbreak_check.py` (new, ~60L), `tests/hooks/test_jailbreak_check.py` (new). Register in `.claude/settings.json` under `hooks.UserPromptSubmit`.
 
 **Protocol:** Fuzzy case-insensitive match. On match: exit non-zero + write `{ts, pattern_matched, raw_input}` to `.agentflow/sanitizer_blocked.jsonl`. On clean: exit 0. Stdlib only. Ships with T-111.
+
+## Addendum: T-121 — PTY Reactor + State Deadlines + T-118 Corrections (filed 2026-07-05)
+
+**Goal:** Guarantee agentflow never hangs — two reactor mechanisms + two T-118 spec deviations fixed.
+
+**Reactor pattern:** Replace file-polling branches in each state handler with `kqueue` (macOS) / `inotify` (Linux) fd registered in the main `select()` call. Signal files become fd events; state handlers fire-and-return in O(1). `select()` is the only blocking call in the entire PTY loop.
+
+**Per-state deadlines:** Each state transition records `entered_at = time.monotonic()`. The `select()` timeout branch checks `time.monotonic() - entered_at > deadline[current_state]`; on expiry: SIGKILL child → IDLE. Deadlines: `TASK_RUNNING` 15 min, `TASK_COMPLETE` 30 s, `HANDOFF_PENDING` 90 s, `RESTARTING` 30 s, `DEAD_CHILD` 10 s.
+
+**T-118 correction 1 — handoff_complete.json writer:** T-118 spec says `agentflow/handoff.py` writes this file; implementation instead scrapes `"HANDOFF_COMPLETE"` from PTY output (`session_manager.py:259,453`). Fix: add atomic write to `agentflow/handoff.py`; remove output-scraping fallbacks from `session_manager.py`.
+
+**T-118 correction 2 — test/production divergence:** `trigger_handoff()` routes through blocking `_run_handoff_loop` in pytest and through `poll()` in production — tests never exercise the production path. Fix: remove `_run_handoff_loop` entirely; tests drive `poll()` directly.
+
+**Files:** `agentflow/shell/session_manager.py` (reactor, deadlines, remove scraping + loop; ~130L net change), `agentflow/shell/state_machine.py` (add `entered_at`; ~50L net change), `agentflow/handoff.py` (add signal write; ~10L), `tests/shell/test_session_manager.py` (update).
+
+**Estimated lines:** ~190L total change. Under 250L cap.
+
+**Depends on:** T-118 (MERGED), T-112 (state machine must be stable before reactor refactor). Slots top of Round E.
+
+---
 
 ## Deferred
 - AgentFlow user-facing CLI (subcommands for config management, T-002): backlog.json
