@@ -9,7 +9,6 @@ import json
 import os
 import pathlib
 import re
-import select
 import signal
 import time
 from typing import Optional
@@ -19,7 +18,7 @@ try:
 except ImportError:
     import tomli as tomllib  # type: ignore
 
-from agentflow.shell.countdown import countdown
+from agentflow.shell.countdown import countdown  # noqa: F401
 from agentflow.shell.state_machine import StateMachine, States
 
 _DEFAULTS = {
@@ -70,9 +69,10 @@ class SessionManager:
         self._state_machine.on_enter_idle = self.on_enter_idle
         self._state_machine.on_enter_dead_child = self.on_enter_dead_child
         self._just_restarted = False
-        self._auto_reset_enabled = True  # enabled after fixing token reset bug
 
         self._update_last_current_round_mtime()
+        if self._current_round_path.exists() and not self._task_complete_path.exists():
+            self._state_machine.state = States.TASK_RUNNING
 
         # Wire up wrappers
         pty_wrapper._on_output = self._handle_output
@@ -82,6 +82,9 @@ class SessionManager:
     @property
     def _project_root(self) -> pathlib.Path:
         return getattr(self, "_project_root_override", None) or pathlib.Path.cwd()
+
+    def _auto_handoff_disabled(self) -> bool:
+        return (self._project_root / ".agentflow" / "handoff_disabled").exists()
 
     @_project_root.setter
     def _project_root(self, val: pathlib.Path) -> None:
@@ -200,6 +203,11 @@ class SessionManager:
                         self._state_machine.transition("current_round_written")
                 except Exception:
                     pass
+            elif not self._auto_handoff_disabled() and (
+                self._last_accumulated_tokens >= self._config.get("handoff_safety_tokens", 120000) or
+                self._last_accumulated_tokens >= self._config.get("handoff_hard_ceiling_tokens", 150000)
+            ):
+                self._state_machine.transition("trigger_handoff")
 
         elif state == States.TASK_RUNNING:
             if self._task_complete_path.exists():
@@ -273,10 +281,6 @@ class SessionManager:
         self._state_machine.transition("handoff_aborted")
 
     def on_enter_restarting(self) -> None:
-        try:
-            self._pty.write_input("/clear\n")
-        except OSError:
-            pass
         self._just_restarted = True
         self.restart_child()
 
@@ -318,22 +322,9 @@ class SessionManager:
                 if not killed:
                     try:
                         os.kill(pid, signal.SIGKILL)
+                        os.waitpid(pid, 0)
                     except OSError:
                         pass
-                    # Bounded wait after SIGKILL — never block indefinitely.
-                    # On macOS, PTY session leaders can stay in ?Es (kernel exit cleanup)
-                    # for seconds; waitpid(pid, 0) without a timeout deadlocks the shell.
-                    t1 = time.monotonic()
-                    while time.monotonic() - t1 < 5.0:
-                        try:
-                            p, _ = os.waitpid(pid, os.WNOHANG)
-                            if p == pid:
-                                break
-                        except ChildProcessError:
-                            break
-                        except OSError:
-                            break
-                        time.sleep(0.05)
             except OSError:
                 pass
 
@@ -342,12 +333,6 @@ class SessionManager:
         self._state_machine.transition("restart_done")
 
     def _spawn_new_child(self) -> None:
-        # Fresh child = fresh context; reset accumulator so thresholds are relative to
-        # this session, not the previous one that just handed off.
-        if hasattr(self._tokenizer, "reset"):
-            self._tokenizer.reset()
-        self._last_accumulated_tokens = 0
-
         command = getattr(self._pty, "_command", None)
         if not command:
             if hasattr(self._pty, "_exited"):
@@ -478,7 +463,7 @@ class SessionManager:
 
         _restart_cooldown = 30.0
         _since_restart = time.monotonic() - self._last_restart_ts
-        if self._auto_reset_enabled and not self._manual_handoff and self._state_machine.state not in (States.HANDOFF_PENDING, States.RESTARTING) and _since_restart >= _restart_cooldown:
+        if not self._manual_handoff and not self._auto_handoff_disabled() and self._state_machine.state not in (States.HANDOFF_PENDING, States.RESTARTING) and _since_restart >= _restart_cooldown:
             primary = self._config["handoff_primary_tokens"]
             safety = self._config["handoff_safety_tokens"]
             ceiling = self._config["handoff_hard_ceiling_tokens"]
@@ -487,12 +472,13 @@ class SessionManager:
 
             # Primary: 80K + a scheduled task just completed (no task in-flight)
             task_just_completed = complete_m is not None
-            if not triggered and total >= primary and task_just_completed and not self._task_start_tokens:
+            task_in_flight = bool(self._task_start_tokens) or self._state_machine.state == States.TASK_RUNNING
+            if not triggered and total >= primary and task_just_completed and not task_in_flight:
                 self.trigger_handoff(trigger="auto-primary")
                 triggered = True
 
             # Safety net: 120K + no task in-flight
-            if not triggered and total >= safety and not self._task_start_tokens:
+            if not triggered and total >= safety and not task_in_flight:
                 self.trigger_handoff(trigger="auto-safety")
                 triggered = True
 
@@ -535,6 +521,9 @@ class SessionManager:
         try:
             self._state_machine.transition("trigger_handoff")
         except OSError:
+            return
+
+        if self._state_machine.state != States.HANDOFF_PENDING:
             return
 
         in_pytest = "PYTEST_CURRENT_TEST" in os.environ

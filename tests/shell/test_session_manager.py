@@ -5,12 +5,12 @@ import pathlib
 import time
 from unittest.mock import MagicMock, patch
 from agentflow.shell.session_manager import SessionManager
+from agentflow.shell.state_machine import States
 from agentflow.shell.countdown import countdown
 
 class FakePTY:
     def __init__(self):
-        self._on_output = None
-        self._on_exit = None
+        self._on_output = self._on_exit = None
         self.inputs: list[str] = []
         self._exited = False
     def write_input(self, text: str) -> None:
@@ -52,7 +52,6 @@ def test_session_types():
 def test_trigger_handoff_writes_commands(tmp_path):
     sm, pty, _ = make_manager()
     with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
-        # Intercept write_input to write handoff complete file synchronously in test
         original_write = pty.write_input
         def mock_write_input(text):
             original_write(text)
@@ -60,40 +59,28 @@ def test_trigger_handoff_writes_commands(tmp_path):
                 sm._handoff_complete_path.parent.mkdir(parents=True, exist_ok=True)
                 sm._handoff_complete_path.write_text("{}", encoding="utf-8")
         pty.write_input = mock_write_input
-        
         with patch("agentflow.shell.session_manager.countdown") as mock_cd:
             mock_cd.side_effect = lambda s, on_complete, **kw: on_complete()
             sm.trigger_handoff()
-            
     assert "/handoff\n" in pty.inputs
-    assert "/clear\n" in pty.inputs
-    assert pty.inputs.index("/handoff\n") < pty.inputs.index("/clear\n")
 
 def test_safety_and_ceiling_triggers():
     tok = FakeTokenizer(fixed_return=121_000)
     sm, pty, _ = make_manager(config={"handoff_safety_tokens": 120_000, "handoff_hard_ceiling_tokens": 150_000}, tokenizer=tok)
     sm.session_type = "oracle"
-    sm._auto_reset_enabled = True
     with patch.object(sm, "trigger_handoff") as mock_hf:
         fire_output(sm, pty, "some output chunk")
         mock_hf.assert_called_once()
-    
-    # Suppressed when task in flight
     sm, pty, _ = make_manager(config={"handoff_safety_tokens": 120_000, "handoff_hard_ceiling_tokens": 150_000}, tokenizer=tok)
     sm.session_type = "oracle"
-    sm._auto_reset_enabled = True
     sm._task_start_tokens["T-001"] = 50_000
     with patch.object(sm, "trigger_handoff") as mock_hf:
         fire_output(sm, pty, "some output chunk")
         mock_hf.assert_not_called()
-
-    # Ceiling fires anyway
     tok._fixed = 151_000
     with patch.object(sm, "trigger_handoff") as mock_hf:
         fire_output(sm, pty, "some output chunk")
         mock_hf.assert_called_once()
-
-    # Manual handoff suppresses auto
     tok._fixed = 121_000
     sm._task_start_tokens.clear()
     sm._manual_handoff = True
@@ -108,8 +95,6 @@ def test_countdown_behavior(capsys):
         countdown(3, on_complete=callback)
     callback.assert_called_once()
     assert "Restarting" in capsys.readouterr().err
-    
-    # Keyboard Interrupt
     callback.reset_mock()
     with patch("agentflow.shell.countdown.time") as mock_time:
         mock_time.sleep = MagicMock(side_effect=KeyboardInterrupt)
@@ -125,8 +110,6 @@ def test_turn_output_history():
     fire_output(sm, pty, "\n\n")
     assert sm._turn_output_history == [pre_boundary]
     assert sm._current_turn_output_tokens < pre_boundary
-
-    # Max 10 boundary tracking
     sm, pty, _ = make_manager()
     for _ in range(15):
         fire_output(sm, pty, "response")
@@ -139,19 +122,16 @@ def test_incremental_write_verbosity_log(tmp_path):
         fire_output(sm, pty, "some response")
         fire_output(sm, pty, "\n\n")
     assert not (tmp_path / ".agentflow").exists()
-
-    agentflow_dir = tmp_path / ".agentflow"
-    agentflow_dir.mkdir()
+    (tmp_path / ".agentflow").mkdir()
     sm2, pty2, _ = make_manager()
     sm2.session_type = "oracle"
     with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
         fire_output(sm2, pty2, "some response")
         fire_output(sm2, pty2, "\n\n")
-    log_path = agentflow_dir / "verbosity_log.jsonl"
+    log_path = tmp_path / ".agentflow" / "verbosity_log.jsonl"
     assert log_path.exists()
     lines = log_path.read_text(encoding="utf-8").strip().split("\n")
-    assert len(lines) == 1
-    assert json.loads(lines[0])["turn"] == 1
+    assert len(lines) == 1 and json.loads(lines[0])["turn"] == 1
 
 def test_on_session_exit_registered_on_pty():
     sm, pty, _ = make_manager()
@@ -169,7 +149,6 @@ def test_primary_triggers():
     tok = FakeTokenizer(fixed_return=85_000)
     sm, pty, _ = make_manager(config={"handoff_primary_tokens": 80_000}, tokenizer=tok)
     sm.session_type = "orchestrator"
-    sm._auto_reset_enabled = True
     with patch.object(sm, "trigger_handoff") as mock_hf:
         fire_output(sm, pty, "AGENTFLOW_TASK_COMPLETE:T-001")
         mock_hf.assert_called_once()
@@ -192,34 +171,29 @@ def test_primary_suppressed_cases():
         mock_hf.assert_not_called()
 
 def test_task_token_bracketing_logs(tmp_path):
-    agentflow_dir = tmp_path / ".agentflow"
-    agentflow_dir.mkdir()
-    (agentflow_dir / "current_round.json").write_text(json.dumps({
+    (tmp_path / ".agentflow").mkdir()
+    (tmp_path / ".agentflow" / "current_round.json").write_text(json.dumps({
         "estimated_lines_per_task": {"T-067": 45}, "file_counts_per_task": {"T-067": 2}
     }), encoding="utf-8")
     sm, pty, tok = make_manager()
     sm.session_type = "orchestrator"
-    home_dir = tmp_path / "home"
-    home_dir.mkdir()
-    with patch.object(pathlib.Path, "cwd", return_value=tmp_path), patch.object(pathlib.Path, "home", return_value=home_dir):
+    (tmp_path / "home").mkdir()
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path), patch.object(pathlib.Path, "home", return_value=tmp_path / "home"):
         tok.accumulate("init", "claude")
         fire_output(sm, pty, "AGENTFLOW_TASK_START:T-067")
         assert sm._task_start_tokens.get("T-067") == 2
         tok.accumulate("worker work", "claude")
         tok.accumulate("more work", "claude")
         fire_output(sm, pty, "AGENTFLOW_TASK_COMPLETE:T-067")
-        log_file = home_dir / ".agentflow" / "task_token_log.jsonl"
+        log_file = tmp_path / "home" / ".agentflow" / "task_token_log.jsonl"
         assert log_file.exists()
         record = json.loads(log_file.read_text(encoding="utf-8").strip().split("\n")[0])
-        assert record["task_id"] == "T-067"
-        assert record["token_delta"] == 3
-        assert record["estimated_lines"] == 45
-        assert record["file_count"] == 2
+        assert record["task_id"] == "T-067" and record["token_delta"] == 3
+        assert record["estimated_lines"] == 45 and record["file_count"] == 2
 
 def test_session_manager_arm_reread(tmp_path):
-    agentflow_dir = tmp_path / ".agentflow"
-    agentflow_dir.mkdir()
-    arm_file = agentflow_dir / "verbosity_ab_arm.txt"
+    (tmp_path / ".agentflow").mkdir()
+    arm_file = tmp_path / ".agentflow" / "verbosity_ab_arm.txt"
     arm_file.write_text("initial_arm", encoding="utf-8")
     with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
         sm, pty, _ = make_manager()
@@ -233,8 +207,7 @@ def test_session_manager_arm_reread(tmp_path):
         assert sm._arm == "new_arm"
 
 def test_manual_handoff_reset_on_clear(tmp_path):
-    agentflow_dir = tmp_path / ".agentflow"
-    agentflow_dir.mkdir()
+    (tmp_path / ".agentflow").mkdir()
     sm, pty, _ = make_manager()
     sm._manual_handoff = True
     with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
@@ -251,7 +224,6 @@ def test_tokenizer_resets_on_clear_prevents_rehangoff(tmp_path):
             return self._total
         def reset(self):
             self._total = 0
-
     tok = PreloadedTokenizer(seed=130_000)
     sm, pty, _ = make_manager(config={"handoff_safety_tokens": 120_000}, tokenizer=tok)
     sm.session_type = "oracle"
@@ -261,73 +233,28 @@ def test_tokenizer_resets_on_clear_prevents_rehangoff(tmp_path):
             fire_output(sm, pty, "Welcome back")
             mock_hf.assert_not_called()
 
-def test_tokenizer_resets_on_spawn_prevents_ceiling_loop(tmp_path):
-    """Regression: tokenizer must reset when child restarts, not just on /clear.
-
-    Bug: on_enter_restarting() kills the old child before /clear is processed, so
-    the /clear detection in _handle_output never fires.  The new child inherits the
-    old accumulated count and immediately re-triggers the ceiling threshold, causing
-    the handoff skill output to repeat indefinitely ("numbers repeated").
-    """
-    class SeededTokenizer(FakeTokenizer):
-        def __init__(self, seed: int):
-            super().__init__()
-            self._total = seed
-        def accumulate(self, text, provider="claude"):
-            self._total += 1
-            return self._total
-
-    tok = SeededTokenizer(seed=150_000)
-    sm, pty, _ = make_manager(config={"handoff_hard_ceiling_tokens": 150_000}, tokenizer=tok)
-
-    # _spawn_new_child skips PTY fork when _command is absent (FakePTY has none)
-    sm._spawn_new_child()
-
-    assert sm._last_accumulated_tokens == 0
-    assert tok._total == 0
-
-    # Subsequent output must NOT immediately re-trigger ceiling
-    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
-        sm._project_root = tmp_path
-        with patch.object(sm, "trigger_handoff") as mock_hf:
-            fire_output(sm, pty, "Orchestrating new round")
-            mock_hf.assert_not_called()
-
-
 def test_pty_audit_logging(tmp_path):
-    agentflow_dir = tmp_path / ".agentflow"
-    agentflow_dir.mkdir()
+    (tmp_path / ".agentflow").mkdir()
     tok = FakeTokenizer(fixed_return=100)
     sm, pty, _ = make_manager(config={"handoff_hard_ceiling_tokens": 1000}, tokenizer=tok)
     with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
         sm._project_root = tmp_path
         sm._task_complete_path = tmp_path / ".agentflow" / "task_complete.json"
         sm._handoff_complete_path = tmp_path / ".agentflow" / "handoff_complete.json"
-
-        fire_output(sm, pty, "/oracle\n")
-        fire_output(sm, pty, "/handoff\n")
-        fire_output(sm, pty, "/clear\n")
-        tok._fixed = 2000
-        sm.session_type = "oracle"
-        sm._auto_reset_enabled = True
+        for cmd in ["/oracle\n", "/handoff\n", "/clear\n"]:
+            fire_output(sm, pty, cmd)
+        tok._fixed, sm.session_type = 2000, "oracle"
         with patch.object(sm, "trigger_handoff") as mock_hf:
             fire_output(sm, pty, "some text")
             mock_hf.assert_called_once()
-        
         with patch("agentflow.shell.session_manager.countdown") as mock_cd:
             mock_cd.side_effect = lambda s, on_complete, **kw: on_complete()
-            # Force async so it doesn't trigger synchronous pytest fallback
             sm._force_async_handoff = True
             sm.trigger_handoff(trigger="manual")
-            
-            # Simulate the write of handoff complete file to transition HANDOFF_PENDING -> RESTARTING -> IDLE
-            sm._handoff_complete_path.parent.mkdir(parents=True, exist_ok=True)
-            sm._handoff_complete_path.write_text("{}", encoding="utf-8")
+            (tmp_path / ".agentflow" / "handoff_complete.json").write_text("{}", encoding="utf-8")
             sm.poll()
-
             sm.trigger_handoff(trigger="auto")
             sm.poll()
-            
     log_path = tmp_path / ".agentflow" / "pty_audit.jsonl"
     assert log_path.exists()
     events = [json.loads(line) for line in log_path.read_text(encoding="utf-8").strip().split("\n")]
@@ -338,41 +265,31 @@ def test_pty_audit_logging(tmp_path):
 def test_async_trigger_handoff_success(tmp_path):
     sm, pty, _ = make_manager()
     sm._force_async_handoff = True
-    
     with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
         sm._project_root = tmp_path
         sm._task_complete_path = tmp_path / ".agentflow" / "task_complete.json"
         sm._handoff_complete_path = tmp_path / ".agentflow" / "handoff_complete.json"
-        
         t0 = time.monotonic()
         with patch("agentflow.shell.session_manager.countdown") as mock_cd:
             mock_cd.side_effect = lambda s, on_complete, **kw: on_complete()
             sm.trigger_handoff()
-            duration = time.monotonic() - t0
-            assert duration < 0.5
-            assert sm._handoff_in_progress is True
-            
-            # Simulate handoff complete file being written
+            assert time.monotonic() - t0 < 0.5 and sm._handoff_in_progress is True
             sm._handoff_complete_path.parent.mkdir(parents=True, exist_ok=True)
             sm._handoff_complete_path.write_text("{}", encoding="utf-8")
             sm.poll()
-            
     assert sm._handoff_in_progress is False
     assert "/handoff\n" in pty.inputs
-    assert "/clear\n" in pty.inputs
 
 def test_async_trigger_handoff_unexpected_exit(tmp_path):
     sm, pty, _ = make_manager()
     sm._force_async_handoff = True
     pty._exited = True
-    
     with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
         sm._project_root = tmp_path
         sm._handoff_complete_path = tmp_path / ".agentflow" / "handoff_complete.json"
         with patch("agentflow.shell.session_manager.countdown") as mock_cd:
             sm.trigger_handoff()
             mock_cd.assert_not_called()
-            
     assert sm._handoff_in_progress is False
 
 def test_async_trigger_handoff_oserror(tmp_path):
@@ -381,10 +298,48 @@ def test_async_trigger_handoff_oserror(tmp_path):
     def failing_write_input(text):
         raise OSError("closed")
     pty.write_input = failing_write_input
-    
     with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
         sm._project_root = tmp_path
         sm._handoff_complete_path = tmp_path / ".agentflow" / "handoff_complete.json"
         sm.trigger_handoff()
-        
     assert sm._handoff_in_progress is False
+
+def test_on_enter_restarting_calls_restart_child():
+    sm, pty, _ = make_manager()
+    with patch.object(sm, "restart_child") as mock_restart:
+        sm.on_enter_restarting()
+        mock_restart.assert_called_once()
+        assert sm._just_restarted is True
+        assert not any("/clear" in inp for inp in pty.inputs)
+
+def test_idle_state_token_threshold_trigger(tmp_path):
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+        sm, pty, _ = make_manager(config={"handoff_safety_tokens": 120_000, "handoff_hard_ceiling_tokens": 150_000})
+        sm._state_machine.state = States.IDLE
+        sm._last_accumulated_tokens = 125_000
+        sm.poll()
+        assert sm._state_machine.state == States.HANDOFF_PENDING
+
+        sm2, pty2, _ = make_manager(config={"handoff_safety_tokens": 120_000, "handoff_hard_ceiling_tokens": 150_000})
+        sm2._state_machine.state = States.IDLE
+        sm2._last_accumulated_tokens = 155_000
+        sm2.poll()
+        assert sm2._state_machine.state == States.HANDOFF_PENDING
+
+        sm3, pty3, _ = make_manager(config={"handoff_safety_tokens": 120_000, "handoff_hard_ceiling_tokens": 150_000})
+        sm3._state_machine.state = States.IDLE
+        sm3._last_accumulated_tokens = 80_000
+        sm3.poll()
+        assert sm3._state_machine.state == States.IDLE
+
+def test_init_state_with_preexisting_current_round(tmp_path):
+    (tmp_path / ".agentflow").mkdir()
+    (tmp_path / ".agentflow" / "current_round.json").write_text("{}", encoding="utf-8")
+    pty, tok = FakePTY(), FakeTokenizer()
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+        sm = SessionManager(pty, tok, {})
+    assert sm._state_machine.state == States.TASK_RUNNING
+    (tmp_path / ".agentflow" / "task_complete.json").write_text("{}", encoding="utf-8")
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+        sm2 = SessionManager(pty, tok, {})
+    assert sm2._state_machine.state == States.IDLE

@@ -1050,5 +1050,21 @@
     ],
     "estimated_lines": 180,
     "status": "complete"
+  },
+  {
+    "task_id": "T-125",
+    "title": "pty_signal.py \u2014 event-driven task lifecycle signals for PTY",
+    "description": "New script agentflow/shell/pty_signal.py with three subcommands, invoked by orchestrate and agentflow handoff: (1) task_start <task_id>: reads .agentflow/tasks_in_flight.json (create if absent), adds task_id to set, writes back atomically via json.dump + os.replace. (2) task_done <task_id>: reads tasks_in_flight.json, removes task_id; if set now empty, writes .agentflow/task_complete.json atomically (json.dump + os.replace) and removes tasks_in_flight.json; if set non-empty, writes back updated tasks_in_flight.json. Parallel-safe: both reads use a .lock file (open + fcntl.flock LOCK_EX, release on exit). (3) handoff_complete: writes .agentflow/handoff_complete.json atomically. CLI: python agentflow/shell/pty_signal.py <subcommand> [task_id]. Exit 0 on success, exit 1 with error message on failure. Add call to pty_signal.py task_start in orchestrate.md (before AGENTFLOW_TASK_START print) and pty_signal.py task_done (after AGENTFLOW_TASK_COMPLETE print). Add call to pty_signal.py handoff_complete in agentflow/handoff.py before exit. Tests: tests/shell/test_pty_signal.py \u2014 parallel task_done (two tasks, verify task_complete.json only written when both done), startup with stale tasks_in_flight.json (IDs not in tasks.json cleared), handoff_complete idempotent.",
+    "owns": [
+      "agentflow/shell/pty_signal.py",
+      "tests/shell/test_pty_signal.py"
+    ],
+    "reads": [
+      "commands/claude/orchestrate.md",
+      "agentflow/handoff.py"
+    ],
+    "depends_on": [],
+    "estimated_lines": 90,
+    "status": "complete"
   }
 ]

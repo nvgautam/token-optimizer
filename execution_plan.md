@@ -519,7 +519,7 @@ T-141 depends on T-140 (test file references session_manager structure). T-139, 
 
 ## Addendum: T-125 — pty_signal.py (restored 2026-07-06c)
 
-**Status:** PENDING — source file was never committed; pyc files exist from local testing on PR branch but were not included in PR #61 merge.
+**Status:** MERGED
 
 **Goal:** agentflow/shell/pty_signal.py with task_start / task_done / handoff_complete subcommands. Full spec preserved in tasks.json T-125.
 
