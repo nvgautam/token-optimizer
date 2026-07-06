@@ -15,7 +15,7 @@ Oracle reads on startup. Handoff writes updates. Architecture.md = workers only.
 | Parallel worker scheduling | RESOLVED | Orchestrate spawns N workers per round; N = max(1, floor(remaining/estimated_per_task)); estimated from task_estimator.json (≥5 samples) or 2500 fallback; owns disjoint check enforced — T-068, T-069 |
 | Local observation proxy | DEFERRED | v2 — stdlib HTTP proxy at ANTHROPIC_BASE_URL; logs exact API usage fields; foundation for Caveman/Headroom compression integration |
 | Handoff state | RESOLVED | Living docs (design_status.md, execution_plan.md); no separate handoff files |
-| Session resume | RESOLVED | Oracle: UNRESOLVED in design_status.md. Orchestrator: incomplete milestones in execution_plan.md |
+| Session resume | RESOLVED | Oracle: open rows in design_status.md trigger re-spar. Orchestrator: incomplete milestones in execution_plan.md trigger continuation. |
 | execution_plan.md owner | RESOLVED | Oracle: M1 full tasks + milestone stubs; orchestrator fills lazily at milestone completion |
 | tasks.json owner | RESOLVED | Oracle: M1 full defs + stubs; orchestrator extends lazily at milestone boundaries |
 | Staleness detection | RESOLVED | Document state, not timestamps |
