@@ -364,6 +364,9 @@ def test_lifetime_recycling_callout_empty(tmp_path):
 
 def test_report_builder_pct_of_total(tmp_path):
     out_html = tmp_path / "combined_report.html"
+    af_dir = tmp_path / ".agentflow"
+    af_dir.mkdir(parents=True, exist_ok=True)
+    (af_dir / "verbosity_log.jsonl").write_text(json.dumps({"ts": "2026-07-06T00:00:00Z", "output_tokens": 0}) + "\n")
     with patch("agentflow.reporting.report_builder.get_bucketed_stats", return_value={"targeted-reads": 0, "no-reread": 0, "indexing-gap": 0, "state-docs": 0}), \
          patch("agentflow.reporting.report_builder.growth_tracker.compute_file_read_stats", return_value={"idx_savings": 1000, "offset_savings": 0, "file_reads_real": 0, "file_reads_baseline": 0}), \
          patch("agentflow.reporting.report_builder._handoff_component", return_value=(3000, 5000, 3)), \

@@ -609,26 +609,7 @@
     },
     {
       "task_id": "T-118",
-      "title": "PTY state machine refactor \u2014 file-based signals, predictable transitions",
-      "description": "Replace session_manager.py flag soup with an explicit state machine driven entirely by file writes. No timers \u2014 all transitions via file events or PTY fd events. (1) New agentflow/shell/state_machine.py: define States enum (IDLE, TASK_RUNNING, TASK_COMPLETE, HANDOFF_PENDING, RESTARTING, DEAD_CHILD); StateMachine class with transition(event) -> State, guard functions, and on_enter_{state} hooks. Transitions: IDLE\u2192TASK_RUNNING on current_round.json written; TASK_RUNNING\u2192TASK_COMPLETE on task_complete.json written by cleanup_tasks.py; TASK_COMPLETE\u2192HANDOFF_PENDING when tokens >= 80K (local measurement); HANDOFF_PENDING\u2192RESTARTING on handoff_complete.json written by agentflow.py handoff; RESTARTING\u2192IDLE after os.kill(claude_pid, SIGTERM) + fresh subprocess.Popen (SIGKILL if child still alive after 2s via os.waitpid poll); any state\u2192DEAD_CHILD on PTY master fd EOF (select returns readable + read returns b\"\"). (2) Refactor session_manager.py to drive the state machine: remove _handoff_in_progress/_task_in_progress flags; file-poll loop (10ms interval, stdlib only) replaces scattered flag checks; no daemon threads needed. (3) cleanup_tasks.py: write .agentflow/task_complete.json atomically on every task completion (json.dump + os.replace). (4) agentflow/handoff.py (or agentflow.py handoff subcommand): write .agentflow/handoff_complete.json atomically before exit. (5) PTY restart: kill claude child (SIGTERM, waitpid 2s, SIGKILL), clear signal files, spawn fresh subprocess, transition IDLE. (6) Tests: test_state_machine.py \u2014 assert all transitions, guard functions, DEAD_CHILD from every state; test_session_manager.py \u2014 update for file-poll driver.",
-      "owns": [
-        "agentflow/shell/state_machine.py",
-        "agentflow/shell/session_manager.py",
-        "agentflow/shell/cleanup_tasks.py",
-        "tests/shell/test_state_machine.py",
-        "tests/shell/test_session_manager.py"
-      ],
-      "reads": [
-        ".agentflow/task_complete.json",
-        ".agentflow/handoff_complete.json",
-        ".agentflow/current_round.json"
-      ],
-      "depends_on": [
-        "T-116",
-        "T-117"
-      ],
-      "estimated_lines": 180,
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-119",
@@ -665,6 +646,53 @@
       ],
       "depends_on": [],
       "estimated_lines": 70,
+      "status": "pending"
+    },
+    {
+      "task_id": "T-123",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-124",
+      "title": "Fix T-118 gaps in session_manager.py \u2014 3 correctness fixes",
+      "description": "Three targeted fixes to session_manager.py to close gaps identified post-T-118 merge: (1) on_enter_restarting: replace write_input(\"/clear\n\") with self.restart_child() \u2014 /clear never submits (only b\"\r\" submits, b\"\n\" does not); current code leaves shell unresponsive on handoff. (2) IDLE token-threshold paths: in poll(), add elif for IDLE state \u2014 if _last_accumulated_tokens >= config[\"handoff_safety_tokens\"] (default 120000) or >= config[\"handoff_hard_ceiling_tokens\"] (default 150000), call transition(\"trigger_handoff\"); this enables solo sessions without orchestrate to recycle. (3) Startup mtime bug: in __init__, after _update_last_current_round_mtime(), check if _current_round_path.exists() AND NOT _task_complete_path.exists() \u2014 if so, set _state_machine.state = States.TASK_RUNNING directly (no transition hook needed, no signal write needed, just state assignment); this handles pre-existing current_round.json from a prior orchestrate session. Update tests/shell/test_session_manager.py: add test for each fix \u2014 (a) on_enter_restarting calls restart_child not write_input; (b) IDLE state transitions to HANDOFF_PENDING at safety and hard-ceiling thresholds; (c) __init__ sets TASK_RUNNING when current_round.json exists and task_complete.json absent.",
+      "owns": [
+        "agentflow/shell/session_manager.py",
+        "tests/shell/test_session_manager.py"
+      ],
+      "depends_on": [],
+      "estimated_lines": 60,
+      "status": "pending"
+    },
+    {
+      "task_id": "T-125",
+      "title": "pty_signal.py \u2014 event-driven task lifecycle signals for PTY",
+      "description": "New script agentflow/shell/pty_signal.py with three subcommands, invoked by orchestrate and agentflow handoff: (1) task_start <task_id>: reads .agentflow/tasks_in_flight.json (create if absent), adds task_id to set, writes back atomically via json.dump + os.replace. (2) task_done <task_id>: reads tasks_in_flight.json, removes task_id; if set now empty, writes .agentflow/task_complete.json atomically (json.dump + os.replace) and removes tasks_in_flight.json; if set non-empty, writes back updated tasks_in_flight.json. Parallel-safe: both reads use a .lock file (open + fcntl.flock LOCK_EX, release on exit). (3) handoff_complete: writes .agentflow/handoff_complete.json atomically. CLI: python agentflow/shell/pty_signal.py <subcommand> [task_id]. Exit 0 on success, exit 1 with error message on failure. Add call to pty_signal.py task_start in orchestrate.md (before AGENTFLOW_TASK_START print) and pty_signal.py task_done (after AGENTFLOW_TASK_COMPLETE print). Add call to pty_signal.py handoff_complete in agentflow/handoff.py before exit. Tests: tests/shell/test_pty_signal.py \u2014 parallel task_done (two tasks, verify task_complete.json only written when both done), startup with stale tasks_in_flight.json (IDs not in tasks.json cleared), handoff_complete idempotent.",
+      "owns": [
+        "agentflow/shell/pty_signal.py",
+        "tests/shell/test_pty_signal.py"
+      ],
+      "reads": [
+        "commands/claude/orchestrate.md",
+        "agentflow/handoff.py"
+      ],
+      "depends_on": [],
+      "estimated_lines": 90,
+      "status": "pending"
+    },
+    {
+      "task_id": "T-126",
+      "title": "PTY idle wake-up \u2014 inject b\"\r\" after 60s idle with task in flight",
+      "description": "Add idle wake-up to session_manager.py: if _task_in_flight (tasks_in_flight.json exists) AND no PTY output for 60s AND input field is empty (post-output silence: _last_had_content was True, now no output for > 1s) \u2192 write_input(\"/orchestrate\r\") to re-enter orchestrate skill. Track idle time via _last_output_ts (float, set to time.monotonic() in _handle_output on every non-empty chunk). Backoff: double interval on each injection with no state change (task still in flight after wake-up response); cap at 300s. Reset backoff when state changes. Guard: only inject when _state_machine.state == States.TASK_RUNNING (task legitimately in flight, not just idle between user turns). Config key: shell.idle_wakeup_seconds (default 60); set to 0 to disable. Tests: test_idle_wakeup_fires_after_threshold, test_idle_wakeup_respects_guard_state, test_idle_wakeup_backoff_doubles. Depends on T-123 (b\"\r\" injection verified via integration test) and T-124 (session_manager.py stable).",
+      "owns": [
+        "agentflow/shell/session_manager.py",
+        "tests/shell/test_session_manager.py"
+      ],
+      "depends_on": [
+        "T-123",
+        "T-124"
+      ],
+      "estimated_lines": 55,
       "status": "pending"
     }
   ]

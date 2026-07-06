@@ -130,7 +130,8 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
             verb_entries = [json.loads(line) for line in (project_root / ".agentflow" / "verbosity_log.jsonl").read_text().splitlines() if line.strip()]
         except Exception:
             pass
-    windowed_verb_entries = _filter_by_window(verb_entries, _reporting_window(entries))
+    _verb_start = _parse_ts(WINDOW_START)
+    windowed_verb_entries = [e for e in verb_entries if _verb_start and _parse_ts(e.get("ts", "")) and _parse_ts(e.get("ts", "")) >= _verb_start]
     verbosity_baseline = load_baseline(project_root)
     baseline_tokens = verbosity_baseline.get("baseline_tokens", 600)
     verbosity_savings = sum(max(0, baseline_tokens - e.get("output_tokens", 0)) for e in windowed_verb_entries)

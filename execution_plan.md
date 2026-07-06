@@ -395,17 +395,20 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 
 ---
 
-## Master Round Table (updated 2026-07-05b)
+## Master Round Table (updated 2026-07-06)
 
 | Round | Tasks | What ships |
 |---|---|---|
 | A–C (MERGED) | T-105,T-106,T-102,T-107,T-108,T-113,T-114,T-115 | PTY fixes + measurement chain |
 | D (MERGED) | T-116, T-117, T-109 | PTY handoff non-blocking + robustness + key server |
-| D2 | T-118 ‖ T-110 (parallel), then T-111→T-112 (sequential) | PTY state machine refactor + IP protection stack |
+| D2a | T-124 ‖ T-125 ‖ T-110 (parallel) | T-118 gap fixes + pty_signal.py + skill encryption pipeline |
+| D2b | T-123 ‖ T-122 (parallel; T-122 after T-124) | \r injection integration test + session_manager regression tests |
+| D2c | T-111 ‖ T-119 (parallel; after T-124 + T-110) | load_skill.py + jailbreak hook |
+| D2d | T-112 ‖ T-120 ‖ T-126 (parallel; after T-123 + T-111) | Compile + installer + idle wake-up |
 | E | T-103, T-099, T-068, T-063, T-104 (parallel) | Model A/B + Gemini oracle + token estimator + cross-provider claiming + size enforcement |
 | F | T-098, T-064, T-069 (parallel; deps met after E) | Model routing savings + rate headroom + parallel scheduling |
 
-Priority rationale (2026-07-05b): T-118 (state machine refactor) prepends IP protection stack — T-111 modifies session_manager.py, which must be stable and split before that. T-118 ‖ T-110 parallel because they own disjoint files; T-111 depends on both.
+Priority rationale (2026-07-06): T-118 had 3 implementation gaps (on_enter_restarting, IDLE thresholds, startup mtime) — T-124 fixes before any further session_manager.py work. T-125 (pty_signal.py) replaces polling with event-driven signals — parallel with T-124 (disjoint files). T-123 (\r spike integration test) gates T-126 (idle wake-up). T-110 parallel throughout D2 (disjoint files). T-111 depends on T-124 (stable session_manager) + T-110 (encrypted skills).
 
 ---
 
@@ -475,6 +478,65 @@ User-reported: after handoff fires, PTY "broke out of the shell" and the same nu
 **Files:** `agentflow/hooks/jailbreak_check.py` (new, ~60L), `tests/hooks/test_jailbreak_check.py` (new). Register in `.claude/settings.json` under `hooks.UserPromptSubmit`.
 
 **Protocol:** Fuzzy case-insensitive match. On match: exit non-zero + write `{ts, pattern_matched, raw_input}` to `.agentflow/sanitizer_blocked.jsonl`. On clean: exit 0. Stdlib only. Ships with T-111.
+
+## Addendum: T-123 — PTY input injection spike (filed 2026-07-06)
+
+**Status:** MERGED — b"\r" confirmed; b"\n" and b"\r\n" do not submit.
+
+**Goal:** Determine whether writing `b"\r"` (0x0D) to the PTY master fd submits a prompt in Claude Code / Gemini CLI — prerequisite for PTY-driven agent wake-up.
+
+**Steps:**
+1. Manual spike in live session: test `b"\r"`, `b"\n"`, `b"\r\n"` via `write_input`; observe whether Claude Code submits or leaves text in input field
+2. If confirmed: `tests/shell/test_pty_inject.py` — spawn real subprocess with readline loop, write winning byte to PTY master fd, assert unblocks
+3. Document outcome as RESOLVED row in `design_status.md` — viable or not viable; if viable, document empty-field guard requirement
+
+**Pass criteria:** byte sequence identified that reliably submits; integration test passes against real subprocess (not Claude Code mock).
+**Fail criteria:** no byte sequence submits — mark not viable, close without code changes.
+
+**Owns:** `tests/shell/test_pty_inject.py` (create only if spike succeeds)
+**Depends on:** none — standalone spike
+
+---
+
+## Addendum: T-124 — Fix T-118 gaps in session_manager.py (filed 2026-07-06)
+
+**Status:** PENDING
+
+**Goal:** Close three correctness gaps left by T-118 implementation: on_enter_restarting uses /clear (never submits), IDLE has no token-threshold path (solo sessions never recycle), startup mtime guard blocks pre-existing current_round.json.
+
+**Fixes:** (1) on_enter_restarting → restart_child(); (2) poll() IDLE branch: safety (120K) + hard-ceiling (150K) → HANDOFF_PENDING; (3) __init__: current_round.json exists + task_complete.json absent → set state = TASK_RUNNING directly.
+
+**Owns:** `agentflow/shell/session_manager.py`, `tests/shell/test_session_manager.py`
+**Depends on:** none
+
+---
+
+## Addendum: T-125 — pty_signal.py — event-driven task lifecycle signals (filed 2026-07-06)
+
+**Status:** PENDING
+
+**Goal:** Replace state-machine polling with a script invoked at task/handoff lifecycle events. Parallel-safe via fcntl.flock. Orchestrate calls task_start/task_done; handoff calls handoff_complete.
+
+**Subcommands:** `task_start <id>` (adds to tasks_in_flight.json), `task_done <id>` (removes; writes task_complete.json when count→0), `handoff_complete` (writes handoff_complete.json).
+
+**Owns:** `agentflow/shell/pty_signal.py`, `tests/shell/test_pty_signal.py`
+**Reads:** `commands/claude/orchestrate.md`, `agentflow/handoff.py`
+**Depends on:** none — parallel with T-124 (disjoint files)
+
+---
+
+## Addendum: T-126 — PTY idle wake-up via b"\r" injection (filed 2026-07-06)
+
+**Status:** PENDING
+
+**Goal:** Inject /orchestrate + b"\r" after 60s idle with task in flight; unsticks Gemini waiting on background processes. Backoff doubles on no state change; cap 300s. Guard: TASK_RUNNING state only; inject after post-output silence only.
+
+**Config:** `shell.idle_wakeup_seconds` (default 60; 0 = disabled).
+
+**Owns:** `agentflow/shell/session_manager.py`, `tests/shell/test_session_manager.py`
+**Depends on:** T-123 (b"\r" integration test), T-124 (session_manager stable)
+
+---
 
 ## Deferred
 - AgentFlow user-facing CLI (subcommands for config management, T-002): backlog.json

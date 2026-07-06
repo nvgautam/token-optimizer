@@ -894,5 +894,42 @@
       "tests/shell/test_session_manager.py"
     ],
     "estimated_lines": 40
+  },
+  {
+    "task_id": "T-118",
+    "title": "PTY state machine refactor \u2014 file-based signals, predictable transitions",
+    "description": "Replace session_manager.py flag soup with an explicit state machine driven entirely by file writes. No timers \u2014 all transitions via file events or PTY fd events. (1) New agentflow/shell/state_machine.py: define States enum (IDLE, TASK_RUNNING, TASK_COMPLETE, HANDOFF_PENDING, RESTARTING, DEAD_CHILD); StateMachine class with transition(event) -> State, guard functions, and on_enter_{state} hooks. Transitions: IDLE\u2192TASK_RUNNING on current_round.json written; TASK_RUNNING\u2192TASK_COMPLETE on task_complete.json written by cleanup_tasks.py; TASK_COMPLETE\u2192HANDOFF_PENDING when tokens >= 80K (local measurement); HANDOFF_PENDING\u2192RESTARTING on handoff_complete.json written by agentflow.py handoff; RESTARTING\u2192IDLE after os.kill(claude_pid, SIGTERM) + fresh subprocess.Popen (SIGKILL if child still alive after 2s via os.waitpid poll); any state\u2192DEAD_CHILD on PTY master fd EOF (select returns readable + read returns b\"\"). (2) Refactor session_manager.py to drive the state machine: remove _handoff_in_progress/_task_in_progress flags; file-poll loop (10ms interval, stdlib only) replaces scattered flag checks; no daemon threads needed. (3) cleanup_tasks.py: write .agentflow/task_complete.json atomically on every task completion (json.dump + os.replace). (4) agentflow/handoff.py (or agentflow.py handoff subcommand): write .agentflow/handoff_complete.json atomically before exit. (5) PTY restart: kill claude child (SIGTERM, waitpid 2s, SIGKILL), clear signal files, spawn fresh subprocess, transition IDLE. (6) Tests: test_state_machine.py \u2014 assert all transitions, guard functions, DEAD_CHILD from every state; test_session_manager.py \u2014 update for file-poll driver.",
+    "owns": [
+      "agentflow/shell/state_machine.py",
+      "agentflow/shell/session_manager.py",
+      "agentflow/shell/cleanup_tasks.py",
+      "tests/shell/test_state_machine.py",
+      "tests/shell/test_session_manager.py"
+    ],
+    "reads": [
+      ".agentflow/task_complete.json",
+      ".agentflow/handoff_complete.json",
+      ".agentflow/current_round.json"
+    ],
+    "depends_on": [
+      "T-116",
+      "T-117"
+    ],
+    "estimated_lines": 180,
+    "status": "complete"
+  },
+  {
+    "task_id": "T-123",
+    "title": "PTY input injection spike \u2014 verify \\r submits prompt in Claude Code / Gemini CLI",
+    "description": "Spike: determine whether writing b\"\\r\" (0x0D) to the PTY master fd submits a prompt in Claude Code and Gemini CLI, enabling PTY-driven wake-up of stuck agents. Three steps: (1) Manual spike \u2014 in a live PTY session (agentflow shell), call pty_wrapper.write_input(b\"\\r\") directly (add a temporary debug hook or run via pdb) and observe whether Claude Code submits the empty prompt or leaves it in the input field. Repeat with b\"\\n\" and b\"\\r\\n\". Record which byte(s) submit. (2) If submission confirmed \u2014 write tests/shell/test_pty_inject.py: spawn a real subprocess running a simple readline loop (python3 -c \"import sys; print(input())\"), write the winning byte sequence to its PTY master fd, assert the subprocess echoes back and unblocks. This proves the PTY fd write path without requiring Claude Code. (3) Document finding in a RESOLVED row in design_status.md: \"PTY input injection\" \u2014 state which byte(s) work, which do not, and whether wake-up injection is viable. If no byte sequence submits, mark RESOLVED as not viable and close. Guard requirement (if viable): injection must only fire when input field is empty \u2014 PTY has no direct way to check this; document the known risk and proposed mitigation (e.g. only inject immediately after detecting Claude returned to prompt, never mid-output). Owns: tests/shell/test_pty_inject.py (create only if spike succeeds). Stdlib + unittest only. No changes to session_manager.py or state_machine.py in this task.",
+    "owns": [
+      "tests/shell/test_pty_inject.py"
+    ],
+    "reads": [
+      "agentflow/shell/pty_wrapper.py"
+    ],
+    "depends_on": [],
+    "estimated_lines": 40,
+    "status": "complete"
   }
 ]
