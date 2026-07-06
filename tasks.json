@@ -617,11 +617,10 @@
       "estimated_lines": 120,
       "status": "pending"
     },
-    {
       "task_id": "T-121",
       "status": "pending",
-      "title": "PTY reactor + per-state deadlines + T-118 corrections \u2014 never-hang guarantee",
-      "description": "Three changes in one pass: (1) Reactor: replace file-polling in poll() with kqueue (macOS) / inotify (Linux) fd registered in the main select() call \u2014 select() becomes the only blocking call. (2) Deadlines: record entered_at on every state transition; on select() timeout check time.monotonic()-entered_at > deadline[state]; on expiry SIGKILL child \u2192 IDLE. (3) T-118 corrections: add atomic handoff_complete.json write to agentflow/handoff.py; remove output-scraping (HANDOFF_COMPLETE detection) from session_manager.py; remove _run_handoff_loop and its pytest-only branch so tests exercise the same poll() path as production.",
+      "title": "PTY reactor + per-state deadlines + T-118 corrections — never-hang guarantee",
+      "description": "Three changes in one pass: (1) Reactor: replace file-polling in poll() with kqueue (macOS) / inotify (Linux) fd registered in the main select() call — select() becomes the only blocking call. (2) Deadlines: record entered_at on every state transition; on select() timeout check time.monotonic()-entered_at > deadline[state]; on expiry SIGKILL child → IDLE. (3) T-118 corrections: add atomic handoff_complete.json write to agentflow/handoff.py; remove output-scraping (HANDOFF_COMPLETE detection) from session_manager.py; remove _run_handoff_loop and its pytest-only branch so tests exercise the same poll() path as production.",
       "owns": [
         "agentflow/shell/session_manager.py",
         "agentflow/shell/state_machine.py",
@@ -634,7 +633,7 @@
       ],
       "test_requirements": {
         "unit": [
-          "Each state times out to IDLE (SIGKILL child) when deadline elapses \u2014 verified with mock clock",
+          "Each state times out to IDLE (SIGKILL child) when deadline elapses — verified with mock clock",
           "agentflow/handoff.py writes handoff_complete.json atomically",
           "poll() drives state transitions without any time.sleep or blocking waitpid in the hot loop"
         ],
@@ -647,6 +646,17 @@
       "acceptance_criteria": "PTY loop never blocks indefinitely: select() is the only blocking call, every state has a deadline that forces IDLE on expiry, handoff_complete.json is written by agentflow/handoff.py (not scraped from output), and tests exercise the production poll() path.",
       "estimated_lines": 190,
       "context_section": "execution_plan.md#addendum-t-121"
+    },
+    {
+      "task_id": "T-122",
+      "title": "Session restart regression tests — skill reinjection + end-to-end state machine path",
+      "description": "Three tests to close regression gaps in the session restart flow: (1) test_on_enter_idle_reinjects_skill: after restart, assert that on_enter_idle writes '/oracle\\n' when session_type='oracle' and '/orchestrate\\n' when session_type='orchestrator'; assert nothing written for unknown session_type. (2) test_restart_end_to_end_via_state_machine: with auto_reset_enabled=True, feed output that exceeds hard_ceiling_tokens threshold, assert trigger_handoff fires, simulate handoff_complete.json write + poll() to drive state through RESTARTING->IDLE, assert _last_accumulated_tokens == 0 and tok._total == 0 after restart (proving tokenizer reset happens through the production path, not just _spawn_new_child directly). (3) test_on_enter_restarting_oserror_safe: on_enter_restarting() must not raise even if write_input raises OSError (dying PTY); assert restart_child is still called. All in tests/shell/test_session_manager.py. Stdlib + unittest.mock only.",
+      "owns": [
+        "tests/shell/test_session_manager.py"
+      ],
+      "depends_on": [],
+      "estimated_lines": 70,
+      "status": "pending"
     }
   ]
 }
