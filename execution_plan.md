@@ -381,7 +381,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Task | Title | Depends on | Status |
 |---|---|---|---|
 | T-109 | Key server — auth + ephemeral key issuance + encrypted skill serving | — | MERGED |
-| T-110 | Skill encryption pipeline — encrypt all skill .md files at rest, bundle with binary | T-109 | PENDING |
+| T-110 | Skill encryption pipeline — encrypt all skill .md files at rest, bundle with binary | T-109 | IN_PROGRESS |
 | T-111 | PTY — fetch + decrypt skills at session start; generate skill .idx ephemerally in memory, never on disk | T-110 | PENDING |
 | T-112 | Nuitka compilation — compile PTY + hooks into binary; smoke-test distribution | T-111 | PENDING |
 
