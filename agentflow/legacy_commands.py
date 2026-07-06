@@ -175,6 +175,13 @@ def cmd_handoff(args):
 
     _print_summary(usage, shadow_event, ledger)
 
+    try:
+        from agentflow.shell.pty_signal import handoff_complete
+        handoff_complete()
+    except Exception as e:
+        print(f"Warning: failed to signal handoff complete: {e}", file=sys.stderr)
+
+
 
 def cmd_status(args):
     ledger  = load_ledger()
