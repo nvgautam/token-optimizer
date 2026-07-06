@@ -156,3 +156,53 @@ def test_cleanup_triggers_auto_file(tmp_path):
     t2 = next(t for t in tasks if t["task_id"] == "T-002")
     assert t2["title"] == "Split oversized.py — size violation"
     assert t2["status"] == "pending"
+
+
+def test_auto_file_size_violations_idempotency(tmp_path):
+    project_root = tmp_path
+    agentflow_dir = project_root / ".agentflow"
+    agentflow_dir.mkdir(parents=True, exist_ok=True)
+
+    tasks_path = project_root / "tasks.json"
+    violations_path = agentflow_dir / "size_violations.jsonl"
+
+    initial_tasks = {
+        "project": "test",
+        "version": "1.0.0",
+        "tasks": []
+    }
+    with open(tasks_path, "w", encoding="utf-8") as f:
+        json.dump(initial_tasks, f, indent=2)
+
+    # Create oversized file
+    oversized_file = project_root / "oversized.py"
+    oversized_file.write_text("\n" * 300, encoding="utf-8")
+
+    # Create violation 1
+    v1 = {"file": "oversized.py", "blocked_lines": 300, "actual_lines": 300, "limit": 250, "ts": "2026-07-06T15:00:00"}
+    with open(violations_path, "w", encoding="utf-8") as f:
+        f.write(json.dumps(v1) + "\n")
+
+    # Run auto_file_size_violations the first time
+    auto_file_size_violations(project_root)
+
+    # Verify task was added
+    with open(tasks_path, "r", encoding="utf-8") as f:
+        result = json.load(f)
+    assert len(result["tasks"]) == 1
+    assert result["tasks"][0]["task_id"] == "T-001"
+    assert result["tasks"][0]["title"] == "Split oversized.py — size violation"
+
+    # Create violation 2 with a new timestamp for the same file
+    v2 = {"file": "oversized.py", "blocked_lines": 300, "actual_lines": 300, "limit": 250, "ts": "2026-07-06T16:00:00"}
+    with open(violations_path, "w", encoding="utf-8") as f:
+        f.write(json.dumps(v2) + "\n")
+
+    # Run auto_file_size_violations a second time
+    auto_file_size_violations(project_root)
+
+    # Verify no new task was added since a pending task for oversized.py already exists
+    with open(tasks_path, "r", encoding="utf-8") as f:
+        result2 = json.load(f)
+    assert len(result2["tasks"]) == 1
+

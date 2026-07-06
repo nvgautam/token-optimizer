@@ -1,0 +1,26 @@
+#!/bin/bash
+# Pre-commit hook to prevent direct commits of code, tests, and command files to the main branch.
+
+branch="$(git rev-parse --abbrev-ref HEAD)"
+
+if [ "$branch" = "main" ]; then
+    # Get staged files
+    staged_files=$(git diff --cached --name-only)
+    
+    # Check if any staged file is not in the allowed list
+    for file in $staged_files; do
+        case "$file" in
+            tasks.json|execution_plan.md|design_status.md|combined_report.html|backlog.json|agentflow_ledger.json|.agentflow/*)
+                # Allowed state updates on main
+                ;;
+            *)
+                echo "========================================================================"
+                echo "ERROR: Direct commit of '$file' to main is BLOCKED."
+                echo "Code changes, test changes, and commands must go through a feature branch"
+                echo "and a human-gated PR review (as required by AGENTS.md)."
+                echo "========================================================================"
+                exit 1
+                ;;
+        esac
+    done
+fi

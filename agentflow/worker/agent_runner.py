@@ -129,7 +129,17 @@ class _WorkerSession:
         if not self._last_test_ok:
             return "Error: tests must pass with coverage_ok=True before opening PR"
         try:
+            from agentflow.tools.git import commit_files, push_branch
             from agentflow.tools.github import create_pr
+            
+            # Commit the written files
+            files_to_commit = [self._worktree_path / f for f in self.files_written]
+            if files_to_commit:
+                commit_files(self._worktree_path, f"Implement task {self._task_id}", files_to_commit)
+                
+            # Push the branch
+            push_branch(self._worktree_path, f"task/{self._task_id}")
+            
             repo = os.environ.get("AGENTFLOW_REPO", "owner/repo")
             return create_pr(repo, f"task/{self._task_id}", "main", title, body)
         except Exception as exc:
@@ -142,6 +152,12 @@ def run_worker(task: dict, project_root: Path, worktree_path: Path,
     task_id = task["task_id"]
     if not os.environ.get("ANTHROPIC_API_KEY"):
         return WorkerResult(task_id, WorkerResultStatus.ERROR, None, 0, 0, "ANTHROPIC_API_KEY not set")
+
+    try:
+        from agentflow.tools.git import create_worktree
+        create_worktree(project_root, task_id, f"task/{task_id}")
+    except Exception as exc:
+        return WorkerResult(task_id, WorkerResultStatus.ERROR, None, 0, 0, f"Failed to create worktree: {exc}")
 
     try:
         import anthropic
@@ -179,3 +195,4 @@ def run_worker(task: dict, project_root: Path, worktree_path: Path,
 
     except Exception as exc:
         return WorkerResult(task_id, WorkerResultStatus.ERROR, None, 0, 0, f"Unexpected error: {exc}")
+

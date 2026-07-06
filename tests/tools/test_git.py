@@ -7,11 +7,12 @@ from pathlib import Path
 import pytest
 
 from agentflow.tools.git import (
-    GitError,
     commit_files,
     create_worktree,
     delete_worktree,
+    push_branch,
 )
+
 
 
 @pytest.fixture
@@ -95,3 +96,16 @@ def test_no_shell_true_in_source():
         and "'''" not in line
     ]
     assert all("shell=True" not in line for line in code_lines)
+
+
+def test_push_branch_calls_git_push(monkeypatch, git_repo):
+    from unittest.mock import MagicMock
+    import agentflow.tools.git as git_mod
+
+    mock_run = MagicMock()
+    monkeypatch.setattr(git_mod, "_run", mock_run)
+
+    push_branch(git_repo, "my-branch", remote="origin")
+
+    mock_run.assert_called_once_with(["git", "push", "-u", "origin", "my-branch"], cwd=git_repo)
+

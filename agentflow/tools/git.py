@@ -128,3 +128,9 @@ def commit_files(worktree_path: Path, message: str, files: list[Path]) -> str:
 
     result = _run(["git", "rev-parse", "HEAD"], cwd=worktree_path)
     return result.stdout.strip()
+
+
+def push_branch(worktree_path: Path, branch_name: str, remote: str = "origin") -> None:
+    """Push the branch to the remote repository."""
+    _run(["git", "push", "-u", remote, branch_name], cwd=worktree_path)
+

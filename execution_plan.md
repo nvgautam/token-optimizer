@@ -395,17 +395,19 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 
 ---
 
-## Master Round Table (updated 2026-07-05b)
+## Master Round Table (updated 2026-07-06c)
 
 | Round | Tasks | What ships |
 |---|---|---|
 | A–C (MERGED) | T-105,T-106,T-102,T-107,T-108,T-113,T-114,T-115 | PTY fixes + measurement chain |
 | D (MERGED) | T-116, T-117, T-109 | PTY handoff non-blocking + robustness + key server |
-| D2 | T-118 ‖ T-110 (parallel), then T-111→T-112 (sequential) | PTY state machine refactor + IP protection stack |
-| E | T-121, T-103, T-099, T-068, T-063, T-104 (parallel; T-121 top of round) | PTY reactor + deadlines (never-hang guarantee) + Model A/B + Gemini oracle + token estimator + cross-provider claiming + size enforcement |
-| F | T-098, T-064, T-069 (parallel; deps met after E) | Model routing savings + rate headroom + parallel scheduling |
+| D2 (MERGED) | T-118 ‖ T-110 (parallel), then T-111→T-112 (sequential) | PTY state machine refactor + IP protection stack |
+| D3-prep | T-139 ‖ T-140 ‖ T-142 (parallel), then T-141 | Size splits — unblocks T-121 + T-122 from touching session_manager.py cleanly |
+| D3 | T-122, T-125, T-120 (parallel) | Session restart regression tests + pty_signal + PTY installer |
+| E | T-121 (solo first), then T-103 ‖ T-099 ‖ T-068 ‖ T-063 (parallel) | PTY reactor + deadlines (never-hang guarantee) + measurement chain |
+| F | T-126, T-098, T-064, T-069 (parallel; T-126 gates on T-121) | Idle wake-up + model routing savings + rate headroom + parallel scheduling |
 
-Priority rationale (2026-07-05b): T-118 (state machine refactor) prepends IP protection stack — T-111 modifies session_manager.py, which must be stable and split before that. T-118 ‖ T-110 parallel because they own disjoint files; T-111 depends on both.
+Priority rationale (2026-07-06c): T-118 + T-110 + T-111 + T-112 now MERGED (D2 complete). Size splits (D3-prep) must land before T-122 and T-121 touch session_manager.py. T-125 (pty_signal.py) was never committed despite pyc presence — restored as pending. T-126 (idle wake-up) gates on T-121 per design_status.md resolution. T-104 merged but generated duplicate split tasks (T-138 fixes deduplication bug); deduplicated to T-139–T-142.
 
 ---
 
@@ -493,6 +495,33 @@ User-reported: after handoff fires, PTY "broke out of the shell" and the same nu
 **Estimated lines:** ~190L total change. Under 250L cap.
 
 **Depends on:** T-118 (MERGED), T-112 (state machine must be stable before reactor refactor). Slots top of Round E.
+
+## Addendum: T-139–T-142 — Size violation splits, deduplicated (filed 2026-07-06c)
+
+**Root cause:** T-104's cleanup_tasks.py lacked deduplication — each PostToolUse write event appended a new split task, generating 16 duplicate entries (T-122–T-137). T-138 fixes the bug. These 4 tasks replace all 16.
+
+| Task | File | Lines | Limit |
+|---|---|---|---|
+| T-139 | commands/claude/orchestrate.md | 239 | 150 |
+| T-140 | agentflow/shell/session_manager.py | 564 | 250 |
+| T-141 | tests/shell/test_session_manager.py | 390 | 350 |
+| T-142 | agentflow/shadow/verbosity_ab.py | 331 | 250 |
+
+T-141 depends on T-140 (test file references session_manager structure). T-139, T-140, T-142 are independent — run parallel. T-140 must land before T-122 and T-121 (both own session_manager.py).
+
+---
+
+## Addendum: T-122 — Session restart regression tests (restored 2026-07-06c)
+
+**Status:** PENDING — tests were never written; task spec was clobbered by T-104 auto-numbering.
+
+**Goal:** Three tests in tests/shell/test_session_manager.py: (1) test_on_enter_idle_reinjects_skill — assert skill command injected on restart; (2) test_restart_end_to_end_via_state_machine — drive full RESTARTING→IDLE path via poll(), assert tokenizer reset; (3) test_on_enter_restarting_oserror_safe — OSError on write_input must not propagate; restart_child still called. Stdlib + unittest.mock only. **Depends on T-140** (test file must be split before adding more tests).
+
+## Addendum: T-125 — pty_signal.py (restored 2026-07-06c)
+
+**Status:** PENDING — source file was never committed; pyc files exist from local testing on PR branch but were not included in PR #61 merge.
+
+**Goal:** agentflow/shell/pty_signal.py with task_start / task_done / handoff_complete subcommands. Full spec preserved in tasks.json T-125.
 
 ---
 

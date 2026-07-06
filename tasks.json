@@ -585,7 +585,7 @@
         "T-117"
       ],
       "estimated_lines": 180,
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-119",
@@ -638,9 +638,63 @@
       "context_section": "execution_plan.md#addendum-t-121"
     },
     {
+      "task_id": "T-138",
+      "status": "complete"
+    },
+    {
       "task_id": "T-122",
+      "title": "Session restart regression tests \u2014 skill reinjection + end-to-end state machine path",
+      "description": "Three tests to close regression gaps in the session restart flow: (1) test_on_enter_idle_reinjects_skill: after restart, assert that on_enter_idle writes '/oracle\\n' when session_type='oracle' and '/orchestrate\\n' when session_type='orchestrator'; assert nothing written for unknown session_type. (2) test_restart_end_to_end_via_state_machine: with auto_reset_enabled=True, feed output that exceeds hard_ceiling_tokens threshold, assert trigger_handoff fires, simulate handoff_complete.json write + poll() to drive state through RESTARTING->IDLE, assert _last_accumulated_tokens == 0 and tok._total == 0 after restart (proving tokenizer reset happens through the production path, not just _spawn_new_child directly). (3) test_on_enter_restarting_oserror_safe: on_enter_restarting() must not raise even if write_input raises OSError (dying PTY); assert restart_child is still called. All in tests/shell/test_session_manager.py. Stdlib + unittest.mock only.",
+      "owns": [
+        "tests/shell/test_session_manager.py"
+      ],
+      "depends_on": [],
+      "estimated_lines": 70,
+      "status": "pending"
+    },
+    {
+      "task_id": "T-123",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-124",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-125",
+      "title": "pty_signal.py \u2014 event-driven task lifecycle signals for PTY",
+      "description": "New script agentflow/shell/pty_signal.py with three subcommands, invoked by orchestrate and agentflow handoff: (1) task_start <task_id>: reads .agentflow/tasks_in_flight.json (create if absent), adds task_id to set, writes back atomically via json.dump + os.replace. (2) task_done <task_id>: reads tasks_in_flight.json, removes task_id; if set now empty, writes .agentflow/task_complete.json atomically (json.dump + os.replace) and removes tasks_in_flight.json; if set non-empty, writes back updated tasks_in_flight.json. Parallel-safe: both reads use a .lock file (open + fcntl.flock LOCK_EX, release on exit). (3) handoff_complete: writes .agentflow/handoff_complete.json atomically. CLI: python agentflow/shell/pty_signal.py <subcommand> [task_id]. Exit 0 on success, exit 1 with error message on failure. Add call to pty_signal.py task_start in orchestrate.md (before AGENTFLOW_TASK_START print) and pty_signal.py task_done (after AGENTFLOW_TASK_COMPLETE print). Add call to pty_signal.py handoff_complete in agentflow/handoff.py before exit. Tests: tests/shell/test_pty_signal.py \u2014 parallel task_done (two tasks, verify task_complete.json only written when both done), startup with stale tasks_in_flight.json (IDs not in tasks.json cleared), handoff_complete idempotent.",
+      "owns": [
+        "agentflow/shell/pty_signal.py",
+        "tests/shell/test_pty_signal.py"
+      ],
+      "reads": [
+        "commands/claude/orchestrate.md",
+        "agentflow/handoff.py"
+      ],
+      "depends_on": [],
+      "estimated_lines": 90,
+      "status": "pending"
+    },
+    {
+      "task_id": "T-126",
+      "title": "PTY idle wake-up \u2014 inject b\"\\r\" after 60s idle with task in flight",
+      "description": "Add idle wake-up to session_manager.py: if _task_in_flight (tasks_in_flight.json exists) AND no PTY output for 60s AND input field is empty (post-output silence: _last_had_content was True, now no output for > 1s) \u2192 write_input(\"/orchestrate\\r\") to re-enter orchestrate skill. Track idle time via _last_output_ts (float, set to time.monotonic() in _handle_output on every non-empty chunk). Backoff: double interval on each injection with no state change (task still in flight after wake-up response); cap at 300s. Reset backoff when state changes. Guard: only inject when _state_machine.state == States.TASK_RUNNING (task legitimately in flight, not just idle between user turns). Config key: shell.idle_wakeup_seconds (default 60); set to 0 to disable. Tests: test_idle_wakeup_fires_after_threshold, test_idle_wakeup_respects_guard_state, test_idle_wakeup_backoff_doubles. Depends on T-121 (reactor must be stable) and T-125 (pty_signal task_done used to detect in-flight).",
+      "owns": [
+        "agentflow/shell/session_manager.py",
+        "tests/shell/test_session_manager.py"
+      ],
+      "depends_on": [
+        "T-121",
+        "T-125"
+      ],
+      "estimated_lines": 55,
+      "status": "pending"
+    },
+    {
+      "task_id": "T-139",
       "title": "Split commands/claude/orchestrate.md \u2014 size violation",
-      "description": "Split commands/claude/orchestrate.md to resolve size violation of 239 lines (limit: 150). Violation timestamp: 2026-07-03T23:07:04.906539.",
+      "description": "Split commands/claude/orchestrate.md to resolve size violation of 239 lines (limit: 150). Extract helper sections into include files or trim to under 150 lines per ownership rules.",
       "owns": [
         "commands/claude/orchestrate.md"
       ],
@@ -649,9 +703,9 @@
       "status": "pending"
     },
     {
-      "task_id": "T-123",
+      "task_id": "T-140",
       "title": "Split agentflow/shell/session_manager.py \u2014 size violation",
-      "description": "Split agentflow/shell/session_manager.py to resolve size violation of 564 lines (limit: 250). Violation timestamp: 2026-07-04T17:44:33.317580.",
+      "description": "Split agentflow/shell/session_manager.py to resolve size violation of 564 lines (limit: 250). Extract into two or more modules (e.g. session_manager.py for PTY loop + state dispatch; handoff_handler.py for handoff logic). Update all imports.",
       "owns": [
         "agentflow/shell/session_manager.py"
       ],
@@ -660,154 +714,24 @@
       "status": "pending"
     },
     {
-      "task_id": "T-124",
-      "title": "Split agentflow/shell/session_manager.py \u2014 size violation",
-      "description": "Split agentflow/shell/session_manager.py to resolve size violation of 564 lines (limit: 250). Violation timestamp: 2026-07-04T17:44:46.677571.",
-      "owns": [
-        "agentflow/shell/session_manager.py"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "status": "pending"
-    },
-    {
-      "task_id": "T-125",
+      "task_id": "T-141",
       "title": "Split tests/shell/test_session_manager.py \u2014 size violation",
-      "description": "Split tests/shell/test_session_manager.py to resolve size violation of 390 lines (limit: 350). Violation timestamp: 2026-07-04T17:46:26.323676.",
+      "description": "Split tests/shell/test_session_manager.py to resolve size violation of 390 lines (limit: 350). Extract into focused test modules (e.g. test_session_manager_handoff.py, test_session_manager_idle.py).",
       "owns": [
         "tests/shell/test_session_manager.py"
       ],
       "reads": [],
-      "depends_on": [],
-      "status": "pending"
-    },
-    {
-      "task_id": "T-126",
-      "title": "Split tests/shell/test_session_manager.py \u2014 size violation",
-      "description": "Split tests/shell/test_session_manager.py to resolve size violation of 390 lines (limit: 350). Violation timestamp: 2026-07-04T17:46:34.527650.",
-      "owns": [
-        "tests/shell/test_session_manager.py"
+      "depends_on": [
+        "T-140"
       ],
-      "reads": [],
-      "depends_on": [],
       "status": "pending"
     },
     {
-      "task_id": "T-127",
-      "title": "Split agentflow/shell/session_manager.py \u2014 size violation",
-      "description": "Split agentflow/shell/session_manager.py to resolve size violation of 564 lines (limit: 250). Violation timestamp: 2026-07-04T18:15:04.295910.",
-      "owns": [
-        "agentflow/shell/session_manager.py"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "status": "pending"
-    },
-    {
-      "task_id": "T-128",
-      "title": "Split agentflow/shell/session_manager.py \u2014 size violation",
-      "description": "Split agentflow/shell/session_manager.py to resolve size violation of 564 lines (limit: 250). Violation timestamp: 2026-07-04T23:30:57.724546.",
-      "owns": [
-        "agentflow/shell/session_manager.py"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "status": "pending"
-    },
-    {
-      "task_id": "T-129",
-      "title": "Split tests/shell/test_session_manager.py \u2014 size violation",
-      "description": "Split tests/shell/test_session_manager.py to resolve size violation of 390 lines (limit: 350). Violation timestamp: 2026-07-04T23:31:35.448572.",
-      "owns": [
-        "tests/shell/test_session_manager.py"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "status": "pending"
-    },
-    {
-      "task_id": "T-130",
-      "title": "Split tests/shell/test_session_manager.py \u2014 size violation",
-      "description": "Split tests/shell/test_session_manager.py to resolve size violation of 390 lines (limit: 350). Violation timestamp: 2026-07-04T23:32:27.656122.",
-      "owns": [
-        "tests/shell/test_session_manager.py"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "status": "pending"
-    },
-    {
-      "task_id": "T-131",
+      "task_id": "T-142",
       "title": "Split agentflow/shadow/verbosity_ab.py \u2014 size violation",
-      "description": "Split agentflow/shadow/verbosity_ab.py to resolve size violation of 331 lines (limit: 250). Violation timestamp: 2026-07-05T00:03:39.694308.",
+      "description": "Split agentflow/shadow/verbosity_ab.py to resolve size violation of 331 lines (limit: 250). Extract analysis helpers or reporting logic into a separate module.",
       "owns": [
         "agentflow/shadow/verbosity_ab.py"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "status": "pending"
-    },
-    {
-      "task_id": "T-132",
-      "title": "Split agentflow/shadow/verbosity_ab.py \u2014 size violation",
-      "description": "Split agentflow/shadow/verbosity_ab.py to resolve size violation of 331 lines (limit: 250). Violation timestamp: 2026-07-05T00:18:00.995603.",
-      "owns": [
-        "agentflow/shadow/verbosity_ab.py"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "status": "pending"
-    },
-    {
-      "task_id": "T-133",
-      "title": "Split agentflow/shadow/verbosity_ab.py \u2014 size violation",
-      "description": "Split agentflow/shadow/verbosity_ab.py to resolve size violation of 331 lines (limit: 250). Violation timestamp: 2026-07-05T00:18:49.024096.",
-      "owns": [
-        "agentflow/shadow/verbosity_ab.py"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "status": "pending"
-    },
-    {
-      "task_id": "T-134",
-      "title": "Split agentflow/shadow/verbosity_ab.py \u2014 size violation",
-      "description": "Split agentflow/shadow/verbosity_ab.py to resolve size violation of 331 lines (limit: 250). Violation timestamp: 2026-07-05T00:19:18.989648.",
-      "owns": [
-        "agentflow/shadow/verbosity_ab.py"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "status": "pending"
-    },
-    {
-      "task_id": "T-135",
-      "title": "Split agentflow/shell/session_manager.py \u2014 size violation",
-      "description": "Split agentflow/shell/session_manager.py to resolve size violation of 564 lines (limit: 250). Violation timestamp: 2026-07-05T01:06:16.572660.",
-      "owns": [
-        "agentflow/shell/session_manager.py"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "status": "pending"
-    },
-    {
-      "task_id": "T-136",
-      "title": "Split agentflow/shell/session_manager.py \u2014 size violation",
-      "description": "Split agentflow/shell/session_manager.py to resolve size violation of 564 lines (limit: 250). Violation timestamp: 2026-07-05T01:06:25.327069.",
-      "owns": [
-        "agentflow/shell/session_manager.py"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "status": "pending"
-    },
-    {
-      "task_id": "T-137",
-      "title": "Split agentflow/shell/session_manager.py \u2014 size violation",
-      "description": "Split agentflow/shell/session_manager.py to resolve size violation of 564 lines (limit: 250). Violation timestamp: 2026-07-05T01:06:38.572287.",
-      "owns": [
-        "agentflow/shell/session_manager.py"
       ],
       "reads": [],
       "depends_on": [],

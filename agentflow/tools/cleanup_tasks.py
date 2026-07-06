@@ -102,6 +102,9 @@ def auto_file_size_violations(project_root: Path) -> None:
         # Check if already filed
         already_filed = False
         for t in all_tasks + new_tasks:
+            if t.get("status") == "pending" and filename in t.get("owns", []):
+                already_filed = True
+                break
             desc = t.get("description", "")
             if filename in desc and ts in desc:
                 already_filed = True

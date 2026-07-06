@@ -956,5 +956,40 @@
     ],
     "estimated_lines": 60,
     "status": "complete"
+  },
+  {
+    "task_id": "T-138",
+    "title": "cleanup_tasks.py \u2014 deduplicate split tasks before appending",
+    "description": "Bug fix: cleanup_tasks.py (agentflow/tools/cleanup_tasks.py) fires on every PostToolUse write event and appends a new split task each time a size violation is detected, even if a pending split task for that file already exists. Fix: before appending, scan tasks.json for any pending task whose owns list contains the violating file; skip append if found. Also add a test asserting idempotency \u2014 running the hook twice on the same file produces exactly one pending split task.",
+    "owns": [
+      "agentflow/tools/cleanup_tasks.py",
+      "tests/tools/test_cleanup_tasks.py"
+    ],
+    "reads": [
+      "tasks.json"
+    ],
+    "depends_on": [],
+    "estimated_lines": 30,
+    "test_requirements": {
+      "unit": [
+        "Assert second invocation on same file does not append a duplicate task",
+        "Assert first invocation on a file with no existing split task does append"
+      ],
+      "coverage_threshold": 90
+    },
+    "acceptance_criteria": "Running cleanup_tasks.py N times on the same violating file results in exactly one pending split task in tasks.json.",
+    "status": "complete"
+  },
+  {
+    "task_id": "T-124",
+    "title": "Fix T-118 gaps in session_manager.py \u2014 3 correctness fixes",
+    "description": "Three targeted fixes to session_manager.py to close gaps identified post-T-118 merge: (1) on_enter_restarting: replace write_input(\"/clear\\n\") with self.restart_child() \u2014 /clear never submits (only b\"\\r\" submits, b\"\\n\" does not); current code leaves shell unresponsive on handoff. (2) IDLE token-threshold paths: in poll(), add elif for IDLE state \u2014 if _last_accumulated_tokens >= config[\"handoff_safety_tokens\"] (default 120000) or >= config[\"handoff_hard_ceiling_tokens\"] (default 150000), call transition(\"trigger_handoff\"); this enables solo sessions without orchestrate to recycle. (3) Startup mtime bug: in __init__, after _update_last_current_round_mtime(), check if _current_round_path.exists() AND NOT _task_complete_path.exists() \u2014 if so, set _state_machine.state = States.TASK_RUNNING directly; this handles pre-existing current_round.json from a prior orchestrate session. Update tests/shell/test_session_manager.py: add test for each fix.",
+    "owns": [
+      "agentflow/shell/session_manager.py",
+      "tests/shell/test_session_manager.py"
+    ],
+    "depends_on": [],
+    "estimated_lines": 60,
+    "status": "complete"
   }
 ]

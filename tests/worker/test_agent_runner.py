@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -33,6 +32,15 @@ def task(tmp_path):
         "security_constraints": [],
         "context_section": None,
     }
+
+
+@pytest.fixture(autouse=True)
+def mock_git_ops():
+    with patch("agentflow.tools.git.create_worktree") as mock_create, \
+         patch("agentflow.tools.git.commit_files") as mock_commit, \
+         patch("agentflow.tools.git.push_branch") as mock_push:
+        yield mock_create, mock_commit, mock_push
+
 
 
 def _make_block(name, block_id, inputs):
