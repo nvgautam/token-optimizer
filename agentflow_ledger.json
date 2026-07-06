@@ -5321,10 +5321,75 @@
         "compaction": null
       },
       "status": "closed"
+    },
+    {
+      "session_id": "20260706_124525",
+      "agent": "claude",
+      "task_ids": "",
+      "start_time": "2026-07-06T12:45:25.212192",
+      "end_time": "2026-07-06T12:45:25.212203",
+      "context_at_start": 25227,
+      "input_tokens": 3249843,
+      "output_tokens": 22103,
+      "token_detail": {
+        "uncached_input": 66,
+        "cache_creation": 107193,
+        "cache_read": 3142584,
+        "output": 22103,
+        "n_turns": 57,
+        "initial_ctx": 25227,
+        "final_ctx": 80777
+      },
+      "n_turns": 57,
+      "final_ctx": 80777,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 7829078,
+        "shadow_output": 22103,
+        "shadow_extra": 7752285,
+        "compaction": null
+      },
+      "status": "closed"
+    },
+    {
+      "session_id": "20260706_124603",
+      "agent": "agy",
+      "task_ids": "",
+      "start_time": "2026-07-06T12:46:03.360488",
+      "end_time": "2026-07-06T12:46:03.360500",
+      "context_at_start": 20896,
+      "input_tokens": 11593051,
+      "output_tokens": 55442,
+      "token_detail": {
+        "uncached_input": 534967,
+        "cache_creation": 0,
+        "cache_read": 11058084,
+        "output": 55442,
+        "n_turns": 118,
+        "initial_ctx": 20896,
+        "final_ctx": 172333
+      },
+      "n_turns": 118,
+      "final_ctx": 172333,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 28261001,
+        "shadow_output": 156448,
+        "shadow_extra": 16162460,
+        "compaction": {
+          "before": 288590,
+          "after": 101006,
+          "cost_tokens": 101006,
+          "reonboarding_overhead": 216900
+        }
+      },
+      "status": "closed"
     }
   ],
   "shadow_state": {
-    "accumulated_context": 136005,
-    "compaction_events": 107
+    "accumulated_context": 101006,
+    "compaction_events": 108
   }
 }
