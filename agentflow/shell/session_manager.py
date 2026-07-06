@@ -70,7 +70,7 @@ class SessionManager:
         self._state_machine.on_enter_idle = self.on_enter_idle
         self._state_machine.on_enter_dead_child = self.on_enter_dead_child
         self._just_restarted = False
-        self._auto_reset_enabled = False  # disabled pending crash investigation
+        self._auto_reset_enabled = True  # enabled after fixing token reset bug
 
         self._update_last_current_round_mtime()
 
