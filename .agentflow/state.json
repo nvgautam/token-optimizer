@@ -1,6 +1,6 @@
 {
   "session_start": "2026-07-03T15:52:00",
-  "last_updated": "2026-07-06T17:52:39",
+  "last_updated": "2026-07-06T23:56:00",
   "tasks_completed": [
     "T-092",
     "T-094",
@@ -27,7 +27,8 @@
     "T-124",
     "T-125",
     "T-140",
-    "T-121"
+    "T-121",
+    "T-146"
   ],
   "prs_merged": [
     57,
@@ -54,14 +55,15 @@
     "T-139",
     "T-141",
     "T-142",
-    "T-143",
-    "T-144"
+    "T-122",
+    "T-145"
   ],
   "in_flight": [],
   "next_round": "T-122",
   "maintenance": [
     "cleanup_tasks.py added",
-    "orchestrate.md merge step hardened"
+    "orchestrate.md merge step hardened",
+    "T-146: PTY child-exit hang fix (cli.py idle-tick waitpid + _on_session_exit dead_child transition)"
   ],
   "prs_open": []
 }

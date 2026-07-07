@@ -395,7 +395,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 
 ---
 
-## Master Round Table (updated 2026-07-06g)
+## Master Round Table (updated 2026-07-07)
 
 | Round | Tasks | What ships |
 |---|---|---|
@@ -405,11 +405,12 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | D3-prep | T-139 ‖ T-140 (MERGED) ‖ T-142 (parallel), then T-141 | Size splits — unblocks T-121 + T-122 from touching session_manager.py cleanly |
 | D3 | T-121 (MERGED) ‖ T-122 ‖ T-125 ‖ T-120 (parallel) | PTY robustness (deadlines + ANSI reset + stdin gating + T-118 corrections) + regression tests + pty_signal + installer |
 | D3-fix (P0) — MERGED | T-148 | PTY stdin \n→\r fix — commands submit instead of sitting idle; automated orchestrate loop unblocked |
+| D3-restart | T-149 ‖ T-150 (parallel), then T-151, then T-152 | Restart-storm fixes — stale signal clear + accumulator reset + trigger simplification + hook guard |
 | D3b | T-122 ‖ T-120 ‖ T-112 ‖ T-147 (parallel) | Regression tests + installer + Nuitka binary + cache breakpoint optimization |
 | E | T-103 ‖ T-099 ‖ T-068 ‖ T-063 (parallel) | Measurement chain + multi-provider |
 | F | T-098, T-064, T-069 (parallel) | Model routing savings + rate headroom + parallel scheduling |
 
-Priority rationale (2026-07-06g): T-121 promoted to top of D3 — robustness (never-hang + ANSI reset + stdin gating) is a product correctness requirement, not a feature. T-121 simplified: kqueue/inotify reactor removed (50ms polling sufficient); TASK_RUNNING deadline removed (process liveness via waitpid is the correct signal); T-143 + T-144 folded in as stub completions. T-121 no longer depends on T-112. T-122 follows T-121 (regression tests should exercise the new implementation). T-126 still gates on T-121.
+Priority rationale (2026-07-07): D3-restart inserted after D3-fix — stale handoff_complete.json + runaway safety/ceiling triggers are the remaining blockers for reliable automated orchestration. T-149 + T-150 are independent and run parallel; T-151 (trigger simplification) depends on both; T-152 (hook guard) follows T-151. D3b follows once restart loop is stable.
 
 ---
 

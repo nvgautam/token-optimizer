@@ -695,6 +695,57 @@
     {
       "task_id": "T-148",
       "status": "complete"
+    },
+    {
+      "task_id": "T-149",
+      "title": "Clear stale handoff_complete.json at top of on_enter_handoff_pending",
+      "description": "In agentflow/shell/handoff_handler.py, at the start of handle_enter_handoff_pending(), delete .agentflow/handoff_complete.json if it exists before the poll loop reads it. Prevents stale file from triggering a restart storm on the next session. ~3 lines.",
+      "owns": [
+        "agentflow/shell/handoff_handler.py"
+      ],
+      "reads": [],
+      "depends_on": [],
+      "status": "complete"
+    },
+    {
+      "task_id": "T-150",
+      "title": "Reset token accumulator and tokenizer in restart_child",
+      "description": "In agentflow/shell/session_manager.py restart_child(), reset _last_accumulated_tokens to 0 and re-initialize the tokenizer so token counts do not carry over from the previous session after a PTY restart. ~4 lines.",
+      "owns": [
+        "agentflow/shell/session_manager.py"
+      ],
+      "reads": [],
+      "depends_on": [],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-151",
+      "title": "Remove safety/ceiling handoff triggers \u2014 keep only 80K + task_just_completed",
+      "description": "In agentflow/shell/output_handler.py and poll_session, remove the safety (120K) and ceiling (150K) token threshold triggers entirely. Only two triggers remain: (1) accumulated tokens >= 80K AND task_just_completed flag is set, (2) explicit signal file. This eliminates restart storms caused by mid-task threshold crossings with no recovery path. Update threshold config accordingly.",
+      "owns": [
+        "agentflow/shell/output_handler.py"
+      ],
+      "reads": [
+        "agentflow/shell/session_manager.py"
+      ],
+      "depends_on": [
+        "T-149",
+        "T-150"
+      ],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-152",
+      "title": "UserPromptSubmit hook \u2014 reset accumulator and clear signal files on /orchestrate",
+      "description": "In the UserPromptSubmit hook (agentflow/hooks/user_prompt_submit.py), detect if the submitted prompt contains /orchestrate or /handoff and if so: (1) write a reset signal file (.agentflow/reset_accumulator) that the PTY session_manager picks up on next tick to zero _last_accumulated_tokens, (2) delete handoff_complete.json and task_complete.json. Prevents stale state from a previous run polluting the new orchestrate session.",
+      "owns": [
+        "agentflow/hooks/user_prompt_submit.py"
+      ],
+      "reads": [],
+      "depends_on": [
+        "T-151"
+      ],
+      "status": "pending"
     }
   ]
 }
