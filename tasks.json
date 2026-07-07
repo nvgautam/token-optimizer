@@ -698,13 +698,6 @@
     },
     {
       "task_id": "T-149",
-      "title": "Clear stale handoff_complete.json at top of on_enter_handoff_pending",
-      "description": "In agentflow/shell/handoff_handler.py, at the start of handle_enter_handoff_pending(), delete .agentflow/handoff_complete.json if it exists before the poll loop reads it. Prevents stale file from triggering a restart storm on the next session. ~3 lines.",
-      "owns": [
-        "agentflow/shell/handoff_handler.py"
-      ],
-      "reads": [],
-      "depends_on": [],
       "status": "complete"
     },
     {

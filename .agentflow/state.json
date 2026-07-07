@@ -1,6 +1,6 @@
 {
   "session_start": "2026-07-03T15:52:00",
-  "last_updated": "2026-07-07T02:39:48",
+  "last_updated": "2026-07-07T08:20:27.900081",
   "tasks_completed": [
     "T-092",
     "T-094",
@@ -66,5 +66,6 @@
     "orchestrate.md merge step hardened",
     "T-146: PTY child-exit hang fix (cli.py idle-tick waitpid + _on_session_exit dead_child transition)"
   ],
-  "prs_open": []
+  "prs_open": [],
+  "last_merged_task": "T-150"
 }
