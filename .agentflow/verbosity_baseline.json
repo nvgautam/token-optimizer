@@ -1,26 +1,26 @@
 {
-  "computed_at": "2026-07-06T02:36:54.536099",
-  "baseline_tokens": 2907,
-  "sample_size": 5,
-  "ci95_low": -1105.5925577961293,
-  "ci95_high": 6919.992557796129,
+  "computed_at": "2026-07-06T15:03:47.466298",
+  "baseline_tokens": 159,
+  "sample_size": 714,
+  "ci95_low": 115.80502021448979,
+  "ci95_high": 202.3882570964346,
   "measured": true,
   "arms": {
     "on": {
-      "n": 1682,
-      "mean": 199.30321046373365,
-      "p90": 412,
-      "ci95_low": 166.6243417986624,
-      "ci95_high": 231.98207912880488
+      "n": 3884,
+      "mean": 275.0350154479918,
+      "p90": 577,
+      "ci95_low": 249.18130652745612,
+      "ci95_high": 300.88872436852745
     },
     "off": {
-      "n": 5,
-      "mean": 2907.2,
-      "p90": 10983,
-      "ci95_low": -1105.5925577961293,
-      "ci95_high": 6919.992557796129
+      "n": 714,
+      "mean": 159.0966386554622,
+      "p90": 321,
+      "ci95_low": 115.80502021448979,
+      "ci95_high": 202.3882570964346
     }
   },
-  "stopping_met": false,
-  "stopping_status": "STILL COLLECTING \u2014 n_on=1682 / 20, n_off=5 / 20"
+  "stopping_met": true,
+  "stopping_status": "VERBOSITY A/B COMPLETE \u2014 sufficient data (n_on=3884, n_off=714, CI=[116, 202])"
 }

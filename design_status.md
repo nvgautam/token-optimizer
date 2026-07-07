@@ -252,4 +252,21 @@ Oracle reads on startup. Handoff writes updates. Architecture.md = workers only.
 | T-118 status mismatch | RESOLVED | T-118 showed MERGED in execution_plan.md but pending in tasks.json. Fixed tasks.json → complete. |
 | Round table update for D2 completion + restored tasks | RESOLVED | D2 marked MERGED. D3-prep: T-139‖T-140‖T-142 parallel then T-141. D3: T-122‖T-125‖T-120 parallel. E: T-121 solo then T-103‖T-099‖T-068‖T-063 parallel. F: T-126‖T-098‖T-064‖T-069. |
 
+## Oracle Direction — Sparred 2026-07-06d
+
+| Item | Status | Decision |
+|---|---|---|
+| T-124/T-125 merge status | RESOLVED | Both implemented in task/T-124-T-125 branch (not main). e64e7ae97 merged them. pty_signal.py confirmed on main. T-125 now complete. |
+| Gemini auto-safety trigger at wrong time | RESOLVED | Root cause: session restart replays ~120K context tokens; PTY counts all as new accumulation; TASK_START not re-emitted on restart so task_in_flight check always false. Fix: `task_in_flight = bool(self._task_start_tokens) or self._state_machine.state == States.TASK_RUNNING` — state machine reads current_round.json+task_complete.json at init, correctly reflects in-flight tasks across restarts. session_manager.py updated. |
+| handoff_disabled flag file | RESOLVED | .agentflow/handoff_disabled file toggles auto-handoff without restart. Created for current testing session; delete to re-enable. _auto_handoff_disabled() helper in session_manager.py. |
+| Gemini token consumption (120K per small task) | RESOLVED | Root cause: no prompt cache (Gemini pays full context cost every turn) + handoff thresholds tuned for Claude. Fixes: (1) provider-specific config via [shell.gemini] in ~/.agentflow/config.toml — 40K/60K/80K primary/safety/ceiling; (2) session_manager reads [shell.<command>] override block at init. Expected ~57% reduction in Gemini inp/turn from cycling 3x more often. |
+
+## Oracle Direction — Sparred 2026-07-06e
+
+| Item | Status | Decision |
+|---|---|---|
+| Oracle startup targeted reads | RESOLVED | Replace full design_status.md + tasks.json Reads with grep commands; read only "Master Round Table" section of execution_plan.md via .idx. Saves ~20–25K tokens per oracle session startup. Implemented in commands/claude/oracle.md. |
+| Orchestrate targeted reads (both providers) | RESOLVED | Same pattern: `grep -c "| UNRESOLVED |"` replaces full design_status.md read in Step 3; Master Round Table section only from execution_plan.md; `python3 -c` one-liner extracts pending tasks.json entries only. Applied to commands/claude/orchestrate.md and commands/gemini/skills/orchestrate/SKILL.md. |
+| T-112 pending/merged discrepancy | UNRESOLVED | execution_plan.md labels D2 as "(MERGED)" but tasks.json shows T-112 (Nuitka compilation) as pending. Blocks T-120 (installer) and T-121 (reactor). Needs resolution before D3 work proceeds. |
+
 2026-07-02 (oracle re-spar, headroom compression investigation): Root cause of T-082/T-083/T-084 garbled-Read class confirmed — `protect_recent_reads_fraction` (ContentRouterConfig, content_router.py:647) hardcoded to 0.3 in `server.py:637` inside `is_token_mode()` branch, no CLI/env override exists. In `--mode token`, Read/Glob outputs older than the most-recent-30%-of-messages window fall through DEFAULT_EXCLUDE_TOOLS into compression (content_router.py:2525,2944). Not a regression bug — deliberate upstream tradeoff, wrong default for AgentFlow's precision-critical state-doc rereads (design_status.md, tasks.json, architecture.md). Separately confirmed Bash tool output (never excluded) also degrades under context-pressure-adaptive compression as session grows — same session, same `cat design_status.md` command produced clean output early, garbled output later. Decision: DEFERRED — vendor headroom (Apache 2.0, github.com/chopratejas/headroom, has Rust core in crates/) via git clone rather than patch installed site-packages; add env-var override (~3 lines, server.py + proxy.py, matching existing `_get_env_*` pattern) defaulting to 0.3 (upstream behavior) but settable to 0.0 for AgentFlow's bundled config. Next: clone chopratejas/headroom, apply patch, confirm Python-only (no Rust rebuild needed) before locking vendoring strategy (submodule vs maintained fork, license notice, patch-vs-upstream-update story) — architectural decision, needs its own oracle sparring pass.

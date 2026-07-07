@@ -14,17 +14,19 @@ Personas: Senior Principal Engineer · Senior Principal PM · Senior Principal D
 Say: "This session will consume approximately 2% of your 5-hour window limit."
 
 ### Step 2 — Design status check
-Read `design_status.md` in full.
 
-Gate file: always fresh same-turn Read before acting on it. Stale/garbled/truncated-looking result (Headroom marker or otherwise) → re-read now, never parse marker text as data.
+Run: `grep -c "| UNRESOLVED |" design_status.md 2>/dev/null || echo ABSENT`
 
-- `| UNRESOLVED |` rows found → re-spar; present items and resume.
-- All `RESOLVED` / `DEFERRED` → read `tasks.json`; count PENDING tasks.
-  - PENDING tasks found → Step 2c (prioritization spar).
-  - No PENDING tasks → say: "All design decisions are resolved or deferred. Is there a specific topic you want to spar on — a new concern, a decision to revisit, or an architecture question?" Wait for the user.
-    - User raises a topic → load architecture index (Step 2a), then enter Phase 2 focused on that topic.
-    - User has nothing → say: "Run `/orchestrate` to begin implementation."
-- File absent → fresh project; continue to Step 3.
+- `ABSENT` → fresh project; continue to Step 3.
+- Count > 0 → run `grep "| UNRESOLVED |" design_status.md` to get the rows; re-spar on those items. No full file read needed.
+- Count = 0 → proceed to tasks.json check.
+
+**tasks.json check:** Run: `grep -c '"status": "pending"' tasks.json 2>/dev/null || echo 0`
+
+- Count > 0 → Step 2c. Store count as `pending_count`.
+- Count = 0 → say: "All design decisions are resolved or deferred. Is there a specific topic you want to spar on — a new concern, a decision to revisit, or an architecture question?" Wait for the user.
+  - User raises a topic → load architecture index (Step 2a), then enter Phase 2 focused on that topic.
+  - User has nothing → say: "Run `/orchestrate` to begin implementation."
 
 ### Step 2a — Architecture index (re-spar only)
 Compute `HASH = sha256(cwd)`. Check `~/.agentflow/cache/<HASH>/index/architecture.md.idx`.
@@ -35,13 +37,11 @@ Compute `HASH = sha256(cwd)`. Check `~/.agentflow/cache/<HASH>/index/architectur
 
 
 ### Step 2b — Load CV calibration
-Read `~/.agentflow/rate_calibration_claude.json` (if absent and `~/.agentflow/rate_calibration.json` exists, load `~/.agentflow/rate_calibration.json` as a one-time compat fallback). `sample_count >= 7` → store `ewma_cv`, `ewma_mean_tokens`. Else skip.
-
-Gate file: same staleness rule as Step 2 — fresh read, re-read on any stale/garbled marker.
+Read `~/.agentflow/rate_calibration_claude.json` (if absent and `~/.agentflow/rate_calibration.json` exists, load `~/.agentflow/rate_calibration.json` as a one-time compat fallback). `sample_count >= 7` → store `ewma_cv`, `ewma_mean_tokens`. Else skip. Re-read if result looks stale or garbled.
 
 ### Step 2c — Prioritization Spar (pending tasks found)
 
-Read `execution_plan.md` (use `.idx`). Gate file: same staleness rule as Step 2. Group PENDING tasks into **value tiers** — what each group unlocks (e.g., "handoff precision", "parallel throughput", "multi-provider"). Identify independent tasks (no pending deps) as Round A candidates; chain dependents into subsequent rounds.
+Use `.idx` to read only the "Master Round Table" section of `execution_plan.md` (grep for `^## Master Round Table` in the idx, then `Read(offset, limit)`). If no idx exists, read full file. Group PENDING tasks into **value tiers** — what each group unlocks (e.g., "handoff precision", "parallel throughput", "multi-provider"). Identify independent tasks (no pending deps) as Round A candidates; chain dependents into subsequent rounds.
 
 Lead with:
 - Recommended round table (A / B / C…) + dominant rationale (one line per round: what ships)

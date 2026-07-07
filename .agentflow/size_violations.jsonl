@@ -14,3 +14,11 @@
 {"file": "agentflow/shell/session_manager.py", "blocked_lines": 291, "actual_lines": 291, "limit": 250, "ts": "2026-07-05T01:06:16.572660"}
 {"file": "agentflow/shell/session_manager.py", "blocked_lines": 293, "actual_lines": 293, "limit": 250, "ts": "2026-07-05T01:06:25.327069"}
 {"file": "agentflow/shell/session_manager.py", "blocked_lines": 294, "actual_lines": 294, "limit": 250, "ts": "2026-07-05T01:06:38.572287"}
+{"file": "agentflow/cli.py", "blocked_lines": 260, "actual_lines": 260, "limit": 250, "ts": "2026-07-06T13:57:05.676279"}
+{"file": "commands/claude/oracle.md", "blocked_lines": 171, "actual_lines": 171, "limit": 150, "ts": "2026-07-06T15:42:51.255469"}
+{"file": "commands/claude/oracle.md", "blocked_lines": 169, "actual_lines": 169, "limit": 150, "ts": "2026-07-06T15:43:05.100701"}
+{"file": "commands/claude/oracle.md", "blocked_lines": 169, "actual_lines": 169, "limit": 150, "ts": "2026-07-06T15:43:25.817760"}
+{"file": "commands/claude/orchestrate.md", "blocked_lines": 250, "actual_lines": 250, "limit": 150, "ts": "2026-07-06T15:45:11.866186"}
+{"file": "commands/gemini/skills/orchestrate/SKILL.md", "blocked_lines": 243, "actual_lines": 243, "limit": 150, "ts": "2026-07-06T15:45:21.707307"}
+{"file": "commands/claude/orchestrate.md", "blocked_lines": 250, "actual_lines": 250, "limit": 150, "ts": "2026-07-06T17:23:33.265992"}
+{"file": "commands/gemini/skills/orchestrate/SKILL.md", "blocked_lines": 243, "actual_lines": 243, "limit": 150, "ts": "2026-07-06T17:23:38.507163"}

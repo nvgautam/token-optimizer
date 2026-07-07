@@ -395,19 +395,19 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 
 ---
 
-## Master Round Table (updated 2026-07-06c)
+## Master Round Table (updated 2026-07-06g)
 
 | Round | Tasks | What ships |
 |---|---|---|
 | A–C (MERGED) | T-105,T-106,T-102,T-107,T-108,T-113,T-114,T-115 | PTY fixes + measurement chain |
 | D (MERGED) | T-116, T-117, T-109 | PTY handoff non-blocking + robustness + key server |
 | D2 (MERGED) | T-118 ‖ T-110 (parallel), then T-111→T-112 (sequential) | PTY state machine refactor + IP protection stack |
-| D3-prep | T-139 ‖ T-140 ‖ T-142 (parallel), then T-141 | Size splits — unblocks T-121 + T-122 from touching session_manager.py cleanly |
-| D3 | T-122, T-125, T-120 (parallel) | Session restart regression tests + pty_signal + PTY installer |
-| E | T-121 (solo first), then T-103 ‖ T-099 ‖ T-068 ‖ T-063 (parallel) | PTY reactor + deadlines (never-hang guarantee) + measurement chain |
+| D3-prep | T-139 ‖ T-140 (MERGED) ‖ T-142 (parallel), then T-141 | Size splits — unblocks T-121 + T-122 from touching session_manager.py cleanly |
+| D3 | T-121 (MERGED) ‖ T-122 ‖ T-125 ‖ T-120 (parallel) | PTY robustness (deadlines + ANSI reset + stdin gating + T-118 corrections) + regression tests + pty_signal + installer |
+| E | T-103 ‖ T-099 ‖ T-068 ‖ T-063 (parallel) | Measurement chain + multi-provider |
 | F | T-126, T-098, T-064, T-069 (parallel; T-126 gates on T-121) | Idle wake-up + model routing savings + rate headroom + parallel scheduling |
 
-Priority rationale (2026-07-06c): T-118 + T-110 + T-111 + T-112 now MERGED (D2 complete). Size splits (D3-prep) must land before T-122 and T-121 touch session_manager.py. T-125 (pty_signal.py) was never committed despite pyc presence — restored as pending. T-126 (idle wake-up) gates on T-121 per design_status.md resolution. T-104 merged but generated duplicate split tasks (T-138 fixes deduplication bug); deduplicated to T-139–T-142.
+Priority rationale (2026-07-06g): T-121 promoted to top of D3 — robustness (never-hang + ANSI reset + stdin gating) is a product correctness requirement, not a feature. T-121 simplified: kqueue/inotify reactor removed (50ms polling sufficient); TASK_RUNNING deadline removed (process liveness via waitpid is the correct signal); T-143 + T-144 folded in as stub completions. T-121 no longer depends on T-112. T-122 follows T-121 (regression tests should exercise the new implementation). T-126 still gates on T-121.
 
 ---
 
@@ -478,23 +478,25 @@ User-reported: after handoff fires, PTY "broke out of the shell" and the same nu
 
 **Protocol:** Fuzzy case-insensitive match. On match: exit non-zero + write `{ts, pattern_matched, raw_input}` to `.agentflow/sanitizer_blocked.jsonl`. On clean: exit 0. Stdlib only. Ships with T-111.
 
-## Addendum: T-121 — PTY Reactor + State Deadlines + T-118 Corrections (filed 2026-07-05)
+## Addendum: T-121 — PTY Robustness: Deadlines + ANSI Reset + Stdin Gating + T-118 Corrections (revised 2026-07-06g)
 
-**Goal:** Guarantee agentflow never hangs — two reactor mechanisms + two T-118 spec deviations fixed.
+**Goal:** Guarantee agentflow never hangs and doesn't corrupt terminal state on session restart. Simplified from original spec — kqueue/inotify reactor removed; 50ms select() polling is sufficient.
 
-**Reactor pattern:** Replace file-polling branches in each state handler with `kqueue` (macOS) / `inotify` (Linux) fd registered in the main `select()` call. Signal files become fd events; state handlers fire-and-return in O(1). `select()` is the only blocking call in the entire PTY loop.
+**Per-state deadlines (transitional states only):** Each state transition records `entered_at = time.monotonic()`. The `select()` timeout branch checks elapsed time; on expiry: SIGKILL child → IDLE. Deadlines: `TASK_COMPLETE` 30 s, `HANDOFF_PENDING` 90 s, `RESTARTING` 30 s, `DEAD_CHILD` 10 s. **No deadline on `TASK_RUNNING`** — process liveness (`waitpid(child_pid, WNOHANG)`) is the correct signal; activity-based timers are unreliable (model inference + tool execution produce long silent periods).
 
-**Per-state deadlines:** Each state transition records `entered_at = time.monotonic()`. The `select()` timeout branch checks `time.monotonic() - entered_at > deadline[current_state]`; on expiry: SIGKILL child → IDLE. Deadlines: `TASK_RUNNING` 15 min, `TASK_COMPLETE` 30 s, `HANDOFF_PENDING` 90 s, `RESTARTING` 30 s, `DEAD_CHILD` 10 s.
+**T-118 correction 1 — handoff_complete.json writer:** `agentflow/handoff.py` must write this file atomically; implementation scrapes `"HANDOFF_COMPLETE"` from PTY output instead. Fix: add atomic write to `agentflow/handoff.py`; remove output-scraping fallbacks from `session_manager.py`.
 
-**T-118 correction 1 — handoff_complete.json writer:** T-118 spec says `agentflow/handoff.py` writes this file; implementation instead scrapes `"HANDOFF_COMPLETE"` from PTY output (`session_manager.py:259,453`). Fix: add atomic write to `agentflow/handoff.py`; remove output-scraping fallbacks from `session_manager.py`.
+**T-118 correction 2 — test/production divergence:** `trigger_handoff()` routes through blocking `_run_handoff_loop` in pytest vs `poll()` in production — tests never exercise the production path. Fix: remove `_run_handoff_loop`; tests drive `poll()` directly.
 
-**T-118 correction 2 — test/production divergence:** `trigger_handoff()` routes through blocking `_run_handoff_loop` in pytest and through `poll()` in production — tests never exercise the production path. Fix: remove `_run_handoff_loop` entirely; tests drive `poll()` directly.
+**T-143 fold-in — ANSI state reset:** Complete `on_enter_restarting` stub in `state_machine.py`: emit `\x1b[0m` (SGR reset) to stdout so dirty terminal state from the dead session does not bleed into the new child.
 
-**Files:** `agentflow/shell/session_manager.py` (reactor, deadlines, remove scraping + loop; ~130L net change), `agentflow/shell/state_machine.py` (add `entered_at`; ~50L net change), `agentflow/handoff.py` (add signal write; ~10L), `tests/shell/test_session_manager.py` (update).
+**T-144 fold-in — stdin gating:** In `cli.py` stdin forwarding loop, skip `os.write(wrapper.master_fd, chunk)` when `session_manager._state_machine.state == States.RESTARTING`. No timer — state is the gate.
 
-**Estimated lines:** ~190L total change. Under 250L cap.
+**Files:** `agentflow/shell/session_manager.py`, `agentflow/shell/state_machine.py`, `agentflow/handoff.py`, `agentflow/cli.py`, `tests/shell/test_session_manager.py`.
 
-**Depends on:** T-118 (MERGED), T-112 (state machine must be stable before reactor refactor). Slots top of Round E.
+**Estimated lines:** ~80L total change.
+
+**Depends on:** T-118 (MERGED). T-112 dependency removed. Slots top of Round D3.
 
 ## Addendum: T-139–T-142 — Size violation splits, deduplicated (filed 2026-07-06c)
 
@@ -522,6 +524,10 @@ T-141 depends on T-140 (test file references session_manager structure). T-139, 
 **Status:** MERGED
 
 **Goal:** agentflow/shell/pty_signal.py with task_start / task_done / handoff_complete subcommands. Full spec preserved in tasks.json T-125.
+
+## Addendum: T-143 + T-144 — CANCELLED (folded into T-121, 2026-07-06g)
+
+Root cause traced to session recycling making restart invisible to user. Both fixes are stub completions of T-121's state machine — not independent tasks. Timer-based stdin gating (T-144 original design) replaced with state-based gating (no timer needed). See T-121 addendum for implementation details.
 
 ---
 

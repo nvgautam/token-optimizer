@@ -23,18 +23,28 @@ Ask: "Run `/usage` and report both windows:"
 
 ### Step 2b — Index startup files
 Compute `HASH=$(python3 -c "import hashlib,os; print(hashlib.sha256(os.getcwd().encode()).hexdigest())")`.
-For `design_status.md` and `execution_plan.md`: if `.idx` absent or stale, regenerate (H2/H3 headers, `## Header:start-end`).
+For `execution_plan.md` only: if `.idx` absent or source mtime newer than `.idx` mtime, regenerate (H2/H3 headers, `## Header:start-end`). Do not index `design_status.md` — Step 3 uses raw grep only.
 
 ### Step 3 — Oracle gate
-Read `design_status.md` (use `.idx` if present). Any `| UNRESOLVED |` row → stop:
-> "Design has unresolved items. Run `/oracle` to resolve them first."
+Run: `grep -c "| UNRESOLVED |" design_status.md 2>/dev/null || echo ABSENT`
 
-Gate file: always fresh same-turn Read before acting on it. Stale/garbled/truncated-looking result (Headroom marker or otherwise) → re-read now, never parse marker text as data.
+- `ABSENT` → proceed.
+- Count > 0 → stop: "Design has unresolved items. Run `/oracle` to resolve them first." No Read needed.
 
 ### Step 4 — Load execution state
-Read `execution_plan.md` (use `.idx`) and `tasks.json`. **No `architecture.md` or `CLAUDE.md` at startup.**
+**No `architecture.md` or `CLAUDE.md` at startup.**
 
-Gate files: same staleness rule as Step 3 — fresh read, re-read on any stale/garbled marker.
+`execution_plan.md` — use `.idx` to read only the "Master Round Table" section:
+```bash
+HASH=$(python3 -c "import hashlib,os; print(hashlib.sha256(os.getcwd().encode()).hexdigest())")
+grep "^## Master Round Table" ~/.agentflow/cache/$HASH/index/execution_plan.md.idx
+```
+Then `Read(offset=<start>, limit=<end-start+1>)`.
+
+`tasks.json` — extract pending entries only, never read full file:
+```bash
+python3 -c "import json; d=json.load(open('tasks.json')); [print(json.dumps(t)) for t in d['tasks'] if t['status']=='pending']"
+```
 
 Check `.agentflow/state.json`. Present → report resumed state and ask "Continue?". Absent → identify first incomplete milestone. `/orchestrate debug` → reveal grouping plan and ask "Proceed?".
 

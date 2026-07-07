@@ -559,16 +559,16 @@
       "task_id": "T-121",
       "status": "pending",
       "title": "PTY reactor + per-state deadlines + T-118 corrections \u2014 never-hang guarantee",
-      "description": "Three changes in one pass: (1) Reactor: replace file-polling in poll() with kqueue (macOS) / inotify (Linux) fd registered in the main select() call \u2014 select() becomes the only blocking call. (2) Deadlines: record entered_at on every state transition; on select() timeout check time.monotonic()-entered_at > deadline[state]; on expiry SIGKILL child \u2192 IDLE. (3) T-118 corrections: add atomic handoff_complete.json write to agentflow/handoff.py; remove output-scraping (HANDOFF_COMPLETE detection) from session_manager.py; remove _run_handoff_loop and its pytest-only branch so tests exercise the same poll() path as production.",
+      "description": "Correctness fixes for PTY shell robustness: (1) T-118 correction \u2014 add atomic handoff_complete.json write to agentflow/handoff.py; remove output-scraping fallback from session_manager.py. (2) T-118 correction \u2014 remove _run_handoff_loop; tests drive poll() directly. (3) Per-state deadlines on transitional states only (HANDOFF_PENDING 90s, TASK_COMPLETE 30s, RESTARTING 30s, DEAD_CHILD 10s) using time.monotonic() in existing select() timeout branch \u2014 no deadline on TASK_RUNNING (process liveness via waitpid handles that). (4) Complete on_enter_restarting stub: emit ESC[0m to stdout to reset ANSI state. (5) Gate stdin forwarding in cli.py when state == States.RESTARTING.",
       "owns": [
         "agentflow/shell/session_manager.py",
         "agentflow/shell/state_machine.py",
         "agentflow/handoff.py",
+        "agentflow/cli.py",
         "tests/shell/test_session_manager.py"
       ],
       "depends_on": [
-        "T-118",
-        "T-112"
+        "T-118"
       ],
       "test_requirements": {
         "unit": [
@@ -583,7 +583,7 @@
         "coverage_threshold": 85
       },
       "acceptance_criteria": "PTY loop never blocks indefinitely: select() is the only blocking call, every state has a deadline that forces IDLE on expiry, handoff_complete.json is written by agentflow/handoff.py (not scraped from output), and tests exercise the production poll() path.",
-      "estimated_lines": 190,
+      "estimated_lines": 80,
       "context_section": "execution_plan.md#addendum-t-121"
     },
     {
@@ -641,14 +641,7 @@
     },
     {
       "task_id": "T-140",
-      "title": "Split agentflow/shell/session_manager.py \u2014 size violation",
-      "description": "Split agentflow/shell/session_manager.py to resolve size violation of 564 lines (limit: 250). Extract into two or more modules (e.g. session_manager.py for PTY loop + state dispatch; handoff_handler.py for handoff logic). Update all imports.",
-      "owns": [
-        "agentflow/shell/session_manager.py"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-141",
@@ -669,6 +662,43 @@
       "description": "Split agentflow/shadow/verbosity_ab.py to resolve size violation of 331 lines (limit: 250). Extract analysis helpers or reporting logic into a separate module.",
       "owns": [
         "agentflow/shadow/verbosity_ab.py"
+      ],
+      "reads": [],
+      "depends_on": [],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-143",
+      "title": "PTY startup ANSI state reset",
+      "description": "Emit ESC[0m (SGR reset) to stdout immediately after the PTY child is spawned (in cmd_shell / spawn_new_child), so a dirty terminal state from a prior session does not cause escape-code parameters to render as visible text. [CANCELLED: folded into T-121]",
+      "owns": [
+        "agentflow/shell/process_manager.py",
+        "agentflow/cli.py"
+      ],
+      "reads": [],
+      "depends_on": [],
+      "status": "cancelled"
+    },
+    {
+      "task_id": "T-144",
+      "title": "PTY stdin gating during oracle/orchestrator startup",
+      "description": "Suppress forwarding of user stdin to the PTY child for a brief window (2-3 s) after agentflow shell starts and after each session restart, so incidental keystrokes (e.g. Enter pressed to dismiss a visual artifact) cannot be forwarded to Claude Code and abort the oracle/orchestrator startup sequence. [CANCELLED: folded into T-121]",
+      "owns": [
+        "agentflow/cli.py",
+        "agentflow/shell/session_manager.py"
+      ],
+      "reads": [],
+      "depends_on": [
+        "T-143"
+      ],
+      "status": "cancelled"
+    },
+    {
+      "task_id": "T-145",
+      "title": "Split commands/claude/oracle.md \u2014 size violation",
+      "description": "Split commands/claude/oracle.md to resolve size violation of 169 lines (limit: 150). Violation timestamp: 2026-07-06T15:42:51.255469.",
+      "owns": [
+        "commands/claude/oracle.md"
       ],
       "reads": [],
       "depends_on": [],

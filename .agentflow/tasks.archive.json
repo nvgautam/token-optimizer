@@ -1066,5 +1066,16 @@
     "depends_on": [],
     "estimated_lines": 90,
     "status": "complete"
+  },
+  {
+    "task_id": "T-140",
+    "title": "Split agentflow/shell/session_manager.py \u2014 size violation",
+    "description": "Split agentflow/shell/session_manager.py to resolve size violation of 564 lines (limit: 250). Extract into two or more modules (e.g. session_manager.py for PTY loop + state dispatch; handoff_handler.py for handoff logic). Update all imports.",
+    "owns": [
+      "agentflow/shell/session_manager.py"
+    ],
+    "reads": [],
+    "depends_on": [],
+    "status": "complete"
   }
 ]
