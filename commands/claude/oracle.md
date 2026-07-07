@@ -13,6 +13,16 @@ Personas: Senior Principal Engineer · Senior Principal PM · Senior Principal D
 ### Step 1b — Budget announcement
 Say: "This session will consume approximately 2% of your 5-hour window limit."
 
+### Step 1c — Handoff continuity check
+Run: `ls -t .agentflow/handoff_*.md 2>/dev/null | head -1`
+
+- No file found → skip; continue to Step 2.
+- File found → read it in full.
+  - Check "Open items / next steps" section for unfiled tasks or pending decisions.
+  - Cross-check against `tasks.json`: `python3 -c "import json; d=json.load(open('tasks.json')); print([t['task_id'] for t in d['tasks']])"` — identify any open items not present.
+  - If unfiled tasks or unresolved decisions exist: surface them explicitly. Say: "The last session left these open items: [list]. Should I file these as tasks before continuing?" Wait for user input.
+  - If everything is filed and no pending decisions: continue to Step 2 silently.
+
 ### Step 2 — Design status check
 
 Run: `grep -c "| UNRESOLVED |" design_status.md 2>/dev/null || echo ABSENT`

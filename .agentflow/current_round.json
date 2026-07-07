@@ -1,13 +1,7 @@
 {
-  "round_id": "D3-T121",
-  "task_ids": [
-    "T-121"
-  ],
-  "estimated_lines_per_task": {
-    "T-121": 80
-  },
-  "file_counts_per_task": {
-    "T-121": 5
-  },
-  "timestamp": "2026-07-06T17:33:51.194260"
+  "round_id": "D3-fix",
+  "task_ids": ["T-148"],
+  "estimated_lines_per_task": {"T-148": 3},
+  "file_counts_per_task": {"T-148": 1},
+  "timestamp": "2026-07-07T00:59:50"
 }

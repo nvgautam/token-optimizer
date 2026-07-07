@@ -22,3 +22,5 @@
 {"file": "commands/gemini/skills/orchestrate/SKILL.md", "blocked_lines": 243, "actual_lines": 243, "limit": 150, "ts": "2026-07-06T15:45:21.707307"}
 {"file": "commands/claude/orchestrate.md", "blocked_lines": 250, "actual_lines": 250, "limit": 150, "ts": "2026-07-06T17:23:33.265992"}
 {"file": "commands/gemini/skills/orchestrate/SKILL.md", "blocked_lines": 243, "actual_lines": 243, "limit": 150, "ts": "2026-07-06T17:23:38.507163"}
+{"file": "agentflow/reporting/report_builder.py", "blocked_lines": 252, "actual_lines": 252, "limit": 250, "ts": "2026-07-07T00:21:15.929131"}
+{"file": "commands/claude/oracle.md", "blocked_lines": 179, "actual_lines": 179, "limit": 150, "ts": "2026-07-07T01:40:24.977720"}
