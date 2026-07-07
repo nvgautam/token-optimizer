@@ -15,7 +15,7 @@ _DEADLINES: dict[States, float] = {
 
 def handle_enter_handoff_pending(manager) -> None:
     try:
-        manager._pty.write_input("/handoff\n")
+        manager._pty.write_input("/handoff\r")
     except OSError:
         manager._log_audit({"event": "handoff_aborted", "trigger": manager._current_trigger, "tokens": manager._last_accumulated_tokens})
         manager._state_machine.transition("handoff_aborted")

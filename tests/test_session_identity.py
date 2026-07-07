@@ -320,9 +320,9 @@ def test_restart_session():
 
     sm.session_type = "oracle"
     sm._restart_session()
-    assert "/oracle\n" in pty.inputs
+    assert "/oracle\r" in pty.inputs  # T-148: PTY expects \r not \n
 
     pty.inputs.clear()
     sm.session_type = "orchestrator"
     sm._restart_session()
-    assert "/orchestrate\n" in pty.inputs
+    assert "/orchestrate\r" in pty.inputs  # T-148: PTY expects \r not \n

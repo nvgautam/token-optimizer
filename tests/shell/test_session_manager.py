@@ -69,7 +69,7 @@ def test_trigger_handoff_writes_commands(tmp_path):
         with patch("agentflow.shell.session_manager.countdown") as mock_cd:
             mock_cd.side_effect = lambda s, on_complete, **kw: on_complete()
             sm.trigger_handoff()
-    assert "/handoff\n" in pty.inputs
+    assert "/handoff\r" in pty.inputs  # T-148: PTY expects \r not \n
 
 def test_safety_and_ceiling_triggers():
     tok = FakeTokenizer(fixed_return=121_000)
@@ -248,7 +248,7 @@ def test_pty_audit_logging(tmp_path):
         sm._project_root = tmp_path
         sm._task_complete_path = tmp_path / ".agentflow" / "task_complete.json"
         sm._handoff_complete_path = tmp_path / ".agentflow" / "handoff_complete.json"
-        for cmd in ["/oracle\n", "/handoff\n", "/clear\n"]:
+        for cmd in ["/oracle\r\n", "/handoff\r\n", "/clear\n"]:
             fire_output(sm, pty, cmd)
         tok._fixed, sm.session_type = 2000, "oracle"
         with patch.object(sm, "trigger_handoff") as mock_hf:
@@ -285,7 +285,7 @@ def test_async_trigger_handoff_success(tmp_path):
             sm._handoff_complete_path.write_text("{}", encoding="utf-8")
             sm.poll()
     assert sm._handoff_in_progress is False
-    assert "/handoff\n" in pty.inputs
+    assert "/handoff\r" in pty.inputs  # T-148: PTY expects \r not \n
 
 def test_async_trigger_handoff_unexpected_exit(tmp_path):
     sm, pty, _ = make_manager()
@@ -394,3 +394,106 @@ def test_stdin_gating_condition():
     assert (sm._state_machine.state != States.RESTARTING) is False
     sm._state_machine.state = States.IDLE
     assert (sm._state_machine.state != States.RESTARTING) is True
+
+
+# ---------------------------------------------------------------------------
+# T-148: PTY stdin submission — injected commands must use \r not \n
+# ---------------------------------------------------------------------------
+
+def test_t148_handoff_injection_uses_cr(tmp_path):
+    """T-148: handle_enter_handoff_pending writes /handoff\\r (CR) not LF.
+
+    PTY line discipline submits on CR (0x0D); LF leaves the command buffered.
+    """
+    sm, pty, _ = make_manager()
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+        original_write = pty.write_input
+
+        def mock_write_input(text):
+            original_write(text)
+            if "/handoff" in text:
+                sm._handoff_complete_path.parent.mkdir(parents=True, exist_ok=True)
+                sm._handoff_complete_path.write_text("{}", encoding="utf-8")
+
+        pty.write_input = mock_write_input
+        with patch("agentflow.shell.session_manager.countdown") as mock_cd:
+            mock_cd.side_effect = lambda s, on_complete, **kw: on_complete()
+            sm.trigger_handoff()
+
+    # Must end with \r (0x0D), NOT \n (0x0A)
+    handoff_inputs = [s for s in pty.inputs if "/handoff" in s]
+    assert handoff_inputs, "No /handoff command was written"
+    assert all(s.endswith("\r") for s in handoff_inputs), (
+        f"Expected /handoff to end with \\r, got: {handoff_inputs!r}"
+    )
+    assert not any(s.endswith("\n") for s in handoff_inputs), (
+        f"Unexpected LF in /handoff injection: {handoff_inputs!r}"
+    )
+
+
+def test_t148_restart_injection_uses_cr(tmp_path):
+    """T-148: on_enter_idle writes /oracle\\r (CR) not LF when just_restarted.
+
+    The just_restarted flag triggers command injection in on_enter_idle;
+    that injection must use CR so the PTY line discipline submits it immediately.
+    """
+    sm, pty, _ = make_manager()
+    sm.session_type = "oracle"
+    sm._just_restarted = True
+
+    # Trigger the injection path directly (on_enter_idle owns the injection)
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+        sm.on_enter_idle()
+
+    oracle_inputs = [s for s in pty.inputs if "/oracle" in s]
+    assert oracle_inputs, "No /oracle command was injected after restart"
+    assert all(s.endswith("\r") for s in oracle_inputs), (
+        f"Expected /oracle to end with \\r (CR), got: {oracle_inputs!r}"
+    )
+
+
+def test_t148_restart_injection_orchestrate_uses_cr(tmp_path):
+    """T-148: orchestrator session injects /orchestrate\\r (CR) after restart."""
+    sm, pty, _ = make_manager()
+    sm.session_type = "orchestrator"
+    sm._just_restarted = True
+
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+        sm.on_enter_idle()
+
+    orchestrate_inputs = [s for s in pty.inputs if "/orchestrate" in s]
+    assert orchestrate_inputs, "No /orchestrate command was injected after restart"
+    assert all(s.endswith("\r") for s in orchestrate_inputs), (
+        f"Expected /orchestrate to end with \\r (CR), got: {orchestrate_inputs!r}"
+    )
+
+
+def test_t148_no_lf_in_pty_injections(tmp_path):
+    """T-148: no write_input call from handoff/restart paths may end with bare LF.
+
+    Regression guard: if any injection uses \\n instead of \\r, PTY command
+    submission silently stalls and the session hangs.
+    """
+    sm, pty, _ = make_manager()
+    sm.session_type = "oracle"
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+        original_write = pty.write_input
+
+        def mock_write_input(text):
+            original_write(text)
+            if "/handoff" in text:
+                sm._handoff_complete_path.parent.mkdir(parents=True, exist_ok=True)
+                sm._handoff_complete_path.write_text("{}", encoding="utf-8")
+
+        pty.write_input = mock_write_input
+        with patch("agentflow.shell.session_manager.countdown") as mock_cd:
+            mock_cd.side_effect = lambda s, on_complete, **kw: on_complete()
+            sm.trigger_handoff()
+
+    # Filter to command-injection inputs only (not user pass-through)
+    slash_inputs = [s for s in pty.inputs if s.startswith("/") and s.strip("/") in
+                    ("handoff\r", "oracle\r", "orchestrate\r", "handoff\n", "oracle\n", "orchestrate\n")]
+    bare_lf = [s for s in slash_inputs if s.endswith("\n") and not s.endswith("\r\n")]
+    assert bare_lf == [], (
+        f"T-148 regression: these injections use bare LF instead of CR: {bare_lf!r}"
+    )

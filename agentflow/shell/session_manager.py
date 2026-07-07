@@ -163,7 +163,7 @@ class SessionManager:
             self._just_restarted = False
             cmd = "oracle" if self.session_type == "oracle" else "orchestrate" if self.session_type == "orchestrator" else None
             if cmd:
-                try: self._pty.write_input(f"/{cmd}\n")
+                try: self._pty.write_input(f"/{cmd}\r")
                 except OSError: pass
 
     def on_enter_dead_child(self) -> None:
