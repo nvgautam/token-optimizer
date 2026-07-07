@@ -497,3 +497,66 @@ def test_t148_no_lf_in_pty_injections(tmp_path):
     assert bare_lf == [], (
         f"T-148 regression: these injections use bare LF instead of CR: {bare_lf!r}"
     )
+
+
+# ---------------------------------------------------------------------------
+# T-149: stale handoff_complete.json is cleared before poll loop
+# ---------------------------------------------------------------------------
+
+def test_t149_stale_handoff_complete_cleared_on_enter(tmp_path, monkeypatch):
+    """T-149: handle_enter_handoff_pending deletes a pre-existing handoff_complete.json.
+
+    A stale file from a previous session must be removed *before* write_input
+    is called so the poll loop cannot instantly see it and trigger a restart storm.
+    """
+    from agentflow.shell.handoff_handler import handle_enter_handoff_pending
+
+    # Place a stale file where the handler will look
+    monkeypatch.chdir(tmp_path)
+    stale_dir = tmp_path / ".agentflow"
+    stale_dir.mkdir(parents=True, exist_ok=True)
+    stale_file = stale_dir / "handoff_complete.json"
+    stale_file.write_text("{}", encoding="utf-8")
+    assert stale_file.exists(), "pre-condition: stale file must exist"
+
+    # Build a minimal manager stub
+    sm, pty, _ = make_manager()
+    sm._current_trigger = "auto"
+    sm._last_accumulated_tokens = 0
+
+    # Track deletion order vs write_input order
+    deleted_before_write = []
+
+    original_write = pty.write_input
+
+    def tracking_write(text):
+        # At the moment write_input is called, the stale file must already be gone
+        deleted_before_write.append(not stale_file.exists())
+        original_write(text)
+
+    pty.write_input = tracking_write
+
+    handle_enter_handoff_pending(sm)
+
+    assert not stale_file.exists(), "stale handoff_complete.json must be deleted by handle_enter_handoff_pending"
+    assert deleted_before_write, "write_input must have been called"
+    assert all(deleted_before_write), "stale file must be deleted BEFORE write_input is called"
+
+
+def test_t149_no_stale_file_is_noop(tmp_path, monkeypatch):
+    """T-149: handle_enter_handoff_pending is a no-op when no stale file exists."""
+    from agentflow.shell.handoff_handler import handle_enter_handoff_pending
+
+    monkeypatch.chdir(tmp_path)
+    stale_file = tmp_path / ".agentflow" / "handoff_complete.json"
+    assert not stale_file.exists(), "pre-condition: no stale file"
+
+    sm, pty, _ = make_manager()
+    sm._current_trigger = "auto"
+    sm._last_accumulated_tokens = 0
+
+    # Should not raise; write_input should still be called normally
+    handle_enter_handoff_pending(sm)
+
+    assert not stale_file.exists()
+    assert any("/handoff" in s for s in pty.inputs), "write_input('/handoff\\r') must still be called"
