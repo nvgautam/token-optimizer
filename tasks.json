@@ -702,30 +702,11 @@
     },
     {
       "task_id": "T-150",
-      "title": "Reset token accumulator and tokenizer in restart_child",
-      "description": "In agentflow/shell/session_manager.py restart_child(), reset _last_accumulated_tokens to 0 and re-initialize the tokenizer so token counts do not carry over from the previous session after a PTY restart. ~4 lines.",
-      "owns": [
-        "agentflow/shell/session_manager.py"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-151",
-      "title": "Remove safety/ceiling handoff triggers \u2014 keep only 80K + task_just_completed",
-      "description": "In agentflow/shell/output_handler.py and poll_session, remove the safety (120K) and ceiling (150K) token threshold triggers entirely. Only two triggers remain: (1) accumulated tokens >= 80K AND task_just_completed flag is set, (2) explicit signal file. This eliminates restart storms caused by mid-task threshold crossings with no recovery path. Update threshold config accordingly.",
-      "owns": [
-        "agentflow/shell/output_handler.py"
-      ],
-      "reads": [
-        "agentflow/shell/session_manager.py"
-      ],
-      "depends_on": [
-        "T-149",
-        "T-150"
-      ],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-152",
