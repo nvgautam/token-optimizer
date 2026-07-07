@@ -1077,5 +1077,52 @@
     "reads": [],
     "depends_on": [],
     "status": "complete"
+  },
+  {
+    "task_id": "T-121",
+    "status": "complete",
+    "title": "PTY reactor + per-state deadlines + T-118 corrections \u2014 never-hang guarantee",
+    "description": "Correctness fixes for PTY shell robustness: (1) T-118 correction \u2014 add atomic handoff_complete.json write to agentflow/handoff.py; remove output-scraping fallback from session_manager.py. (2) T-118 correction \u2014 remove _run_handoff_loop; tests drive poll() directly. (3) Per-state deadlines on transitional states only (HANDOFF_PENDING 90s, TASK_COMPLETE 30s, RESTARTING 30s, DEAD_CHILD 10s) using time.monotonic() in existing select() timeout branch \u2014 no deadline on TASK_RUNNING (process liveness via waitpid handles that). (4) Complete on_enter_restarting stub: emit ESC[0m to stdout to reset ANSI state. (5) Gate stdin forwarding in cli.py when state == States.RESTARTING.",
+    "owns": [
+      "agentflow/shell/session_manager.py",
+      "agentflow/shell/state_machine.py",
+      "agentflow/handoff.py",
+      "agentflow/cli.py",
+      "tests/shell/test_session_manager.py"
+    ],
+    "depends_on": [
+      "T-118"
+    ],
+    "test_requirements": {
+      "unit": [
+        "Each state times out to IDLE (SIGKILL child) when deadline elapses \u2014 verified with mock clock",
+        "agentflow/handoff.py writes handoff_complete.json atomically",
+        "poll() drives state transitions without any time.sleep or blocking waitpid in the hot loop"
+      ],
+      "integration": [
+        "Full handoff cycle completes via poll() path (no _run_handoff_loop)",
+        "PTY loop does not hang when handoff_complete.json is never written (deadline fires)"
+      ],
+      "coverage_threshold": 85
+    },
+    "acceptance_criteria": "PTY loop never blocks indefinitely: select() is the only blocking call, every state has a deadline that forces IDLE on expiry, handoff_complete.json is written by agentflow/handoff.py (not scraped from output), and tests exercise the production poll() path.",
+    "estimated_lines": 80,
+    "context_section": "execution_plan.md#addendum-t-121"
+  },
+  {
+    "task_id": "T-146",
+    "title": "Fix PTY hang \u2014 child-exit detection independent of master_fd readability",
+    "description": "Root cause: _exited is only set inside read_output(), which is only called when master_fd in ready (cli.py:173). If a restarted child exits without producing PTY output, macOS does not signal master_fd readable, so _exited is never set and the main loop spins forever \u2014 PTY appears hung to the user.\n\nFix 1 (cli.py): call os.waitpid(wrapper.child_pid, os.WNOHANG) on every idle tick (in the else branch or in on_idle_tick), independent of master_fd readability. If child is dead, set wrapper._exited = True and break.\n\nFix 2 (session_manager.py): _on_session_exit is a no-op (pass). It should transition the state machine to dead_child or log + surface the error so the user sees it.\n\nNote: handoff_disabled sentinel is active at .agentflow/handoff_disabled \u2014 remove it after this fix is verified.",
+    "owns": [
+      "agentflow/cli.py",
+      "agentflow/shell/pty_wrapper.py",
+      "agentflow/shell/session_manager.py"
+    ],
+    "reads": [
+      "agentflow/shell/process_manager.py",
+      "agentflow/shell/state_machine.py"
+    ],
+    "depends_on": [],
+    "status": "complete"
   }
 ]

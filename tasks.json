@@ -557,34 +557,7 @@
     },
     {
       "task_id": "T-121",
-      "status": "pending",
-      "title": "PTY reactor + per-state deadlines + T-118 corrections \u2014 never-hang guarantee",
-      "description": "Correctness fixes for PTY shell robustness: (1) T-118 correction \u2014 add atomic handoff_complete.json write to agentflow/handoff.py; remove output-scraping fallback from session_manager.py. (2) T-118 correction \u2014 remove _run_handoff_loop; tests drive poll() directly. (3) Per-state deadlines on transitional states only (HANDOFF_PENDING 90s, TASK_COMPLETE 30s, RESTARTING 30s, DEAD_CHILD 10s) using time.monotonic() in existing select() timeout branch \u2014 no deadline on TASK_RUNNING (process liveness via waitpid handles that). (4) Complete on_enter_restarting stub: emit ESC[0m to stdout to reset ANSI state. (5) Gate stdin forwarding in cli.py when state == States.RESTARTING.",
-      "owns": [
-        "agentflow/shell/session_manager.py",
-        "agentflow/shell/state_machine.py",
-        "agentflow/handoff.py",
-        "agentflow/cli.py",
-        "tests/shell/test_session_manager.py"
-      ],
-      "depends_on": [
-        "T-118"
-      ],
-      "test_requirements": {
-        "unit": [
-          "Each state times out to IDLE (SIGKILL child) when deadline elapses \u2014 verified with mock clock",
-          "agentflow/handoff.py writes handoff_complete.json atomically",
-          "poll() drives state transitions without any time.sleep or blocking waitpid in the hot loop"
-        ],
-        "integration": [
-          "Full handoff cycle completes via poll() path (no _run_handoff_loop)",
-          "PTY loop does not hang when handoff_complete.json is never written (deadline fires)"
-        ],
-        "coverage_threshold": 85
-      },
-      "acceptance_criteria": "PTY loop never blocks indefinitely: select() is the only blocking call, every state has a deadline that forces IDLE on expiry, handoff_complete.json is written by agentflow/handoff.py (not scraped from output), and tests exercise the production poll() path.",
-      "estimated_lines": 80,
-      "context_section": "execution_plan.md#addendum-t-121"
+      "status": "complete"
     },
     {
       "task_id": "T-138",
@@ -616,7 +589,7 @@
     {
       "task_id": "T-126",
       "title": "PTY idle wake-up \u2014 inject b\"\\r\" after 60s idle with task in flight",
-      "description": "Add idle wake-up to session_manager.py: if _task_in_flight (tasks_in_flight.json exists) AND no PTY output for 60s AND input field is empty (post-output silence: _last_had_content was True, now no output for > 1s) \u2192 write_input(\"/orchestrate\\r\") to re-enter orchestrate skill. Track idle time via _last_output_ts (float, set to time.monotonic() in _handle_output on every non-empty chunk). Backoff: double interval on each injection with no state change (task still in flight after wake-up response); cap at 300s. Reset backoff when state changes. Guard: only inject when _state_machine.state == States.TASK_RUNNING (task legitimately in flight, not just idle between user turns). Config key: shell.idle_wakeup_seconds (default 60); set to 0 to disable. Tests: test_idle_wakeup_fires_after_threshold, test_idle_wakeup_respects_guard_state, test_idle_wakeup_backoff_doubles. Depends on T-121 (reactor must be stable) and T-125 (pty_signal task_done used to detect in-flight).",
+      "description": "Add idle wake-up to session_manager.py: if _task_in_flight (tasks_in_flight.json exists) AND no PTY output for 60s AND input field is empty (post-output silence: _last_had_content was True, now no output for > 1s) \u2192 write_input(\"/orchestrate\\r\") to re-enter orchestrate skill. Track idle time via _last_output_ts (float, set to time.monotonic() in _handle_output on every non-empty chunk). Backoff: double interval on each injection with no state change (task still in flight after wake-up response); cap at 300s. Reset backoff when state changes. Guard: only inject when _state_machine.state == States.TASK_RUNNING (task legitimately in flight, not just idle between user turns). Config key: shell.idle_wakeup_seconds (default 60); set to 0 to disable. Tests: test_idle_wakeup_fires_after_threshold, test_idle_wakeup_respects_guard_state, test_idle_wakeup_backoff_doubles. Depends on T-121 (reactor must be stable) and T-125 (pty_signal task_done used to detect in-flight). [CANCELLED: process liveness via waitpid in T-121 is the complete signal; silent-but-alive is indistinguishable from deep inference at PTY layer]",
       "owns": [
         "agentflow/shell/session_manager.py",
         "tests/shell/test_session_manager.py"
@@ -626,7 +599,7 @@
         "T-125"
       ],
       "estimated_lines": 55,
-      "status": "pending"
+      "status": "cancelled"
     },
     {
       "task_id": "T-139",
@@ -703,6 +676,10 @@
       "reads": [],
       "depends_on": [],
       "status": "pending"
+    },
+    {
+      "task_id": "T-146",
+      "status": "complete"
     }
   ]
 }
