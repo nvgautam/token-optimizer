@@ -124,23 +124,13 @@ def handle_output(manager, chunk: bytes) -> None:
     _since_restart = time.monotonic() - manager._last_restart_ts
     if not manager._manual_handoff and not manager._auto_handoff_disabled() and manager._state_machine.state not in (States.HANDOFF_PENDING, States.RESTARTING) and _since_restart >= _restart_cooldown:
         primary = manager._config["handoff_primary_tokens"]
-        safety = manager._config["handoff_safety_tokens"]
-        ceiling = manager._config["handoff_hard_ceiling_tokens"]
-        manager._log_audit({"event": "token_evaluation", "accumulated_tokens": total, "primary": primary, "safety": safety, "ceiling": ceiling})
-        triggered = False
+        manager._log_audit({"event": "token_evaluation", "accumulated_tokens": total, "primary": primary})
 
-        # Primary: 80K + a scheduled task just completed (no task in-flight)
+        # T-151: only trigger on 80K + task just completed + no task in-flight.
+        # Safety and ceiling triggers removed — they caused mid-task restart storms
+        # with no recovery path.
         task_just_completed = complete_m is not None
         task_in_flight = bool(manager._task_start_tokens) or manager._state_machine.state == States.TASK_RUNNING
-        if not triggered and total >= primary and task_just_completed and not task_in_flight:
+        if total >= primary and task_just_completed and not task_in_flight:
             manager.trigger_handoff(trigger="auto-primary")
-            triggered = True
 
-        # Safety net: 120K + no task in-flight
-        if not triggered and total >= safety and not task_in_flight:
-            manager.trigger_handoff(trigger="auto-safety")
-            triggered = True
-
-        # Hard ceiling: 150K unconditional
-        if not triggered and total >= ceiling:
-            manager.trigger_handoff(trigger="auto-ceiling")

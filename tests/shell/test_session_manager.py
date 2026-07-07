@@ -71,28 +71,31 @@ def test_trigger_handoff_writes_commands(tmp_path):
             sm.trigger_handoff()
     assert "/handoff\r" in pty.inputs  # T-148: PTY expects \r not \n
 
-def test_safety_and_ceiling_triggers():
+def test_safety_and_ceiling_triggers_removed():
+    """T-151: safety (120K) and ceiling (150K) triggers no longer fire."""
+    # 121K tokens — old safety trigger; must NOT fire without task_just_completed
     tok = FakeTokenizer(fixed_return=121_000)
-    sm, pty, _ = make_manager(config={"handoff_safety_tokens": 120_000, "handoff_hard_ceiling_tokens": 150_000}, tokenizer=tok)
+    sm, pty, _ = make_manager(config={"handoff_primary_tokens": 80_000}, tokenizer=tok)
     sm.session_type = "oracle"
-    with patch.object(sm, "trigger_handoff") as mock_hf:
-        fire_output(sm, pty, "some output chunk")
-        mock_hf.assert_called_once()
-    sm, pty, _ = make_manager(config={"handoff_safety_tokens": 120_000, "handoff_hard_ceiling_tokens": 150_000}, tokenizer=tok)
-    sm.session_type = "oracle"
-    sm._task_start_tokens["T-001"] = 50_000
     with patch.object(sm, "trigger_handoff") as mock_hf:
         fire_output(sm, pty, "some output chunk")
         mock_hf.assert_not_called()
-    tok._fixed = 151_000
-    with patch.object(sm, "trigger_handoff") as mock_hf:
-        fire_output(sm, pty, "some output chunk")
-        mock_hf.assert_called_once()
-    tok._fixed = 121_000
-    sm._task_start_tokens.clear()
-    sm._manual_handoff = True
-    with patch.object(sm, "trigger_handoff") as mock_hf:
-        fire_output(sm, pty, "some output chunk")
+
+    # 151K tokens — old ceiling trigger; must NOT fire without task_just_completed
+    tok2 = FakeTokenizer(fixed_return=151_000)
+    sm2, pty2, _ = make_manager(config={"handoff_primary_tokens": 80_000}, tokenizer=tok2)
+    sm2.session_type = "oracle"
+    with patch.object(sm2, "trigger_handoff") as mock_hf:
+        fire_output(sm2, pty2, "some output chunk")
+        mock_hf.assert_not_called()
+
+    # manual_handoff suppresses primary trigger
+    tok3 = FakeTokenizer(fixed_return=85_000)
+    sm3, pty3, _ = make_manager(config={"handoff_primary_tokens": 80_000}, tokenizer=tok3)
+    sm3.session_type = "oracle"
+    sm3._manual_handoff = True
+    with patch.object(sm3, "trigger_handoff") as mock_hf:
+        fire_output(sm3, pty3, "AGENTFLOW_TASK_COMPLETE:T-001")
         mock_hf.assert_not_called()
 
 def test_countdown_behavior(capsys):
@@ -162,16 +165,19 @@ def test_primary_triggers():
 
 def test_primary_suppressed_cases():
     tok = FakeTokenizer(fixed_return=85_000)
-    sm, pty, _ = make_manager(config={"handoff_primary_tokens": 80_000, "handoff_safety_tokens": 200_000, "handoff_hard_ceiling_tokens": 300_000}, tokenizer=tok)
+    sm, pty, _ = make_manager(config={"handoff_primary_tokens": 80_000}, tokenizer=tok)
     sm.session_type = "orchestrator"
+    # Task in-flight suppresses even when task_just_completed signal present
     sm._task_start_tokens["T-002"] = 40_000
     with patch.object(sm, "trigger_handoff") as mock_hf:
         fire_output(sm, pty, "AGENTFLOW_TASK_COMPLETE:T-001")
         mock_hf.assert_not_called()
+    # Below primary threshold — no trigger
     tok._fixed = 50_000
     with patch.object(sm, "trigger_handoff") as mock_hf:
         fire_output(sm, pty, "AGENTFLOW_TASK_COMPLETE:T-001")
         mock_hf.assert_not_called()
+    # No task_just_completed signal — no trigger even above threshold
     tok._fixed = 85_000
     with patch.object(sm, "trigger_handoff") as mock_hf:
         fire_output(sm, pty, "some regular output")
@@ -222,6 +228,8 @@ def test_manual_handoff_reset_on_clear(tmp_path):
     assert sm._manual_handoff is False
 
 def test_tokenizer_resets_on_clear_prevents_rehangoff(tmp_path):
+    """T-151: after /clear the tokenizer resets; subsequent primary trigger
+    should not fire because accumulated count is now 0 (below 80K)."""
     class PreloadedTokenizer(FakeTokenizer):
         def __init__(self, seed: int):
             super().__init__()
@@ -231,28 +239,32 @@ def test_tokenizer_resets_on_clear_prevents_rehangoff(tmp_path):
             return self._total
         def reset(self):
             self._total = 0
-    tok = PreloadedTokenizer(seed=130_000)
-    sm, pty, _ = make_manager(config={"handoff_safety_tokens": 120_000}, tokenizer=tok)
+    # Seed above primary threshold; /clear must reset so no re-trigger fires
+    tok = PreloadedTokenizer(seed=90_000)
+    sm, pty, _ = make_manager(config={"handoff_primary_tokens": 80_000}, tokenizer=tok)
     sm.session_type = "oracle"
     with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
         with patch.object(sm, "trigger_handoff") as mock_hf:
             fire_output(sm, pty, "/clear\n")
-            fire_output(sm, pty, "Welcome back")
+            # Post-clear: tokenizer._total == 0; send task_complete — below 80K, no trigger
+            fire_output(sm, pty, "AGENTFLOW_TASK_COMPLETE:T-001")
             mock_hf.assert_not_called()
 
 def test_pty_audit_logging(tmp_path):
+    """T-151: trigger via primary path (80K + task_just_completed)."""
     (tmp_path / ".agentflow").mkdir()
     tok = FakeTokenizer(fixed_return=100)
-    sm, pty, _ = make_manager(config={"handoff_hard_ceiling_tokens": 1000}, tokenizer=tok)
+    sm, pty, _ = make_manager(config={"handoff_primary_tokens": 80_000}, tokenizer=tok)
     with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
         sm._project_root = tmp_path
         sm._task_complete_path = tmp_path / ".agentflow" / "task_complete.json"
         sm._handoff_complete_path = tmp_path / ".agentflow" / "handoff_complete.json"
         for cmd in ["/oracle\r\n", "/handoff\r\n", "/clear\n"]:
             fire_output(sm, pty, cmd)
-        tok._fixed, sm.session_type = 2000, "oracle"
+        # Set above primary threshold and send task_complete signal
+        tok._fixed, sm.session_type = 85_000, "oracle"
         with patch.object(sm, "trigger_handoff") as mock_hf:
-            fire_output(sm, pty, "some text")
+            fire_output(sm, pty, "AGENTFLOW_TASK_COMPLETE:T-999")
             mock_hf.assert_called_once()
         with patch("agentflow.shell.session_manager.countdown") as mock_cd:
             mock_cd.side_effect = lambda s, on_complete, **kw: on_complete()
@@ -338,28 +350,29 @@ def test_restart_child_resets_token_accumulator(tmp_path):
     assert tok._total == 0, "tokenizer running total must be reset to 0 after restart"
 
 
-def test_idle_state_token_threshold_trigger(tmp_path):
+def test_idle_poll_no_longer_triggers_on_token_count(tmp_path):
+    """T-151: poll() must NOT trigger handoff based on safety/ceiling token counts.
+    The poll loop only responds to signal files; threshold-based triggers are
+    exclusively handled in output_handler via the primary path."""
     with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
-        sm, pty, _ = make_manager(config={"handoff_safety_tokens": 120_000, "handoff_hard_ceiling_tokens": 150_000})
-        sm._force_async_handoff = True
+        # 125K tokens — formerly triggered safety handoff; must stay IDLE now
+        sm, pty, _ = make_manager(config={"handoff_primary_tokens": 80_000})
         sm._state_machine.state = States.IDLE
         sm._last_accumulated_tokens = 125_000
-        sm.poll()
-        assert sm._state_machine.state == States.HANDOFF_PENDING
+        with patch.object(sm, "trigger_handoff") as mock_hf:
+            sm.poll()
+            mock_hf.assert_not_called()
+        assert sm._state_machine.state == States.IDLE
 
-        sm2, pty2, _ = make_manager(config={"handoff_safety_tokens": 120_000, "handoff_hard_ceiling_tokens": 150_000})
-        sm2._force_async_handoff = True
+        # 155K tokens — formerly triggered ceiling handoff; must stay IDLE now
+        sm2, pty2, _ = make_manager(config={"handoff_primary_tokens": 80_000})
         sm2._state_machine.state = States.IDLE
         sm2._last_accumulated_tokens = 155_000
-        sm2.poll()
-        assert sm2._state_machine.state == States.HANDOFF_PENDING
+        with patch.object(sm2, "trigger_handoff") as mock_hf:
+            sm2.poll()
+            mock_hf.assert_not_called()
+        assert sm2._state_machine.state == States.IDLE
 
-        sm3, pty3, _ = make_manager(config={"handoff_safety_tokens": 120_000, "handoff_hard_ceiling_tokens": 150_000})
-        sm3._force_async_handoff = True
-        sm3._state_machine.state = States.IDLE
-        sm3._last_accumulated_tokens = 80_000
-        sm3.poll()
-        assert sm3._state_machine.state == States.IDLE
 
 def test_init_state_with_preexisting_current_round(tmp_path):
     (tmp_path / ".agentflow").mkdir()
