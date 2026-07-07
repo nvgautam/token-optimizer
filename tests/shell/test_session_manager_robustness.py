@@ -34,27 +34,18 @@ class FakeTokenizer:
 
 
 def test_trigger_handoff_dead_pty_guard(tmp_path):
-    # Pre-create .agentflow directory
+    """Dead PTY guard fires at trigger_handoff() entry, not inside removed loop."""
     (tmp_path / ".agentflow").mkdir()
-
     pty = FakePTY()
     tok = FakeTokenizer()
     sm = SessionManager(pty, tok, config={})
     sm.session_type = "oracle"
+    # PTY is already dead before trigger_handoff is called
+    pty._exited = True
 
-    # Make the read_output call set _exited to True
-    def mock_read_output(timeout=1.0):
-        pty._exited = True
-        return b"some output"
-    pty.read_output = mock_read_output
-
-    with patch.object(pathlib.Path, "cwd", return_value=tmp_path), \
-         patch("agentflow.shell.session_manager.countdown") as mock_cd:
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
         sm.trigger_handoff(trigger="auto-safety")
-        # Ensure countdown was NOT called (since handoff did not complete)
-        mock_cd.assert_not_called()
 
-    # Ensure handoff_aborted was logged with token count
     log_path = tmp_path / ".agentflow" / "pty_audit.jsonl"
     assert log_path.exists()
     lines = log_path.read_text(encoding="utf-8").strip().split("\n")
@@ -91,27 +82,23 @@ def test_trigger_handoff_write_input_oserror(tmp_path):
 
 
 def test_trigger_handoff_output_forwarding(tmp_path):
-    # Pre-create .agentflow directory
+    """After T-121, trigger_handoff no longer runs a blocking read loop.
+    Output forwarding is handled by the main PTY event loop via poll_session.
+    This test verifies that trigger_handoff transitions to HANDOFF_PENDING
+    and poll_session picks up handoff_complete.json to advance state."""
     (tmp_path / ".agentflow").mkdir()
-
     pty = FakePTY()
     tok = FakeTokenizer()
     sm = SessionManager(pty, tok, config={})
     sm.session_type = "oracle"
+    sm._project_root = tmp_path
+    sm._handoff_complete_path = tmp_path / ".agentflow" / "handoff_complete.json"
 
-    outputs_to_return = [b"Chunk 1\n", b"HANDOFF_COMPLETE\n"]
-    def mock_read_output(timeout=1.0):
-        if outputs_to_return:
-            return outputs_to_return.pop(0)
-        return b""
-    pty.read_output = mock_read_output
-
-    with patch.object(pathlib.Path, "cwd", return_value=tmp_path), \
-         patch("os.write") as mock_write, \
-         patch("agentflow.shell.session_manager.countdown") as mock_cd:
-        mock_cd.side_effect = lambda s, on_complete, **kw: on_complete()
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
         sm.trigger_handoff(trigger="auto-safety")
-
-        # Verify os.write(1, ...) was called to forward output to stdout
-        mock_write.assert_any_call(1, b"Chunk 1\n")
-        mock_write.assert_any_call(1, b"HANDOFF_COMPLETE\n")
+        assert sm._state_machine.state.name == "HANDOFF_PENDING"
+        # Simulate handoff skill writing the completion file
+        sm._handoff_complete_path.write_text("{}", encoding="utf-8")
+        with patch.object(sm, "restart_child"):
+            sm.poll()
+        assert sm._state_machine.state.name == "RESTARTING"

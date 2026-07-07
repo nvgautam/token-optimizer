@@ -89,11 +89,27 @@ def cmd_scan(args: argparse.Namespace) -> int:
     print("agentflow scan — not yet implemented"); return 0
 
 
+def _check_shell_deps() -> None:
+    """Warn about missing or outdated runtime dependencies before shell starts."""
+    try:
+        import importlib.metadata
+        importlib.metadata.version("headroom-ai")
+    except importlib.metadata.PackageNotFoundError:
+        print(
+            "[agentflow] WARNING: headroom-ai not installed — proxy compression disabled.\n"
+            "  Fix: pip install -e .\n"
+            "  Or:  pip install -r requirements.lock\n",
+            flush=True,
+        )
+
+
 def cmd_shell(args: argparse.Namespace) -> int:
     from agentflow.shell.pty_wrapper import PTYWrapper
     from agentflow.shell.session_manager import SessionManager
     from agentflow.shell import tokenizer as tokenizer_module
     from agentflow.shell.pty_shell import ProxyShell
+
+    _check_shell_deps()
 
     cmd = args.shell_command
     if cmd == "gemini":
@@ -135,6 +151,7 @@ def cmd_shell(args: argparse.Namespace) -> int:
     old_settings = termios.tcgetattr(fd)
     try:
         tty.setraw(fd)
+        from agentflow.shell.state_machine import States
         wrapper = PTYWrapper([cmd])
         session_manager = SessionManager(wrapper, tokenizer_module, config={})
 
@@ -148,7 +165,8 @@ def cmd_shell(args: argparse.Namespace) -> int:
                 try:
                     chunk = os.read(fd, 1024)
                     if chunk:
-                        os.write(wrapper.master_fd, chunk)
+                        if session_manager._state_machine.state != States.RESTARTING:
+                            os.write(wrapper.master_fd, chunk)
                 except OSError:
                     break
 
