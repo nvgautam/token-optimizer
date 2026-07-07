@@ -15,13 +15,36 @@ def _filter_by_window(entries: list[dict], w: tuple[str, str] | None) -> list[di
         return [e for e in entries if w[0] <= e.get("ts", "") <= w[1]]
     return entries
 
+def _load_proxy_log(project_root: Path) -> int:
+    """Sum tokens saved from agentflow's own proxy_log.jsonl."""
+    path = project_root / ".agentflow" / "proxy_log.jsonl"
+    if not path.exists():
+        return 0
+    saved = 0
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            e = json.loads(line)
+            saved += e.get("tokens_before", 0) - e.get("tokens_after", 0)
+    except Exception:
+        pass
+    return max(0, saved)
+
 def _load_proxy_savings(project_root: Path) -> dict | None:
-    path = project_root / ".headroom" / "proxy_savings.json"
-    if path.exists():
-        try:
-            return json.loads(path.read_text())
-        except Exception:
-            pass
+    candidates = [
+        project_root / ".headroom" / "proxy_savings.json",
+        Path.home() / ".headroom" / "proxy_savings.json",
+    ]
+    try:
+        from headroom import paths as _hr_paths
+        candidates.insert(0, Path(_hr_paths.savings_path()))
+    except Exception:
+        pass
+    for path in candidates:
+        if path.exists():
+            try:
+                return json.loads(path.read_text())
+            except Exception:
+                continue
     return None
 
 def _compression_delta_from_history(history: list[dict], window: tuple[str, str] | None, field: str) -> int:
@@ -139,6 +162,15 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
     stopping_status = verbosity_baseline.get("stopping_status", "")
     history = (_load_proxy_savings(project_root) or {}).get("history", [])
     compression_savings = _compression_delta_from_history(history, _reporting_window(entries), "total_tokens_saved")
+    if compression_savings == 0:
+        compression_savings = _load_proxy_log(project_root)
+    if compression_savings == 0:
+        try:
+            from headroom import savings_ledger as _sl
+            _report = _sl.aggregate_savings()
+            compression_savings = _report.lifetime.get("tokens_saved", 0)
+        except Exception:
+            pass
     headroom_html = ""
     try:
         from headroom.storage import create_storage
