@@ -219,7 +219,7 @@ def _report_verbosity_compliance(project_root: Path) -> int:
         return 0
     by_type = defaultdict(list)
     for e in entries:
-        by_type[e.get("session_type", "unknown")].append(e.get("output_tokens", 0))
+        by_type[e.get("session_type") or "unknown"].append(e.get("output_tokens", 0))
     for st, tokens in sorted(by_type.items()):
         n = len(tokens)
         mean_tokens = sum(tokens) / n if n else 0
