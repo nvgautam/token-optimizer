@@ -175,6 +175,22 @@ def cmd_shell(args: argparse.Namespace) -> int:
                 if chunk:
                     os.write(1, chunk)
             else:
+                # Fix 1 (T-146): detect child exit independent of master_fd readability.
+                # On macOS a restarted child that exits without output may never signal
+                # master_fd readable, causing the loop to spin forever.
+                try:
+                    pid, wstatus = os.waitpid(wrapper.child_pid, os.WNOHANG)
+                    if pid == wrapper.child_pid:
+                        wrapper._exited = True
+                        wrapper._exit_code = os.waitstatus_to_exitcode(wstatus)
+                        if wrapper._on_exit is not None:
+                            wrapper._on_exit(wrapper._exit_code)
+                            wrapper._on_exit = None
+                        break
+                except ChildProcessError:
+                    wrapper._exited = True
+                    wrapper._exit_code = -1
+                    break
                 session_manager.on_idle_tick()
 
     finally:

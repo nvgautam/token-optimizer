@@ -195,7 +195,16 @@ class SessionManager:
         return detect_read_path(text)
 
     def _on_session_exit(self, exit_code: int) -> None:
-        pass
+        """Called by PTYWrapper when the child process exits.
+
+        Fix 2 (T-146): was a no-op; now transitions to DEAD_CHILD so the
+        state machine surfaces the failure and stops silently spinning.
+        """
+        self._log_audit({"event": "session_exit", "exit_code": exit_code})
+        try:
+            self._state_machine.transition("pty_eof")
+        except Exception:
+            pass
 
     def trigger_handoff(self, trigger: str = "auto") -> None:
         from agentflow.shell.handoff_handler import trigger_handoff
