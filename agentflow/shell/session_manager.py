@@ -20,9 +20,7 @@ from agentflow.shell.countdown import countdown  # noqa: F401
 from agentflow.shell.state_machine import StateMachine, States
 
 _DEFAULTS = {
-    "handoff_primary_tokens": 80000,
-    "handoff_safety_tokens": 120000,
-    "handoff_hard_ceiling_tokens": 150000,
+    "handoff_primary_tokens": 80000,  # T-151: only threshold that triggers auto-handoff
     "restart_delay_seconds": 5
 }
 

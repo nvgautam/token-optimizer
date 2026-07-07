@@ -95,14 +95,10 @@ def poll_session(manager) -> None:
                     manager._state_machine.transition("current_round_written")
             except Exception:
                 pass
-        elif not manager._manual_handoff and not manager._auto_handoff_disabled():
-            task_in_flight = bool(manager._task_start_tokens) or manager._state_machine.state == States.TASK_RUNNING
-            safety = manager._config.get("handoff_safety_tokens", 120000)
-            ceiling = manager._config.get("handoff_hard_ceiling_tokens", 150000)
-            if manager._last_accumulated_tokens >= ceiling:
-                manager.trigger_handoff(trigger="auto-ceiling")
-            elif manager._last_accumulated_tokens >= safety and not task_in_flight:
-                manager.trigger_handoff(trigger="auto-safety")
+        # T-151: safety and ceiling threshold triggers removed from poll loop.
+        # Handoff is only triggered via output_handler (primary: 80K + task_just_completed)
+        # or explicit /handoff signal — not by polling token counts here.
+
 
     elif state == States.TASK_RUNNING:
         if manager._task_complete_path.exists():
