@@ -1124,5 +1124,18 @@
     ],
     "depends_on": [],
     "status": "complete"
+  },
+  {
+    "task_id": "T-148",
+    "title": "PTY stdin submission \u2014 translate \\n to \\r so injected commands execute",
+    "description": "Root cause: session_manager.py:166 calls write_input(f\"/{cmd}\\n\") but PTY line discipline expects \\r (0x0D) to trigger readline submission, not \\n (0x0A). Commands sit in the input buffer unsubmitted. Fix: in PTYWrapper.write_input (pty_wrapper.py:137-139), translate \\n \u2192 \\r before os.write: text = text.replace(\"\\n\", \"\\r\"). Do NOT use \\r\\n \u2014 pure \\r is correct for PTY master-side input. Verify: after injection, Claude Code prompt should respond immediately rather than sitting idle. Also audit all other write_input call sites for the same issue. Estimated lines: ~3 lines changed in pty_wrapper.py.",
+    "owns": [
+      "agentflow/shell/pty_wrapper.py"
+    ],
+    "reads": [
+      "agentflow/shell/session_manager.py"
+    ],
+    "depends_on": [],
+    "status": "complete"
   }
 ]

@@ -680,6 +680,21 @@
     {
       "task_id": "T-146",
       "status": "complete"
+    },
+    {
+      "task_id": "T-147",
+      "title": "AnthropicCacheOptimizer \u2014 inject cache breakpoints in proxy pipeline",
+      "description": "Instantiate AnthropicCacheOptimizer once at module level in agentflow/proxy/server.py (guarded by _HEADROOM_AVAILABLE). In do_POST, after compression, call optimizer.optimize(messages, OptimizationContext(request_id=request_id, model=model)) on post-compression messages; replace payload[\"messages\"] with result.messages. Track cache_tokens_saved (result.tokens_before - result.tokens_after) as a new field in _log_entry and proxy_log.jsonl. ~25 lines in server.py + ~5 in _log_entry.",
+      "owns": [
+        "agentflow/proxy/server.py"
+      ],
+      "reads": [],
+      "depends_on": [],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-148",
+      "status": "complete"
     }
   ]
 }

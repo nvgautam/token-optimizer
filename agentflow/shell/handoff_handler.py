@@ -1,6 +1,7 @@
 """Handoff logic extracted from session_manager."""
 from __future__ import annotations
 import os
+import pathlib
 import signal
 import time
 from agentflow.shell.state_machine import States
@@ -14,8 +15,13 @@ _DEADLINES: dict[States, float] = {
 
 
 def handle_enter_handoff_pending(manager) -> None:
+    # Clear any stale handoff_complete.json so the poll loop cannot
+    # immediately re-trigger a restart from a previous session's file.
+    stale = pathlib.Path(".agentflow/handoff_complete.json")
+    if stale.exists():
+        stale.unlink()
     try:
-        manager._pty.write_input("/handoff\n")
+        manager._pty.write_input("/handoff\r")
     except OSError:
         manager._log_audit({"event": "handoff_aborted", "trigger": manager._current_trigger, "tokens": manager._last_accumulated_tokens})
         manager._state_machine.transition("handoff_aborted")
