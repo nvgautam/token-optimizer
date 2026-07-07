@@ -15,3 +15,4 @@ build/
 .agentflow/shadow_reads.jsonl
 .headroom/
 .agentflow/proxy_log.jsonl
+.agentflow/verbosity_log.jsonl
