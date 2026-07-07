@@ -319,6 +319,25 @@ def test_on_enter_restarting_calls_restart_child():
         assert sm._just_restarted is True
         assert not any("/clear" in inp for inp in pty.inputs)
 
+def test_restart_child_resets_token_accumulator(tmp_path):
+    """T-150: restart_child() must zero _last_accumulated_tokens and reset the tokenizer."""
+    sm, pty, tok = make_manager()
+    pty.child_pid = None  # no real process to kill
+
+    # Simulate accumulated tokens from a previous session
+    sm._last_accumulated_tokens = 95_000
+    tok._total = 95_000
+
+    with (
+        patch("agentflow.shell.process_manager.spawn_new_child"),
+        patch.object(sm._state_machine, "transition"),
+    ):
+        sm.restart_child()
+
+    assert sm._last_accumulated_tokens == 0, "_last_accumulated_tokens must be reset to 0 after restart"
+    assert tok._total == 0, "tokenizer running total must be reset to 0 after restart"
+
+
 def test_idle_state_token_threshold_trigger(tmp_path):
     with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
         sm, pty, _ = make_manager(config={"handoff_safety_tokens": 120_000, "handoff_hard_ceiling_tokens": 150_000})

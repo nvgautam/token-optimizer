@@ -43,6 +43,10 @@ def restart_child(manager) -> None:
 
     manager._clear_signal_files()
     manager._spawn_new_child()
+    # T-150: reset token state so counts do not carry over from the previous session
+    manager._last_accumulated_tokens = 0
+    if hasattr(manager._tokenizer, "reset"):
+        manager._tokenizer.reset()
     manager._state_machine.transition("restart_done")
 
 def spawn_new_child(manager) -> None:
