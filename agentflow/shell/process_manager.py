@@ -7,6 +7,10 @@ import signal
 def handle_enter_restarting(manager) -> None:
     manager._just_restarted = True
     manager.restart_child()
+    try:
+        os.write(1, b"\x1b[0m")
+    except OSError:
+        pass
 
 def restart_child(manager) -> None:
     """Kills the active Claude child process and restarts it."""

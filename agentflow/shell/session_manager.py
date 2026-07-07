@@ -34,7 +34,12 @@ class SessionManager:
         cfg = dict(_DEFAULTS)
         try:
             with open(pathlib.Path.home() / ".agentflow" / "config.toml", "rb") as fh:
-                cfg.update(tomllib.load(fh).get("shell", {}))
+                toml_cfg = tomllib.load(fh)
+                cfg.update(toml_cfg.get("shell", {}))
+                # Provider-specific overrides: [shell.gemini] / [shell.claude]
+                provider = (getattr(pty_wrapper, "_command", None) or "").split("/")[-1]
+                if provider and provider in toml_cfg.get("shell", {}):
+                    cfg.update(toml_cfg["shell"][provider])
         except Exception:
             pass
         self._config = {**cfg, **(config or {})}
@@ -50,6 +55,8 @@ class SessionManager:
         self._last_accumulated_tokens = 0
         self._last_restart_ts: float = 0.0
         self._current_trigger = "auto"
+        self._deadline_state = None
+        self._deadline_entered_at: float = 0.0
         
         # State machine initialization
         self._state_machine = StateMachine(
@@ -143,9 +150,7 @@ class SessionManager:
         from agentflow.shell.handoff_handler import handle_enter_handoff_pending
         handle_enter_handoff_pending(self)
 
-    def _run_handoff_loop(self, trigger: str) -> None:
-        from agentflow.shell.handoff_handler import run_handoff_loop
-        run_handoff_loop(self, trigger)
+
 
     def on_enter_restarting(self) -> None:
         from agentflow.shell.process_manager import handle_enter_restarting

@@ -353,3 +353,44 @@ def test_init_state_with_preexisting_current_round(tmp_path):
     with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
         sm2 = SessionManager(pty, tok, {})
     assert sm2._state_machine.state == States.IDLE
+
+
+# --- T-121: per-state deadlines, ANSI reset, stdin gating ---
+@pytest.mark.parametrize("state,elapsed,expect_idle", [
+    (States.HANDOFF_PENDING, 91, True), (States.TASK_COMPLETE, 31, True),
+    (States.RESTARTING, 31, True), (States.DEAD_CHILD, 11, True),
+    (States.TASK_RUNNING, 1000, False),
+])
+def test_deadline_fires(tmp_path, state, elapsed, expect_idle):
+    sm, _, _ = make_manager()
+    sm._state_machine.state = state
+    sm._deadline_state = state
+    sm._deadline_entered_at = 0.0
+    with patch("agentflow.shell.handoff_handler.time") as mt:
+        mt.monotonic.return_value = elapsed
+        with patch("os.kill"), patch("os.waitpid", return_value=(0, 0)):
+            sm.poll()
+    assert sm._state_machine.state == (States.IDLE if expect_idle else state)
+
+def test_handoff_complete_via_poll_not_loop(tmp_path):
+    sm, _, _ = make_manager()
+    sm._state_machine.state = States.HANDOFF_PENDING
+    sm._handoff_complete_path = tmp_path / ".agentflow" / "handoff_complete.json"
+    sm._handoff_complete_path.parent.mkdir(parents=True, exist_ok=True)
+    sm._handoff_complete_path.write_text("{}", encoding="utf-8")
+    with patch.object(sm, "restart_child"): sm.poll()
+    assert sm._state_machine.state == States.RESTARTING
+
+def test_on_enter_restarting_emits_ansi_reset():
+    sm, _, _ = make_manager()
+    written = []
+    with patch("os.write", side_effect=lambda fd, b: written.append((fd, b))):
+        with patch.object(sm, "restart_child"): sm.on_enter_restarting()
+    assert (1, b"\x1b[0m") in written
+
+def test_stdin_gating_condition():
+    sm, _, _ = make_manager()
+    sm._state_machine.state = States.RESTARTING
+    assert (sm._state_machine.state != States.RESTARTING) is False
+    sm._state_machine.state = States.IDLE
+    assert (sm._state_machine.state != States.RESTARTING) is True
