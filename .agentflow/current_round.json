@@ -1,16 +1,13 @@
 {
-  "round_id": "D3-prep-cont-c",
+  "round_id": "D3-durability",
   "task_ids": [
-    "T-142",
-    "T-145"
+    "T-157"
   ],
   "estimated_lines_per_task": {
-    "T-142": 80,
-    "T-145": 50
+    "T-157": 30
   },
   "file_counts_per_task": {
-    "T-142": 2,
-    "T-145": 2
+    "T-157": 3
   },
-  "timestamp": "2026-07-07T23:47:50.071180"
+  "timestamp": "2026-07-08T00:38:30.449827"
 }

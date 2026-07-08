@@ -106,6 +106,17 @@ Read(file="architecture.md", offset=<start>, limit=<end-start+1>)
 ```
 No match → proceed without architecture context for that topic.
 
+### Incremental Flush
+
+**After each design decision resolves, append the row to `design_status.md` immediately — do not batch writes at phase end.**
+
+For each resolved item, append this row to the table in `design_status.md`:
+```
+| Topic | RESOLVED | Decision summary |
+```
+
+Write immediately. This minimizes the in-flight window if PTY restarts mid-phase.
+
 ### Batch HANDOFF signals
 
 | Batch | Signal |

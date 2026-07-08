@@ -407,16 +407,17 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | D3-fix (P0) — MERGED | T-148 | PTY stdin \n→\r fix — commands submit instead of sitting idle; automated orchestrate loop unblocked |
 | D3-restart | T-149 (MERGED) ‖ T-150 (MERGED) (parallel), then T-151 (MERGED), then T-152 (MERGED) | Restart-storm fixes — stale signal clear + accumulator reset + trigger simplification + hook guard |
 | D3-156 — MERGED | T-156 | PostToolUse Agent hook — auto task_done signal backstop |
-| D3-prep-cont | T-159 | PTY handoff_handler.py session_type branch — top priority; wrong path fires on every orchestrate threshold hit |
+| D3-auto-1 | T-155 | PTY session_type detection — oracle vs orchestrate threshold routing; must land before T-159 |
+| D3-auto-2 | T-159 | PTY handoff_handler.py session_type branch — fires correct restart path on orchestrate threshold hit |
 | D3-prep-cont-b | T-158 (MERGED) | Stale tasks_in_flight reconcile |
 | D3-prep-cont-c — MERGED | T-139 (MERGED) ‖ T-142 (MERGED) ‖ T-145 (MERGED) | Size splits — unblocks D3b |
-| D3-durability | T-157 | CLAUDE.md post-merge checklist — prevents skill/config losses on branch diverge |
-| D3-oracle | T-153 ‖ T-154 ‖ T-155 (parallel) | Oracle threshold config + incremental design_status flush + session_type routing |
+| D3-durability — MERGED | T-157 (MERGED) | CLAUDE.md post-merge checklist — prevents skill/config losses on branch diverge |
+| D3-oracle | T-153 ‖ T-154 (parallel) | Oracle threshold config + incremental design_status flush |
 | D3b | T-122 ‖ T-120 ‖ T-112 ‖ T-147 ‖ T-160 (parallel) | Regression tests + installer + Nuitka binary + cache breakpoint optimization + verbosity A/B turn-boundary fix |
 | E | T-103 ‖ T-099 ‖ T-068 ‖ T-063 (parallel) | Measurement chain + multi-provider |
 | F | T-098, T-064, T-069 (parallel) | Model routing savings + rate headroom + parallel scheduling |
 
-Priority rationale (2026-07-07): D3-restart inserted after D3-fix — stale handoff_complete.json + runaway safety/ceiling triggers are the remaining blockers for reliable automated orchestration. T-149 + T-150 are independent and run parallel; T-151 (trigger simplification) depends on both; T-152 (hook guard) follows T-151. D3b follows once restart loop is stable. D3-prep-cont adds T-145 (oracle.md size split) and T-158 (stale tasks_in_flight reconcile) — T-158 elevated to this round because T-156 hook is live and reading stale entries on every Agent call. D3-oracle (T-153/154/155) slots before D3b to wire oracle threshold routing before binary compilation locks the interface.
+Priority rationale (2026-07-08): Auto-orchestration loop (handoff → restart → orchestrate → next task) is broken. T-155 lands first (session_type detection), T-159 second (handoff_handler branch that consumes it) — together they unblock the full auto-orchestrate cycle. D3-oracle (T-153/T-154) follows; D3b after that.
 
 ---
 
