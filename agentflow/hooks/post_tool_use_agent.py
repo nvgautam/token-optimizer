@@ -21,25 +21,19 @@ def _find_workspace_root() -> Path:
     return cwd
 
 
-def _detect_merged_pr(task_id: str) -> bool:
-    """Return True if any GitHub PR with task_id in title is in merged state."""
+def _fetch_merged_pr_titles(limit: int = 20) -> set[str]:
+    """Return titles of recently merged PRs via a single gh call."""
     try:
         result = subprocess.run(
-            [
-                "gh", "pr", "list",
-                "--search", f"{task_id} in:title",
-                "--state", "merged",
-                "--json", "number",
-            ],
+            ["gh", "pr", "list", "--state", "merged", "--json", "title", "--limit", str(limit)],
             capture_output=True,
             text=True,
             timeout=5,
             check=False,
         )
-        data = json.loads(result.stdout)
-        return len(data) > 0
+        return {pr["title"] for pr in json.loads(result.stdout)}
     except Exception:
-        return False
+        return set()
 
 
 def _mark_task_complete(tasks_file: Path, task_id: str) -> bool:
@@ -118,10 +112,11 @@ def main() -> None:
     except Exception:
         sys.exit(0)
 
-    # PR detection: mark tasks complete when their GitHub PR has been merged.
-    # Runs before status_by_id is built so the signal block sees fresh state.
+    # PR detection: one gh call fetches all recently merged PR titles; match
+    # locally against in-flight task IDs so we never make N API calls.
+    merged_titles = _fetch_merged_pr_titles()
     for task_id in in_flight:
-        if _detect_merged_pr(task_id):
+        if any(task_id in title for title in merged_titles):
             if _mark_task_complete(tasks_file, task_id):
                 _run_cleanup(root)
 

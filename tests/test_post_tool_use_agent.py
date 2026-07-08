@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-from agentflow.hooks.post_tool_use_agent import _detect_merged_pr, _mark_task_complete, _run_cleanup, main
+from agentflow.hooks.post_tool_use_agent import _fetch_merged_pr_titles, _mark_task_complete, _run_cleanup, main
 
 
 def _run_hook(tmp_path, stdin_data=None, in_flight=None, tasks=None):
@@ -81,7 +81,7 @@ class TestSignalFiring:
         pty.write_text("")
 
         with patch("agentflow.hooks.post_tool_use_agent._find_workspace_root", return_value=tmp_path):
-            with patch("agentflow.hooks.post_tool_use_agent._detect_merged_pr", return_value=False):
+            with patch("agentflow.hooks.post_tool_use_agent._fetch_merged_pr_titles", return_value=set()):
                 with patch("subprocess.run") as mock_run:
                     with pytest.raises(SystemExit) as exc:
                         main()
@@ -109,7 +109,7 @@ class TestSignalFiring:
         pty.write_text("")
 
         with patch("agentflow.hooks.post_tool_use_agent._find_workspace_root", return_value=tmp_path):
-            with patch("agentflow.hooks.post_tool_use_agent._detect_merged_pr", return_value=False):
+            with patch("agentflow.hooks.post_tool_use_agent._fetch_merged_pr_titles", return_value=set()):
                 with patch("subprocess.run") as mock_run:
                     with pytest.raises(SystemExit) as exc:
                         main()
@@ -131,7 +131,7 @@ class TestSignalFiring:
         pty.write_text("")
 
         with patch("agentflow.hooks.post_tool_use_agent._find_workspace_root", return_value=tmp_path):
-            with patch("agentflow.hooks.post_tool_use_agent._detect_merged_pr", return_value=False):
+            with patch("agentflow.hooks.post_tool_use_agent._fetch_merged_pr_titles", return_value=set()):
                 with patch("subprocess.run") as mock_run:
                     with pytest.raises(SystemExit) as exc:
                         main()
@@ -232,25 +232,27 @@ class TestRobustness:
 
 
 class TestPRDetection:
-    def test_detect_merged_pr_returns_true_when_gh_finds_pr(self):
+    def test_fetch_merged_pr_titles_returns_set_of_titles(self):
         mock_result = MagicMock()
-        mock_result.stdout = '[{"number": 42}]'
+        mock_result.stdout = '[{"title": "T-123: add feature"}, {"title": "T-124: fix bug"}]'
         with patch("subprocess.run", return_value=mock_result):
-            assert _detect_merged_pr("T-123") is True
+            titles = _fetch_merged_pr_titles()
+        assert "T-123: add feature" in titles
+        assert "T-124: fix bug" in titles
 
-    def test_detect_merged_pr_returns_false_when_gh_finds_no_pr(self):
+    def test_fetch_merged_pr_titles_returns_empty_set_when_none(self):
         mock_result = MagicMock()
         mock_result.stdout = "[]"
         with patch("subprocess.run", return_value=mock_result):
-            assert _detect_merged_pr("T-123") is False
+            assert _fetch_merged_pr_titles() == set()
 
-    def test_detect_merged_pr_returns_false_on_subprocess_error(self):
+    def test_fetch_merged_pr_titles_returns_empty_set_on_subprocess_error(self):
         with patch("subprocess.run", side_effect=subprocess.SubprocessError()):
-            assert _detect_merged_pr("T-123") is False
+            assert _fetch_merged_pr_titles() == set()
 
-    def test_detect_merged_pr_returns_false_on_timeout(self):
+    def test_fetch_merged_pr_titles_returns_empty_set_on_timeout(self):
         with patch("subprocess.run", side_effect=subprocess.TimeoutExpired(cmd="gh", timeout=5)):
-            assert _detect_merged_pr("T-123") is False
+            assert _fetch_merged_pr_titles() == set()
 
 
 class TestMarkTaskComplete:
@@ -299,7 +301,7 @@ class TestEndToEndPRAutoDetect:
         cleanup.write_text("")
 
         with patch("agentflow.hooks.post_tool_use_agent._find_workspace_root", return_value=tmp_path):
-            with patch("agentflow.hooks.post_tool_use_agent._detect_merged_pr", return_value=True):
+            with patch("agentflow.hooks.post_tool_use_agent._fetch_merged_pr_titles", return_value={"T-123: add feature"}):
                 with patch("subprocess.run") as mock_run:
                     with pytest.raises(SystemExit) as exc:
                         main()
