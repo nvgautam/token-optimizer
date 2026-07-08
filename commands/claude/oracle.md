@@ -25,10 +25,10 @@ Run: `ls -t .agentflow/handoff_*.md 2>/dev/null | head -1`
 
 ### Step 2 — Design status check
 
-Run: `grep -c "| UNRESOLVED |" design_status.md 2>/dev/null || echo ABSENT`
+Run: `grep -c '| UNRESOLVED |' design_status.md 2>/dev/null || echo ABSENT`
 
 - `ABSENT` → fresh project; continue to Step 3.
-- Count > 0 → run `grep "| UNRESOLVED |" design_status.md` to get the rows; re-spar on those items. No full file read needed.
+- Count > 0 → run `grep '| UNRESOLVED |' design_status.md` to get the rows; re-spar on those items. No full file read needed.
 - Count = 0 → proceed to tasks.json check.
 
 **tasks.json check:** Run: `grep -c '"status": "pending"' tasks.json 2>/dev/null || echo 0`

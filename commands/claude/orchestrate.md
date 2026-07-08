@@ -26,7 +26,7 @@ Compute `HASH=$(python3 -c "import hashlib,os; print(hashlib.sha256(os.getcwd().
 For `execution_plan.md` only: if `.idx` absent or source mtime newer than `.idx` mtime, regenerate (H2/H3 headers, `## Header:start-end`). Do not index `design_status.md` — Step 3 uses raw grep only.
 
 ### Step 3 — Oracle gate
-Run: `grep -c "| UNRESOLVED |" design_status.md 2>/dev/null || echo ABSENT`
+Run: `grep -c '| UNRESOLVED |' design_status.md 2>/dev/null || echo ABSENT`
 
 - `ABSENT` → proceed.
 - Count > 0 → stop: "Design has unresolved items. Run `/oracle` to resolve them first." No Read needed.
@@ -85,7 +85,7 @@ effective_rate = min(rate_5hr, rate_wkly)
 
 
 1. **First agent of every session: alone — never parallel on first spawn.**
-2. Before each round: `max_tasks = max(1, floor(effective_rate × 10 / pct_cost))`
+2. Before each round: `max_tasks_by_rate = max(1, floor(effective_rate × 10 / pct_cost))`; `max_tasks_by_budget = max(1, floor(orchestrator_threshold_tokens / pct_cost))`; `max_tasks = min(max_tasks_by_rate, max_tasks_by_budget)`
 3. After each `TOKENS:`: `effective_rate × remaining_minutes < 3 × pct_cost` → pause, ask `/usage`.
 4. Ramp: alone → 2 parallel → 4 parallel (only after Round A cost confirmed safe).
 5. Session end: ask `/usage` (`end_pct_5hr`, `end_pct_wkly`). Derive caps ledger-anchored:
