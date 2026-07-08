@@ -127,6 +127,10 @@ class _ProxyHandler(BaseHTTPRequestHandler):
             except Exception:
                 pass  # compression failure is non-fatal; forward original
 
+        # Inject Anthropic prompt-cache breakpoints into the (possibly compressed) messages
+        if payload.get("messages"):
+            payload["messages"] = _inject_cache_breakpoints(payload["messages"])
+
         # Forward request upstream — pass all original headers verbatim
         # Strip hop-by-hop headers and the proxy shared-secret (never leak to upstream)
         forward_headers: dict[str, str] = {}
@@ -169,6 +173,43 @@ class _ProxyHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(resp_body)))
         self.end_headers()
         self.wfile.write(resp_body)
+
+
+def _inject_cache_breakpoints(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Inject cache_control breakpoints at the stable-prefix boundary.
+
+    Marks the last message before the final two user turns so Anthropic's
+    KV cache can be reused across repeated prefixes, reducing token costs.
+    """
+    if not messages:
+        return messages
+
+    result = [dict(m) for m in messages]
+
+    user_indices = [i for i, m in enumerate(result) if m.get("role") == "user"]
+
+    if len(user_indices) < 2:
+        breakpoint_idx = 0 if result else -1
+    else:
+        # Boundary is the message immediately before the second-to-last user turn
+        second_last_user = user_indices[-2]
+        breakpoint_idx = second_last_user - 1 if second_last_user > 0 else second_last_user
+
+    if breakpoint_idx < 0:
+        return result
+
+    msg = result[breakpoint_idx]
+    content = msg.get("content", "")
+    if isinstance(content, str):
+        content = [{"type": "text", "text": content}]
+    if content:
+        last_block = dict(content[-1])
+        last_block["cache_control"] = {"type": "ephemeral"}
+        content = list(content[:-1]) + [last_block]
+    msg = dict(msg)
+    msg["content"] = content
+    result[breakpoint_idx] = msg
+    return result
 
 
 def _make_server() -> HTTPServer:
