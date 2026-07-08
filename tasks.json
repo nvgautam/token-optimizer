@@ -711,6 +711,57 @@
         "T-151"
       ],
       "status": "pending"
+    },
+    {
+      "task_id": "T-153",
+      "title": "Oracle 50K threshold config \u2014 add oracle_threshold_tokens to config schema",
+      "description": "Add oracle_threshold_tokens (default 50000) to agentflow/config/models.py (ThresholdConfig or equivalent Pydantic model). The PTY shell reads this via session_type='oracle' to use a lower threshold than orchestrate's orchestrator_threshold_tokens. Expose in agentflow/config/defaults.yaml. No LLM calls; purely config wiring.",
+      "owns": [
+        "agentflow/config/models.py",
+        "agentflow/config/defaults.yaml"
+      ],
+      "reads": [],
+      "depends_on": [],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-154",
+      "title": "Oracle incremental write \u2014 update oracle.md to flush design_status.md after each resolved item",
+      "description": "Update commands/claude/oracle.md: after each sparring item is resolved, immediately write the RESOLVED row to design_status.md (not batched at phase end). Add explicit instruction: 'After each design decision resolves, append the row to design_status.md immediately \u2014 do not batch.' This minimises in-flight window lost if PTY restarts mid-phase.",
+      "owns": [
+        "commands/claude/oracle.md"
+      ],
+      "reads": [],
+      "depends_on": [],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-155",
+      "title": "PTY session_type detection \u2014 oracle vs orchestrate threshold routing",
+      "description": "In agentflow/shell/session_manager.py, detect session_type from the opening prompt (look for 'oracle' vs 'orchestrate' in the first user turn or a .agentflow/session_type signal file written by the UserPromptSubmit hook). Route to oracle_threshold_tokens or orchestrator_threshold_tokens accordingly. Depends on T-153 (config key) and T-152 (signal file pattern).",
+      "owns": [
+        "agentflow/shell/session_manager.py"
+      ],
+      "reads": [],
+      "depends_on": [
+        "T-153",
+        "T-152"
+      ],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-156",
+      "title": "PostToolUse hook on Agent tool \u2014 auto-call pty_signal.py task_done on worker completion",
+      "description": "Add a PostToolUse hook (tool: Agent) in agentflow/hooks/. On each Agent tool return, read tasks_in_flight.json and cross-check each in-flight task_id against tasks.json status. For any task now marked complete, call pty_signal.py task_done <task_id> directly. This eliminates reliance on LLM compliance for writing task_complete.json \u2014 the PTY state machine (TASK_RUNNING \u2192 TASK_COMPLETE \u2192 check_tokens \u2192 HANDOFF_PENDING) then fires reliably without the orchestrate skill emitting any signal.",
+      "owns": [
+        "agentflow/hooks/post_tool_use_agent.py"
+      ],
+      "reads": [
+        ".agentflow/tasks_in_flight.json",
+        "tasks.json"
+      ],
+      "depends_on": [],
+      "status": "pending"
     }
   ]
 }
