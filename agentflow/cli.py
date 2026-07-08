@@ -114,6 +114,9 @@ def cmd_shell(args: argparse.Namespace) -> int:
     cmd = args.shell_command
     if cmd == "gemini":
         cmd = "agy"
+    elif cmd == "claude2":
+        os.environ["CLAUDE_CONFIG_DIR"] = str(Path.home() / ".claude-2")
+        cmd = "claude"
 
     proxy = ProxyShell(project_root=Path.cwd())
     proxy.start()
