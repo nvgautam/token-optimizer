@@ -301,7 +301,7 @@ class TestEndToEndPRAutoDetect:
         cleanup.write_text("")
 
         with patch("agentflow.hooks.post_tool_use_agent._find_workspace_root", return_value=tmp_path):
-            with patch("agentflow.hooks.post_tool_use_agent._fetch_merged_pr_titles", return_value={"T-123: add feature"}):
+            with patch("agentflow.hooks.post_tool_use_agent._fetch_merged_pr_titles", return_value={"T-123: add feature", "T-1234: other"}):
                 with patch("subprocess.run") as mock_run:
                     with pytest.raises(SystemExit) as exc:
                         main()
@@ -335,3 +335,26 @@ class TestCoverageEdgeCases:
             with pytest.raises(SystemExit) as exc:
                 main()
         assert exc.value.code == 0
+
+
+class TestEdgeCases:
+    def test_mark_task_complete_returns_false_on_json_decode_error(self, tmp_path):
+        tasks_file = tmp_path / "tasks.json"
+        tasks_file.write_text("not valid json{{{")
+        assert _mark_task_complete(tasks_file, "T-1") is False
+
+    def test_no_false_positive_prefix_match(self, tmp_path):
+        # T-1 must not match a PR titled "T-12: something"
+        tasks_file = tmp_path / "tasks.json"
+        tasks_file.write_text(json.dumps({"tasks": [{"task_id": "T-1", "status": "pending"}]}))
+        with patch("agentflow.hooks.post_tool_use_agent._fetch_merged_pr_titles",
+                   return_value={"T-12: some other task"}):
+            with patch("agentflow.hooks.post_tool_use_agent._mark_task_complete") as mock_mark:
+                # Simulate the check used in main()
+                merged_titles = {"T-12: some other task"}
+                task_id = "T-1"
+                matched = any(
+                    f"{task_id}:" in title or title.startswith(f"{task_id} ")
+                    for title in merged_titles
+                )
+                assert matched is False

@@ -62,7 +62,7 @@ def _mark_task_complete(tasks_file: Path, task_id: str) -> bool:
                 return True
             finally:
                 fcntl.flock(f, fcntl.LOCK_UN)
-    except OSError:
+    except (OSError, ValueError):
         return False
 
 
@@ -116,7 +116,7 @@ def main() -> None:
     # locally against in-flight task IDs so we never make N API calls.
     merged_titles = _fetch_merged_pr_titles()
     for task_id in in_flight:
-        if any(task_id in title for title in merged_titles):
+        if any(f"{task_id}:" in title or title.startswith(f"{task_id} ") for title in merged_titles):
             if _mark_task_complete(tasks_file, task_id):
                 _run_cleanup(root)
 
