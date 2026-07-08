@@ -74,6 +74,15 @@ PTY shell deps: stdlib only (pty, subprocess, signal, time, re, pathlib, hashlib
 ## Deployment
 Compiled binary for PTY shell (Nuitka) + pip-installable package (runtime modules)
 
+## Post-merge checklist
+After merging any branch into main, verify these patterns survive — they are overwritten silently on conflicts:
+
+1. **Oracle gate (startup.md + oracle.md):** must use `awk -F'|' '{gsub(/^[[:space:]]+|[[:space:]]+$/,"",$2); if($2=="UNRESOLVED")c++}END{print c+0}'` — NOT `grep -c '| UNRESOLVED |'` (grep matches description text, produces false positives).
+2. **Skill file sizes:** `wc -l commands/claude/oracle.md commands/claude/orchestrate.md` — each must be ≤ 150 lines per constraint.
+3. **Config schema:** `agentflow/config/models.py` — verify `oracle_threshold_tokens` field present after merging config branches.
+
+Quick verify: `grep -n 'UNRESOLVED' commands/claude/orchestrator/startup.md commands/claude/oracle.md` — both lines must contain `awk -F'|'`, not `grep`.
+
 ## Reference
 - Design decisions:  design_status.md
 - Full architecture: architecture.md

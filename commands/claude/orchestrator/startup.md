@@ -19,10 +19,10 @@ Ask: "Run `/usage` and report both windows:"
 
 ### Step 2b — Index startup files
 Compute `HASH=$(python3 -c "import hashlib,os; print(hashlib.sha256(os.getcwd().encode()).hexdigest())")`.
-For `execution_plan.md` only: if `.idx` absent or source mtime newer than `.idx` mtime, regenerate (H2/H3 headers, `## Header:start-end`). Do not index `design_status.md` — Step 3 uses raw grep only.
+For `execution_plan.md` only: if `.idx` absent or source mtime newer than `.idx` mtime, regenerate (H2/H3 headers, `## Header:start-end`). Do not index `design_status.md` — Step 3 uses raw awk (no index needed).
 
 ### Step 3 — Oracle gate
-Run: `grep -c '| UNRESOLVED |' design_status.md 2>/dev/null || echo ABSENT`
+Run: `awk -F'|' '{gsub(/^[[:space:]]+|[[:space:]]+$/,"",$2); if($2=="UNRESOLVED")c++}END{print c+0}' design_status.md 2>/dev/null || echo ABSENT`
 
 - `ABSENT` → proceed.
 - Count > 0 → stop: "Design has unresolved items. Run `/oracle` to resolve them first." No Read needed.
