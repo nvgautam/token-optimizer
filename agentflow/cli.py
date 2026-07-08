@@ -150,13 +150,20 @@ def cmd_shell(args: argparse.Namespace) -> int:
     except Exception:
         pass
 
+    from agentflow.shell.usage_capture import capture_usage, write_usage_to_ledger
+
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
+    wrapper = None
     try:
         tty.setraw(fd)
         from agentflow.shell.state_machine import States
         wrapper = PTYWrapper([cmd])
         session_manager = SessionManager(wrapper, tokenizer_module, config={})
+
+        _u = capture_usage(wrapper, timeout=3.0)
+        if _u:
+            write_usage_to_ledger(_u, Path.cwd() / "agentflow_ledger.json", "session_start")
 
         while not wrapper._exited:
             try:
@@ -197,6 +204,10 @@ def cmd_shell(args: argparse.Namespace) -> int:
                 session_manager.on_idle_tick()
 
     finally:
+        if wrapper is not None:
+            _u = capture_usage(wrapper, timeout=2.0)
+            if _u:
+                write_usage_to_ledger(_u, Path.cwd() / "agentflow_ledger.json", "session_end")
         proxy.stop()
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
