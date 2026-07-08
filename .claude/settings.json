@@ -10,6 +10,10 @@
           {
             "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR/agentflow/hooks/verbosity_reminder.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/agentflow/hooks/user_prompt_submit.py\""
           }
         ]
       }
