@@ -75,6 +75,7 @@ class SessionManager:
         pty_wrapper._on_output = self._handle_output
         pty_wrapper._on_exit = self._on_session_exit
         self._run_stale_index_guard()
+        self._sync_session_type()
 
     @property
     def _project_root(self) -> pathlib.Path: return getattr(self, "_project_root_override", None) or pathlib.Path.cwd()
@@ -120,11 +121,35 @@ class SessionManager:
         except Exception: pass
 
     def on_idle_tick(self) -> None:
+        self._sync_session_type()
         self.poll()
         now = time.monotonic()
         if not hasattr(self, "_last_guard_tick") or now - self._last_guard_tick > 2.0:
             self._last_guard_tick = now
             self._run_stale_index_guard()
+
+    def _apply_session_threshold(self) -> None:
+        if self.session_type == "oracle":
+            threshold = self._config.get("oracle_threshold_tokens", 50000)
+        elif self.session_type == "orchestrator":
+            threshold = self._config.get("handoff_primary_tokens", 80000)
+        else:
+            return
+        if self._state_machine.threshold_tokens != threshold:
+            self._state_machine.threshold_tokens = threshold
+
+    def _sync_session_type(self) -> None:
+        if self.session_type is None:
+            sig = self._project_root / ".agentflow" / "session_type"
+            try:
+                if sig.exists():
+                    st = sig.read_text("utf-8").strip()
+                    if st in ("oracle", "orchestrator"):
+                        self.session_type = st
+                        self._update_session_file()
+            except Exception:
+                pass
+        self._apply_session_threshold()
 
     def _run_stale_index_guard(self) -> None:
         from agentflow.shell.stale_index_guard import run_stale_index_guard
