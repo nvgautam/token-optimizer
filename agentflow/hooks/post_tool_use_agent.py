@@ -6,6 +6,7 @@ Fires after every Agent tool return. Eliminates reliance on LLM compliance
 for emitting AGENTFLOW_TASK_COMPLETE signals.
 """
 
+import fcntl
 import json
 import subprocess
 import sys
@@ -18,6 +19,64 @@ def _find_workspace_root() -> Path:
         if (parent / ".agentflow").is_dir():
             return parent
     return cwd
+
+
+def _fetch_merged_pr_titles(limit: int = 20) -> set[str]:
+    """Return titles of recently merged PRs via a single gh call."""
+    try:
+        result = subprocess.run(
+            ["gh", "pr", "list", "--state", "merged", "--json", "title", "--limit", str(limit)],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        return {pr["title"] for pr in json.loads(result.stdout)}
+    except Exception:
+        return set()
+
+
+def _mark_task_complete(tasks_file: Path, task_id: str) -> bool:
+    """Mark task_id as complete using an exclusive fcntl lock.
+
+    Returns True if the task was found with status 'pending' and updated.
+    Returns False if the task is not found, already complete, or the lock
+    cannot be acquired.
+    """
+    try:
+        with open(tasks_file, "r+") as f:
+            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            try:
+                data = json.load(f)
+                updated = False
+                for t in data.get("tasks", []):
+                    if t.get("task_id") == task_id and t.get("status") == "pending":
+                        t["status"] = "complete"
+                        updated = True
+                        break
+                if not updated:
+                    return False
+                f.seek(0)
+                json.dump(data, f)
+                f.truncate()
+                return True
+            finally:
+                fcntl.flock(f, fcntl.LOCK_UN)
+    except (OSError, ValueError):
+        return False
+
+
+def _run_cleanup(root: Path) -> None:
+    """Run cleanup_tasks.py as a subprocess. Errors are silently ignored."""
+    cleanup_script = root / "agentflow" / "tools" / "cleanup_tasks.py"
+    try:
+        subprocess.run(
+            [sys.executable, str(cleanup_script), str(root)],
+            check=False,
+            capture_output=True,
+        )
+    except Exception:
+        pass
 
 
 def main() -> None:
@@ -47,6 +106,21 @@ def main() -> None:
     if not tasks_file.exists():
         sys.exit(0)
 
+    try:
+        with open(tasks_file) as f:
+            json.load(f)
+    except Exception:
+        sys.exit(0)
+
+    # PR detection: one gh call fetches all recently merged PR titles; match
+    # locally against in-flight task IDs so we never make N API calls.
+    merged_titles = _fetch_merged_pr_titles()
+    for task_id in in_flight:
+        if any(f"{task_id}:" in title or title.startswith(f"{task_id} ") for title in merged_titles):
+            if _mark_task_complete(tasks_file, task_id):
+                _run_cleanup(root)
+
+    # Reload tasks data to pick up any updates written by PR detection above.
     try:
         with open(tasks_file) as f:
             tasks_data = json.load(f)
