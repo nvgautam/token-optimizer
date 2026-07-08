@@ -6136,10 +6136,75 @@
         "compaction": null
       },
       "status": "closed"
+    },
+    {
+      "session_id": "20260707_235247",
+      "agent": "claude",
+      "task_ids": "",
+      "start_time": "2026-07-07T23:52:47.846836",
+      "end_time": "2026-07-07T23:52:47.846847",
+      "context_at_start": 40935,
+      "input_tokens": 4606527,
+      "output_tokens": 25939,
+      "token_detail": {
+        "uncached_input": 129,
+        "cache_creation": 114398,
+        "cache_read": 4492000,
+        "output": 25939,
+        "n_turns": 72,
+        "initial_ctx": 40935,
+        "final_ctx": 89975
+      },
+      "n_turns": 72,
+      "final_ctx": 89975,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 13904386,
+        "shadow_output": 83548,
+        "shadow_extra": 8324568,
+        "compaction": {
+          "before": 164599,
+          "after": 57609,
+          "cost_tokens": 57609,
+          "reonboarding_overhead": 898667
+        }
+      },
+      "status": "closed"
+    },
+    {
+      "session_id": "20260708_002902",
+      "agent": "claude",
+      "task_ids": "",
+      "start_time": "2026-07-08T00:29:02.080023",
+      "end_time": "2026-07-08T00:29:02.080039",
+      "context_at_start": 41048,
+      "input_tokens": 341161,
+      "output_tokens": 4027,
+      "token_detail": {
+        "uncached_input": 17,
+        "cache_creation": 18840,
+        "cache_read": 322304,
+        "output": 4027,
+        "n_turns": 8,
+        "initial_ctx": 41048,
+        "final_ctx": 45521
+      },
+      "n_turns": 8,
+      "final_ctx": 45521,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 584532,
+        "shadow_output": 4027,
+        "shadow_extra": 460872,
+        "compaction": null
+      },
+      "status": "closed"
     }
   ],
   "shadow_state": {
-    "accumulated_context": 115619,
-    "compaction_events": 120
+    "accumulated_context": 58057,
+    "compaction_events": 121
   }
 }

@@ -1,7 +1,16 @@
 {
-  "round_id": "D3-prep-cont",
-  "task_ids": ["T-158"],
-  "estimated_lines_per_task": {"T-158": 40},
-  "file_counts_per_task": {"T-158": 2},
-  "timestamp": "2026-07-07T22:31:00"
+  "round_id": "D3-prep-cont-c",
+  "task_ids": [
+    "T-142",
+    "T-145"
+  ],
+  "estimated_lines_per_task": {
+    "T-142": 80,
+    "T-145": 50
+  },
+  "file_counts_per_task": {
+    "T-142": 2,
+    "T-145": 2
+  },
+  "timestamp": "2026-07-07T23:47:50.071180"
 }

@@ -1162,3 +1162,4 @@
 {"event": "handoff", "timestamp": "2026-07-07T22:18:00", "session_type": "orchestrator", "agent_tokens_in": 12850, "agent_tokens_out": 2150, "agents": 1}
 {"event": "handoff", "timestamp": "2026-07-07T23:32:21.754951", "session_type": "orchestrator", "agent_tokens_in": 0, "agent_tokens_out": 0, "agents": 0}
 
+{"event": "handoff", "timestamp": "2026-07-08T00:29:01.865761", "session_type": "orchestrator", "agent_tokens_in": 181719, "agent_tokens_out": 7224, "agents": 2}

@@ -409,7 +409,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | D3-156 — MERGED | T-156 | PostToolUse Agent hook — auto task_done signal backstop |
 | D3-prep-cont | T-159 | PTY handoff_handler.py session_type branch — top priority; wrong path fires on every orchestrate threshold hit |
 | D3-prep-cont-b | T-158 (MERGED) | Stale tasks_in_flight reconcile |
-| D3-prep-cont-c | T-139 (MERGED) ‖ T-142 ‖ T-145 (parallel) | Size splits — unblocks D3b |
+| D3-prep-cont-c — MERGED | T-139 (MERGED) ‖ T-142 (MERGED) ‖ T-145 (MERGED) | Size splits — unblocks D3b |
 | D3-durability | T-157 | CLAUDE.md post-merge checklist — prevents skill/config losses on branch diverge |
 | D3-oracle | T-153 ‖ T-154 ‖ T-155 (parallel) | Oracle threshold config + incremental design_status flush + session_type routing |
 | D3b | T-122 ‖ T-120 ‖ T-112 ‖ T-147 ‖ T-160 (parallel) | Regression tests + installer + Nuitka binary + cache breakpoint optimization + verbosity A/B turn-boundary fix |

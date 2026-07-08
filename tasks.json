@@ -615,14 +615,7 @@
     },
     {
       "task_id": "T-142",
-      "title": "Split agentflow/shadow/verbosity_ab.py \u2014 size violation",
-      "description": "Split agentflow/shadow/verbosity_ab.py to resolve size violation of 331 lines (limit: 250). Extract analysis helpers or reporting logic into a separate module.",
-      "owns": [
-        "agentflow/shadow/verbosity_ab.py"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-143",
@@ -652,14 +645,7 @@
     },
     {
       "task_id": "T-145",
-      "title": "Split commands/claude/oracle.md \u2014 size violation",
-      "description": "Split commands/claude/oracle.md to resolve size violation of 169 lines (limit: 150). Violation timestamp: 2026-07-06T15:42:51.255469.",
-      "owns": [
-        "commands/claude/oracle.md"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-146",

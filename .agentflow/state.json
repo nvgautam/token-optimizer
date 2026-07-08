@@ -1,6 +1,6 @@
 {
   "session_start": "2026-07-03T15:52:00",
-  "last_updated": "2026-07-07T22:15:00",
+  "last_updated": "2026-07-08T00:27:22.187860",
   "tasks_completed": [
     "T-092",
     "T-094",
@@ -33,9 +33,26 @@
     "T-141",
     "T-156",
     "T-139",
-    "T-158"
+    "T-158",
+    "T-142",
+    "T-145"
   ],
-  "prs_merged": [57,58,59,60,61,62,63,64,65,66,67,68],
+  "prs_merged": [
+    57,
+    58,
+    59,
+    60,
+    61,
+    62,
+    63,
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    70
+  ],
   "pending": [
     "T-112",
     "T-063",
@@ -50,12 +67,12 @@
     "T-145"
   ],
   "in_flight": [],
-  "next_round": "D3-prep-cont-b",
+  "next_round": "D3-durability",
   "maintenance": [
     "cleanup_tasks.py added",
     "orchestrate.md merge step hardened",
     "T-146: PTY child-exit hang fix (cli.py idle-tick waitpid + _on_session_exit dead_child transition)"
   ],
   "prs_open": [],
-  "last_merged_task": "T-139"
+  "last_merged_task": "T-145"
 }
