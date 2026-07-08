@@ -140,6 +140,10 @@ Follow compact writing rules in `generation.md`.
 
 ---
 
-## Handoff + Targeted Reads Rule
+## Handoff
 
 See `commands/claude/oracle/wrapup.md` — load it now.
+
+## Targeted Reads Rule
+
+Compute `HASH=$(python3 -c "import hashlib,os; print(hashlib.sha256(os.getcwd().encode()).hexdigest())")`. Check `~/.agentflow/cache/$HASH/index/<path>.idx` → grep `^<name>:` → `name:start-end` → `Read(offset=start, limit=end-start+1)`. Fallback: absent → read full. Phase files (`market.md`, `checklist.md`, `generation.md`) read in full at phase entry.
