@@ -725,11 +725,7 @@
     },
     {
       "task_id": "T-157",
-      "title": "awk fix durability \u2014 CLAUDE.md post-merge checklist",
-      "status": "pending",
-      "description": "oracle.md and orchestrate.md have awk fixes that are overwritten on each merge. Add a post-merge checklist to CLAUDE.md (or a git hook) that re-applies or validates the awk pattern after merging those files. Prevents silent regression of the UNRESOLVED-count check.",
-      "milestone": "D3b",
-      "depends": []
+      "status": "complete"
     },
     {
       "task_id": "T-158",
