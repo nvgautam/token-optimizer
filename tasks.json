@@ -758,6 +758,14 @@
       "depends": [
         "T-155"
       ]
+    },
+    {
+      "task_id": "T-160",
+      "title": "Fix verbosity A/B measurement \u2014 real turn boundaries, not double-newline",
+      "status": "pending",
+      "description": "output_handler.py detects turn boundaries on \"\n\n\" in PTY output, firing mid-response (paragraph chunks). output_tokens therefore measures PTY text per paragraph, not LLM response tokens per user turn. Both arms show ~235 tok because paragraph size is hook-independent. Fix: detect turn boundary at actual prompt-submitted \u2192 response-complete cycle (e.g. via pty_signal or headroom proxy token counts). Recompute verbosity savings once fixed \u2014 current 2.9M token figure is fabricated from wrong baseline.",
+      "milestone": "D3b",
+      "depends": []
     }
   ]
 }
