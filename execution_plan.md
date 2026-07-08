@@ -408,13 +408,14 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | D3-restart | T-149 (MERGED) ‖ T-150 (MERGED) (parallel), then T-151 (MERGED), then T-152 (MERGED) | Restart-storm fixes — stale signal clear + accumulator reset + trigger simplification + hook guard |
 | D3-156 — MERGED | T-156 | PostToolUse Agent hook — auto task_done signal backstop |
 | D3-auto-1 — MERGED | T-155 (MERGED) | PTY session_type detection — oracle vs orchestrate threshold routing; must land before T-159 |
-| D3-auto-2 | T-161 | PostToolUse hook — auto-detect merged PRs, update tasks.json (flock), invoke cleanup_tasks.py; makes handoff chain deterministic |
+| D3-auto-2 — MERGED | T-161 (MERGED) | PostToolUse hook — auto-detect merged PRs, update tasks.json (flock), invoke cleanup_tasks.py; makes handoff chain deterministic |
 | D3-auto-3 | T-159 | PTY handoff_handler.py session_type branch — fires correct restart path on orchestrate threshold hit |
 | D3-prep-cont-b | T-158 (MERGED) | Stale tasks_in_flight reconcile |
 | D3-prep-cont-c — MERGED | T-139 (MERGED) ‖ T-142 (MERGED) ‖ T-145 (MERGED) | Size splits — unblocks D3b |
 | D3-durability — MERGED | T-157 (MERGED) | CLAUDE.md post-merge checklist — prevents skill/config losses on branch diverge |
 | D3-oracle — MERGED | T-153 (MERGED) ‖ T-154 (MERGED) | Oracle threshold config + incremental design_status flush |
-| D3b | T-122 ‖ T-120 ‖ T-112 ‖ T-147 ‖ T-160 (parallel) | Regression tests + installer + Nuitka binary + cache breakpoint optimization + verbosity A/B turn-boundary fix |
+| D3b | T-122 ‖ T-120 ‖ T-112 ‖ T-147 ‖ T-160a ‖ T-163 (parallel) | Regression tests + installer + Nuitka binary + cache breakpoint + verbosity boundary fix + auto-capture /usage |
+| D3b-2 | T-160 (depends T-160a) ‖ T-164 (depends T-163) (parallel) | Verbosity A/B metrics + calibrate_capacity() wiring + ewma_cv |
 | E | T-103 ‖ T-099 ‖ T-068 ‖ T-063 (parallel) | Measurement chain + multi-provider |
 | F | T-098, T-064, T-069 (parallel) | Model routing savings + rate headroom + parallel scheduling |
 

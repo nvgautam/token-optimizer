@@ -1,80 +1,20 @@
 {
   "session_start": "2026-07-03T15:52:00",
-  "last_updated": "2026-07-08T00:43:31.698930",
+  "last_updated": "2026-07-08T17:32:11.179236",
   "tasks_completed": [
-    "T-092",
-    "T-094",
-    "T-095",
-    "T-096",
-    "T-097",
-    "T-101",
-    "T-100",
-    "T-105",
-    "T-106",
-    "T-102",
-    "T-107",
-    "T-108",
-    "T-113",
-    "T-114",
-    "T-115",
-    "T-117",
-    "T-116",
-    "T-109",
-    "T-118",
-    "T-104",
-    "T-110",
-    "T-111",
-    "T-124",
-    "T-125",
-    "T-140",
-    "T-121",
-    "T-146",
-    "T-149",
-    "T-141",
-    "T-156",
-    "T-139",
-    "T-158",
-    "T-142",
-    "T-145",
-    "T-157"
+    "T-161"
   ],
   "prs_merged": [
-    57,
-    58,
-    59,
-    60,
-    61,
-    62,
-    63,
-    64,
-    65,
-    66,
-    67,
-    68,
-    69,
-    70,
-    71
+    75
   ],
   "pending": [
-    "T-112",
-    "T-063",
-    "T-064",
-    "T-068",
-    "T-069",
-    "T-103",
-    "T-099",
-    "T-098",
-    "T-142",
-    "T-122",
-    "T-145"
+    "T-159"
   ],
   "in_flight": [],
-  "next_round": "D3-oracle",
+  "next_round": "D3-auto-3",
   "maintenance": [
-    "cleanup_tasks.py added",
-    "orchestrate.md merge step hardened",
-    "T-146: PTY child-exit hang fix (cli.py idle-tick waitpid + _on_session_exit dead_child transition)"
+    "T-161: PostToolUse hook auto-PR detection delivered and verified"
   ],
   "prs_open": [],
-  "last_merged_task": "T-157"
+  "last_merged_task": "T-161"
 }
