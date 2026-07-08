@@ -710,7 +710,7 @@
       "depends_on": [
         "T-151"
       ],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-153",
@@ -752,6 +752,22 @@
     {
       "task_id": "T-156",
       "status": "complete"
+    },
+    {
+      "task_id": "T-157",
+      "title": "awk fix durability \u2014 CLAUDE.md post-merge checklist",
+      "status": "pending",
+      "description": "oracle.md and orchestrate.md have awk fixes that are overwritten on each merge. Add a post-merge checklist to CLAUDE.md (or a git hook) that re-applies or validates the awk pattern after merging those files. Prevents silent regression of the UNRESOLVED-count check.",
+      "milestone": "D3b",
+      "depends": []
+    },
+    {
+      "task_id": "T-158",
+      "title": "tasks_in_flight.json stale \u2014 reconcile on startup or hook",
+      "status": "pending",
+      "description": "tasks_in_flight.json lists T-139, T-141, T-142, T-145 as in-flight despite being merged/complete. Add startup reconciliation in agentflow.py (or as part of the orchestrate PostToolUse hook) to cross-check tasks_in_flight.json against tasks.json status=complete and remove stale entries.",
+      "milestone": "D3b",
+      "depends": []
     }
   ]
 }

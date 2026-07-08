@@ -405,13 +405,16 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | D3-prep | T-139 ‖ T-140 (MERGED) ‖ T-142 (parallel), then T-141 (MERGED) | Size splits — unblocks T-121 + T-122 from touching session_manager.py cleanly |
 | D3 | T-121 (MERGED) ‖ T-122 ‖ T-125 ‖ T-120 (parallel) | PTY robustness (deadlines + ANSI reset + stdin gating + T-118 corrections) + regression tests + pty_signal + installer |
 | D3-fix (P0) — MERGED | T-148 | PTY stdin \n→\r fix — commands submit instead of sitting idle; automated orchestrate loop unblocked |
-| D3-restart | T-149 (MERGED) ‖ T-150 (MERGED) (parallel), then T-151 (MERGED), then T-152 | Restart-storm fixes — stale signal clear + accumulator reset + trigger simplification + hook guard |
+| D3-restart | T-149 (MERGED) ‖ T-150 (MERGED) (parallel), then T-151 (MERGED), then T-152 (MERGED) | Restart-storm fixes — stale signal clear + accumulator reset + trigger simplification + hook guard |
 | D3-156 — MERGED | T-156 | PostToolUse Agent hook — auto task_done signal backstop |
+| D3-prep-cont | T-139 ‖ T-142 ‖ T-145 ‖ T-158 (parallel) | Size splits + stale tasks_in_flight reconcile — unblocks D3b; T-158 urgent since T-156 hook now reads stale entries live |
+| D3-durability | T-157 | CLAUDE.md post-merge checklist — prevents skill/config losses on branch diverge |
+| D3-oracle | T-153 ‖ T-154 ‖ T-155 (parallel) | Oracle threshold config + incremental design_status flush + session_type routing |
 | D3b | T-122 ‖ T-120 ‖ T-112 ‖ T-147 (parallel) | Regression tests + installer + Nuitka binary + cache breakpoint optimization |
 | E | T-103 ‖ T-099 ‖ T-068 ‖ T-063 (parallel) | Measurement chain + multi-provider |
 | F | T-098, T-064, T-069 (parallel) | Model routing savings + rate headroom + parallel scheduling |
 
-Priority rationale (2026-07-07): D3-restart inserted after D3-fix — stale handoff_complete.json + runaway safety/ceiling triggers are the remaining blockers for reliable automated orchestration. T-149 + T-150 are independent and run parallel; T-151 (trigger simplification) depends on both; T-152 (hook guard) follows T-151. D3b follows once restart loop is stable.
+Priority rationale (2026-07-07): D3-restart inserted after D3-fix — stale handoff_complete.json + runaway safety/ceiling triggers are the remaining blockers for reliable automated orchestration. T-149 + T-150 are independent and run parallel; T-151 (trigger simplification) depends on both; T-152 (hook guard) follows T-151. D3b follows once restart loop is stable. D3-prep-cont adds T-145 (oracle.md size split) and T-158 (stale tasks_in_flight reconcile) — T-158 elevated to this round because T-156 hook is live and reading stale entries on every Agent call. D3-oracle (T-153/154/155) slots before D3b to wire oracle threshold routing before binary compilation locks the interface.
 
 ---
 
