@@ -186,3 +186,51 @@ def test_tokenizer_resets_on_clear_prevents_rehangoff(tmp_path):
             # Post-clear: tokenizer._total == 0; send task_complete — below 80K, no trigger
             fire_output(sm, pty, "AGENTFLOW_TASK_COMPLETE:T-001")
             mock_hf.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# T-159: orchestrate session_type branch
+# ---------------------------------------------------------------------------
+
+def test_orchestrator_handoff_pending_skips_slash_handoff(tmp_path):
+    """Orchestrate sessions must NOT inject /handoff — write handoff_complete.json directly."""
+    sm, pty, _ = make_manager()
+    sm.session_type = "orchestrator"
+    sm._handoff_complete_path = tmp_path / ".agentflow" / "handoff_complete.json"
+    from agentflow.shell.handoff_handler import handle_enter_handoff_pending
+    handle_enter_handoff_pending(sm)
+    assert "/handoff\r" not in pty.inputs, "PTY must not receive /handoff for orchestrator"
+    assert sm._handoff_complete_path.exists(), "handoff_complete.json must be written directly"
+    data = json.loads(sm._handoff_complete_path.read_text())
+    assert data["source"] == "direct"
+
+
+def test_oracle_handoff_pending_injects_slash_handoff(tmp_path):
+    """Oracle sessions must still inject /handoff\\r into the PTY."""
+    sm, pty, _ = make_manager()
+    sm.session_type = "oracle"
+    sm._handoff_complete_path = tmp_path / ".agentflow" / "handoff_complete.json"
+    from agentflow.shell.handoff_handler import handle_enter_handoff_pending
+    handle_enter_handoff_pending(sm)
+    assert "/handoff\r" in pty.inputs
+
+
+def test_none_session_type_handoff_pending_injects_slash_handoff(tmp_path):
+    """Unknown/None session_type falls back to the /handoff LLM skill path."""
+    sm, pty, _ = make_manager()
+    sm.session_type = None
+    sm._handoff_complete_path = tmp_path / ".agentflow" / "handoff_complete.json"
+    from agentflow.shell.handoff_handler import handle_enter_handoff_pending
+    handle_enter_handoff_pending(sm)
+    assert "/handoff\r" in pty.inputs
+
+
+def test_orchestrator_handoff_complete_json_content(tmp_path):
+    """handoff_complete.json written by orchestrator path has status=complete."""
+    sm, pty, _ = make_manager()
+    sm.session_type = "orchestrator"
+    sm._handoff_complete_path = tmp_path / ".agentflow" / "handoff_complete.json"
+    from agentflow.shell.handoff_handler import handle_enter_handoff_pending
+    handle_enter_handoff_pending(sm)
+    data = json.loads(sm._handoff_complete_path.read_text())
+    assert data["status"] == "complete"

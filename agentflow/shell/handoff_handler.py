@@ -1,5 +1,6 @@
 """Handoff logic extracted from session_manager."""
 from __future__ import annotations
+import json
 import os
 import pathlib
 import signal
@@ -20,6 +21,17 @@ def handle_enter_handoff_pending(manager) -> None:
     stale = pathlib.Path(".agentflow/handoff_complete.json")
     if stale.exists():
         stale.unlink()
+    if manager.session_type == "orchestrator":
+        # Orchestrate sessions manage their own context lifecycle — skip the /handoff LLM
+        # skill and write handoff_complete.json directly so the poll loop transitions to
+        # RESTARTING without burning extra tokens.
+        hc_path = manager._handoff_complete_path
+        try:
+            hc_path.parent.mkdir(parents=True, exist_ok=True)
+            hc_path.write_text(json.dumps({"status": "complete", "source": "direct"}), encoding="utf-8")
+        except OSError:
+            manager._log_audit({"event": "handoff_aborted", "trigger": manager._current_trigger, "tokens": manager._last_accumulated_tokens})
+        return
     try:
         manager._pty.write_input("/handoff\r")
     except OSError:

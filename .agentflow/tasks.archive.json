@@ -1302,5 +1302,20 @@
       "T-152"
     ],
     "status": "complete"
+  },
+  {
+    "task_id": "T-161",
+    "title": "PostToolUse hook \u2014 auto-detect merged PRs and invoke cleanup_tasks.py",
+    "description": "Enhance agentflow/hooks/post_tool_use_agent.py: for each task_id in tasks_in_flight.json, look up its associated PR via `gh pr list --search \"{task_id}\" --json number,state --jq` and check if state==MERGED. If merged: (1) acquire fcntl.flock(LOCK_EX) on tasks.json, (2) set status=\"complete\" for that task, (3) release lock, (4) run `python agentflow/tools/cleanup_tasks.py .`. Also add flock(LOCK_EX) to _write_json in cleanup_tasks.py so all tasks.json writes are serialized. This makes the merge-detection\u2192cleanup\u2192task_done\u2192PTY-handoff chain fully deterministic without LLM compliance. Constraint: fcntl is stdlib; no new deps. Hook must remain idempotent (safe to run twice for same task).",
+    "owns": [
+      "agentflow/hooks/post_tool_use_agent.py",
+      "agentflow/tools/cleanup_tasks.py"
+    ],
+    "reads": [
+      ".agentflow/tasks_in_flight.json",
+      "tasks.json"
+    ],
+    "depends_on": [],
+    "status": "complete"
   }
 ]
