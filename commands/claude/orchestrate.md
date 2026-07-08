@@ -26,7 +26,7 @@ Compute `HASH=$(python3 -c "import hashlib,os; print(hashlib.sha256(os.getcwd().
 For `execution_plan.md` only: if `.idx` absent or source mtime newer than `.idx` mtime, regenerate (H2/H3 headers, `## Header:start-end`). Do not index `design_status.md` — Step 3 uses raw grep only.
 
 ### Step 3 — Oracle gate
-Run: `grep -c "| UNRESOLVED |" design_status.md 2>/dev/null || echo ABSENT`
+Run: `awk -F'|' '$3~/^ UNRESOLVED $/{c++}END{print c+0}' design_status.md 2>/dev/null || echo ABSENT`
 
 - `ABSENT` → proceed.
 - Count > 0 → stop: "Design has unresolved items. Run `/oracle` to resolve them first." No Read needed.
@@ -216,6 +216,7 @@ Then:
 3. Milestone complete → mark `COMPLETE`, decompose next milestone lazily
 4. Save `.agentflow/state.json`
 5. Emit: `HANDOFF RECOMMENDED: [task_id] merged — state saved, good stopping point before next round`
+6. Check context usage. If context ≥ 80K tokens, invoke `/handoff` immediately — do not spawn the next round. The handoff skill will prompt the user to start a fresh session.
 
 **Do not manually edit task stubs or archive — always run the cleanup script.**
 

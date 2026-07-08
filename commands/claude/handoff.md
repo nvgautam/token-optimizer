@@ -97,7 +97,15 @@ Last output (PTY scans stdout for this):
 HANDOFF_COMPLETE: .agentflow/handoff_<YYYY-MM-DD>.md
 ```
 
-### Step 9 — Report to user
+### Step 9 — Prompt session restart
+
+**Always** tell the user (whether PTY or interactive):
+
+> Session context has been flushed. **Start a new Claude Code session now**, then run `/orchestrate` (or `/oracle`) to continue. Do not continue in this session.
+
+In PTY mode the shell will restart automatically on `HANDOFF_COMPLETE`. In interactive mode this message is the restart signal.
+
+### Step 10 — Report to user
 
 - Path of handoff file written
 - State document updated
