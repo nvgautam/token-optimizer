@@ -32,23 +32,10 @@
     "T-149",
     "T-141",
     "T-156",
-    "T-139"
+    "T-139",
+    "T-158"
   ],
-  "prs_merged": [
-    57,
-    58,
-    59,
-    60,
-    61,
-    62,
-    63,
-    64,
-    65,
-    66,
-    67,
-    65,
-    67
-  ],
+  "prs_merged": [57,58,59,60,61,62,63,64,65,66,67,68],
   "pending": [
     "T-112",
     "T-063",
@@ -58,13 +45,12 @@
     "T-103",
     "T-099",
     "T-098",
-    "T-141",
     "T-142",
     "T-122",
     "T-145"
   ],
   "in_flight": [],
-  "next_round": "D3-prep-cont",
+  "next_round": "D3-prep-cont-b",
   "maintenance": [
     "cleanup_tasks.py added",
     "orchestrate.md merge step hardened",

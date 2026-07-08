@@ -747,11 +747,7 @@
     },
     {
       "task_id": "T-158",
-      "title": "tasks_in_flight.json stale \u2014 reconcile on startup or hook",
-      "status": "pending",
-      "description": "tasks_in_flight.json lists T-139, T-141, T-142, T-145 as in-flight despite being merged/complete. Add startup reconciliation in agentflow.py (or as part of the orchestrate PostToolUse hook) to cross-check tasks_in_flight.json against tasks.json status=complete and remove stale entries.",
-      "milestone": "D3b",
-      "depends": []
+      "status": "complete"
     }
   ]
 }
