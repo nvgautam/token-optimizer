@@ -1188,5 +1188,20 @@
       "T-140"
     ],
     "status": "complete"
+  },
+  {
+    "task_id": "T-156",
+    "title": "PostToolUse hook on Agent tool \u2014 task completion detection + per-task token measurement",
+    "description": "Add a PostToolUse hook (tool: Agent) in agentflow/hooks/post_tool_use_agent.py. On Agent tool call (pre): snapshot PTY accumulated token counter as task_start_tokens[task_id]. On Agent tool return (post): (1) read tasks_in_flight.json and cross-check each in-flight task_id against tasks.json status \u2014 for any task now marked complete, call pty_signal.py task_done <task_id> directly (eliminates LLM compliance requirement for task_complete.json); (2) compute delta = current_accumulated_tokens - task_start_tokens[task_id] as ground-truth per-task cost; (3) update ewma_mean_tokens, ewma_cv, sample_count in ~/.agentflow/rate_calibration_claude.json atomically. Replaces both AGENTFLOW_TASK_START/COMPLETE stdout parsing in output_handler.py and the LLM-emitted 'TOKENS: input=N output=N' self-report for EWMA calibration. /usage remains necessary for window-level rate-pacing (cap, remaining_tokens, reset_min) \u2014 hook only owns per-task cost and EWMA.",
+    "owns": [
+      "agentflow/hooks/post_tool_use_agent.py"
+    ],
+    "reads": [
+      ".agentflow/tasks_in_flight.json",
+      "tasks.json",
+      "~/.agentflow/rate_calibration_claude.json"
+    ],
+    "depends_on": [],
+    "status": "complete"
   }
 ]

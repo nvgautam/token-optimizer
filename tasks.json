@@ -751,17 +751,7 @@
     },
     {
       "task_id": "T-156",
-      "title": "PostToolUse hook on Agent tool \u2014 auto-call pty_signal.py task_done on worker completion",
-      "description": "Add a PostToolUse hook (tool: Agent) in agentflow/hooks/. On each Agent tool return, read tasks_in_flight.json and cross-check each in-flight task_id against tasks.json status. For any task now marked complete, call pty_signal.py task_done <task_id> directly. This eliminates reliance on LLM compliance for writing task_complete.json \u2014 the PTY state machine (TASK_RUNNING \u2192 TASK_COMPLETE \u2192 check_tokens \u2192 HANDOFF_PENDING) then fires reliably without the orchestrate skill emitting any signal.",
-      "owns": [
-        "agentflow/hooks/post_tool_use_agent.py"
-      ],
-      "reads": [
-        ".agentflow/tasks_in_flight.json",
-        "tasks.json"
-      ],
-      "depends_on": [],
-      "status": "pending"
+      "status": "complete"
     }
   ]
 }
