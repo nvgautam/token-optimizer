@@ -1203,5 +1203,29 @@
     ],
     "depends_on": [],
     "status": "complete"
+  },
+  {
+    "task_id": "T-152",
+    "title": "UserPromptSubmit hook \u2014 reset accumulator and clear signal files on /orchestrate",
+    "description": "In the UserPromptSubmit hook (agentflow/hooks/user_prompt_submit.py), detect if the submitted prompt contains /orchestrate or /handoff and if so: (1) write a reset signal file (.agentflow/reset_accumulator) that the PTY session_manager picks up on next tick to zero _last_accumulated_tokens, (2) delete handoff_complete.json and task_complete.json. Prevents stale state from a previous run polluting the new orchestrate session.",
+    "owns": [
+      "agentflow/hooks/user_prompt_submit.py"
+    ],
+    "reads": [],
+    "depends_on": [
+      "T-151"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-139",
+    "title": "Split commands/claude/orchestrate.md \u2014 size violation",
+    "description": "Split commands/claude/orchestrate.md to resolve size violation of 239 lines (limit: 150). Extract helper sections into include files or trim to under 150 lines per ownership rules.",
+    "owns": [
+      "commands/claude/orchestrate.md"
+    ],
+    "reads": [],
+    "depends_on": [],
+    "status": "complete"
   }
 ]

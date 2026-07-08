@@ -407,7 +407,8 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | D3-fix (P0) — MERGED | T-148 | PTY stdin \n→\r fix — commands submit instead of sitting idle; automated orchestrate loop unblocked |
 | D3-restart | T-149 (MERGED) ‖ T-150 (MERGED) (parallel), then T-151 (MERGED), then T-152 (MERGED) | Restart-storm fixes — stale signal clear + accumulator reset + trigger simplification + hook guard |
 | D3-156 — MERGED | T-156 | PostToolUse Agent hook — auto task_done signal backstop |
-| D3-prep-cont | T-139 ‖ T-142 ‖ T-145 ‖ T-158 (parallel) | Size splits + stale tasks_in_flight reconcile — unblocks D3b; T-158 urgent since T-156 hook now reads stale entries live |
+| D3-prep-cont | T-158 | Stale tasks_in_flight reconcile — solo first; T-156 hook reads stale entries on every Agent call |
+| D3-prep-cont-b | T-139 (MERGED) ‖ T-142 ‖ T-145 (parallel) | Size splits — unblocks D3b |
 | D3-durability | T-157 | CLAUDE.md post-merge checklist — prevents skill/config losses on branch diverge |
 | D3-oracle | T-153 ‖ T-154 ‖ T-155 (parallel) | Oracle threshold config + incremental design_status flush + session_type routing |
 | D3b | T-122 ‖ T-120 ‖ T-112 ‖ T-147 (parallel) | Regression tests + installer + Nuitka binary + cache breakpoint optimization |

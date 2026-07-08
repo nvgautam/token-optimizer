@@ -125,47 +125,47 @@
             <p class="subtitle">Real-time token optimization & waste analytics • Mode: AGGREGATE</p>
         </header>
 
-        <div class="verbosity-ab-banner" style="background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); color: var(--success); border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; font-weight: 500;"><span style="display: flex; align-items: center; gap: 0.5rem;"><span style="font-size: 1.2rem;">✓</span>VERBOSITY A/B COMPLETE — sufficient data (n_on=5563, n_off=818, CI=[134, 213])</span></div>
+        <div class="verbosity-ab-banner" style="background: rgba(16, 185, 129, 0.1); border: 1px solid var(--success); color: var(--success); border-radius: 12px; padding: 1rem 1.5rem; margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between; font-weight: 500;"><span style="display: flex; align-items: center; gap: 0.5rem;"><span style="font-size: 1.2rem;">✓</span>VERBOSITY A/B COMPLETE — sufficient data (n_on=7525, n_off=2160, CI=[194, 278])</span></div>
 
         <div class="grid">
             <div class="card">
                 <div class="stat-label">Total Tokens Saved</div>
-                <div class="stat-value">452,966,725</div>
+                <div class="stat-value">498,634,140</div>
                 <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Cumulative optimization savings</div>
             </div>
             <div class="card">
                 <div class="stat-label">Real Tokens Used</div>
-                <div class="stat-value">484,775,430</div>
+                <div class="stat-value">514,200,943</div>
                 <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Actual tokens consumed</div>
             </div>
             <div class="card">
                 <div class="stat-label">Shadow Mode Tokens</div>
-                <div class="stat-value">937,742,155</div>
+                <div class="stat-value">1,012,835,083</div>
                 <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Baseline unoptimized tokens</div>
             </div>
             <div class="card">
                 <div class="stat-label">Percentage Saved</div>
-                <div class="stat-value">48.3%</div>
+                <div class="stat-value">49.2%</div>
                 <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Combined Savings: File-Read + Verbosity + Session-Recycling (targeted reads, output verbosity, handoff -- report window)</div>
             </div>
             <div class="card">
                 <div class="stat-label">Lifetime Recycling</div>
-                <div class="stat-value" style="font-size: 1.4rem;">Lifetime (N=177 sessions) — 48.0% vs shadow baseline (no-recycle model)</div>
+                <div class="stat-value" style="font-size: 1.4rem;">Lifetime (N=184 sessions) — 48.3% vs shadow baseline (no-recycle model)</div>
                 <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">vs shadow baseline (no-recycle model) — all closed sessions, no window filter</div>
             </div>
             <div class="card">
                 <div class="stat-label">Compression Savings (not blended)</div>
-                <div class="stat-value">1,012,703 tokens</div>
+                <div class="stat-value">1,894,610 tokens</div>
                 <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Headroom compression; windowed to shadow-reads scope — included in combined %</div>
             </div>
             <div class="card">
                 <div class="stat-label">Shadow Cost Avoided</div>
-                <div class="stat-value">496,909</div>
+                <div class="stat-value">585,252</div>
                 <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Avoided file I/O waste</div>
             </div>
             <div class="card">
                 <div class="stat-label">Compression Savings</div>
-                <div class="stat-value">1,012,703</div>
+                <div class="stat-value">1,894,610</div>
                 <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Headroom context reduction</div>
             </div>
             
@@ -188,7 +188,7 @@
             </div>
             <div class="strategy-row">
                 <span>Indexing Gap Avoidance (indexing-gap)</span>
-                <strong>216 tokens</strong>
+                <strong>1,871 tokens</strong>
             </div>
         </div>
 
@@ -197,26 +197,26 @@
             <div class="strategy-row">
                 <span>Targeted Reads — Savings Realized (idx)</span>
                 <span class="strategy-pct">0.2% of total</span>
-                <strong>700,492 tokens</strong>
+                <strong>855,138 tokens</strong>
             </div>
             <div class="strategy-row">
                 <span>Compact State Documents — read volume, not savings (state-docs)</span>
-                <strong>496,693 tokens</strong>
+                <strong>583,381 tokens</strong>
             </div>
             <div class="strategy-row">
                 <span>Output Verbosity Control (verbosity)</span>
-                <span class="strategy-pct">0.3% of total</span>
-                <strong>1,569,018 [measured baseline=173tok, n=818, 95% CI [134, 213]] tokens</strong>
+                <span class="strategy-pct">0.6% of total</span>
+                <strong>2,904,873 [measured baseline=236tok, n=2160, 95% CI [194, 278]] tokens</strong>
             </div>
             <div class="strategy-row">
                 <span>Headroom Compression (compression)</span>
-                <span class="strategy-pct">0.2% of total</span>
-                <strong>1,012,703 tokens</strong>
+                <span class="strategy-pct">0.4% of total</span>
+                <strong>1,894,610 tokens</strong>
             </div>
             <div class="strategy-row">
                 <span>Session Recycling — measured from agentflow_ledger.json (handoff)</span>
-                <span class="strategy-pct">99.3% of total</span>
-                <strong>449,407,427 [windowed N=74 sessions since WINDOW_START] tokens</strong>
+                <span class="strategy-pct">98.9% of total</span>
+                <strong>492,702,434 [windowed N=81 sessions since WINDOW_START] tokens</strong>
             </div>
             <div class="strategy-row">
                 <span>Code-Size Savings via file splitting (code-size)</span>
@@ -225,23 +225,23 @@
             </div>
             <div class="strategy-row">
                 <span>Total Real Savings (total_saved)</span>
-                <strong>452,966,725 tokens</strong>
+                <strong>498,634,140 tokens</strong>
             </div>
         </div>
 
         <div class="details-section">
             <h2>Daily Savings Trend <span class="section-caption">(last 14 days)</span></h2>
-            <div style="display:flex;align-items:center;gap:1rem;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.05);"><span style="min-width:160px;font-size:0.9rem;">Symbol Index (idx)</span><svg width="120" height="30" viewBox="0 0 120 30"><polyline points="2.0,28.0 60.0,2.0 118.0,27.5" fill="none" stroke="#4f46e5" stroke-width="1.5"/></svg></div>
-<div style="display:flex;align-items:center;gap:1rem;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.05);"><span style="min-width:160px;font-size:0.9rem;">Compression</span><svg width="120" height="30" viewBox="0 0 120 30"><polyline points="2.0,28.0 60.0,24.6 118.0,2.0" fill="none" stroke="#10b981" stroke-width="1.5"/></svg></div>
-<div style="display:flex;align-items:center;gap:1rem;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.05);"><span style="min-width:160px;font-size:0.9rem;">Verbosity</span><svg width="120" height="30" viewBox="0 0 120 30"><polyline points="2.0,28.0 60.0,2.0 118.0,25.4" fill="none" stroke="#f59e0b" stroke-width="1.5"/></svg></div>
-<div style="display:flex;align-items:center;gap:1rem;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.05);"><span style="min-width:160px;font-size:0.9rem;">Code Size (splits)</span><svg width="120" height="30" viewBox="0 0 120 30"><polyline points="2.0,28.0 60.0,28.0 118.0,28.0" fill="none" stroke="#e11d48" stroke-width="1.5"/></svg></div>
+            <div style="display:flex;align-items:center;gap:1rem;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.05);"><span style="min-width:160px;font-size:0.9rem;">Symbol Index (idx)</span><svg width="120" height="30" viewBox="0 0 120 30"><polyline points="2.0,24.2 40.7,2.0 79.3,16.2 118.0,28.0" fill="none" stroke="#4f46e5" stroke-width="1.5"/></svg></div>
+<div style="display:flex;align-items:center;gap:1rem;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.05);"><span style="min-width:160px;font-size:0.9rem;">Compression</span><svg width="120" height="30" viewBox="0 0 120 30"><polyline points="2.0,28.0 40.7,25.1 79.3,2.0 118.0,9.3" fill="none" stroke="#10b981" stroke-width="1.5"/></svg></div>
+<div style="display:flex;align-items:center;gap:1rem;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.05);"><span style="min-width:160px;font-size:0.9rem;">Verbosity</span><svg width="120" height="30" viewBox="0 0 120 30"><polyline points="2.0,28.0 40.7,2.0 79.3,11.1 118.0,28.0" fill="none" stroke="#f59e0b" stroke-width="1.5"/></svg></div>
+<div style="display:flex;align-items:center;gap:1rem;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.05);"><span style="min-width:160px;font-size:0.9rem;">Code Size (splits)</span><svg width="120" height="30" viewBox="0 0 120 30"><polyline points="2.0,28.0 40.7,28.0 79.3,28.0 118.0,28.0" fill="none" stroke="#e11d48" stroke-width="1.5"/></svg></div>
         </div>
 
         <div class="details-section">
             <h2>30-Day Projection <span class="section-caption">(7-day rolling avg × 30)</span></h2>
-            <table style="width:100%;border-collapse:collapse;font-size:0.9rem;"><thead><tr style="color:#9ca3af;"><th style="text-align:left;padding:0.4rem 0;">Strategy</th><th style="text-align:right;padding:0.4rem 0;">7-day avg/day</th><th style="text-align:right;padding:0.4rem 0;">30-day Base</th><th style="text-align:right;padding:0.4rem 0;">30-day Optimistic</th></tr></thead><tbody><tr><td>Symbol Index (idx)</td><td style="text-align:right">233,497.3</td><td style="text-align:right">7,004,920</td><td style="text-align:right">14,009,840</td></tr>
-<tr><td>Compression</td><td style="text-align:right">337,567.7</td><td style="text-align:right">10,127,030</td><td style="text-align:right">10,127,030</td></tr>
-<tr><td>Verbosity</td><td style="text-align:right">523,006.0</td><td style="text-align:right">15,690,180</td><td style="text-align:right">15,690,180</td></tr>
+            <table style="width:100%;border-collapse:collapse;font-size:0.9rem;"><thead><tr style="color:#9ca3af;"><th style="text-align:left;padding:0.4rem 0;">Strategy</th><th style="text-align:right;padding:0.4rem 0;">7-day avg/day</th><th style="text-align:right;padding:0.4rem 0;">30-day Base</th><th style="text-align:right;padding:0.4rem 0;">30-day Optimistic</th></tr></thead><tbody><tr><td>Symbol Index (idx)</td><td style="text-align:right">213,784.5</td><td style="text-align:right">6,413,535</td><td style="text-align:right">12,827,070</td></tr>
+<tr><td>Compression</td><td style="text-align:right">473,652.5</td><td style="text-align:right">14,209,575</td><td style="text-align:right">14,209,575</td></tr>
+<tr><td>Verbosity</td><td style="text-align:right">726,218.2</td><td style="text-align:right">21,786,547</td><td style="text-align:right">21,786,547</td></tr>
 <tr><td>Code Size (splits)</td><td style="text-align:right">0.0</td><td style="text-align:right">0</td><td style="text-align:right">0</td></tr>
 </tbody></table>
         </div>
@@ -252,7 +252,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Headroom Report - 2026-07-07 01:36:09</title>
+    <title>Headroom Report - 2026-07-07 21:17:10</title>
     <style>
         * {
             box-sizing: border-box;
@@ -415,7 +415,7 @@
     <div class="container">
         <header>
             <h1>Headroom Context Analysis Report</h1>
-            <p>Generated: 2026-07-07 01:36:09 | Period: All time</p>
+            <p>Generated: 2026-07-07 21:17:10 | Period: All time</p>
         </header>
 
         <div class="stats-grid">
