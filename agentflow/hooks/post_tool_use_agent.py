@@ -6,6 +6,7 @@ Fires after every Agent tool return. Eliminates reliance on LLM compliance
 for emitting AGENTFLOW_TASK_COMPLETE signals.
 """
 
+import fcntl
 import json
 import subprocess
 import sys
@@ -18,6 +19,70 @@ def _find_workspace_root() -> Path:
         if (parent / ".agentflow").is_dir():
             return parent
     return cwd
+
+
+def _detect_merged_pr(task_id: str) -> bool:
+    """Return True if any GitHub PR with task_id in title is in merged state."""
+    try:
+        result = subprocess.run(
+            [
+                "gh", "pr", "list",
+                "--search", f"{task_id} in:title",
+                "--state", "merged",
+                "--json", "number",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        data = json.loads(result.stdout)
+        return len(data) > 0
+    except Exception:
+        return False
+
+
+def _mark_task_complete(tasks_file: Path, task_id: str) -> bool:
+    """Mark task_id as complete using an exclusive fcntl lock.
+
+    Returns True if the task was found with status 'pending' and updated.
+    Returns False if the task is not found, already complete, or the lock
+    cannot be acquired.
+    """
+    try:
+        with open(tasks_file, "r+") as f:
+            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            try:
+                data = json.load(f)
+                updated = False
+                for t in data.get("tasks", []):
+                    if t.get("task_id") == task_id and t.get("status") == "pending":
+                        t["status"] = "complete"
+                        updated = True
+                        break
+                if not updated:
+                    return False
+                f.seek(0)
+                json.dump(data, f)
+                f.truncate()
+                return True
+            finally:
+                fcntl.flock(f, fcntl.LOCK_UN)
+    except OSError:
+        return False
+
+
+def _run_cleanup(root: Path) -> None:
+    """Run cleanup_tasks.py as a subprocess. Errors are silently ignored."""
+    cleanup_script = root / "agentflow" / "tools" / "cleanup_tasks.py"
+    try:
+        subprocess.run(
+            [sys.executable, str(cleanup_script), str(root)],
+            check=False,
+            capture_output=True,
+        )
+    except Exception:
+        pass
 
 
 def main() -> None:
@@ -47,6 +112,20 @@ def main() -> None:
     if not tasks_file.exists():
         sys.exit(0)
 
+    try:
+        with open(tasks_file) as f:
+            json.load(f)
+    except Exception:
+        sys.exit(0)
+
+    # PR detection: mark tasks complete when their GitHub PR has been merged.
+    # Runs before status_by_id is built so the signal block sees fresh state.
+    for task_id in in_flight:
+        if _detect_merged_pr(task_id):
+            if _mark_task_complete(tasks_file, task_id):
+                _run_cleanup(root)
+
+    # Reload tasks data to pick up any updates written by PR detection above.
     try:
         with open(tasks_file) as f:
             tasks_data = json.load(f)
