@@ -1277,5 +1277,30 @@
     "reads": [],
     "depends_on": [],
     "status": "complete"
+  },
+  {
+    "task_id": "T-154",
+    "title": "Oracle incremental write \u2014 update oracle.md to flush design_status.md after each resolved item",
+    "description": "Update commands/claude/oracle.md: after each sparring item is resolved, immediately write the RESOLVED row to design_status.md (not batched at phase end). Add explicit instruction: 'After each design decision resolves, append the row to design_status.md immediately \u2014 do not batch.' This minimises in-flight window lost if PTY restarts mid-phase.",
+    "owns": [
+      "commands/claude/oracle.md"
+    ],
+    "reads": [],
+    "depends_on": [],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-155",
+    "title": "PTY session_type detection \u2014 oracle vs orchestrate threshold routing",
+    "description": "In agentflow/shell/session_manager.py, detect session_type from the opening prompt (look for 'oracle' vs 'orchestrate' in the first user turn or a .agentflow/session_type signal file written by the UserPromptSubmit hook). Route to oracle_threshold_tokens or orchestrator_threshold_tokens accordingly. Depends on T-153 (config key) and T-152 (signal file pattern).",
+    "owns": [
+      "agentflow/shell/session_manager.py"
+    ],
+    "reads": [],
+    "depends_on": [
+      "T-153",
+      "T-152"
+    ],
+    "status": "complete"
   }
 ]
