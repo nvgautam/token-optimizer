@@ -4,99 +4,16 @@
 
 ## Startup
 
-### Step 1 — Persona
-Say:
-```
-Persona: Senior Staff Engineering Lead.
-Execute the plan, manage parallelism, escalate when authority is exceeded.
-I do not re-prioritize — the oracle sets priorities, I deliver them.
-```
-
-### Step 2 — Rate check
-Ask: "Run `/usage` and report both windows:"
-- `start_pct_5hr` — 5hr window % used
-- `start_pct_wkly` — weekly window % used
-- `reset_min_5hr` — minutes until 5hr reset
-- `reset_min_wkly` — minutes until weekly reset
-- `cap_5hr` — 5hr token cap
-- `cap_wkly` — weekly token cap
-
-### Step 2b — Index startup files
-Compute `HASH=$(python3 -c "import hashlib,os; print(hashlib.sha256(os.getcwd().encode()).hexdigest())")`.
-For `execution_plan.md` only: if `.idx` absent or source mtime newer than `.idx` mtime, regenerate (H2/H3 headers, `## Header:start-end`). Do not index `design_status.md` — Step 3 uses raw grep only.
-
-### Step 3 — Oracle gate
-Run: `grep -c '| UNRESOLVED |' design_status.md 2>/dev/null || echo ABSENT`
-
-- `ABSENT` → proceed.
-- Count > 0 → stop: "Design has unresolved items. Run `/oracle` to resolve them first." No Read needed.
-
-### Step 4 — Load execution state
-**No `architecture.md` or `CLAUDE.md` at startup.**
-
-`execution_plan.md` — use `.idx` to read only the "Master Round Table" section:
-```bash
-HASH=$(python3 -c "import hashlib,os; print(hashlib.sha256(os.getcwd().encode()).hexdigest())")
-grep "^## Master Round Table" ~/.agentflow/cache/$HASH/index/execution_plan.md.idx
-```
-Then `Read(offset=<start>, limit=<end-start+1>)`.
-
-`tasks.json` — extract pending entries only, never read full file:
-```bash
-python3 -c "import json; d=json.load(open('tasks.json')); [print(json.dumps(t)) for t in d['tasks'] if t['status']=='pending']"
-```
-
-Check `.agentflow/state.json`. Present → report resumed state and ask "Continue?". Absent → identify first incomplete milestone. `/orchestrate debug` → reveal grouping plan and ask "Proceed?".
-
-### Step 4b — Select round
-Read the round table for the active milestone in `execution_plan.md` and check task statuses in `tasks.json`. Identify the first round that contains PENDING tasks whose dependencies are fully satisfied (i.e. marked as MERGED or complete).
-Announce: `Picking up Round X: T-xxx` (where `X` is the round identifier, e.g., `C`, and `T-xxx` represents the pending task IDs in that round).
-Proceed directly to execute or decompose the round without prompting the user.
-
-### Step 5 — Load prior calibration
-Load `~/.agentflow/rate_calibration_claude.json` (if absent and `~/.agentflow/rate_calibration.json` exists, load `~/.agentflow/rate_calibration.json` as a one-time compat fallback); init EWMA: `ewma_mean_tokens=2500, ewma_cv=0.0, sample_count=0, ewma_alpha=0.3` if generic also absent.
-
-Gate file: same staleness rule as Step 3.
+Execute the `commands/claude/orchestrator/startup.md` steps in order. Check design_status.md for UNRESOLVED items before proceeding (stop if count > 0). Load execution_plan.md, tasks.json, rate_calibration_claude.json. For details, see `commands/claude/orchestrator/startup.md`.
 
 
 ---
 
-## Decomposition (lazy — stubs only)
+**See `commands/claude/orchestrator/decomposition.md` for decomposition details (lazy — stubs only).**
 
-1. Read `commands/claude/orchestrator/planning.md`
-2. Read milestone's `Architecture:` anchor from `execution_plan.md`
-3. Load only that anchor section from `architecture.md`
-4. Write full task definitions to `tasks.json`; add parallelism rounds to `execution_plan.md`
+**Rate-pacing:** First agent spawn always alone. After each round, track observed_costs using TOKENS: reports. Per-task cost estimation: sample_count < 7 → 2500 tokens (static default); sample_count ≥ 7 and cv < cv_threshold → use mean; cv ≥ cv_threshold → use p85 (85th percentile). EWMA calibration: load ewma_mean_tokens, ewma_cv, sample_count, ewma_alpha from rate_calibration_claude.json at startup. Round-sizing heuristic: `max_tasks_by_budget = floor(orchestrator_threshold_tokens / pct_cost)` ensures budget compliance; pause if effective_rate × remaining_minutes < 3 × pct_cost.
 
----
-
-## Rate-pacing protocol
-
-Compute:
-```
-remaining_tokens_5hr  = cap_5hr  × (1 − start_pct_5hr/100)
-remaining_tokens_wkly = cap_wkly × (1 − start_pct_wkly/100)
-rate_5hr  = remaining_tokens_5hr  / reset_min_5hr
-rate_wkly = remaining_tokens_wkly / reset_min_wkly
-effective_rate = min(rate_5hr, rate_wkly)
-```
-
-**Round-sizing heuristic:** After each `TOKENS:` report, append `input+output` to `observed_costs[]`. Compare remaining token budget (based on `orchestrator_threshold_tokens` config) to ensure rate-pacing limits are not breached. Per-task cost (`pct_cost`): `sample_count < 7` → 2500; `sample_count ≥ 7` and `cv < cv_threshold` (default 0.3) → `mean` as the cost estimate when CV (coefficient of variation) is low; `cv ≥ cv_threshold` (default 0.3) → p85 (85th percentile) when CV is high. EWMA: `new_ewma = 0.3 × session_mean + 0.7 × prior_ewma`.
-
-
-1. **First agent of every session: alone — never parallel on first spawn.**
-2. Before each round: `max_tasks_by_rate = max(1, floor(effective_rate × 10 / pct_cost))`; `max_tasks_by_budget = max(1, floor(orchestrator_threshold_tokens / pct_cost))`; `max_tasks = min(max_tasks_by_rate, max_tasks_by_budget)`
-3. After each `TOKENS:`: `effective_rate × remaining_minutes < 3 × pct_cost` → pause, ask `/usage`.
-4. Ramp: alone → 2 parallel → 4 parallel (only after Round A cost confirmed safe).
-5. Session end: ask `/usage` (`end_pct_5hr`, `end_pct_wkly`). Derive caps ledger-anchored:
-   - Window boundaries (naive local time only — never UTC): `reset_time = datetime.now() + timedelta(minutes=reset_min)`; `win_start = reset_time − window_size`
-   - Read `agentflow_ledger.json`; filter `sessions[]` where `start_time ≥ window_start`
-   - Count `sessions_in_window_5hr`, `sessions_in_window_wkly`
-   - Sum per session: `uncached_input + cache_creation + output`
-   - `cap_wkly = total_wkly_tokens / (end_pct_wkly / 100)` — derive weekly first (more sessions, more reliable)
-   - `sessions_in_window_5hr >= 3` → `cap_5hr = total_5hr_tokens / (end_pct_5hr / 100)`; else `cap_5hr = cap_wkly` with low-confidence note
-   - Gap: add `(end_pct − start_pct) × prior_cap` if ledger sum is low
-   - Write `~/.agentflow/rate_calibration_claude.json`: `{timestamp (naive local, no Z), start_pct_5hr, end_pct_5hr, start_pct_wkly, end_pct_wkly, session_tokens, cap_5hr, cap_5hr_note, cap_wkly, cap_wkly_note, rate_5hr, rate_wkly, ewma_mean_tokens, ewma_cv, sample_count, ewma_alpha}`
+**Full protocol:** See `commands/claude/orchestrator/rate_pacing.md` for complete rate-pacing and EWMA calibration details.
 
 ---
 
@@ -221,30 +138,8 @@ Then:
 
 ---
 
-## Targeted Reads Rule
+**See `commands/claude/orchestrator/targeted_reads.md` for targeted reads pattern.**
 
-```
-HASH=$(python3 -c "import hashlib,os; print(hashlib.sha256(os.getcwd().encode()).hexdigest())")
-IDX=~/.agentflow/cache/$HASH/index/<relative-path>.idx
-```
-- `.idx` exists → `grep "^<section>:" "$IDX"` → `start-end` → `Read(offset=start, limit=end-start+1)`
-- `.idx` absent → read full file
+**See `commands/claude/orchestrator/verbosity.md` for status messaging guidelines.**
 
----
-
-## Verbosity rules
-
-- Target ≤3 sentences (~150 tokens) per orchestrator status message.
-- Status: one line only
-- Round reports: table only — no prose between spawns
-- Don't narrate grouping logic, overlap scores, or round-sizing
-
----
-
-## Telemetry
-
-Write silently to `.agentflow/telemetry.jsonl`:
-```json
-{"event": "session_complete", "timestamp": "ISO8601", "tasks": N, "groups": N}
-```
-Run silently: `python agentflow.py handoff "orchestrate: [project name]"`
+**See `commands/claude/orchestrator/telemetry.md` for session telemetry logging.**
