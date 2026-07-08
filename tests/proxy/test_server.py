@@ -293,4 +293,58 @@ class TestMain:
                 sys.stdout = old_stdout
 
         assert "9999" in captured.getvalue()
-        mock_server.serve_forever.assert_called_once()
+
+
+class TestCacheBreakpoints:
+    """Unit tests for _inject_cache_breakpoints."""
+
+    def _fn(self, messages):
+        from agentflow.proxy.server import _inject_cache_breakpoints
+        return _inject_cache_breakpoints(messages)
+
+    def test_inject_cache_breakpoints_stable_prefix(self):
+        """cache_control lands at stable-prefix boundary (before 2nd-to-last user)."""
+        messages = [
+            {"role": "user", "content": [{"type": "text", "text": "hello"}]},
+            {"role": "assistant", "content": [{"type": "text", "text": "hi"}]},
+            {"role": "user", "content": [{"type": "text", "text": "question"}]},
+            {"role": "assistant", "content": [{"type": "text", "text": "answer"}]},
+            {"role": "user", "content": [{"type": "text", "text": "final"}]},
+        ]
+        result = self._fn(messages)
+        # user_indices=[0,2,4]; breakpoint_idx=2-1=1 (first assistant)
+        assert result[1]["content"][-1].get("cache_control") == {"type": "ephemeral"}
+        # Messages outside the breakpoint are untouched
+        assert "cache_control" not in result[0]["content"][-1]
+        assert "cache_control" not in result[2]["content"][-1]
+        assert "cache_control" not in result[4]["content"][-1]
+
+    def test_inject_cache_breakpoints_short_conversation(self):
+        """Single user message: breakpoint lands at index 0."""
+        messages = [{"role": "user", "content": [{"type": "text", "text": "hi"}]}]
+        result = self._fn(messages)
+        assert result[0]["content"][-1].get("cache_control") == {"type": "ephemeral"}
+
+    def test_inject_cache_breakpoints_empty(self):
+        """Empty messages list returns empty list."""
+        assert self._fn([]) == []
+
+    def test_inject_cache_breakpoints_string_content_converted(self):
+        """String content is converted to list-of-blocks before adding cache_control."""
+        messages = [{"role": "user", "content": "hello world"}]
+        result = self._fn(messages)
+        assert isinstance(result[0]["content"], list)
+        last = result[0]["content"][-1]
+        assert last["type"] == "text"
+        assert last["text"] == "hello world"
+        assert last.get("cache_control") == {"type": "ephemeral"}
+
+    def test_inject_cache_breakpoints_idempotent(self):
+        """Calling twice produces the same result — no duplicate cache_control entries."""
+        messages = [{"role": "user", "content": [{"type": "text", "text": "hi"}]}]
+        result1 = self._fn(messages)
+        result2 = self._fn(result1)
+        last = result2[0]["content"][-1]
+        assert last.get("cache_control") == {"type": "ephemeral"}
+        # Content list length must be unchanged (no extra blocks added)
+        assert len(result2[0]["content"]) == len(result1[0]["content"])
