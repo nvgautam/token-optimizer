@@ -20,12 +20,26 @@ def handle_enter_handoff_pending(manager) -> None:
     stale = pathlib.Path(".agentflow/handoff_complete.json")
     if stale.exists():
         stale.unlink()
-    try:
-        manager._pty.write_input("/handoff\r")
-    except OSError:
-        manager._log_audit({"event": "handoff_aborted", "trigger": manager._current_trigger, "tokens": manager._last_accumulated_tokens})
-        manager._state_machine.transition("handoff_aborted")
-        raise
+    if getattr(manager, "session_type", None) == "orchestrator":
+        # Bypass LLM skill — write handoff_complete.json directly.
+        # The poll loop detects this file and transitions to RESTARTING.
+        # on_enter_idle will inject /orchestrate\r after the PTY restarts.
+        try:
+            out = pathlib.Path(".agentflow/handoff_complete.json")
+            out.write_text('{"status": "complete"}')
+            manager._log_audit({"event": "orchestrate_handoff_direct", "trigger": manager._current_trigger, "tokens": manager._last_accumulated_tokens})
+        except OSError:
+            manager._log_audit({"event": "handoff_aborted", "trigger": manager._current_trigger, "tokens": manager._last_accumulated_tokens})
+            manager._state_machine.transition("handoff_aborted")
+            raise
+    else:
+        # oracle or None — inject /handoff\r so the LLM runs the skill.
+        try:
+            manager._pty.write_input("/handoff\r")
+        except OSError:
+            manager._log_audit({"event": "handoff_aborted", "trigger": manager._current_trigger, "tokens": manager._last_accumulated_tokens})
+            manager._state_machine.transition("handoff_aborted")
+            raise
 
 
 def trigger_handoff(manager, trigger: str = "auto") -> None:
