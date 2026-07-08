@@ -186,3 +186,48 @@ def test_orchestrate_pass2_cross_tier_routing():
     assert "opposite tier" in content.lower() or "cross-tier" in content.lower()
     assert "haiku-implemented" in content.lower()
     assert "sonnet-implemented" in content.lower()
+
+
+def test_orchestrate_file_size():
+    """T-139: orchestrate.md must be <= 150 lines."""
+    content = CLAUDE_ORCHESTRATE.read_text(encoding="utf-8")
+    lines = len(content.rstrip('\n').split('\n'))
+    assert lines <= 150, f"commands/claude/orchestrate.md is {lines} lines (limit: 150)"
+
+
+def test_orchestrate_required_sections_t139():
+    """T-139: orchestrate.md must contain core sections after split."""
+    content = CLAUDE_ORCHESTRATE.read_text(encoding="utf-8")
+
+    required_sections = [
+        "## Startup",
+        "## Agent spawn",
+        "## Review",
+        "## Human gate",
+        "## Merge",
+    ]
+
+    for section in required_sections:
+        assert section in content, f"Missing required section: {section}"
+
+
+def test_orchestrate_extracted_files_exist():
+    """T-139: Verify extracted helper files exist under commands/claude/orchestrator/."""
+    orchestrator_dir = Path("commands/claude/orchestrator")
+
+    # These files should be extracted
+    expected_files = [
+        "rate_pacing.md",
+        "targeted_reads.md",
+        "telemetry.md",
+    ]
+
+    # At least some extracted files must exist
+    existing = [f for f in expected_files if (orchestrator_dir / f).exists()]
+    assert len(existing) > 0, f"No extracted files found in {orchestrator_dir}"
+
+    # Each existing extracted file must be non-empty
+    for file_name in existing:
+        file_path = orchestrator_dir / file_name
+        content = file_path.read_text(encoding="utf-8")
+        assert len(content.strip()) > 0, f"Extracted file {file_path} is empty"
