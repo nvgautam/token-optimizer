@@ -142,4 +142,4 @@ Follow compact writing rules in `generation.md`.
 
 ## Handoff + Targeted Reads Rule
 
-See `commands/claude/oracle/handoff.md` — load it now.
+See `commands/claude/oracle/wrapup.md` — load it now.
