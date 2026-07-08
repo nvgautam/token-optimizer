@@ -27,6 +27,9 @@ file_limits:
 headroom:
   enabled: true
 
+thresholds:
+  oracle_threshold_tokens: 50000
+
 mcps:
   - github
   - filesystem
