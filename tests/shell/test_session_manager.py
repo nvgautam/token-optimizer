@@ -96,3 +96,69 @@ def test_init_state_with_preexisting_current_round(tmp_path):
     with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
         sm2 = SessionManager(pty, tok, {})
     assert sm2._state_machine.state == States.IDLE
+
+
+def test_on_enter_idle_reinjects_skill():
+    """Test that on_enter_idle reinjects the correct skill based on session_type."""
+    from unittest.mock import MagicMock
+
+    # Test orchestrator case
+    sm, pty, _ = make_manager()
+    sm._just_restarted = True
+    sm.session_type = "orchestrator"
+    sm.on_enter_idle()
+    assert "/orchestrate\r" in pty.inputs
+    assert sm._just_restarted is False
+
+    # Test oracle case
+    sm2, pty2, _ = make_manager()
+    sm2._just_restarted = True
+    sm2.session_type = "oracle"
+    sm2.on_enter_idle()
+    assert "/oracle\r" in pty2.inputs
+    assert sm2._just_restarted is False
+
+    # Test None case (no injection)
+    sm3, pty3, _ = make_manager()
+    sm3._just_restarted = True
+    sm3.session_type = None
+    sm3.on_enter_idle()
+    assert len(pty3.inputs) == 0
+    assert sm3._just_restarted is False
+
+
+def test_restart_end_to_end_via_state_machine():
+    """Test the full restart flow: _just_restarted → on_enter_idle → skill reinjection."""
+    sm, pty, _ = make_manager()
+    sm.session_type = "orchestrator"
+    sm._just_restarted = True
+
+    # Simulate transitioning to idle state which calls on_enter_idle
+    sm.on_enter_idle()
+
+    # Verify skill was reinjected
+    assert "/orchestrate\r" in pty.inputs
+
+    # Verify _just_restarted flag was cleared
+    assert sm._just_restarted is False
+
+
+def test_on_enter_idle_oserror_safe():
+    """Test that OSError during skill injection is caught and does not propagate."""
+    from unittest.mock import MagicMock
+
+    sm, pty, _ = make_manager()
+    sm.session_type = "orchestrator"
+    sm._just_restarted = True
+
+    # Mock write_input to raise OSError
+    pty.write_input = MagicMock(side_effect=OSError("Broken pipe"))
+
+    # Should not raise an exception
+    sm.on_enter_idle()
+
+    # Verify _just_restarted was still cleared despite the error
+    assert sm._just_restarted is False
+
+    # Verify write_input was attempted
+    pty.write_input.assert_called_once_with("/orchestrate\r")
