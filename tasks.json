@@ -684,15 +684,7 @@
     },
     {
       "task_id": "T-153",
-      "title": "Oracle 50K threshold config \u2014 add oracle_threshold_tokens to config schema",
-      "description": "Add oracle_threshold_tokens (default 50000) to agentflow/config/models.py (ThresholdConfig or equivalent Pydantic model). The PTY shell reads this via session_type='oracle' to use a lower threshold than orchestrate's orchestrator_threshold_tokens. Expose in agentflow/config/defaults.yaml. No LLM calls; purely config wiring.",
-      "owns": [
-        "agentflow/config/models.py",
-        "agentflow/config/defaults.yaml"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-154",
@@ -748,6 +740,21 @@
       "description": "output_handler.py detects turn boundaries on \"\n\n\" in PTY output, firing mid-response (paragraph chunks). output_tokens therefore measures PTY text per paragraph, not LLM response tokens per user turn. Both arms show ~235 tok because paragraph size is hook-independent. Fix: detect turn boundary at actual prompt-submitted \u2192 response-complete cycle (e.g. via pty_signal or headroom proxy token counts). Recompute verbosity savings once fixed \u2014 current 2.9M token figure is fabricated from wrong baseline.",
       "milestone": "D3b",
       "depends": []
+    },
+    {
+      "task_id": "T-161",
+      "title": "PostToolUse hook \u2014 auto-detect merged PRs and invoke cleanup_tasks.py",
+      "description": "Enhance agentflow/hooks/post_tool_use_agent.py: for each task_id in tasks_in_flight.json, look up its associated PR via `gh pr list --search \"{task_id}\" --json number,state --jq` and check if state==MERGED. If merged: (1) acquire fcntl.flock(LOCK_EX) on tasks.json, (2) set status=\"complete\" for that task, (3) release lock, (4) run `python agentflow/tools/cleanup_tasks.py .`. Also add flock(LOCK_EX) to _write_json in cleanup_tasks.py so all tasks.json writes are serialized. This makes the merge-detection\u2192cleanup\u2192task_done\u2192PTY-handoff chain fully deterministic without LLM compliance. Constraint: fcntl is stdlib; no new deps. Hook must remain idempotent (safe to run twice for same task).",
+      "owns": [
+        "agentflow/hooks/post_tool_use_agent.py",
+        "agentflow/tools/cleanup_tasks.py"
+      ],
+      "reads": [
+        ".agentflow/tasks_in_flight.json",
+        "tasks.json"
+      ],
+      "depends_on": [],
+      "status": "pending"
     }
   ]
 }

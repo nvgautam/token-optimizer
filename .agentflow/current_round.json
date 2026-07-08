@@ -1,13 +1,13 @@
 {
-  "round_id": "D3-durability",
+  "round_id": "D3-oracle",
   "task_ids": [
-    "T-157"
+    "T-154"
   ],
   "estimated_lines_per_task": {
-    "T-157": 30
+    "T-154": 5
   },
   "file_counts_per_task": {
-    "T-157": 3
+    "T-154": 1
   },
-  "timestamp": "2026-07-08T00:38:30.449827"
+  "timestamp": "2026-07-08T01:20:59.995143"
 }

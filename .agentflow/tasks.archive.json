@@ -1265,5 +1265,17 @@
     "description": "oracle.md and orchestrate.md have awk fixes that are overwritten on each merge. Add a post-merge checklist to CLAUDE.md (or a git hook) that re-applies or validates the awk pattern after merging those files. Prevents silent regression of the UNRESOLVED-count check.",
     "milestone": "D3b",
     "depends": []
+  },
+  {
+    "task_id": "T-153",
+    "title": "Oracle 50K threshold config \u2014 add oracle_threshold_tokens to config schema",
+    "description": "Add oracle_threshold_tokens (default 50000) to agentflow/config/models.py (ThresholdConfig or equivalent Pydantic model). The PTY shell reads this via session_type='oracle' to use a lower threshold than orchestrate's orchestrator_threshold_tokens. Expose in agentflow/config/defaults.yaml. No LLM calls; purely config wiring.",
+    "owns": [
+      "agentflow/config/models.py",
+      "agentflow/config/defaults.yaml"
+    ],
+    "reads": [],
+    "depends_on": [],
+    "status": "complete"
   }
 ]
