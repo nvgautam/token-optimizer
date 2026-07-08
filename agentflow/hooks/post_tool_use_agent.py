@@ -57,8 +57,10 @@ def main() -> None:
 
     signal_script = root / "agentflow" / "shell" / "pty_signal.py"
 
+    completed = []
     for task_id in in_flight:
         if status_by_id.get(task_id, "pending") != "pending":
+            completed.append(task_id)
             try:
                 subprocess.run(
                     [sys.executable, str(signal_script), "task_done", task_id],
@@ -67,6 +69,14 @@ def main() -> None:
                 )
             except Exception:
                 pass
+
+    if completed:
+        still_pending = [tid for tid in in_flight if tid not in set(completed)]
+        try:
+            with open(in_flight_file, "w") as f:
+                json.dump(still_pending, f)
+        except Exception:
+            pass
 
     sys.exit(0)
 
