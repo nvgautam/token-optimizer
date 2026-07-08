@@ -402,7 +402,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | A–C (MERGED) | T-105,T-106,T-102,T-107,T-108,T-113,T-114,T-115 | PTY fixes + measurement chain |
 | D (MERGED) | T-116, T-117, T-109 | PTY handoff non-blocking + robustness + key server |
 | D2 (MERGED) | T-118 ‖ T-110 (parallel), then T-111→T-112 (sequential) | PTY state machine refactor + IP protection stack |
-| D3-prep | T-139 ‖ T-140 (MERGED) ‖ T-142 (parallel), then T-141 | Size splits — unblocks T-121 + T-122 from touching session_manager.py cleanly |
+| D3-prep | T-139 ‖ T-140 (MERGED) ‖ T-142 (parallel), then T-141 (MERGED) | Size splits — unblocks T-121 + T-122 from touching session_manager.py cleanly |
 | D3 | T-121 (MERGED) ‖ T-122 ‖ T-125 ‖ T-120 (parallel) | PTY robustness (deadlines + ANSI reset + stdin gating + T-118 corrections) + regression tests + pty_signal + installer |
 | D3-fix (P0) — MERGED | T-148 | PTY stdin \n→\r fix — commands submit instead of sitting idle; automated orchestrate loop unblocked |
 | D3-restart | T-149 (MERGED) ‖ T-150 (MERGED) (parallel), then T-151 (MERGED), then T-152 | Restart-storm fixes — stale signal clear + accumulator reset + trigger simplification + hook guard |

@@ -618,16 +618,7 @@
     },
     {
       "task_id": "T-141",
-      "title": "Split tests/shell/test_session_manager.py \u2014 size violation",
-      "description": "Split tests/shell/test_session_manager.py to resolve size violation of 390 lines (limit: 350). Extract into focused test modules (e.g. test_session_manager_handoff.py, test_session_manager_idle.py).",
-      "owns": [
-        "tests/shell/test_session_manager.py"
-      ],
-      "reads": [],
-      "depends_on": [
-        "T-140"
-      ],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-142",
