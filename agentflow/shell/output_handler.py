@@ -74,30 +74,6 @@ def handle_output(manager, chunk: bytes) -> None:
             manager._manual_handoff = True
             manager._log_audit({"event": "manual_handoff_set"})
 
-    if manager._last_had_content and "\n\n" in text:
-        manager._turn_count += 1
-        if manager._turn_count == 1:
-            manager._arm = manager._read_arm_file()
-        manager._last_had_content = False
-        manager._turn_output_history.append(manager._current_turn_output_tokens)
-        if len(manager._turn_output_history) > 10:
-            manager._turn_output_history = manager._turn_output_history[-10:]
-
-        lp = manager._project_root / ".agentflow" / "verbosity_log.jsonl"
-        if lp.parent.exists():
-            try:
-                entry = {"ts": datetime.datetime.now().isoformat(), "session_type": manager.session_type, "turn": manager._turn_count, "output_tokens": manager._current_turn_output_tokens, "arm": manager._arm, "session_id": os.environ.get("AGENTFLOW_SESSION_ID")}
-                with open(lp, "a", encoding="utf-8") as fh:
-                    fh.write(json.dumps(entry) + "\n")
-            except Exception:
-                pass
-        manager._current_turn_output_tokens = 0
-        manager._last_idx_injected = None
-        manager._run_stale_index_guard()
-
-    if text.strip():
-        manager._last_had_content = True
-
     if manager._state_machine.state == States.HANDOFF_PENDING and "HANDOFF_COMPLETE" in clean:
         try:
             manager._handoff_complete_path.parent.mkdir(parents=True, exist_ok=True)
@@ -119,6 +95,26 @@ def handle_output(manager, chunk: bytes) -> None:
         tid = complete_m.group(1)
         if tid in manager._task_start_tokens:
             record_task_tokens(manager, tid, total - manager._task_start_tokens.pop(tid))
+
+        # Turn boundary: task completed
+        manager._turn_count += 1
+        if manager._turn_count == 1:
+            manager._arm = manager._read_arm_file()
+        manager._turn_output_history.append(manager._current_turn_output_tokens)
+        if len(manager._turn_output_history) > 10:
+            manager._turn_output_history = manager._turn_output_history[-10:]
+
+        lp = manager._project_root / ".agentflow" / "verbosity_log.jsonl"
+        if lp.parent.exists():
+            try:
+                entry = {"ts": datetime.datetime.now().isoformat(), "session_type": manager.session_type, "turn": manager._turn_count, "output_tokens": manager._current_turn_output_tokens, "arm": manager._arm, "session_id": os.environ.get("AGENTFLOW_SESSION_ID")}
+                with open(lp, "a", encoding="utf-8") as fh:
+                    fh.write(json.dumps(entry) + "\n")
+            except Exception:
+                pass
+        manager._current_turn_output_tokens = 0
+        manager._last_idx_injected = None
+        manager._run_stale_index_guard()
 
     _restart_cooldown = 30.0
     _since_restart = time.monotonic() - manager._last_restart_ts
