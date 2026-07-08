@@ -267,11 +267,9 @@ def test_session_manager_writes_entries_with_arm(tmp_path):
         sm = SessionManager(pty, tok, {})
         sm.session_type = "oracle"
         
-        # Simulate some output to trigger log write on turn boundary
-        sm._last_had_content = True
-        
-        # Invoke callback registered on pty
-        sm._handle_output(b"\n\n")
+        # Invoke callback registered on pty — AGENTFLOW_TASK_COMPLETE is the turn boundary
+        sm._task_start_tokens = {"T-001": 0}
+        sm._handle_output(b"AGENTFLOW_TASK_COMPLETE:T-001\n")
 
     log_path = agentflow_dir / "verbosity_log.jsonl"
     assert log_path.exists()

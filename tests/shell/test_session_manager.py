@@ -37,33 +37,46 @@ def test_countdown_behavior(capsys):
 
 
 def test_turn_output_history():
+    # Turn boundary is triggered by AGENTFLOW_TASK_COMPLETE, not double-newline
     sm, pty, _ = make_manager()
     for _ in range(3):
         fire_output(sm, pty, "response")
     pre_boundary = sm._current_turn_output_tokens
     assert pre_boundary > 1
+    # Double-newline should NOT trigger a boundary (old heuristic removed)
     fire_output(sm, pty, "\n\n")
-    assert sm._turn_output_history == [pre_boundary]
-    assert sm._current_turn_output_tokens < pre_boundary
-    sm, pty, _ = make_manager()
-    for _ in range(15):
-        fire_output(sm, pty, "response")
-        fire_output(sm, pty, "\n\n")
-    assert len(sm._turn_output_history) == 10
+    assert sm._turn_output_history == []
+    assert sm._current_turn_output_tokens >= pre_boundary
+    # AGENTFLOW_TASK_COMPLETE triggers the boundary
+    sm2, pty2, _ = make_manager()
+    for _ in range(3):
+        fire_output(sm2, pty2, "response")
+    pre2 = sm2._current_turn_output_tokens
+    fire_output(sm2, pty2, "AGENTFLOW_TASK_COMPLETE:T-001\n")
+    assert len(sm2._turn_output_history) == 1
+    assert sm2._turn_output_history[0] >= pre2
+    assert sm2._current_turn_output_tokens == 0
+    # History trimmed to 10 items
+    sm3, pty3, _ = make_manager()
+    for i in range(15):
+        fire_output(sm3, pty3, "response")
+        fire_output(sm3, pty3, f"AGENTFLOW_TASK_COMPLETE:T-{i:03d}\n")
+    assert len(sm3._turn_output_history) == 10
 
 
 def test_incremental_write_verbosity_log(tmp_path):
+    # Turn boundary (and verbosity log write) is triggered by AGENTFLOW_TASK_COMPLETE signal
+    # Without .agentflow dir, no log is written
     sm, pty, _ = make_manager()
-    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
-        fire_output(sm, pty, "some response")
-        fire_output(sm, pty, "\n\n")
-    assert not (tmp_path / ".agentflow").exists()
-    (tmp_path / ".agentflow").mkdir()
+    fire_output(sm, pty, "some response")
+    fire_output(sm, pty, "AGENTFLOW_TASK_COMPLETE:T-001\n")
+    assert not (tmp_path / ".agentflow" / "verbosity_log.jsonl").exists()
+    # With .agentflow dir, log is written on task complete
+    (tmp_path / ".agentflow").mkdir(exist_ok=True)
     sm2, pty2, _ = make_manager()
     sm2.session_type = "oracle"
-    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
-        fire_output(sm2, pty2, "some response")
-        fire_output(sm2, pty2, "\n\n")
+    fire_output(sm2, pty2, "some response")
+    fire_output(sm2, pty2, "AGENTFLOW_TASK_COMPLETE:T-001\n")
     log_path = tmp_path / ".agentflow" / "verbosity_log.jsonl"
     assert log_path.exists()
     lines = log_path.read_text(encoding="utf-8").strip().split("\n")

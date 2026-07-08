@@ -291,7 +291,8 @@ def test_session_id_recorded_in_verbosity_log_entries(tmp_path):
 
         # Trigger a normal turn boundary write to verbosity_log.jsonl
         pty._on_output(b"some response")
-        pty._on_output(b"\n\n")
+        sm._task_start_tokens = {"T-001": 0}
+        pty._on_output(b"AGENTFLOW_TASK_COMPLETE:T-001\n")
 
         log_path = af_dir / "verbosity_log.jsonl"
         assert log_path.exists()
@@ -303,7 +304,8 @@ def test_session_id_recorded_in_verbosity_log_entries(tmp_path):
 
         # Trigger a second turn boundary write — session_id must persist across turns
         pty._on_output(b"second response")
-        pty._on_output(b"\n\n")
+        sm._task_start_tokens = {"T-002": 0}
+        pty._on_output(b"AGENTFLOW_TASK_COMPLETE:T-002\n")
 
         lines = log_path.read_text(encoding="utf-8").strip().split("\n")
         assert len(lines) == 2
