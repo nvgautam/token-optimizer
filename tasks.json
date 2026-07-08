@@ -748,6 +748,16 @@
     {
       "task_id": "T-158",
       "status": "complete"
+    },
+    {
+      "task_id": "T-159",
+      "title": "PTY handoff_handler.py \u2014 session_type branch for orchestrate",
+      "status": "pending",
+      "description": "PTY handle_enter_handoff_pending injects /handoff\r for all session types. Orchestrate sessions must instead call agentflow.py handoff + restart directly (no LLM skill). Branch on session_type in handoff_handler.py: oracle \u2192 existing /handoff\r path; orchestrate \u2192 subprocess agentflow.py handoff + pty restart.",
+      "milestone": "D3-prep-cont",
+      "depends": [
+        "T-155"
+      ]
     }
   ]
 }
