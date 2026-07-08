@@ -137,6 +137,67 @@ class TestSignalFiring:
         mock_run.assert_not_called()
 
 
+class TestInFlightReconciliation:
+    def test_removes_completed_tasks_from_in_flight_file(self, tmp_path):
+        agentflow_dir = tmp_path / ".agentflow"
+        agentflow_dir.mkdir()
+        in_flight_file = agentflow_dir / "tasks_in_flight.json"
+        in_flight_file.write_text('["T-010", "T-020"]')
+        (tmp_path / "tasks.json").write_text(json.dumps({
+            "tasks": [
+                {"task_id": "T-010", "status": "complete"},
+                {"task_id": "T-020", "status": "pending"},
+            ]
+        }))
+        pty = tmp_path / "agentflow" / "shell" / "pty_signal.py"
+        pty.parent.mkdir(parents=True)
+        pty.write_text("")
+
+        with patch("agentflow.hooks.post_tool_use_agent._find_workspace_root", return_value=tmp_path):
+            with patch("subprocess.run"):
+                with pytest.raises(SystemExit):
+                    main()
+
+        assert json.loads(in_flight_file.read_text()) == ["T-020"]
+
+    def test_clears_in_flight_file_when_all_complete(self, tmp_path):
+        agentflow_dir = tmp_path / ".agentflow"
+        agentflow_dir.mkdir()
+        in_flight_file = agentflow_dir / "tasks_in_flight.json"
+        in_flight_file.write_text('["T-001", "T-002"]')
+        (tmp_path / "tasks.json").write_text(json.dumps({
+            "tasks": [
+                {"task_id": "T-001", "status": "complete"},
+                {"task_id": "T-002", "status": "complete"},
+            ]
+        }))
+        (tmp_path / "agentflow" / "shell").mkdir(parents=True)
+
+        with patch("agentflow.hooks.post_tool_use_agent._find_workspace_root", return_value=tmp_path):
+            with patch("subprocess.run"):
+                with pytest.raises(SystemExit):
+                    main()
+
+        assert json.loads(in_flight_file.read_text()) == []
+
+    def test_leaves_in_flight_unchanged_when_all_pending(self, tmp_path):
+        agentflow_dir = tmp_path / ".agentflow"
+        agentflow_dir.mkdir()
+        in_flight_file = agentflow_dir / "tasks_in_flight.json"
+        in_flight_file.write_text('["T-005"]')
+        (tmp_path / "tasks.json").write_text(json.dumps({
+            "tasks": [{"task_id": "T-005", "status": "pending"}]
+        }))
+        (tmp_path / "agentflow" / "shell").mkdir(parents=True)
+
+        with patch("agentflow.hooks.post_tool_use_agent._find_workspace_root", return_value=tmp_path):
+            with patch("subprocess.run"):
+                with pytest.raises(SystemExit):
+                    main()
+
+        assert json.loads(in_flight_file.read_text()) == ["T-005"]
+
+
 class TestRobustness:
     def test_subprocess_exception_does_not_crash_hook(self, tmp_path):
         agentflow_dir = tmp_path / ".agentflow"

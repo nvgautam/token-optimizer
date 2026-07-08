@@ -31,3 +31,4 @@
 {"file": "commands/claude/orchestrate.md", "blocked_lines": 250, "actual_lines": 250, "limit": 150, "ts": "2026-07-07T20:44:32.482687"}
 {"file": "commands/claude/orchestrate.md", "blocked_lines": 250, "actual_lines": 250, "limit": 150, "ts": "2026-07-07T20:49:54.814680"}
 {"file": "commands/claude/oracle.md", "blocked_lines": 179, "actual_lines": 179, "limit": 150, "ts": "2026-07-07T20:53:28.700476"}
+{"file": "agentflow/cli.py", "blocked_lines": 281, "actual_lines": 281, "limit": 250, "ts": "2026-07-07T21:45:19.468573"}
