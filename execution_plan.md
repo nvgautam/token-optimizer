@@ -409,7 +409,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | D3-156 — MERGED | T-156 | PostToolUse Agent hook — auto task_done signal backstop |
 | D3-auto-1 — MERGED | T-155 (MERGED) | PTY session_type detection — oracle vs orchestrate threshold routing; must land before T-159 |
 | D3-auto-2 — MERGED | T-161 (MERGED) | PostToolUse hook — auto-detect merged PRs, update tasks.json (flock), invoke cleanup_tasks.py; makes handoff chain deterministic |
-| D3-auto-3 | T-159 | PTY handoff_handler.py session_type branch — fires correct restart path on orchestrate threshold hit |
+| D3-auto-3 — MERGED | T-159 (MERGED) | PTY handoff_handler.py session_type branch — fires correct restart path on orchestrate threshold hit |
 | D3-prep-cont-b | T-158 (MERGED) | Stale tasks_in_flight reconcile |
 | D3-prep-cont-c — MERGED | T-139 (MERGED) ‖ T-142 (MERGED) ‖ T-145 (MERGED) | Size splits — unblocks D3b |
 | D3-durability — MERGED | T-157 (MERGED) | CLAUDE.md post-merge checklist — prevents skill/config losses on branch diverge |
