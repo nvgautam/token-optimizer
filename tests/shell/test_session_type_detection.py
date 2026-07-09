@@ -144,3 +144,74 @@ def test_signal_file_not_read_when_session_type_already_set(tmp_path):
     sm._sync_session_type()
     assert sm.session_type == "orchestrator"
     assert sm._state_machine.threshold_tokens == 80000
+
+
+def test_sync_session_type_reads_session_state_json(tmp_path):
+    """session_manager reads session_state.json (JSON format) and sets session_type."""
+    import json
+    sig_dir = tmp_path / ".agentflow"
+    sig_dir.mkdir(parents=True, exist_ok=True)
+    session_state_file = sig_dir / "session_state.json"
+    session_state_file.write_text(json.dumps({"session_type": "oracle"}), encoding="utf-8")
+
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+        sm, _, _ = make_manager()
+    assert sm.session_type == "oracle"
+    assert sm._state_machine.threshold_tokens == 50000
+
+
+def test_sync_session_type_reads_orchestrator_from_session_state_json(tmp_path):
+    """session_manager reads orchestrator type from session_state.json."""
+    import json
+    sig_dir = tmp_path / ".agentflow"
+    sig_dir.mkdir(parents=True, exist_ok=True)
+    session_state_file = sig_dir / "session_state.json"
+    session_state_file.write_text(json.dumps({"session_type": "orchestrator"}), encoding="utf-8")
+
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+        sm, _, _ = make_manager()
+    assert sm.session_type == "orchestrator"
+    assert sm._state_machine.threshold_tokens == 80000
+
+
+def test_sync_session_type_fallback_to_text_file_when_no_json(tmp_path):
+    """When session_state.json doesn't exist, fall back to plain text session_type file."""
+    _write_signal_file(tmp_path, "oracle")
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+        sm, _, _ = make_manager()
+    assert sm.session_type == "oracle"
+    assert sm._state_machine.threshold_tokens == 50000
+
+
+def test_sync_session_type_json_takes_precedence_over_text_file(tmp_path):
+    """When both session_state.json and session_type exist, JSON takes precedence."""
+    import json
+    sig_dir = tmp_path / ".agentflow"
+    sig_dir.mkdir(parents=True, exist_ok=True)
+    # Write both files with different values
+    (sig_dir / "session_type").write_text("oracle", encoding="utf-8")
+    session_state_file = sig_dir / "session_state.json"
+    session_state_file.write_text(json.dumps({"session_type": "orchestrator"}), encoding="utf-8")
+
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+        sm, _, _ = make_manager()
+    # JSON should take precedence
+    assert sm.session_type == "orchestrator"
+    assert sm._state_machine.threshold_tokens == 80000
+
+
+def test_sync_session_type_ignores_invalid_json(tmp_path):
+    """When session_state.json contains invalid JSON, fall back to text file."""
+    import json
+    sig_dir = tmp_path / ".agentflow"
+    sig_dir.mkdir(parents=True, exist_ok=True)
+    # Write invalid JSON
+    session_state_file = sig_dir / "session_state.json"
+    session_state_file.write_text("not valid json", encoding="utf-8")
+    # Write valid text file as fallback
+    (sig_dir / "session_type").write_text("oracle", encoding="utf-8")
+
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+        sm, _, _ = make_manager()
+    assert sm.session_type == "oracle"
+    assert sm._state_machine.threshold_tokens == 50000
