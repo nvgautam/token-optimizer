@@ -1,0 +1,12 @@
+{
+  "ewma_mean_tokens": 58969,
+  "ewma_cv": 0.0,
+  "sample_count": 1,
+  "ewma_alpha": 0.3,
+  "samples": [
+    {
+      "task_id": "T-120",
+      "tokens": 58969
+    }
+  ]
+}

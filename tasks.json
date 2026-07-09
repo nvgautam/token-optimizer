@@ -802,6 +802,19 @@
     {
       "task_id": "T-179",
       "status": "complete"
+    },
+    {
+      "task_id": "T-180",
+      "title": "PR URL registry \u2014 write task_id\u2192PR URL on gh pr create; use gh pr view for merge detection",
+      "description": "Fix unreliable PR merge detection in post_tool_use_agent.py by replacing fuzzy title matching with deterministic gh pr view state checks.\n\n1. On Bash PostToolUse: detect gh pr create in command; extract PR URL from output (last non-empty line); derive task_id from branch name (pattern task/T-XXX-*) or from tasks_in_flight.json single entry; write/merge {task_id: pr_url} into .agentflow/task_prs.json.\n\n2. On merge detection: load task_prs.json; for each in-flight task with a known PR URL run gh pr view <url> --json state (timeout 5s); treat state==MERGED as confirmed. Fall back to existing title-match heuristic only for tasks with no registered URL.\n\ntests/hooks/test_post_tool_use_agent_pr_registry.py: test URL write on gh pr create output; test gh pr view detection returns MERGED; test fallback path when task_prs.json absent.",
+      "owns": [
+        "agentflow/hooks/post_tool_use_agent.py",
+        "tests/hooks/test_post_tool_use_agent_pr_registry.py"
+      ],
+      "depends_on": [],
+      "estimated_lines": 70,
+      "status": "pending",
+      "milestone": "M-DP"
     }
   ]
 }

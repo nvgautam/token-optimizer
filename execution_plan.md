@@ -443,10 +443,19 @@ Priority rationale (2026-07-08): Auto-orchestration loop (handoff → restart �
 | DP-2 — MERGED | T-171 ‖ T-166 (parallel) | SSE response parser + worker-token measurement |
 | DP-2b — MERGED | T-177 (MERGED), T-176 (MERGED) | Deterministic session_type via hook + stall recovery — engine reliably restarts |
 | DP-3 — MERGED | T-120 (MERGED PR #89), T-179 (MERGED PR #90) | PTY installer (+ cli.py split) + proxy/server.py split |
+| DP-3c | T-180 | PR URL registry — deterministic merge detection via gh pr view (fixes cleanup stall) |
 | DP-3b | T-172 (depends T-179) | Headroom A/B arm |
 | DP-4 | T-173 (depends T-120) | Design partner package |
 | DP-5 | T-169 ‖ T-170 (parallel, optional) | Orchestrate startup cost reduction (nice-to-have before demo) |
 | DP-post | T-164, T-175, T-178 | Capacity wiring + session_manager split + hook audit log |
+
+---
+
+## Addendum: T-180 — PR URL registry + deterministic merge detection (filed 2026-07-09)
+**Round:** DP-3c (before DP-3b)
+**Problem:** `post_tool_use_agent.py` title-match heuristic fails for conventional-commit PR titles (e.g. `feat(T-120):` — `T-120:` not found as substring). Tasks remain in `tasks_in_flight.json` after merge; cleanup never fires.
+**Fix:** Write `{task_id: pr_url}` to `.agentflow/task_prs.json` when `gh pr create` runs; use `gh pr view <url> --json state` for authoritative MERGED check. Title match kept as fallback for tasks with no registered URL.
+**Owns:** `agentflow/hooks/post_tool_use_agent.py`, `tests/hooks/test_post_tool_use_agent_pr_registry.py`
 
 ---
 
