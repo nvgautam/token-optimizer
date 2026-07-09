@@ -1440,5 +1440,35 @@
     "status": "complete",
     "milestone": "M-DP",
     "description": "UserPromptSubmit hook writes {\"session_type\": \"orchestrator\"|\"oracle\"} to .agentflow/session_state.json when /orchestrate or /oracle detected in prompt. PTY session_manager reads this file at startup and after restart injection (write_input path also sets it directly). Removes race condition where trigger_handoff fires before /orchestrate echoes back; eliminates false positives from /orchestrate in code block output."
+  },
+  {
+    "task_id": "T-120",
+    "title": "PTY installer \u2014 merge agentflow hooks into customer .claude/settings.json; binary-relative hook commands",
+    "description": "Enable safe hook registration in customer environments at install time.\n\nIMPORTANT: agentflow/cli.py is 290 lines (limit 250). Split FIRST:\n  - Create agentflow/cli_cmds.py with cmd_shell() and cmd_init() extracted from cli.py.\n  - Leave cli.py as thin dispatcher (<= 200 lines) with build_parser() + main() + small cmd stubs.\n  - Then add install/uninstall/hooks subcommands to cli.py and installer.py.\n\ninstaller.py: implement install() and uninstall().\n  install(): reads ~/.claude/settings.json (or create if absent), deep-merges agentflow\n  hook entries idempotently (command-string match), writes atomically via os.replace.\n  uninstall(): removes only agentflow hook entries from ~/.claude/settings.json.\n  Hook commands reference binary: 'agentflow hooks <name>'.\n\ncli.py: add install, uninstall subparsers dispatching to installer.install/uninstall.\n  add 'hooks' subparser with 'name' positional arg (prints usage for now).\n\ntests/ip/test_installer.py: test install(), uninstall(), idempotency (install twice = same result).\nUse tmp_path for ~/.claude/settings.json reads/writes. Mock os.replace with a real temp-file approach.",
+    "owns": [
+      "agentflow/ip/installer.py",
+      "agentflow/cli.py",
+      "agentflow/cli_cmds.py",
+      "tests/ip/test_installer.py"
+    ],
+    "depends_on": [
+      "T-112"
+    ],
+    "estimated_lines": 120,
+    "status": "complete"
+  },
+  {
+    "task_id": "T-179",
+    "title": "Split agentflow/proxy/server.py \u2014 size violation",
+    "description": "Split agentflow/proxy/server.py to resolve size violation of 328 lines (limit: 250). Extract the compression/logging logic into agentflow/proxy/compress.py. server.py becomes the thin HTTP server only (<= 150 lines). compress.py handles compress(), _log_proxy_entry(), and related helpers.",
+    "owns": [
+      "agentflow/proxy/server.py",
+      "agentflow/proxy/compress.py",
+      "tests/proxy/test_compress_split.py"
+    ],
+    "depends_on": [],
+    "estimated_lines": 50,
+    "status": "complete",
+    "milestone": "M-DP"
   }
 ]

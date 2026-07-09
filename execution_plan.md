@@ -442,7 +442,7 @@ Priority rationale (2026-07-08): Auto-orchestration loop (handoff → restart �
 | DP-1 — MERGED | T-165 ‖ T-160 (parallel) | Orchestrate loop E2E test + verbosity metrics |
 | DP-2 — MERGED | T-171 ‖ T-166 (parallel) | SSE response parser + worker-token measurement |
 | DP-2b — MERGED | T-177 (MERGED), T-176 (MERGED) | Deterministic session_type via hook + stall recovery — engine reliably restarts |
-| DP-3 | T-120 (solo first) then T-179 (parallel) | PTY installer (+ cli.py split) + proxy/server.py split |
+| DP-3 — MERGED | T-120 (MERGED PR #89), T-179 (MERGED PR #90) | PTY installer (+ cli.py split) + proxy/server.py split |
 | DP-3b | T-172 (depends T-179) | Headroom A/B arm |
 | DP-4 | T-173 (depends T-120) | Design partner package |
 | DP-5 | T-169 ‖ T-170 (parallel, optional) | Orchestrate startup cost reduction (nice-to-have before demo) |
