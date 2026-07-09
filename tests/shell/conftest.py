@@ -17,6 +17,7 @@ class FakePTY:
         self._on_output = self._on_exit = None
         self.inputs: list[str] = []
         self._exited = False
+        self._command = ["claude"]
     def write_input(self, text: str) -> None:
         self.inputs.append(text)
     def read_output(self, timeout: float = 1.0) -> bytes:

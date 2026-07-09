@@ -14,6 +14,9 @@ def handle_enter_restarting(manager) -> None:
 
 def restart_child(manager) -> None:
     """Kills the active Claude child process and restarts it."""
+    if not getattr(manager._pty, "_command", None):
+        manager._log_audit({"event": "restart_session_aborted", "reason": "_command_missing"})
+        return
     manager._log_audit({"event": "restart_session"})
     manager._last_restart_ts = time.monotonic()
     pid = getattr(manager._pty, "child_pid", None)

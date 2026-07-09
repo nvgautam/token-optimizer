@@ -37,6 +37,24 @@ def test_restart_child_resets_token_accumulator(tmp_path):
     assert sm._last_accumulated_tokens == 0, "_last_accumulated_tokens must be reset to 0 after restart"
     assert tok._total == 0, "tokenizer running total must be reset to 0 after restart"
 
+def test_restart_child_aborts_if_command_missing():
+    """restart_child must not kill the child if _command is unset — prevents orphaned PTY."""
+    sm, pty, _ = make_manager()
+    pty._command = None
+    pty.child_pid = 99999  # sentinel — must NOT be killed
+
+    killed = []
+    with (
+        patch("agentflow.shell.process_manager.os.kill", side_effect=lambda pid, sig: killed.append(pid)),
+        patch("agentflow.shell.process_manager.spawn_new_child") as mock_spawn,
+        patch.object(sm._state_machine, "transition") as mock_transition,
+    ):
+        sm.restart_child()
+
+    assert not killed, "os.kill must not be called when _command is missing"
+    mock_spawn.assert_not_called()
+    mock_transition.assert_not_called()
+
 def test_idle_poll_no_longer_triggers_on_token_count(tmp_path):
     """T-151: poll() must NOT trigger handoff based on safety/ceiling token counts.
     The poll loop only responds to signal files; threshold-based triggers are
