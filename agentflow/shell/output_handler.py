@@ -116,6 +116,23 @@ def handle_output(manager, chunk: bytes) -> None:
         manager._last_idx_injected = None
         manager._run_stale_index_guard()
 
+    if "HANDOFF RECOMMENDED" in clean:
+        if not manager._manual_handoff and not manager._auto_handoff_disabled() and manager._state_machine.state not in (States.HANDOFF_PENDING, States.RESTARTING):
+            try:
+                tasks_path = manager._project_root / "tasks.json"
+                if tasks_path.exists():
+                    data = json.loads(tasks_path.read_text("utf-8"))
+                    completed = {t["task_id"] for t in data.get("tasks", []) if t.get("status") == "complete"}
+                    for tid in list(manager._task_start_tokens):
+                        if tid in completed:
+                            manager._task_start_tokens.pop(tid)
+                            manager._log_audit({"event": "handoff_recommended_evict", "task_id": tid})
+            except Exception:
+                pass
+            primary = manager._config["handoff_primary_tokens"]
+            if total >= primary and not bool(manager._task_start_tokens):
+                manager.trigger_handoff(trigger="handoff-recommended-stall-recovery")
+
     _restart_cooldown = 30.0
     _since_restart = time.monotonic() - manager._last_restart_ts
     if not manager._manual_handoff and not manager._auto_handoff_disabled() and manager._state_machine.state not in (States.HANDOFF_PENDING, States.RESTARTING) and _since_restart >= _restart_cooldown:
