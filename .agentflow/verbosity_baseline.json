@@ -1,9 +1,9 @@
 {
-  "computed_at": "2026-07-07T23:31:38.683179",
+  "computed_at": "2026-07-08T14:19:43.344115",
   "baseline_tokens": 236,
-  "sample_size": 2160,
-  "ci95_low": 193.6939948250821,
-  "ci95_high": 277.6282273971401,
+  "sample_size": 2170,
+  "ci95_low": 194.17811281417835,
+  "ci95_high": 277.73340792314883,
   "measured": true,
   "arms": {
     "on": {
@@ -14,13 +14,13 @@
       "ci95_high": 253.6129015800442
     },
     "off": {
-      "n": 2160,
-      "mean": 235.6611111111111,
-      "p90": 460,
-      "ci95_low": 193.6939948250821,
-      "ci95_high": 277.6282273971401
+      "n": 2170,
+      "mean": 235.9557603686636,
+      "p90": 461,
+      "ci95_low": 194.17811281417835,
+      "ci95_high": 277.73340792314883
     }
   },
   "stopping_met": true,
-  "stopping_status": "VERBOSITY A/B COMPLETE \u2014 sufficient data (n_on=7525, n_off=2160, CI=[194, 278])"
+  "stopping_status": "VERBOSITY A/B COMPLETE \u2014 sufficient data (n_on=7525, n_off=2170, CI=[194, 278])"
 }
