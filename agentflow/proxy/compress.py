@@ -3,10 +3,12 @@
 Mutates the outgoing payload BEFORE forwarding to Anthropic:
 - headroom compression (removes redundant context)
 - cache_control breakpoint injection (when headroom is absent)
+- arm-based compression control (A/B testing: on/off)
 """
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 try:
@@ -21,14 +23,33 @@ from agentflow.proxy.hooks import AgentFlowHooks
 _HOOKS = AgentFlowHooks()
 
 
+def _read_headroom_arm(project_root: Path | str) -> str:
+    """Read the headroom A/B arm from .agentflow/verbosity_ab_arm.txt.
+
+    Returns "on" or "off". Defaults to "on" if file is absent or unreadable.
+    """
+    arm_file = Path(project_root) / ".agentflow" / "verbosity_ab_arm.txt"
+    try:
+        arm = arm_file.read_text().strip()
+        if arm in ("on", "off"):
+            return arm
+    except (OSError, IOError):
+        pass
+    return "on"
+
+
 def _compress_payload(
     p: dict[str, Any],
     msgs: list[dict[str, Any]],
     model: str,
     compress_fn: Any = None,
     headroom_available: bool | None = None,
+    arm: str | None = None,
 ) -> tuple[int, int, float]:
     """Compress messages in-place and inject cache breakpoints if needed.
+
+    When arm="off", compression is skipped (headroom disabled for A/B testing).
+    When arm="on" or None, compression runs normally if headroom_available.
 
     compress_fn and headroom_available allow the caller (server.py) to pass
     its own module-level references so unit-test patches on server.py take effect.
@@ -37,9 +58,11 @@ def _compress_payload(
         headroom_available = _HEADROOM_AVAILABLE
     if compress_fn is None:
         compress_fn = compress
+    if arm is None:
+        arm = "on"
     tb = ta = 0
     cr = 0.0
-    if headroom_available and compress_fn and msgs:
+    if arm == "on" and headroom_available and compress_fn and msgs:
         try:
             r = compress_fn(msgs, model=model, hooks=_HOOKS, compress_user_messages=False)
             tb, ta, cr = r.tokens_before, r.tokens_after, r.compression_ratio
