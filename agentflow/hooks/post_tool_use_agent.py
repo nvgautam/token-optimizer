@@ -9,6 +9,7 @@ request'). The Bash gate avoids a gh API call on every shell invocation.
 
 import fcntl
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -17,8 +18,7 @@ from pathlib import Path
 def _find_workspace_root() -> Path:
     cwd = Path.cwd()
     for parent in [cwd, *cwd.parents]:
-        if (parent / ".agentflow").is_dir():
-            return parent
+        if (parent / ".agentflow").is_dir(): return parent
     return cwd
 
 
@@ -38,29 +38,20 @@ def _fetch_merged_pr_titles(limit: int = 20) -> set[str]:
 
 
 def _mark_task_complete(tasks_file: Path, task_id: str) -> bool:
-    """Mark task_id as complete using an exclusive fcntl lock.
-
-    Returns True if the task was found with status 'pending' and updated.
-    Returns False if the task is not found, already complete, or the lock
-    cannot be acquired.
-    """
+    """Mark task_id as complete using fcntl lock."""
     try:
         with open(tasks_file, "r+") as f:
             fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
             try:
                 data = json.load(f)
-                updated = False
                 for t in data.get("tasks", []):
                     if t.get("task_id") == task_id and t.get("status") == "pending":
                         t["status"] = "complete"
-                        updated = True
-                        break
-                if not updated:
-                    return False
-                f.seek(0)
-                json.dump(data, f)
-                f.truncate()
-                return True
+                        f.seek(0)
+                        json.dump(data, f)
+                        f.truncate()
+                        return True
+                return False
             finally:
                 fcntl.flock(f, fcntl.LOCK_UN)
     except (OSError, ValueError):
@@ -68,25 +59,91 @@ def _mark_task_complete(tasks_file: Path, task_id: str) -> bool:
 
 
 def _run_cleanup(root: Path) -> None:
-    """Run cleanup_tasks.py as a subprocess. Errors are silently ignored."""
-    cleanup_script = root / "agentflow" / "tools" / "cleanup_tasks.py"
+    """Run cleanup_tasks.py as subprocess."""
     try:
-        subprocess.run(
-            [sys.executable, str(cleanup_script), str(root)],
-            check=False,
-            capture_output=True,
-        )
+        subprocess.run([sys.executable, str(root / "agentflow" / "tools" / "cleanup_tasks.py"), str(root)], check=False, capture_output=True)
     except Exception:
         pass
 
 
 def _is_pr_merge_bash(hook_data: dict) -> bool:
-    """Return True if the Bash invocation looks like a PR merge."""
+    """Check if Bash invocation looks like a PR merge."""
     cmd = hook_data.get("tool_input", {}).get("command", "")
-    if "gh pr merge" in cmd:
-        return True
+    return "gh pr merge" in cmd or "Merged pull request" in hook_data.get("tool_response", {}).get("output", "")
+
+
+
+
+def _register_pr_url(agentflow_dir: Path, task_id: str, pr_url: str) -> bool:
+    """Write/merge {task_id: pr_url} into .agentflow/task_prs.json atomically."""
+    prs_file = agentflow_dir / "task_prs.json"
+    try:
+        mode = "r+" if prs_file.exists() else "w+"
+        with open(prs_file, mode) as f:
+            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            try:
+                data = json.load(f) if mode == "r+" else {}
+                data[task_id] = pr_url
+                f.seek(0)
+                json.dump(data, f)
+                f.truncate()
+                return True
+            finally:
+                fcntl.flock(f, fcntl.LOCK_UN)
+    except (OSError, ValueError, json.JSONDecodeError):
+        return False
+
+
+def _check_pr_state(pr_url: str) -> str | None:
+    """Call gh pr view <url> --json state; return state string or None on error."""
+    try:
+        result = subprocess.run(
+            ["gh", "pr", "view", pr_url, "--json", "state"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        if result.returncode == 0:
+            data = json.loads(result.stdout)
+            return data.get("state")
+    except Exception:
+        pass
+    return None
+
+
+def _detect_pr_create(hook_data: dict, agentflow_dir: Path) -> None:
+    """Detect gh pr create; extract URL and task_id; register PR URL."""
+    cmd = hook_data.get("tool_input", {}).get("command", "")
+    if "gh pr create" not in cmd:
+        return
     output = hook_data.get("tool_response", {}).get("output", "")
-    return "Merged pull request" in output
+    pr_url = next((l.strip() for l in output.strip().split("\n") if l.strip().startswith("https://")), None)
+    if not pr_url:
+        return
+
+    root = _find_workspace_root()
+    task_id = None
+    try:
+        result = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, cwd=root, check=False)
+        if result.returncode == 0:
+            m = re.search(r"task/(T-\d+)", result.stdout.strip())
+            if m:
+                task_id = m.group(1)
+    except Exception:
+        pass
+
+    if not task_id:
+        try:
+            with open(agentflow_dir / "tasks_in_flight.json") as f:
+                in_flight = json.load(f)
+            if len(in_flight) == 1:
+                task_id = in_flight[0]
+        except Exception:
+            pass
+
+    if task_id:
+        _register_pr_url(agentflow_dir, task_id, pr_url)
 
 
 def main() -> None:
@@ -96,11 +153,18 @@ def main() -> None:
         hook_data = {}
 
     tool_name = hook_data.get("tool_name", "")
+    root = _find_workspace_root()
+    agentflow_dir = root / ".agentflow"
+
+    # Register PR URL if gh pr create detected
+    if tool_name == "Bash":
+        cmd = hook_data.get("tool_input", {}).get("command", "")
+        if "gh pr create" in cmd:
+            _detect_pr_create(hook_data, agentflow_dir)
+
     if tool_name == "Bash" and not _is_pr_merge_bash(hook_data):
         sys.exit(0)
 
-    root = _find_workspace_root()
-    agentflow_dir = root / ".agentflow"
     in_flight_file = agentflow_dir / "tasks_in_flight.json"
 
     if not in_flight_file.exists():
@@ -125,13 +189,26 @@ def main() -> None:
     except Exception:
         sys.exit(0)
 
-    # PR detection: one gh call fetches all recently merged PR titles; match
-    # locally against in-flight task IDs so we never make N API calls.
+    task_pr_urls = {}
+    try:
+        prs_file = agentflow_dir / "task_prs.json"
+        if prs_file.exists():
+            with open(prs_file) as f:
+                task_pr_urls = json.load(f)
+    except Exception:
+        pass
+
     merged_titles = _fetch_merged_pr_titles()
+
     for task_id in in_flight:
-        if any(f"{task_id}:" in title or title.startswith(f"{task_id} ") for title in merged_titles):
-            if _mark_task_complete(tasks_file, task_id):
-                _run_cleanup(root)
+        is_merged = False
+        if task_id in task_pr_urls:
+            is_merged = _check_pr_state(task_pr_urls[task_id]) == "MERGED"
+        else:
+            is_merged = any(f"{task_id}:" in t or t.startswith(f"{task_id} ") for t in merged_titles)
+
+        if is_merged and _mark_task_complete(tasks_file, task_id):
+            _run_cleanup(root)
 
     # Reload tasks data to pick up any updates written by PR detection above.
     try:
