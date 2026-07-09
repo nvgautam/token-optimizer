@@ -1317,5 +1317,98 @@
     ],
     "depends_on": [],
     "status": "complete"
+  },
+  {
+    "task_id": "T-159",
+    "title": "PTY handoff_handler.py \u2014 session_type branch for orchestrate",
+    "status": "complete",
+    "description": "PTY handle_enter_handoff_pending injects /handoff\r for all session types. Orchestrate sessions must instead call agentflow.py handoff + restart directly (no LLM skill). Branch on session_type in handoff_handler.py: oracle \u2192 existing /handoff\r path; orchestrate \u2192 subprocess agentflow.py handoff + pty restart.",
+    "milestone": "D3-prep-cont",
+    "depends": [
+      "T-155"
+    ]
+  },
+  {
+    "task_id": "T-112",
+    "title": "Nuitka compilation \u2014 compile PTY + hooks into binary; smoke-test distribution",
+    "description": "Develop a compilation script using Nuitka to compile the PTY shell, session manager, and hooks into a standalone executable. Run verification tests on the compiled binary to ensure compatibility and correct startup execution.",
+    "owns": [
+      "agentflow/ip/compile.sh"
+    ],
+    "reads": [],
+    "depends_on": [
+      "T-111"
+    ],
+    "contracts": [],
+    "test_requirements": {
+      "unit": [
+        "Test script outputs valid Nuitka build command"
+      ],
+      "integration": [
+        "Compile the PTY shell and execute smoke tests on the binary"
+      ],
+      "coverage_threshold": 85
+    },
+    "security_constraints": [],
+    "acceptance_criteria": "Nuitka compiler produces a standalone executable that runs without source code present.",
+    "estimated_lines": 80,
+    "context_section": "architecture.md#pty-shell-design",
+    "status": "complete"
+  },
+  {
+    "task_id": "T-122",
+    "title": "Session restart regression tests \u2014 skill reinjection + end-to-end state machine path",
+    "description": "Three tests to close regression gaps in the session restart flow: (1) test_on_enter_idle_reinjects_skill: after restart, assert that on_enter_idle writes '/oracle\\n' when session_type='oracle' and '/orchestrate\\n' when session_type='orchestrator'; assert nothing written for unknown session_type. (2) test_restart_end_to_end_via_state_machine: with auto_reset_enabled=True, feed output that exceeds hard_ceiling_tokens threshold, assert trigger_handoff fires, simulate handoff_complete.json write + poll() to drive state through RESTARTING->IDLE, assert _last_accumulated_tokens == 0 and tok._total == 0 after restart (proving tokenizer reset happens through the production path, not just _spawn_new_child directly). (3) test_on_enter_restarting_oserror_safe: on_enter_restarting() must not raise even if write_input raises OSError (dying PTY); assert restart_child is still called. All in tests/shell/test_session_manager.py. Stdlib + unittest.mock only.",
+    "owns": [
+      "tests/shell/test_session_manager.py"
+    ],
+    "depends_on": [],
+    "estimated_lines": 70,
+    "status": "complete"
+  },
+  {
+    "task_id": "T-147",
+    "title": "AnthropicCacheOptimizer \u2014 inject cache breakpoints in proxy pipeline",
+    "description": "Instantiate AnthropicCacheOptimizer once at module level in agentflow/proxy/server.py (guarded by _HEADROOM_AVAILABLE). In do_POST, after compression, call optimizer.optimize(messages, OptimizationContext(request_id=request_id, model=model)) on post-compression messages; replace payload[\"messages\"] with result.messages. Track cache_tokens_saved (result.tokens_before - result.tokens_after) as a new field in _log_entry and proxy_log.jsonl. ~25 lines in server.py + ~5 in _log_entry. NOTE (post-merge): headroom owns cache_control placement when active; proxy injection must be gated on not _HEADROOM_AVAILABLE to avoid exceeding the API 4-block limit. When headroom is absent, proxy injects at the stable-prefix boundary but skips if existing blocks already at limit. Long-term: headroom should be the single owner of all cache_control placement.",
+    "owns": [
+      "agentflow/proxy/server.py"
+    ],
+    "reads": [],
+    "depends_on": [],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-160a",
+    "title": "Fix verbosity turn boundary detection in output_handler.py",
+    "status": "complete",
+    "milestone": "D3b",
+    "depends": [],
+    "description": "Replace double-newline heuristic with real prompt\u2192response cycle boundary via pty_signal. Deliverable: verbosity_log.jsonl entries have accurate output_tokens per turn (both A/B arms diverge). ~output_handler.py only, ~50-80 lines changed."
+  },
+  {
+    "task_id": "T-163",
+    "title": "PTY auto-capture /usage at session start/end \u2192 write to ledger",
+    "status": "complete",
+    "milestone": "D3b",
+    "depends": [],
+    "description": "At session start, PTY shell sends /usage\r, parses stdout for 5hr and weekly percentages (regex, stdlib only), and writes start_pct_5hr + start_pct_weekly to the current ledger session record. At session end (handoff trigger), repeat for end_pct_5hr + end_pct_weekly. Removes the manual usage-% prompt from orchestrate startup. Files: agentflow/shell/session_manager.py (or pty_shell.py) + agentflow/telemetry/ledger.py."
+  },
+  {
+    "task_id": "T-160",
+    "title": "Verbosity A/B metrics \u2014 per-turn savings + session pct (T-160b)",
+    "status": "complete",
+    "description": "Depends on T-160a (real turn boundaries). Rerun A/B with accurate output_tokens; produce verbosity_savings_per_turn (tokens saved hook-on vs hook-off) and session-level verbosity_pct_saved. Surface both in verbosity_ab.py + report_builder.py. Deliverable: both metrics appear in agentflow report.",
+    "milestone": "D3b",
+    "depends": [
+      "T-160a"
+    ]
+  },
+  {
+    "task_id": "T-165",
+    "title": "E2E test: handoff restart via real PTY process",
+    "description": "Add an automated end-to-end test that spawns a real subprocess simulating the PTY exit-after-handoff flow: write handoff_complete.json, mark the child exited, and assert the session restarts (wrapper._exited resets to False) rather than stopping. Covers the _on_session_exit HANDOFF_PENDING fix, spawn_new_child callback restore, and cli.py continue-vs-break path.",
+    "status": "complete",
+    "depends_on": [],
+    "estimated_lines": 80
   }
 ]

@@ -423,6 +423,32 @@ Priority rationale (2026-07-08): Auto-orchestration loop (handoff → restart �
 
 ---
 
+## Milestone M-DP: Demo & Design Partner Package
+**Goal:** Deliver a working demo and distributable package to design partners.
+**Focus:** Orchestrate loop must be hands-off + predictable. Gains measurable. Package installable on a clean machine.
+
+### Deliverables
+| # | Deliverable | Key tasks |
+|---|---|---|
+| 1 | Reliable orchestrate loop | Auto handoff + session restart working end-to-end (fixes shipped 2026-07-08), E2E regression test (T-165), capacity wiring (T-164) |
+| 2 | Parallelization + savings measurement | Worker-token spike (T-166), verbosity A/B metrics (T-160), proxy SSE response parser (T-171) |
+| 3 | Headroom gains measured | SSE parser (T-171), headroom A/B arm (T-172), proxy_log.jsonl covers input + output + cache |
+| 4 | IP protection | Encryption/decryption (T-111 complete, T-120 installer pending) |
+| 5 | Design partner package | Install script + README + binary bundle (T-173, depends T-120) |
+
+### M-DP Round Table
+| Round | Tasks | What ships |
+|---|---|---|
+| DP-1 — MERGED | T-165 ‖ T-160 (parallel) | Orchestrate loop E2E test + verbosity metrics |
+| DP-2 — MERGED | T-171 ‖ T-166 (parallel) | SSE response parser + worker-token measurement |
+| DP-2b | T-176, then T-175 | Stall recovery (HANDOFF RECOMMENDED reconcile) + audit log — engine reliably restarts |
+| DP-3 | T-172 (depends T-171) ‖ T-120 (parallel) | Headroom A/B arm + PTY installer |
+| DP-4 | T-173 (depends T-120) | Design partner package |
+| DP-5 | T-169 ‖ T-170 (parallel, optional) | Orchestrate startup cost reduction (nice-to-have before demo) |
+| DP-post | T-164, T-175 | Capacity wiring + hook audit log (diagnostic, not demo-blocking) |
+
+---
+
 ## Addendum: T-116 — PTY Non-Blocking Handoff (filed 2026-07-04)
 
 | Field | Value |

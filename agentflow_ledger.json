@@ -6296,10 +6296,100 @@
         }
       },
       "status": "closed"
+    },
+    {
+      "session_id": "20260708_022710",
+      "agent": "claude",
+      "task_ids": "",
+      "start_time": "2026-07-08T02:27:10.274356",
+      "end_time": "2026-07-08T02:27:10.274369",
+      "context_at_start": 41201,
+      "input_tokens": 344292,
+      "output_tokens": 1759,
+      "token_detail": {
+        "uncached_input": 9,
+        "cache_creation": 18565,
+        "cache_read": 325718,
+        "output": 1759,
+        "n_turns": 8,
+        "initial_ctx": 41201,
+        "final_ctx": 45244
+      },
+      "n_turns": 8,
+      "final_ctx": 45244,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 609384,
+        "shadow_output": 1759,
+        "shadow_extra": 441920,
+        "compaction": null
+      },
+      "status": "closed"
+    },
+    {
+      "session_id": "20260708_104320",
+      "agent": "claude",
+      "task_ids": "",
+      "start_time": "2026-07-08T10:43:20.738501",
+      "end_time": "2026-07-08T10:43:20.738510",
+      "context_at_start": 41201,
+      "input_tokens": 4650327,
+      "output_tokens": 22586,
+      "token_detail": {
+        "uncached_input": 413,
+        "cache_creation": 217751,
+        "cache_read": 4432163,
+        "output": 22586,
+        "n_turns": 72,
+        "initial_ctx": 41201,
+        "final_ctx": 85932
+      },
+      "n_turns": 72,
+      "final_ctx": 85932,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 8686251,
+        "shadow_output": 22586,
+        "shadow_extra": 4121856,
+        "compaction": null
+      },
+      "status": "closed"
+    },
+    {
+      "session_id": "20260709_002523",
+      "agent": "claude",
+      "task_ids": "",
+      "start_time": "2026-07-09T00:25:23.688086",
+      "end_time": "2026-07-09T00:25:23.688097",
+      "context_at_start": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "token_detail": {
+        "uncached_input": 0,
+        "cache_creation": 0,
+        "cache_read": 0,
+        "output": 0,
+        "n_turns": 1,
+        "initial_ctx": 0,
+        "final_ctx": 0
+      },
+      "n_turns": 1,
+      "final_ctx": 0,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 101820,
+        "shadow_output": 0,
+        "shadow_extra": 101820,
+        "compaction": null
+      },
+      "status": "closed"
     }
   ],
   "shadow_state": {
-    "accumulated_context": 55240,
+    "accumulated_context": 101820,
     "compaction_events": 122
   }
 }
