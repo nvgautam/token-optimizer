@@ -383,7 +383,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | T-109 | Key server — auth + ephemeral key issuance + encrypted skill serving | — | MERGED |
 | T-110 | Skill encryption pipeline — encrypt all skill .md files at rest, bundle with binary | T-109 | MERGED |
 | T-111 | PTY — fetch + decrypt skills at session start; generate skill .idx ephemerally in memory, never on disk | T-110 | MERGED |
-| T-112 | Nuitka compilation — compile PTY + hooks into binary; smoke-test distribution | T-111 | PENDING |
+| T-112 | Nuitka compilation — compile PTY + hooks into binary; smoke-test distribution | T-111 | MERGED |
 
 **Pre-condition (business, not engineering gate):** File provisional patent on targeted-read method (USPTO, ~$320) before onboarding any design partner.
 
@@ -414,7 +414,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | D3-prep-cont-c — MERGED | T-139 (MERGED) ‖ T-142 (MERGED) ‖ T-145 (MERGED) | Size splits — unblocks D3b |
 | D3-durability — MERGED | T-157 (MERGED) | CLAUDE.md post-merge checklist — prevents skill/config losses on branch diverge |
 | D3-oracle — MERGED | T-153 (MERGED) ‖ T-154 (MERGED) | Oracle threshold config + incremental design_status flush |
-| D3b | T-122 ‖ T-120 ‖ T-112 ‖ T-147 ‖ T-160a ‖ T-163 (parallel) | Regression tests + installer + Nuitka binary + cache breakpoint + verbosity boundary fix + auto-capture /usage |
+| D3b (MERGED) | T-122 ‖ T-120 ‖ T-112 ‖ T-147 ‖ T-160a ‖ T-163 (parallel) | Regression tests + installer + Nuitka binary + cache breakpoint + verbosity boundary fix + auto-capture /usage |
 | D3b-2 | T-160 (depends T-160a) ‖ T-164 (depends T-163) (parallel) | Verbosity A/B metrics + calibrate_capacity() wiring + ewma_cv |
 | E | T-103 ‖ T-099 ‖ T-068 ‖ T-063 (parallel) | Measurement chain + multi-provider |
 | F | T-098, T-064, T-069 (parallel) | Model routing savings + rate headroom + parallel scheduling |

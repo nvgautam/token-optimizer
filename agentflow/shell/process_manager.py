@@ -79,6 +79,9 @@ def spawn_new_child(manager) -> None:
     manager._pty.master_fd = master_fd
     manager._pty._exited = False
     manager._pty._exit_code = None
+    # Restore callbacks cleared by the previous child's exit
+    manager._pty._on_exit = manager._on_session_exit
+    manager._pty._on_output = manager._handle_output
 
     flags = fcntl.fcntl(master_fd, fcntl.F_GETFL)
     fcntl.fcntl(master_fd, fcntl.F_SETFL, flags | os.O_NONBLOCK)

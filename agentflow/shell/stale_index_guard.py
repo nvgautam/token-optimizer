@@ -35,6 +35,10 @@ def run_stale_index_guard() -> None:
                             pass
         files = list(set(files))
         if files:
-            subprocess.run([sys.executable, str(pathlib.Path(__file__).parent.parent / "hooks" / "write_indexer.py")] + files, capture_output=True)
+            # Fire-and-forget — never block the select loop waiting for indexing.
+            subprocess.Popen(
+                [sys.executable, str(pathlib.Path(__file__).parent.parent / "hooks" / "write_indexer.py")] + files,
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            )
     except Exception:
         pass

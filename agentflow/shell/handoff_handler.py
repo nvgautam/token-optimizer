@@ -87,12 +87,19 @@ def _check_deadline(manager, state: States) -> bool:
 
 
 def poll_session(manager) -> None:
+    state = manager._state_machine.state
+
+    # Check handoff completion BEFORE exit — child may exit the instant it
+    # writes handoff_complete.json (oracle flow). _on_session_exit handles the
+    # primary path; this poll branch is a defensive fallback.
+    if state == States.HANDOFF_PENDING and manager._handoff_complete_path.exists():
+        manager._state_machine.transition("handoff_complete_written")
+        return
+
     # Any state -> DEAD_CHILD on PTY master fd EOF or process exit
     if getattr(manager._pty, "_exited", False):
         manager._state_machine.transition("pty_eof")
         return
-
-    state = manager._state_machine.state
 
     # Reset deadline tracking when state changes
     if getattr(manager, "_deadline_state", None) != state and state not in _DEADLINES:
@@ -123,10 +130,7 @@ def poll_session(manager) -> None:
         manager._state_machine.transition("check_tokens", tokens=manager._last_accumulated_tokens)
 
     elif state == States.HANDOFF_PENDING:
-        if _check_deadline(manager, state):
-            return
-        if manager._handoff_complete_path.exists():
-            manager._state_machine.transition("handoff_complete_written")
+        _check_deadline(manager, state)
 
     elif state == States.RESTARTING:
         _check_deadline(manager, state)

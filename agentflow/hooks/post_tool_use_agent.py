@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""PostToolUse hook (Agent tool): call pty_signal.py task_done for any in-flight
-task that has been marked complete in tasks.json.
+"""PostToolUse hook (Agent + Bash tools): call pty_signal.py task_done for any
+in-flight task that has been marked complete in tasks.json.
 
-Fires after every Agent tool return. Eliminates reliance on LLM compliance
-for emitting AGENTFLOW_TASK_COMPLETE signals.
+Fires after every Agent tool return, and after Bash tool calls that look like
+PR merges (command contains 'gh pr merge' or output contains 'Merged pull
+request'). The Bash gate avoids a gh API call on every shell invocation.
 """
 
 import fcntl
@@ -79,12 +80,24 @@ def _run_cleanup(root: Path) -> None:
         pass
 
 
+def _is_pr_merge_bash(hook_data: dict) -> bool:
+    """Return True if the Bash invocation looks like a PR merge."""
+    cmd = hook_data.get("tool_input", {}).get("command", "")
+    if "gh pr merge" in cmd:
+        return True
+    output = hook_data.get("tool_response", {}).get("output", "")
+    return "Merged pull request" in output
+
+
 def main() -> None:
-    # Consume stdin (required by hook protocol) but we don't need the content.
     try:
-        json.load(sys.stdin)
+        hook_data = json.load(sys.stdin)
     except Exception:
-        pass
+        hook_data = {}
+
+    tool_name = hook_data.get("tool_name", "")
+    if tool_name == "Bash" and not _is_pr_merge_bash(hook_data):
+        sys.exit(0)
 
     root = _find_workspace_root()
     agentflow_dir = root / ".agentflow"

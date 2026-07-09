@@ -161,10 +161,6 @@ def cmd_shell(args: argparse.Namespace) -> int:
         wrapper = PTYWrapper([cmd])
         session_manager = SessionManager(wrapper, tokenizer_module, config={})
 
-        _u = capture_usage(wrapper, timeout=3.0)
-        if _u:
-            write_usage_to_ledger(_u, Path.cwd() / "agentflow_ledger.json", "session_start")
-
         while not wrapper._exited:
             try:
                 ready, _, _ = select.select([fd, wrapper.master_fd], [], [], 0.05)
@@ -196,7 +192,9 @@ def cmd_shell(args: argparse.Namespace) -> int:
                         if wrapper._on_exit is not None:
                             wrapper._on_exit(wrapper._exit_code)
                             wrapper._on_exit = None
-                        break
+                        if wrapper._exited:  # restart may have cleared this
+                            break
+                        continue
                 except ChildProcessError:
                     wrapper._exited = True
                     wrapper._exit_code = -1
