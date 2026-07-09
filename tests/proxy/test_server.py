@@ -103,7 +103,7 @@ class TestLogging:
         log_path = tmp_path / ".agentflow" / "proxy_log.jsonl"
         assert log_path.exists(), "proxy_log.jsonl not written"
         record = json.loads(log_path.read_text().strip())
-        allowed_keys = {"ts", "request_id", "tokens_before", "tokens_after", "compression_ratio"}
+        allowed_keys = {"ts", "request_id", "tokens_before", "tokens_after", "compression_ratio", "output_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"}
         assert set(record.keys()) == allowed_keys
 
     def test_log_does_not_contain_headers(self, proxy_server: HTTPServer, test_secret: str, tmp_path: Path):

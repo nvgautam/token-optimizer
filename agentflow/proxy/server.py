@@ -46,11 +46,61 @@ _project_root: Path = Path.cwd()
 _proxy_secret: str = ""
 
 
+def _parse_usage_from_response(resp_body: bytes, content_type: str) -> tuple[int, int, int]:
+    """Parse usage fields from response body.
+
+    Extracts output_tokens, cache_read_input_tokens, cache_creation_input_tokens.
+    Returns: (output_tokens, cache_read_input_tokens, cache_creation_input_tokens)
+    Defaults to (0, 0, 0) on any parse error.
+    """
+    if not resp_body:
+        return (0, 0, 0)
+
+    # Determine if SSE or JSON based on content-type
+    if "text/event-stream" in content_type.lower():
+        # Parse SSE response: look for message_start event with usage field
+        try:
+            text = resp_body.decode("utf-8", errors="replace")
+            lines = text.split("\n")
+            for line in lines:
+                if line.startswith("data:"):
+                    data_str = line[5:].strip()  # Remove "data:" prefix
+                    try:
+                        data = json.loads(data_str)
+                        # Look for message_start event type
+                        if data.get("type") == "message_start":
+                            usage = data.get("message", {}).get("usage", {})
+                            output_tokens = int(usage.get("output_tokens", 0))
+                            cache_read_input_tokens = int(usage.get("cache_read_input_tokens", 0))
+                            cache_creation_input_tokens = int(usage.get("cache_creation_input_tokens", 0))
+                            return (output_tokens, cache_read_input_tokens, cache_creation_input_tokens)
+                    except (json.JSONDecodeError, ValueError, AttributeError):
+                        continue
+        except Exception:
+            pass
+    else:
+        # Parse JSON response: extract usage from top-level object
+        try:
+            data = json.loads(resp_body.decode("utf-8"))
+            usage = data.get("usage", {})
+            output_tokens = int(usage.get("output_tokens", 0))
+            cache_read_input_tokens = int(usage.get("cache_read_input_tokens", 0))
+            cache_creation_input_tokens = int(usage.get("cache_creation_input_tokens", 0))
+            return (output_tokens, cache_read_input_tokens, cache_creation_input_tokens)
+        except (json.JSONDecodeError, ValueError, AttributeError, UnicodeDecodeError):
+            pass
+
+    return (0, 0, 0)
+
+
 def _log_entry(
     request_id: str,
     tokens_before: int,
     tokens_after: int,
     compression_ratio: float,
+    output_tokens: int = 0,
+    cache_read_input_tokens: int = 0,
+    cache_creation_input_tokens: int = 0,
 ) -> None:
     """Append a single telemetry record to .agentflow/proxy_log.jsonl.
 
@@ -65,6 +115,9 @@ def _log_entry(
             "tokens_before": tokens_before,
             "tokens_after": tokens_after,
             "compression_ratio": compression_ratio,
+            "output_tokens": output_tokens,
+            "cache_read_input_tokens": cache_read_input_tokens,
+            "cache_creation_input_tokens": cache_creation_input_tokens,
         }
         with open(log_dir / "proxy_log.jsonl", "a", encoding="utf-8") as fh:
             fh.write(json.dumps(record) + "\n")
@@ -165,7 +218,20 @@ class _ProxyHandler(BaseHTTPRequestHandler):
             self.wfile.write(b'{"error":"upstream_failed"}')
             return
 
-        _log_entry(request_id, tokens_before, tokens_after, compression_ratio)
+        # Extract usage fields from response
+        output_tokens, cache_read_input_tokens, cache_creation_input_tokens = _parse_usage_from_response(
+            resp_body, resp_headers.get("content-type", "")
+        )
+
+        _log_entry(
+            request_id,
+            tokens_before,
+            tokens_after,
+            compression_ratio,
+            output_tokens=output_tokens,
+            cache_read_input_tokens=cache_read_input_tokens,
+            cache_creation_input_tokens=cache_creation_input_tokens,
+        )
 
         self.send_response(status)
         skip_headers = {"transfer-encoding", "content-length", "connection", "content-encoding"}
