@@ -223,6 +223,25 @@ def test_install_atomic_write(tmp_path):
     assert dst == str(home / ".claude" / "settings.json")
 
 
+def test_transform_command_converts_project_hook():
+    """_transform_command converts raw CLAUDE_PROJECT_DIR hooks to binary form."""
+    from agentflow.ip.installer import _transform_command
+    raw = 'python3 "$CLAUDE_PROJECT_DIR/agentflow/hooks/read_check.py"'
+    assert _transform_command(raw) == "agentflow hooks read_check"
+
+
+def test_transform_command_passthrough_binary():
+    """Already-transformed commands are returned unchanged."""
+    from agentflow.ip.installer import _transform_command
+    assert _transform_command("agentflow hooks idx_reminder") == "agentflow hooks idx_reminder"
+
+
+def test_transform_command_passthrough_other():
+    """Non-agentflow commands are returned unchanged."""
+    from agentflow.ip.installer import _transform_command
+    assert _transform_command("custom-hook --flag") == "custom-hook --flag"
+
+
 def test_install_preserves_non_hook_settings(tmp_path):
     """install() leaves other top-level keys (e.g. permissions) untouched."""
     project_root = _make_project_settings(tmp_path, SAMPLE_PROJECT_HOOKS)
