@@ -1,13 +1,16 @@
 {
-  "round_id": "D3-oracle",
+  "round_id": "DP-3",
   "task_ids": [
-    "T-154"
+    "T-120",
+    "T-179"
   ],
   "estimated_lines_per_task": {
-    "T-154": 5
+    "T-120": 120,
+    "T-179": 50
   },
   "file_counts_per_task": {
-    "T-154": 1
+    "T-120": 4,
+    "T-179": 3
   },
-  "timestamp": "2026-07-08T01:20:59.995143"
+  "timestamp": "2026-07-09T12:31:58.180280"
 }

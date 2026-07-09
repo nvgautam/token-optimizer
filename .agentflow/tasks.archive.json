@@ -1410,5 +1410,35 @@
     "status": "complete",
     "depends_on": [],
     "estimated_lines": 80
+  },
+  {
+    "task_id": "T-166",
+    "title": "Worker-token spike \u2014 measure per-worker context tokens separately from orchestrator",
+    "description": "Instrument worker agent sessions to capture token consumption independently of the orchestrator session. Goal: build a two-component capacity model (orchestrator overhead + worker execution) to replace the current single EWMA that conflates both. Measure 3+ orchestrate rounds, compute mean worker-session tokens, update calibration JSON. Expected finding: worker tokens ~50% of current EWMA, enabling more rounds per 5hr window.",
+    "status": "complete",
+    "depends_on": [],
+    "estimated_lines": 60
+  },
+  {
+    "task_id": "T-171",
+    "title": "Proxy SSE response parser \u2014 capture output_tokens, cache_read_input_tokens, cache_creation_input_tokens per request",
+    "description": "Parse the upstream SSE response in agentflow/proxy/server.py to extract usage fields from the message_start event: output_tokens, cache_read_input_tokens, cache_creation_input_tokens. Add these to the _log_entry() call so proxy_log.jsonl contains a complete per-request cost breakdown (input compression + cache hits + output tokens). Handle both streaming (SSE) and non-streaming (JSON body) responses.",
+    "status": "complete",
+    "depends_on": [],
+    "estimated_lines": 60
+  },
+  {
+    "task_id": "T-176",
+    "title": "HANDOFF RECOMMENDED as PTY stall-recovery trigger \u2014 reconcile _task_start_tokens against tasks.json",
+    "status": "complete",
+    "milestone": "M-DP",
+    "description": "output_handler.py: when HANDOFF RECOMMENDED detected in PTY output, cross-check _task_start_tokens against tasks.json and evict any task already marked complete. Then re-evaluate threshold gate. Recovers from cases where PostToolUse hook updated tasks.json but AGENTFLOW_TASK_COMPLETE was never emitted in PTY stream."
+  },
+  {
+    "task_id": "T-177",
+    "title": "Deterministic session_type via hook \u2014 write session_state.json on /orchestrate or /oracle prompt; PTY reads instead of scanning output",
+    "status": "complete",
+    "milestone": "M-DP",
+    "description": "UserPromptSubmit hook writes {\"session_type\": \"orchestrator\"|\"oracle\"} to .agentflow/session_state.json when /orchestrate or /oracle detected in prompt. PTY session_manager reads this file at startup and after restart injection (write_input path also sets it directly). Removes race condition where trigger_handoff fires before /orchestrate echoes back; eliminates false positives from /orchestrate in code block output."
   }
 ]

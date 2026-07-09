@@ -520,10 +520,11 @@
     {
       "task_id": "T-120",
       "title": "PTY installer \u2014 merge agentflow hooks into customer .claude/settings.json; binary-relative hook commands",
-      "description": "Enable safe hook registration in customer environments at install time. (1) agentflow/ip/installer.py: implement install() and uninstall() functions. install(): read customer ~/.claude/settings.json (create if absent); deep-merge agentflow hook entries into each hook array (UserPromptSubmit, PreToolUse, PostToolUse) only if not already present (idempotent: check by command string match); write atomically via json.dump to temp file + os.replace. uninstall(): remove only agentflow entries by command string match; leave all other customer hooks intact. (2) Hook commands in the installed settings use binary-relative paths: \"agentflow hooks <name>\" (e.g. \"agentflow hooks read-check\") instead of \"python3 \"/agentflow/hooks/read_check.py\"\". The Nuitka binary (T-112) dispatches hook subcommands internally. (3) agentflow/cli.py: add \"hooks <name>\" subcommand that routes to the correct hook module. (4) agentflow/cli.py: add \"install\" and \"uninstall\" subcommands that call installer.py. Dev settings.json (.claude/settings.json, tracked in git) keeps  paths unchanged \u2014 installer generates the binary-relative variant at install time only. Tests: test_installer.py \u2014 assert merge is idempotent; assert customer hooks survive install/uninstall; assert atomic write (os.replace); assert uninstall leaves no agentflow entries.",
+      "description": "Enable safe hook registration in customer environments at install time.\n\nIMPORTANT: agentflow/cli.py is 290 lines (limit 250). Split FIRST:\n  - Create agentflow/cli_cmds.py with cmd_shell() and cmd_init() extracted from cli.py.\n  - Leave cli.py as thin dispatcher (<= 200 lines) with build_parser() + main() + small cmd stubs.\n  - Then add install/uninstall/hooks subcommands to cli.py and installer.py.\n\ninstaller.py: implement install() and uninstall().\n  install(): reads ~/.claude/settings.json (or create if absent), deep-merges agentflow\n  hook entries idempotently (command-string match), writes atomically via os.replace.\n  uninstall(): removes only agentflow hook entries from ~/.claude/settings.json.\n  Hook commands reference binary: 'agentflow hooks <name>'.\n\ncli.py: add install, uninstall subparsers dispatching to installer.install/uninstall.\n  add 'hooks' subparser with 'name' positional arg (prints usage for now).\n\ntests/ip/test_installer.py: test install(), uninstall(), idempotency (install twice = same result).\nUse tmp_path for ~/.claude/settings.json reads/writes. Mock os.replace with a real temp-file approach.",
       "owns": [
         "agentflow/ip/installer.py",
         "agentflow/cli.py",
+        "agentflow/cli_cmds.py",
         "tests/ip/test_installer.py"
       ],
       "depends_on": [
@@ -716,11 +717,7 @@
     },
     {
       "task_id": "T-166",
-      "title": "Worker-token spike \u2014 measure per-worker context tokens separately from orchestrator",
-      "description": "Instrument worker agent sessions to capture token consumption independently of the orchestrator session. Goal: build a two-component capacity model (orchestrator overhead + worker execution) to replace the current single EWMA that conflates both. Measure 3+ orchestrate rounds, compute mean worker-session tokens, update calibration JSON. Expected finding: worker tokens ~50% of current EWMA, enabling more rounds per 5hr window.",
-      "status": "complete",
-      "depends_on": [],
-      "estimated_lines": 60
+      "status": "complete"
     },
     {
       "task_id": "T-167",
@@ -758,11 +755,7 @@
     },
     {
       "task_id": "T-171",
-      "title": "Proxy SSE response parser \u2014 capture output_tokens, cache_read_input_tokens, cache_creation_input_tokens per request",
-      "description": "Parse the upstream SSE response in agentflow/proxy/server.py to extract usage fields from the message_start event: output_tokens, cache_read_input_tokens, cache_creation_input_tokens. Add these to the _log_entry() call so proxy_log.jsonl contains a complete per-request cost breakdown (input compression + cache hits + output tokens). Handle both streaming (SSE) and non-streaming (JSON body) responses.",
-      "status": "complete",
-      "depends_on": [],
-      "estimated_lines": 60
+      "status": "complete"
     },
     {
       "task_id": "T-172",
@@ -804,7 +797,7 @@
       "status": "pending"
     },
     {
-      "task_id": "T-175",
+      "task_id": "T-178",
       "title": "Hook audit log + PTY threshold state snapshot \u2014 diagnose handoff stalls",
       "status": "pending",
       "milestone": "M-DP",
@@ -812,10 +805,25 @@
     },
     {
       "task_id": "T-176",
-      "title": "HANDOFF RECOMMENDED as PTY stall-recovery trigger \u2014 reconcile _task_start_tokens against tasks.json",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-177",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-179",
+      "title": "Split agentflow/proxy/server.py \u2014 size violation",
+      "description": "Split agentflow/proxy/server.py to resolve size violation of 328 lines (limit: 250). Extract the compression/logging logic into agentflow/proxy/compress.py. server.py becomes the thin HTTP server only (<= 150 lines). compress.py handles compress(), _log_proxy_entry(), and related helpers.",
+      "owns": [
+        "agentflow/proxy/server.py",
+        "agentflow/proxy/compress.py",
+        "tests/proxy/test_compress_split.py"
+      ],
+      "depends_on": [],
+      "estimated_lines": 50,
       "status": "pending",
-      "milestone": "M-DP",
-      "description": "output_handler.py: when HANDOFF RECOMMENDED detected in PTY output, cross-check _task_start_tokens against tasks.json and evict any task already marked complete. Then re-evaluate threshold gate. Recovers from cases where PostToolUse hook updated tasks.json but AGENTFLOW_TASK_COMPLETE was never emitted in PTY stream."
+      "milestone": "M-DP"
     }
   ]
 }
