@@ -40,10 +40,10 @@ def test_stale_idx_guard_on_start(temp_project):
     project_dir, home_dir = temp_project
     pty = FakePTY()
     tok = FakeTokenizer()
-    with patch("subprocess.run") as mock_run:
+    with patch("subprocess.Popen") as mock_popen:
         SessionManager(pty, tok, config={})
-        assert mock_run.called
-        args = mock_run.call_args[0][0]
+        assert mock_popen.called
+        args = mock_popen.call_args[0][0]
         assert "write_indexer.py" in args[1]
         assert any("src.py" in a for a in args)
         assert any("doc.md" in a for a in args)
@@ -59,10 +59,10 @@ def test_stale_idx_guard_stale_detection(temp_project):
     os.utime(py_idx, (time.time() - 100, time.time() - 100))
     pty = FakePTY()
     tok = FakeTokenizer()
-    with patch("subprocess.run") as mock_run:
+    with patch("subprocess.Popen") as mock_popen:
         SessionManager(pty, tok, config={})
-        assert mock_run.called
-        args = mock_run.call_args[0][0]
+        assert mock_popen.called
+        args = mock_popen.call_args[0][0]
         assert any("src.py" in a for a in args)
 
 def test_write_indexer_cli_mode(temp_project):

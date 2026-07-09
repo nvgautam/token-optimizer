@@ -127,9 +127,11 @@ class _ProxyHandler(BaseHTTPRequestHandler):
             except Exception:
                 pass  # compression failure is non-fatal; forward original
 
-        # Inject Anthropic prompt-cache breakpoints into the (possibly compressed) messages
-        if payload.get("messages"):
-            payload["messages"] = _inject_cache_breakpoints(payload["messages"])
+        # Inject cache breakpoints only when headroom is absent — headroom owns
+        # cache_control placement as part of its compression pipeline.
+        if payload.get("messages") and not _HEADROOM_AVAILABLE:
+            existing = _count_cache_blocks(payload)
+            payload["messages"] = _inject_cache_breakpoints(payload["messages"], existing)
 
         # Forward request upstream — pass all original headers verbatim
         # Strip hop-by-hop headers and the proxy shared-secret (never leak to upstream)
@@ -175,13 +177,36 @@ class _ProxyHandler(BaseHTTPRequestHandler):
         self.wfile.write(resp_body)
 
 
-def _inject_cache_breakpoints(messages: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Inject cache_control breakpoints at the stable-prefix boundary.
+def _count_cache_blocks(payload: dict[str, Any]) -> int:
+    """Count existing cache_control blocks across system, tools, and messages."""
+    count = 0
+    # system: may be a list of blocks
+    for block in payload.get("system", []) if isinstance(payload.get("system"), list) else []:
+        if isinstance(block, dict) and "cache_control" in block:
+            count += 1
+    # tools
+    for tool in payload.get("tools", []):
+        if isinstance(tool, dict) and "cache_control" in tool:
+            count += 1
+    # messages
+    for msg in payload.get("messages", []):
+        content = msg.get("content", [])
+        if isinstance(content, list):
+            for block in content:
+                if isinstance(block, dict) and "cache_control" in block:
+                    count += 1
+    return count
 
-    Marks the last message before the final two user turns so Anthropic's
-    KV cache can be reused across repeated prefixes, reducing token costs.
+
+def _inject_cache_breakpoints(
+    messages: list[dict[str, Any]], existing_cache_blocks: int = 0
+) -> list[dict[str, Any]]:
+    """Inject a cache_control breakpoint at the stable-prefix boundary.
+
+    Skips injection if adding one more would exceed the API limit of 4 blocks.
     """
-    if not messages:
+    _API_CACHE_LIMIT = 4
+    if not messages or existing_cache_blocks >= _API_CACHE_LIMIT:
         return messages
 
     result = [dict(m) for m in messages]

@@ -97,7 +97,7 @@ def write_usage_to_ledger(usage: dict, ledger_path: Path, label: str) -> None:
         pass
 
 
-def capture_usage(wrapper, timeout: float = 3.0) -> Optional[dict]:
+def capture_usage(wrapper, timeout: float = 3.0, passthrough_fd: Optional[int] = None) -> Optional[dict]:
     """Inject /usage into the PTY wrapper and parse the response.
 
     Parameters
@@ -106,6 +106,10 @@ def capture_usage(wrapper, timeout: float = 3.0) -> Optional[dict]:
         PTYWrapper instance with ``write_input(str)`` and ``master_fd`` (int).
     timeout:
         Total seconds to wait for output.
+    passthrough_fd:
+        If set, bytes read from master_fd are also written to this fd (e.g. 1
+        for stdout). Required at session start so the claude startup render is
+        not swallowed before the main loop begins.
 
     Returns
     -------
@@ -127,6 +131,8 @@ def capture_usage(wrapper, timeout: float = 3.0) -> Optional[dict]:
                 chunk = os.read(wrapper.master_fd, 4096)
                 if chunk:
                     chunks.append(chunk)
+                    if passthrough_fd is not None:
+                        os.write(passthrough_fd, chunk)
             except OSError:
                 break
 

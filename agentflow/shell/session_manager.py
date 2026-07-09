@@ -124,7 +124,7 @@ class SessionManager:
         self._sync_session_type()
         self.poll()
         now = time.monotonic()
-        if not hasattr(self, "_last_guard_tick") or now - self._last_guard_tick > 2.0:
+        if not hasattr(self, "_last_guard_tick") or now - self._last_guard_tick > 60.0:
             self._last_guard_tick = now
             self._run_stale_index_guard()
 
@@ -218,12 +218,14 @@ class SessionManager:
         return detect_read_path(text)
 
     def _on_session_exit(self, exit_code: int) -> None:
-        """Called by PTYWrapper when the child process exits.
-
-        Fix 2 (T-146): was a no-op; now transitions to DEAD_CHILD so the
-        state machine surfaces the failure and stops silently spinning.
-        """
+        """Called by PTYWrapper when the child process exits."""
         self._log_audit({"event": "session_exit", "exit_code": exit_code})
+        # If handoff just completed, restart rather than die — oracle exits
+        # immediately after writing handoff_complete.json; treat as restart signal.
+        if (self._state_machine.state == States.HANDOFF_PENDING
+                and self._handoff_complete_path.exists()):
+            self._state_machine.transition("handoff_complete_written")
+            return
         try:
             self._state_machine.transition("pty_eof")
         except Exception:
