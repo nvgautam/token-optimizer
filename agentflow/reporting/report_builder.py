@@ -156,6 +156,8 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
     windowed_verb_entries = _filter_by_window(verb_entries, _reporting_window(entries))
     verbosity_baseline = load_baseline(project_root)
     baseline_tokens = verbosity_baseline.get("baseline_tokens", 600)
+    verbosity_savings_per_turn = verbosity_baseline.get("verbosity_savings_per_turn", 0.0)
+    verbosity_pct_saved = verbosity_baseline.get("verbosity_pct_saved", 0.0)
     verbosity_savings = sum(max(0, baseline_tokens - e.get("output_tokens", 0)) for e in windowed_verb_entries)
     verbosity_annotation = _format_baseline_annotation(verbosity_baseline)
     stopping_met = verbosity_baseline.get("stopping_met", False)
@@ -220,6 +222,7 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
         ("code_size_savings", "Code-Size Savings via file splitting (code-size)", "real", code_size_saved, "")
     ]
     print(f"Verbosity baseline (T-081):{verbosity_annotation}")
+    print(f"  Per-turn savings: {verbosity_savings_per_turn:.1f} tokens/turn ({verbosity_pct_saved:.1f}% of output tokens)")
     print(f"Verbosity A/B stopping criterion status: {stopping_status}")
     html_template = (Path(__file__).parent / "dashboard_template.html").read_text(encoding="utf-8")
     html_template = html_template.replace(

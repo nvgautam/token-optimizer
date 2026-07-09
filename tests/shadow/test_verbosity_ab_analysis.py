@@ -122,6 +122,43 @@ class TestRunAbComparison:
             assert result["stopping_met"] is True
             assert "VERBOSITY A/B COMPLETE" in result["stopping_status"]
 
+    def test_run_ab_comparison_includes_savings_per_turn(self):
+        """Result contains verbosity_savings_per_turn > 0 when off_mean > on_mean."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            # off arm: mean 600, on arm: mean 250
+            for i in range(3):
+                record_turn(root, "test", i, 600, "off")
+            for i in range(3):
+                record_turn(root, "test", 10 + i, 250, "on")
+
+            result = run_ab_comparison(root)
+
+            assert result["verbosity_savings_per_turn"] > 0
+            assert result["verbosity_savings_per_turn"] == 350.0
+
+    def test_run_ab_comparison_savings_per_turn_zero_when_unmeasured(self):
+        """Empty log gives verbosity_savings_per_turn == 0.0."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            result = run_ab_comparison(root)
+
+            assert result["verbosity_savings_per_turn"] == 0.0
+            assert result["verbosity_pct_saved"] == 0.0
+
+    def test_run_ab_comparison_pct_saved_correct(self):
+        """off_mean=600, on_mean=250 → savings=350, pct=58.3."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for i in range(3):
+                record_turn(root, "test", i, 600, "off")
+            for i in range(3):
+                record_turn(root, "test", 10 + i, 250, "on")
+
+            result = run_ab_comparison(root)
+
+            assert result["verbosity_pct_saved"] == 58.3
+
 
 class TestLoadBaseline:
     def test_load_baseline_returns_fallback_when_absent(self):

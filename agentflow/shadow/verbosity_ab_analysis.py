@@ -86,6 +86,12 @@ def run_ab_comparison(project_root: Path, session_type: str | None = None) -> di
     else:
         stopping_status = f"STILL COLLECTING — n_on={n_on} / 20, n_off={n_off} / 20"
 
+    hook_off_mean = arm_stats["off"]["mean"] if arm_stats["off"]["n"] > 0 else 0.0
+    hook_on_mean = arm_stats["on"]["mean"] if arm_stats["on"]["n"] > 0 else 0.0
+    measured_both = arm_stats["off"]["n"] > 0 and arm_stats["on"]["n"] > 0
+    savings_per_turn = max(0.0, hook_off_mean - hook_on_mean) if measured_both else 0.0
+    pct_saved = round(savings_per_turn / hook_off_mean * 100, 1) if hook_off_mean > 0 else 0.0
+
     result = {
         "computed_at": datetime.now().isoformat(),
         "baseline_tokens": round(hook_off["mean"]) if measured else FALLBACK_BASELINE_TOKENS,
@@ -96,6 +102,8 @@ def run_ab_comparison(project_root: Path, session_type: str | None = None) -> di
         "arms": arm_stats,
         "stopping_met": stopping_met,
         "stopping_status": stopping_status,
+        "verbosity_savings_per_turn": round(savings_per_turn, 1),
+        "verbosity_pct_saved": pct_saved,
     }
 
     baseline_path = _baseline_path(project_root)
