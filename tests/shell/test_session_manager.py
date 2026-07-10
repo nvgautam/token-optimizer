@@ -1,6 +1,7 @@
 """Core tests for agentflow.shell.session_manager and agentflow.shell.countdown."""
 from __future__ import annotations
 import json
+import os
 import pathlib
 import sys
 from unittest.mock import MagicMock, patch
@@ -175,3 +176,76 @@ def test_on_enter_idle_oserror_safe():
 
     # Verify write_input was attempted
     pty.write_input.assert_called_once_with("/orchestrate\r")
+
+
+def test_sync_session_type_reads_sid_keyed_file_first():
+    """When both sid-keyed and unkeyed session_state files exist, read sid-keyed file."""
+    sm, pty, _ = make_manager()
+    proj_root = sm._project_root
+    agentflow_dir = proj_root / ".agentflow"
+    agentflow_dir.mkdir(parents=True, exist_ok=True)
+
+    # Both files exist with different session types
+    (agentflow_dir / "session_state_abc.json").write_text(
+        json.dumps({"session_type": "oracle"}), encoding="utf-8"
+    )
+    (agentflow_dir / "session_state.json").write_text(
+        json.dumps({"session_type": "orchestrator"}), encoding="utf-8"
+    )
+
+    # With AGENTFLOW_SESSION_ID=abc, should read oracle from sid-keyed file
+    with patch.dict(os.environ, {"AGENTFLOW_SESSION_ID": "abc"}):
+        sm.session_type = None  # Reset to trigger _sync_session_type
+        sm._sync_session_type()
+        assert sm.session_type == "oracle"
+
+
+def test_sync_session_type_falls_back_to_unkeyed_when_no_sid_file():
+    """When no sid-keyed file, fall back to unkeyed session_state.json."""
+    sm, pty, _ = make_manager()
+    proj_root = sm._project_root
+    agentflow_dir = proj_root / ".agentflow"
+    agentflow_dir.mkdir(parents=True, exist_ok=True)
+
+    # Only unkeyed file exists
+    (agentflow_dir / "session_state.json").write_text(
+        json.dumps({"session_type": "orchestrator"}), encoding="utf-8"
+    )
+
+    # No sid-keyed file, should read orchestrator from unkeyed file
+    with patch.dict(os.environ, {"AGENTFLOW_SESSION_ID": "missing_sid"}):
+        sm.session_type = None
+        sm._sync_session_type()
+        assert sm.session_type == "orchestrator"
+
+
+def test_isolation_two_sessions_independent_state():
+    """Two sessions with different sids maintain independent session_type state."""
+    sm1, pty1, _ = make_manager()
+    sm2, pty2, _ = make_manager()
+    # Both use same project root due to mock_cwd fixture
+
+    proj_root = sm1._project_root
+    agentflow_dir = proj_root / ".agentflow"
+    agentflow_dir.mkdir(parents=True, exist_ok=True)
+
+    # Session 1 writes oracle to session_state_s1.json
+    (agentflow_dir / "session_state_s1.json").write_text(
+        json.dumps({"session_type": "oracle"}), encoding="utf-8"
+    )
+    # Session 2 writes orchestrator to session_state_s2.json
+    (agentflow_dir / "session_state_s2.json").write_text(
+        json.dumps({"session_type": "orchestrator"}), encoding="utf-8"
+    )
+
+    # Session 1 with sid=s1 should read oracle
+    with patch.dict(os.environ, {"AGENTFLOW_SESSION_ID": "s1"}):
+        sm1.session_type = None
+        sm1._sync_session_type()
+        assert sm1.session_type == "oracle"
+
+    # Session 2 with sid=s2 should read orchestrator
+    with patch.dict(os.environ, {"AGENTFLOW_SESSION_ID": "s2"}):
+        sm2.session_type = None
+        sm2._sync_session_type()
+        assert sm2.session_type == "orchestrator"

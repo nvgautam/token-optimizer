@@ -140,31 +140,25 @@ class SessionManager:
 
     def _sync_session_type(self) -> None:
         if self.session_type is None:
-            # First, try to read session_state.json (JSON format)
-            session_state_file = self._project_root / ".agentflow" / "session_state.json"
-            try:
-                if session_state_file.exists():
-                    data = json.loads(session_state_file.read_text("utf-8"))
-                    if isinstance(data, dict):
-                        st = data.get("session_type")
-                        if st in ("oracle", "orchestrator"):
-                            self.session_type = st
-                            self._update_session_file()
-                            self._apply_session_threshold()
-                            return
-            except Exception:
-                pass
-
-            # Fall back to plain text session_type file
-            sig = self._project_root / ".agentflow" / "session_type"
-            try:
-                if sig.exists():
-                    st = sig.read_text("utf-8").strip()
+            sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+            filenames = ([f"session_state_{sid}.json"] if sid else []) + ["session_state.json", "session_type"]
+            for fname in filenames:
+                try:
+                    fp = self._project_root / ".agentflow" / fname
+                    if not fp.exists():
+                        continue
+                    if fname == "session_type":
+                        st = fp.read_text("utf-8").strip()
+                    else:
+                        data = json.loads(fp.read_text("utf-8"))
+                        st = data.get("session_type", "") if isinstance(data, dict) else ""
                     if st in ("oracle", "orchestrator"):
                         self.session_type = st
                         self._update_session_file()
-            except Exception:
-                pass
+                        self._apply_session_threshold()
+                        return
+                except Exception:
+                    pass
         self._apply_session_threshold()
 
     def _run_stale_index_guard(self) -> None:
