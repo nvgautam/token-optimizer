@@ -7,6 +7,7 @@ import datetime
 import json
 import pathlib
 from agentflow.shell.state_machine import States
+from agentflow.hooks.stop_context_capture import MODEL_CONTEXT_WINDOW, FILL_STALE_SECONDS
 
 _ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;]*[mGKHFABCDhJlsu]")
 _READ_PATH_RE = re.compile(
@@ -22,6 +23,18 @@ def ansi_strip(text: str) -> str:
 def detect_read_path(text: str) -> str | None:
     m = _READ_PATH_RE.search(text)
     return next((g for g in m.groups() if g), None) if m else None
+
+def _read_fill_tokens(project_root: pathlib.Path) -> int | None:
+    """Return fill_tokens from context_fill.json if fresh (< FILL_STALE_SECONDS old)."""
+    fill_path = project_root / ".agentflow" / "context_fill.json"
+    try:
+        data = json.loads(fill_path.read_text("utf-8"))
+        if time.time() - data["ts"] < FILL_STALE_SECONDS:
+            return int(data["fill_tokens"])
+    except Exception:
+        pass
+    return None
+
 
 def record_task_tokens(manager, task_id: str, delta: int) -> None:
     rp, el, fc = manager._project_root / ".agentflow" / "current_round.json", 0, 0
@@ -139,6 +152,11 @@ def handle_output(manager, chunk: bytes) -> None:
         # with no recovery path.
         task_just_completed = complete_m is not None
         task_in_flight = bool(manager._task_start_tokens) or manager._state_machine.state == States.TASK_RUNNING
-        if total >= primary and task_just_completed and not task_in_flight and manager.session_type != "orchestrator":
+        fill = _read_fill_tokens(manager._project_root)
+        if fill is not None:
+            triggered = fill / MODEL_CONTEXT_WINDOW >= 0.7
+        else:
+            triggered = total >= primary
+        if triggered and task_just_completed and not task_in_flight and manager.session_type != "orchestrator":
             manager.trigger_handoff(trigger="auto-primary")
 
