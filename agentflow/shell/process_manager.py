@@ -17,7 +17,11 @@ def restart_child(manager) -> None:
     if not getattr(manager._pty, "_command", None):
         manager._log_audit({"event": "restart_session_aborted", "reason": "_command_missing"})
         return
-    manager._log_audit({"event": "restart_session"})
+    manager._log_audit({
+        "event": "restart_session",
+        "command": manager._pty._command,
+        "CLAUDE_CONFIG_DIR": os.environ.get("CLAUDE_CONFIG_DIR"),
+    })
     manager._last_restart_ts = time.monotonic()
     pid = getattr(manager._pty, "child_pid", None)
     manager._log_audit({"event": "kill_child", "pid": pid, "signal": "SIGTERM", "caller": "restart_child"})

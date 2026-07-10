@@ -55,6 +55,52 @@ def test_restart_child_aborts_if_command_missing():
     mock_spawn.assert_not_called()
     mock_transition.assert_not_called()
 
+
+def test_restart_audit_logs_command_and_config_dir_claude():
+    """restart_child audit entry captures command and CLAUDE_CONFIG_DIR for plain claude session."""
+    sm, pty, _ = make_manager()
+    pty._command = ["claude"]
+    pty.child_pid = None
+
+    audit_entries = []
+    orig_log = sm._log_audit
+    sm._log_audit = lambda e: audit_entries.append(e)
+
+    env = {"CLAUDE_CONFIG_DIR": None}  # simulate unset
+    with (
+        patch("agentflow.shell.process_manager.spawn_new_child"),
+        patch("agentflow.shell.process_manager.os.environ.get", side_effect=lambda k, d=None: env.get(k, d)),
+        patch.object(sm._state_machine, "transition"),
+    ):
+        sm.restart_child()
+
+    restart_entry = next(e for e in audit_entries if e.get("event") == "restart_session")
+    assert restart_entry["command"] == ["claude"]
+    assert restart_entry["CLAUDE_CONFIG_DIR"] is None
+
+
+def test_restart_audit_logs_command_and_config_dir_claude2():
+    """restart_child audit entry captures CLAUDE_CONFIG_DIR for claude2 (claude binary + alternate config)."""
+    sm, pty, _ = make_manager()
+    pty._command = ["claude"]
+    pty.child_pid = None
+
+    audit_entries = []
+    sm._log_audit = lambda e: audit_entries.append(e)
+
+    env = {"CLAUDE_CONFIG_DIR": "/home/user/.claude-2"}
+    with (
+        patch("agentflow.shell.process_manager.spawn_new_child"),
+        patch("agentflow.shell.process_manager.os.environ.get", side_effect=lambda k, d=None: env.get(k, d)),
+        patch.object(sm._state_machine, "transition"),
+    ):
+        sm.restart_child()
+
+    restart_entry = next(e for e in audit_entries if e.get("event") == "restart_session")
+    assert restart_entry["command"] == ["claude"]
+    assert restart_entry["CLAUDE_CONFIG_DIR"] == "/home/user/.claude-2"
+
+
 def test_idle_poll_no_longer_triggers_on_token_count(tmp_path):
     """T-151: poll() must NOT trigger handoff based on safety/ceiling token counts.
     The poll loop only responds to signal files; threshold-based triggers are
