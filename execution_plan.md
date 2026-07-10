@@ -395,7 +395,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 
 ---
 
-## Master Round Table (updated 2026-07-07)
+## Master Round Table (updated 2026-07-10)
 
 | Round | Tasks | What ships |
 |---|---|---|
@@ -415,11 +415,12 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | D3-durability — MERGED | T-157 (MERGED) | CLAUDE.md post-merge checklist — prevents skill/config losses on branch diverge |
 | D3-oracle — MERGED | T-153 (MERGED) ‖ T-154 (MERGED) | Oracle threshold config + incremental design_status flush |
 | D3b (MERGED) | T-122 ‖ T-120 ‖ T-112 ‖ T-147 ‖ T-160a ‖ T-163 (parallel) | Regression tests + installer + Nuitka binary + cache breakpoint + verbosity boundary fix + auto-capture /usage |
-| D3b-2 | T-160 (depends T-160a) ‖ T-164 (depends T-163) (parallel) | Verbosity A/B metrics + calibrate_capacity() wiring + ewma_cv |
+| D3c | T-183 ‖ T-185 (parallel) | Orchestrator HANDOFF RECOMMENDED bypass + session state per-sid — unblocks auto-orchestrate loop + fixes session poisoning |
+| D3b-2 | T-184 (depends T-183) ‖ T-160 (depends T-160a) ‖ T-164 (depends T-163) (parallel) | /usage context % accuracy + verbosity A/B metrics + calibrate_capacity() wiring + ewma_cv |
 | E | T-103 ‖ T-099 ‖ T-068 ‖ T-063 (parallel) | Measurement chain + multi-provider |
 | F | T-098, T-064, T-069 (parallel) | Model routing savings + rate headroom + parallel scheduling |
 
-Priority rationale (2026-07-08): Auto-orchestration loop (handoff → restart → orchestrate → next task) is broken. T-155 lands first (session_type detection), T-159 second (handoff_handler branch that consumes it) — together they unblock the full auto-orchestrate cycle. D3-oracle (T-153/T-154) follows; D3b after that.
+Priority rationale (2026-07-10): D3c (T-183 ‖ T-185) is the immediate unblock — T-183 bypasses the broken token threshold so orchestrator auto-restarts on HANDOFF RECOMMENDED, T-185 fixes session poisoning so session_type is correct per PTY. T-184 follows T-183. D3b-2 after that.
 
 ---
 
