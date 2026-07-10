@@ -3,9 +3,7 @@
 Refactored to drive a file-based state machine. Stdlib-only.
 """
 from __future__ import annotations
-import datetime
 import hashlib
-import json
 import os
 import pathlib
 import time
@@ -113,53 +111,22 @@ class SessionManager:
         except Exception: return None
 
     def _log_audit(self, entry: dict) -> None:
-        lp = self._project_root / ".agentflow" / "pty_audit.jsonl"
-        if not lp.parent.exists(): return
-        try:
-            entry = {**entry, "ts": datetime.datetime.now().isoformat(), "session_id": os.environ.get("AGENTFLOW_SESSION_ID")}
-            with open(lp, "a", encoding="utf-8") as fh: fh.write(json.dumps(entry) + "\n")
-        except Exception: pass
+        from agentflow.shell.session_audit import log_audit; log_audit(self, entry)
 
     def on_idle_tick(self) -> None:
         self._sync_session_type()
         self.poll()
+        self._check_drain_restart()
         now = time.monotonic()
         if not hasattr(self, "_last_guard_tick") or now - self._last_guard_tick > 60.0:
             self._last_guard_tick = now
             self._run_stale_index_guard()
 
     def _apply_session_threshold(self) -> None:
-        if self.session_type == "oracle":
-            threshold = self._config.get("oracle_threshold_tokens", 50000)
-        elif self.session_type == "orchestrator":
-            threshold = self._config.get("handoff_primary_tokens", 80000)
-        else:
-            return
-        if self._state_machine.threshold_tokens != threshold:
-            self._state_machine.threshold_tokens = threshold
+        from agentflow.shell.threshold_sync import apply_session_threshold; apply_session_threshold(self)
 
     def _sync_session_type(self) -> None:
-        if self.session_type is None:
-            sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
-            filenames = ([f"session_state_{sid}.json"] if sid else []) + ["session_state.json", "session_type"]
-            for fname in filenames:
-                try:
-                    fp = self._project_root / ".agentflow" / fname
-                    if not fp.exists():
-                        continue
-                    if fname == "session_type":
-                        st = fp.read_text("utf-8").strip()
-                    else:
-                        data = json.loads(fp.read_text("utf-8"))
-                        st = data.get("session_type", "") if isinstance(data, dict) else ""
-                    if st in ("oracle", "orchestrator"):
-                        self.session_type = st
-                        self._update_session_file()
-                        self._apply_session_threshold()
-                        return
-                except Exception:
-                    pass
-        self._apply_session_threshold()
+        from agentflow.shell.threshold_sync import sync_session_type; sync_session_type(self)
 
     def _run_stale_index_guard(self) -> None:
         from agentflow.shell.stale_index_guard import run_stale_index_guard
@@ -259,14 +226,7 @@ class SessionManager:
         self._state_machine.transition("restart_session")
 
     def _update_session_file(self) -> None:
-        sid = os.environ.get("AGENTFLOW_SESSION_ID")
-        if not sid: return
-        sf = pathlib.Path.home() / ".agentflow" / "sessions" / f"{sid}.json"
-        try: data = json.loads(sf.read_text("utf-8")) if sf.exists() else {}
-        except Exception: data = {}
-        try:
-            data.setdefault("started_at", datetime.datetime.now().isoformat())
-            data.update({"arm": self._arm, "session_type": self.session_type})
-            sf.parent.mkdir(parents=True, exist_ok=True)
-            sf.write_text(json.dumps(data), encoding="utf-8")
-        except Exception: pass
+        from agentflow.shell.session_audit import update_session_file; update_session_file(self)
+
+    def _check_drain_restart(self) -> None:
+        from agentflow.shell.handoff_handler import check_drain_restart; check_drain_restart(self)
