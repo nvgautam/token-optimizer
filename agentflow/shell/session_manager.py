@@ -111,7 +111,7 @@ class SessionManager:
         except Exception: return None
 
     def _log_audit(self, entry: dict) -> None:
-        from agentflow.shell.session_lifecycle import log_audit; log_audit(self, entry)
+        from agentflow.shell.session_audit import log_audit; log_audit(self, entry)
 
     def on_idle_tick(self) -> None:
         self._sync_session_type()
@@ -123,10 +123,10 @@ class SessionManager:
             self._run_stale_index_guard()
 
     def _apply_session_threshold(self) -> None:
-        from agentflow.shell.session_lifecycle import apply_session_threshold; apply_session_threshold(self)
+        from agentflow.shell.threshold_sync import apply_session_threshold; apply_session_threshold(self)
 
     def _sync_session_type(self) -> None:
-        from agentflow.shell.session_lifecycle import sync_session_type; sync_session_type(self)
+        from agentflow.shell.threshold_sync import sync_session_type; sync_session_type(self)
 
     def _run_stale_index_guard(self) -> None:
         from agentflow.shell.stale_index_guard import run_stale_index_guard
@@ -226,7 +226,7 @@ class SessionManager:
         self._state_machine.transition("restart_session")
 
     def _update_session_file(self) -> None:
-        from agentflow.shell.session_lifecycle import update_session_file; update_session_file(self)
+        from agentflow.shell.session_audit import update_session_file; update_session_file(self)
 
     def _check_drain_restart(self) -> None:
-        from agentflow.shell.session_lifecycle import check_drain_restart; check_drain_restart(self)
+        from agentflow.shell.handoff_handler import check_drain_restart; check_drain_restart(self)

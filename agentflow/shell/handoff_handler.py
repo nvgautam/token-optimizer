@@ -156,3 +156,43 @@ def poll_session(manager) -> None:
 
     elif state == States.DEAD_CHILD:
         _check_deadline(manager, state)
+
+
+def check_drain_restart(manager) -> None:
+    """Trigger restart when tasks_in_flight drains to empty and context fill >= 80K.
+
+    All conditions must be true:
+    1. session_type == "orchestrator"
+    2. state is IDLE (not TASK_RUNNING/HANDOFF_PENDING/RESTARTING)
+    3. handoff not in progress and not disabled
+    4. tasks_in_flight.json absent or empty
+    5. current_round.json exists (prevents spurious startup trigger)
+    6. context_fill.json fill_tokens >= handoff_primary_tokens
+    """
+    import json as _json
+    if manager.session_type != "orchestrator":
+        return
+    if manager._state_machine.state != States.IDLE:
+        return
+    if manager._handoff_in_progress or manager._auto_handoff_disabled():
+        return
+    if not manager._current_round_path.exists():
+        return
+    tif = manager._project_root / ".agentflow" / "tasks_in_flight.json"
+    try:
+        if tif.exists() and _json.loads(tif.read_text("utf-8")):
+            return
+    except Exception:
+        return
+    threshold = manager._config.get("handoff_primary_tokens", 80000)
+    fill_tokens = 0
+    try:
+        cf = manager._project_root / ".agentflow" / "context_fill.json"
+        if cf.exists():
+            fill_tokens = _json.loads(cf.read_text("utf-8")).get("fill_tokens", 0)
+    except Exception:
+        pass
+    if fill_tokens < threshold:
+        return
+    manager.trigger_handoff(trigger="drain")
+    manager._log_audit({"event": "drain_restart_triggered", "fill_tokens": fill_tokens, "threshold": threshold})

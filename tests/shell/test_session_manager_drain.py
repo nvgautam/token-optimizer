@@ -1,4 +1,4 @@
-"""Tests for drain-restart logic (T-187) and session_lifecycle delegation (T-175)."""
+"""Tests for drain-restart logic (T-187) and threshold_sync/session_audit delegation (T-175)."""
 from __future__ import annotations
 import json
 import pathlib
@@ -27,7 +27,7 @@ class TestDrainRestart:
 
         # Mock trigger_handoff to verify it was called
         with patch.object(sm, "trigger_handoff") as mock_trigger:
-            from agentflow.shell.session_lifecycle import check_drain_restart
+            from agentflow.shell.handoff_handler import check_drain_restart
             check_drain_restart(sm)
             mock_trigger.assert_called_once_with(trigger="drain")
 
@@ -44,7 +44,7 @@ class TestDrainRestart:
         (agentflow_dir / "context_fill.json").write_text(json.dumps({"fill_tokens": 90000, "ts": "2026-07-10T00:00:00"}))
 
         with patch.object(sm, "trigger_handoff") as mock_trigger:
-            from agentflow.shell.session_lifecycle import check_drain_restart
+            from agentflow.shell.handoff_handler import check_drain_restart
             check_drain_restart(sm)
             mock_trigger.assert_not_called()
 
@@ -61,7 +61,7 @@ class TestDrainRestart:
         (agentflow_dir / "context_fill.json").write_text(json.dumps({"fill_tokens": 90000, "ts": "2026-07-10T00:00:00"}))
 
         with patch.object(sm, "trigger_handoff") as mock_trigger:
-            from agentflow.shell.session_lifecycle import check_drain_restart
+            from agentflow.shell.handoff_handler import check_drain_restart
             check_drain_restart(sm)
             mock_trigger.assert_not_called()
 
@@ -78,7 +78,7 @@ class TestDrainRestart:
         (agentflow_dir / "context_fill.json").write_text(json.dumps({"fill_tokens": 40000, "ts": "2026-07-10T00:00:00"}))
 
         with patch.object(sm, "trigger_handoff") as mock_trigger:
-            from agentflow.shell.session_lifecycle import check_drain_restart
+            from agentflow.shell.handoff_handler import check_drain_restart
             check_drain_restart(sm)
             mock_trigger.assert_not_called()
 
@@ -96,7 +96,7 @@ class TestDrainRestart:
         (agentflow_dir / "tasks_in_flight.json").write_text(json.dumps(["T-001"]))
 
         with patch.object(sm, "trigger_handoff") as mock_trigger:
-            from agentflow.shell.session_lifecycle import check_drain_restart
+            from agentflow.shell.handoff_handler import check_drain_restart
             check_drain_restart(sm)
             mock_trigger.assert_not_called()
 
@@ -112,7 +112,7 @@ class TestDrainRestart:
         (agentflow_dir / "context_fill.json").write_text(json.dumps({"fill_tokens": 90000, "ts": "2026-07-10T00:00:00"}))
 
         with patch.object(sm, "trigger_handoff") as mock_trigger:
-            from agentflow.shell.session_lifecycle import check_drain_restart
+            from agentflow.shell.handoff_handler import check_drain_restart
             check_drain_restart(sm)
             mock_trigger.assert_not_called()
 
@@ -128,7 +128,7 @@ class TestDrainRestart:
         (agentflow_dir / "current_round.json").write_text('{"task":"T-001"}')
 
         with patch.object(sm, "trigger_handoff") as mock_trigger:
-            from agentflow.shell.session_lifecycle import check_drain_restart
+            from agentflow.shell.handoff_handler import check_drain_restart
             check_drain_restart(sm)
             mock_trigger.assert_not_called()
 
@@ -145,7 +145,7 @@ class TestDrainRestart:
         (agentflow_dir / "context_fill.json").write_text(json.dumps({"fill_tokens": 90000, "ts": "2026-07-10T00:00:00"}))
 
         with patch.object(sm, "trigger_handoff") as mock_trigger:
-            from agentflow.shell.session_lifecycle import check_drain_restart
+            from agentflow.shell.handoff_handler import check_drain_restart
             check_drain_restart(sm)
             mock_trigger.assert_not_called()
 
@@ -163,7 +163,7 @@ class TestDrainRestart:
         (agentflow_dir / "handoff_disabled").write_text("")
 
         with patch.object(sm, "trigger_handoff") as mock_trigger:
-            from agentflow.shell.session_lifecycle import check_drain_restart
+            from agentflow.shell.handoff_handler import check_drain_restart
             check_drain_restart(sm)
             mock_trigger.assert_not_called()
 
@@ -200,7 +200,7 @@ class TestSessionLifecycleDelegation:
             mock_drain.assert_called_once()
 
     def test_sync_session_type_delegates(self, tmp_path):
-        """_sync_session_type delegates to session_lifecycle.sync_session_type."""
+        """_sync_session_type delegates to the correct module.sync_session_type."""
         sm, pty, tok = make_manager()
         sm._project_root = tmp_path
 
@@ -208,35 +208,35 @@ class TestSessionLifecycleDelegation:
         agentflow_dir.mkdir()
         (agentflow_dir / "session_type").write_text("orchestrator")
 
-        with patch("agentflow.shell.session_lifecycle.sync_session_type") as mock_sync:
+        with patch("agentflow.shell.threshold_sync.sync_session_type") as mock_sync:
             sm._sync_session_type()
             mock_sync.assert_called_once_with(sm)
 
     def test_apply_session_threshold_delegates(self, tmp_path):
-        """_apply_session_threshold delegates to session_lifecycle."""
+        """_apply_session_threshold delegates to the correct module."""
         sm, pty, tok = make_manager()
         sm._project_root = tmp_path
         sm.session_type = "orchestrator"
 
-        with patch("agentflow.shell.session_lifecycle.apply_session_threshold") as mock_apply:
+        with patch("agentflow.shell.threshold_sync.apply_session_threshold") as mock_apply:
             sm._apply_session_threshold()
             mock_apply.assert_called_once_with(sm)
 
     def test_update_session_file_delegates(self, tmp_path):
-        """_update_session_file delegates to session_lifecycle."""
+        """_update_session_file delegates to the correct module."""
         sm, pty, tok = make_manager()
         sm._project_root = tmp_path
 
-        with patch("agentflow.shell.session_lifecycle.update_session_file") as mock_update:
+        with patch("agentflow.shell.session_audit.update_session_file") as mock_update:
             sm._update_session_file()
             mock_update.assert_called_once_with(sm)
 
     def test_log_audit_delegates(self, tmp_path):
-        """_log_audit delegates to session_lifecycle."""
+        """_log_audit delegates to the correct module."""
         sm, pty, tok = make_manager()
         sm._project_root = tmp_path
 
-        with patch("agentflow.shell.session_lifecycle.log_audit") as mock_log:
+        with patch("agentflow.shell.session_audit.log_audit") as mock_log:
             entry = {"event": "test"}
             sm._log_audit(entry)
             mock_log.assert_called_once_with(sm, entry)
