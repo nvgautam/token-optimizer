@@ -209,7 +209,7 @@ Goal: Orchestrate spawns N workers in parallel per round, bounded by per-task to
 | Task | Title | Depends on | Status |
 |---|---|---|---|
 | T-068 | Per-task token estimator — regression model from task_token_log.jsonl | T-067 | MERGED (PR #103) |
-| T-069 | Orchestrate — parallel worker scheduling using token estimator | T-068, T-065 | PENDING |
+| T-069 | Orchestrate — parallel worker scheduling using token estimator | T-068, T-065 | MERGED (PR #105) |
 
 | Round | Tasks | Note |
 |---|---|---|
@@ -421,7 +421,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | D3b-2 — MERGED (PR #102 2026-07-10) | T-160 (depends T-160a) ‖ T-164 (depends T-163) (parallel) | Verbosity A/B metrics + calibrate_capacity() wiring + ewma_cv |
 | P0 — MERGED (PR #104 2026-07-10) | T-188 | cleanup_tasks.py PR merge detection + tasks_in_flight drain + conditional audit log — unblocks reliable PTY restart loop |
 | Demo-1 — MERGED (PR #103 2026-07-10) | T-068 | Token estimator (regression model from task_token_log) — unblocks Demo-2 |
-| Demo-2 | T-064 ‖ T-069 (parallel) | Rate headroom check + scheduler caps task selection to session budget |
+| Demo-2 — MERGED (PR #105 2026-07-10) | T-069 (T-064 deferred — blocked by T-063) | Parallel scheduling via task_estimator + disjoint owns check |
 | Demo-3 | T-098 ‖ T-103 (parallel) | Combined savings report (USD + token-class) + Haiku vs Sonnet A/B — proves token reduction |
 | Later | T-063, T-099, T-162, T-167, T-168, T-174, T-178 | Multi-provider claiming + Gemini oracle + oracle polish + headroom spike + hook audit |
 

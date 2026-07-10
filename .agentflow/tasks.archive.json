@@ -1530,5 +1530,23 @@
     ],
     "depends_on": [],
     "status": "complete"
+  },
+  {
+    "task_id": "T-069",
+    "title": "Orchestrate skill \u2014 parallel worker scheduling using token estimator",
+    "description": "Replace sequential per-round task execution with parallel scheduling bounded by token budget. (1) commands/claude/orchestrate.md: at round start, load ~/.agentflow/task_estimator.json (fallback 2500 if absent or sample_count < 5). (2) Compute N = max(1, floor(remaining_tokens / estimated_tokens_per_task)). (3) Filter candidate tasks: exclude any task whose owns fields overlap with another selected task (disjoint owns required to prevent write conflicts). (4) Spawn up to N workers in parallel Agent calls within the same orchestrate session. (5) commands/gemini/skills/orchestrate/SKILL.md: same parallel scheduling logic with task_estimator.json load. (6) Tests: test_orchestrate_skill.py \u2014 assert parallel scheduling logic, estimator load step, and owns-disjoint check present in both Claude and Gemini skill content.",
+    "owns": [
+      "commands/claude/orchestrate.md",
+      "commands/gemini/skills/orchestrate/SKILL.md",
+      "tests/prompts/test_orchestrate_skill.py"
+    ],
+    "reads": [
+      "~/.agentflow/task_estimator.json"
+    ],
+    "depends_on": [
+      "T-068",
+      "T-065"
+    ],
+    "status": "complete"
   }
 ]

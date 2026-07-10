@@ -1,14 +1,15 @@
 {
-  "last_round": "P0",
+  "last_round": "Demo-2",
   "last_merged_tasks": [
-    "T-188"
-  ],
-  "pr": "https://github.com/nvgautam/token-optimizer/pull/104",
-  "merged_at": "2026-07-10T20:44:30Z",
-  "next_round": "Demo-2",
-  "next_tasks": [
     "T-069"
   ],
+  "pr": "https://github.com/nvgautam/token-optimizer/pull/105",
+  "merged_at": "2026-07-10T21:42:37Z",
+  "next_round": "Demo-3",
+  "next_tasks": [
+    "T-098",
+    "T-103"
+  ],
   "in_flight": [],
-  "updated_at": "2026-07-10T20:49:51.466947Z"
+  "updated_at": "2026-07-10T21:43:57Z"
 }

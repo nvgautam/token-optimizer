@@ -1,16 +1,13 @@
 {
-  "round_id": "DP-3",
+  "round_id": "Demo-2",
   "task_ids": [
-    "T-120",
-    "T-179"
+    "T-069"
   ],
   "estimated_lines_per_task": {
-    "T-120": 120,
-    "T-179": 50
+    "T-069": 50
   },
   "file_counts_per_task": {
-    "T-120": 4,
-    "T-179": 3
+    "T-069": 3
   },
-  "timestamp": "2026-07-09T12:31:58.180280"
+  "timestamp": "2026-07-10T21:28:47Z"
 }
