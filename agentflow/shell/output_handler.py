@@ -144,6 +144,6 @@ def handle_output(manager, chunk: bytes) -> None:
         # with no recovery path.
         task_just_completed = complete_m is not None
         task_in_flight = bool(manager._task_start_tokens) or manager._state_machine.state == States.TASK_RUNNING
-        if total >= primary and task_just_completed and not task_in_flight:
+        if total >= primary and task_just_completed and not task_in_flight and manager.session_type != "orchestrator":
             manager.trigger_handoff(trigger="auto-primary")
 
