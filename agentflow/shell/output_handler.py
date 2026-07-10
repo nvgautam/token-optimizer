@@ -151,7 +151,9 @@ def handle_output(manager, chunk: bytes) -> None:
     _since_restart = time.monotonic() - manager._last_restart_ts
     if not manager._manual_handoff and not manager._auto_handoff_disabled() and manager._state_machine.state not in (States.HANDOFF_PENDING, States.RESTARTING) and _since_restart >= _restart_cooldown:
         primary = manager._config["handoff_primary_tokens"]
-        manager._log_audit({"event": "token_evaluation", "accumulated_tokens": total, "primary": primary})
+        if total // 10_000 > manager._last_audit_token_bucket:
+            manager._log_audit({"event": "token_evaluation", "accumulated_tokens": total, "primary": primary})
+            manager._last_audit_token_bucket = total // 10_000
 
         # T-151: only trigger on 80K + task just completed + no task in-flight.
         # Safety and ceiling triggers removed — they caused mid-task restart storms

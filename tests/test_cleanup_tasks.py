@@ -1,5 +1,7 @@
 import json
-from agentflow.tools.cleanup_tasks import cleanup, auto_file_size_violations
+import subprocess
+from unittest.mock import Mock, patch
+from agentflow.tools.cleanup_tasks import cleanup, auto_file_size_violations, _detect_merged_prs
 
 def test_auto_file_size_violations(tmp_path):
     # Setup paths
@@ -205,4 +207,137 @@ def test_auto_file_size_violations_idempotency(tmp_path):
     with open(tasks_path, "r", encoding="utf-8") as f:
         result2 = json.load(f)
     assert len(result2["tasks"]) == 1
+
+
+# ---------------------------------------------------------------------------
+# _detect_merged_prs tests
+# ---------------------------------------------------------------------------
+
+def _make_tasks_data(task_id="T-001", status="pending"):
+    return {"tasks": [{"task_id": task_id, "title": "Task", "status": status}]}
+
+
+def test_detect_merged_prs_marks_complete_when_merged(tmp_path):
+    """Task is marked complete when gh reports MERGED."""
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+    (agentflow_dir / "task_prs.json").write_text(json.dumps({"T-001": "https://github.com/example/repo/pull/1"}))
+    (agentflow_dir / "tasks_in_flight.json").write_text(json.dumps(["T-001"]))
+    tasks_data = _make_tasks_data("T-001", "pending")
+
+    mock_result = Mock()
+    mock_result.stdout = "MERGED\n"
+    mock_result.returncode = 0
+
+    with patch("subprocess.run", return_value=mock_result) as mock_run:
+        result = _detect_merged_prs(tmp_path, tasks_data)
+
+    assert result is True
+    t = next(t for t in tasks_data["tasks"] if t["task_id"] == "T-001")
+    assert t["status"] == "complete"
+    # Verify gh was called with list form (not shell=True)
+    call_args = mock_run.call_args
+    assert call_args[0][0][0] == "gh"
+    assert call_args[1].get("shell") is not True
+
+
+def test_detect_merged_prs_skips_when_not_merged(tmp_path):
+    """Task remains pending when gh reports OPEN."""
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+    (agentflow_dir / "task_prs.json").write_text(json.dumps({"T-001": "https://github.com/example/repo/pull/1"}))
+    (agentflow_dir / "tasks_in_flight.json").write_text(json.dumps(["T-001"]))
+    tasks_data = _make_tasks_data("T-001", "pending")
+
+    mock_result = Mock()
+    mock_result.stdout = "OPEN\n"
+    mock_result.returncode = 0
+
+    with patch("subprocess.run", return_value=mock_result):
+        result = _detect_merged_prs(tmp_path, tasks_data)
+
+    assert result is False
+    t = next(t for t in tasks_data["tasks"] if t["task_id"] == "T-001")
+    assert t["status"] == "pending"
+
+
+def test_detect_merged_prs_absent_task_prs(tmp_path):
+    """Returns False without error when task_prs.json is absent."""
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+    tasks_data = _make_tasks_data("T-001", "pending")
+
+    result = _detect_merged_prs(tmp_path, tasks_data)
+
+    assert result is False
+
+
+def test_detect_merged_prs_empty_in_flight(tmp_path):
+    """Returns False when tasks_in_flight.json is empty."""
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+    (agentflow_dir / "task_prs.json").write_text(json.dumps({"T-001": "https://github.com/example/repo/pull/1"}))
+    (agentflow_dir / "tasks_in_flight.json").write_text(json.dumps([]))
+    tasks_data = _make_tasks_data("T-001", "pending")
+
+    result = _detect_merged_prs(tmp_path, tasks_data)
+
+    assert result is False
+
+
+def test_detect_merged_prs_handles_subprocess_error(tmp_path):
+    """Returns False without raising when subprocess raises OSError."""
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+    (agentflow_dir / "task_prs.json").write_text(json.dumps({"T-001": "https://github.com/example/repo/pull/1"}))
+    (agentflow_dir / "tasks_in_flight.json").write_text(json.dumps(["T-001"]))
+    tasks_data = _make_tasks_data("T-001", "pending")
+
+    with patch("subprocess.run", side_effect=OSError("gh not found")):
+        result = _detect_merged_prs(tmp_path, tasks_data)
+
+    assert result is False
+    # Task should remain unmodified
+    t = next(t for t in tasks_data["tasks"] if t["task_id"] == "T-001")
+    assert t["status"] == "pending"
+
+
+def test_detect_merged_prs_skips_already_complete(tmp_path):
+    """subprocess is NOT called when task is already complete (idempotent)."""
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+    (agentflow_dir / "task_prs.json").write_text(json.dumps({"T-001": "https://github.com/example/repo/pull/1"}))
+    (agentflow_dir / "tasks_in_flight.json").write_text(json.dumps(["T-001"]))
+    tasks_data = _make_tasks_data("T-001", "complete")
+
+    with patch("subprocess.run") as mock_run:
+        result = _detect_merged_prs(tmp_path, tasks_data)
+
+    mock_run.assert_not_called()
+    assert result is False
+
+
+def test_cleanup_drains_tasks_in_flight(tmp_path):
+    """End-to-end: merged PR detected via gh → task marked complete → drained from tasks_in_flight."""
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+
+    (tmp_path / "tasks.json").write_text(json.dumps({
+        "tasks": [{"task_id": "T-001", "title": "Test task", "status": "pending"}]
+    }))
+    (agentflow_dir / "task_prs.json").write_text(json.dumps(
+        {"T-001": "https://github.com/example/repo/pull/1"}
+    ))
+    in_flight_path = agentflow_dir / "tasks_in_flight.json"
+    in_flight_path.write_text(json.dumps(["T-001"]))
+
+    mock_result = Mock()
+    mock_result.stdout = "MERGED\n"
+    mock_result.returncode = 0
+
+    with patch("subprocess.run", return_value=mock_result):
+        cleanup(tmp_path)
+
+    remaining = json.loads(in_flight_path.read_text())
+    assert remaining == [], f"Expected empty tasks_in_flight, got {remaining}"
 
