@@ -148,3 +148,99 @@ def test_capacity_calibration_report_rendering(tmp_path, mock_home):
     assert "Capacity Calibration (Claude)" in html
     assert "7 tasks remaining" in html
     assert "EWMA per task: 12.34%" in html
+
+
+# ---------------------------------------------------------------------------
+# T-164: ewma_cv computation from usage_snapshots
+# ---------------------------------------------------------------------------
+
+def _make_snapshot(label: str, pct: float) -> dict:
+    return {"label": label, "ts": "2026-07-10T00:00:00", "start_pct_5hr": pct}
+
+
+def test_ewma_cv_from_multiple_snapshot_pairs(tmp_path, mock_home):
+    """3 pairs → ewma_cv = std([10,20,30]) / mean([10,20,30]) = 10/20 = 0.5, sample_count=3."""
+    ledger = {
+        "usage_snapshots": [
+            _make_snapshot("session_start", 0.0),
+            _make_snapshot("session_end", 10.0),
+            _make_snapshot("session_start", 20.0),
+            _make_snapshot("session_end", 40.0),
+            _make_snapshot("session_start", 50.0),
+            _make_snapshot("session_end", 80.0),
+        ]
+    }
+    (tmp_path / "agentflow_ledger.json").write_text(json.dumps(ledger))
+
+    result = calibrate_capacity(tmp_path, current_start_pct=0.0)
+
+    assert abs(result["ewma_cv"] - 0.5) < 1e-9
+    assert result["sample_count"] == 3
+
+    cal_file = tmp_path / ".agentflow" / "rate_calibration_claude.json"
+    cal_data = json.loads(cal_file.read_text())
+    assert abs(cal_data["ewma_cv"] - 0.5) < 1e-9
+    assert cal_data["sample_count"] == 3
+
+
+def test_ewma_cv_zero_when_single_pair(tmp_path, mock_home):
+    """Only 1 pair → ewma_cv = 0.0 (need ≥ 2 to compute CV)."""
+    ledger = {
+        "usage_snapshots": [
+            _make_snapshot("session_start", 10.0),
+            _make_snapshot("session_end", 25.0),
+        ]
+    }
+    (tmp_path / "agentflow_ledger.json").write_text(json.dumps(ledger))
+
+    result = calibrate_capacity(tmp_path, current_start_pct=0.0)
+
+    assert result["ewma_cv"] == 0.0
+    assert result["sample_count"] == 1
+
+
+def test_ewma_cv_no_snapshots(tmp_path, mock_home):
+    """Empty ledger (no usage_snapshots key) → ewma_cv=0.0, sample_count=0, no crash."""
+    (tmp_path / "agentflow_ledger.json").write_text(json.dumps({}))
+
+    result = calibrate_capacity(tmp_path, current_start_pct=0.0)
+
+    assert result["ewma_cv"] == 0.0
+    assert result["sample_count"] == 0
+
+
+def test_ewma_cv_dangling_start_ignored(tmp_path, mock_home):
+    """Trailing start without end is ignored; only 1 complete pair formed."""
+    ledger = {
+        "usage_snapshots": [
+            _make_snapshot("session_start", 0.0),
+            _make_snapshot("session_end", 15.0),
+            _make_snapshot("session_start", 15.0),  # dangling — no matching end
+        ]
+    }
+    (tmp_path / "agentflow_ledger.json").write_text(json.dumps(ledger))
+
+    result = calibrate_capacity(tmp_path, current_start_pct=0.0)
+
+    assert result["sample_count"] == 1
+    assert result["ewma_cv"] == 0.0
+
+
+def test_sample_count_written_to_cal_file(tmp_path, mock_home):
+    """sample_count key must appear in the written calibration file."""
+    ledger = {
+        "usage_snapshots": [
+            _make_snapshot("session_start", 0.0),
+            _make_snapshot("session_end", 5.0),
+            _make_snapshot("session_start", 5.0),
+            _make_snapshot("session_end", 12.0),
+        ]
+    }
+    (tmp_path / "agentflow_ledger.json").write_text(json.dumps(ledger))
+
+    calibrate_capacity(tmp_path, current_start_pct=0.0)
+
+    cal_file = tmp_path / ".agentflow" / "rate_calibration_claude.json"
+    cal_data = json.loads(cal_file.read_text())
+    assert "sample_count" in cal_data
+    assert cal_data["sample_count"] == 2
