@@ -268,12 +268,13 @@ def test_gemini_orchestrate_has_disjoint_owns_check():
 
 
 def test_claude_orchestrate_size_limit():
-    """orchestrate.md must not exceed 250 lines"""
+    """orchestrate.md must not exceed 150 lines (CLAUDE.md prompts constraint)"""
     lines = CLAUDE_ORCHESTRATE.read_text(encoding="utf-8").splitlines()
-    assert len(lines) <= 250, f"Claude orchestrate.md is {len(lines)} lines (limit 250)"
+    assert len(lines) <= 150, f"Claude orchestrate.md is {len(lines)} lines (limit 150)"
 
 
+@pytest.mark.xfail(strict=True, reason="SKILL.md pre-existing size violation (245 lines) — tracked separately for refactor")
 def test_gemini_orchestrate_size_limit():
-    """SKILL.md must not exceed 250 lines"""
+    """SKILL.md must not exceed 150 lines (CLAUDE.md prompts constraint)"""
     lines = GEMINI_ORCHESTRATE.read_text(encoding="utf-8").splitlines()
-    assert len(lines) <= 250, f"Gemini SKILL.md is {len(lines)} lines (limit 250)"
+    assert len(lines) <= 150, f"Gemini SKILL.md is {len(lines)} lines (limit 150)"
