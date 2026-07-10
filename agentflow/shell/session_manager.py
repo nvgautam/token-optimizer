@@ -140,48 +140,19 @@ class SessionManager:
 
     def _sync_session_type(self) -> None:
         if self.session_type is None:
-            # First, try sid-keyed session_state.json if sid is set
             sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
-            if sid:
-                session_state_file_sid = self._project_root / ".agentflow" / f"session_state_{sid}.json"
+            filenames = ([f"session_state_{sid}.json"] if sid else []) + ["session_state.json", "session_type"]
+            for fname in filenames:
                 try:
-                    if session_state_file_sid.exists():
-                        data = json.loads(session_state_file_sid.read_text("utf-8"))
-                        if isinstance(data, dict):
-                            st = data.get("session_type")
-                            if st in ("oracle", "orchestrator"):
-                                self.session_type = st
-                                self._update_session_file()
-                                self._apply_session_threshold()
-                                return
-                except Exception:
-                    pass
-
-            # Fall back to unkeyed session_state.json (backward compat)
-            session_state_file = self._project_root / ".agentflow" / "session_state.json"
-            try:
-                if session_state_file.exists():
-                    data = json.loads(session_state_file.read_text("utf-8"))
-                    if isinstance(data, dict):
-                        st = data.get("session_type")
-                        if st in ("oracle", "orchestrator"):
-                            self.session_type = st
-                            self._update_session_file()
-                            self._apply_session_threshold()
-                            return
-            except Exception:
-                pass
-
-            # Fall back to plain text session_type file (legacy)
-            sig = self._project_root / ".agentflow" / "session_type"
-            try:
-                if sig.exists():
-                    st = sig.read_text("utf-8").strip()
+                    fp = self._project_root / ".agentflow" / fname
+                    if not fp.exists(): continue
+                    st = fp.read_text("utf-8").strip() if fname == "session_type" else json.loads(fp.read_text("utf-8")).get("session_type", "")
                     if st in ("oracle", "orchestrator"):
                         self.session_type = st
                         self._update_session_file()
-            except Exception:
-                pass
+                        self._apply_session_threshold()
+                        return
+                except Exception: pass
         self._apply_session_threshold()
 
     def _run_stale_index_guard(self) -> None:
