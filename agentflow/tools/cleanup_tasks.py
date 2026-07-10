@@ -5,6 +5,7 @@ Enforce tasks.json / tasks.archive.json invariants after merge.
 - tasks.archive.json: flat list of full task definitions (no nested batches)
 """
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -32,6 +33,55 @@ def flatten_archive(archive_path: Path) -> list:
     return flat
 
 
+def _detect_merged_prs(project_root: Path, tasks_data: dict) -> bool:
+    """Check GitHub for merged PRs and mark matching tasks complete.
+    Returns True if any tasks were marked complete. Idempotent.
+    """
+    task_prs_path = project_root / ".agentflow" / "task_prs.json"
+    in_flight_path = project_root / ".agentflow" / "tasks_in_flight.json"
+
+    if not task_prs_path.exists():
+        return False
+
+    try:
+        task_prs: dict = json.loads(task_prs_path.read_text("utf-8"))
+        if not in_flight_path.exists():
+            return False
+        in_flight: list = json.loads(in_flight_path.read_text("utf-8"))
+    except Exception:
+        return False
+
+    if not in_flight:
+        return False
+
+    tasks_by_id = {t["task_id"]: t for t in tasks_data.get("tasks", [])}
+
+    marked_any = False
+    for task_id in in_flight:
+        pr_url = task_prs.get(task_id)
+        if not pr_url:
+            continue
+        task = tasks_by_id.get(task_id)
+        if task is None:
+            continue
+        if task.get("status") == "complete":
+            continue  # idempotent: skip already-complete tasks
+        try:
+            result = subprocess.run(
+                ["gh", "pr", "view", pr_url, "--json", "state", "--jq", ".state"],
+                capture_output=True,
+                text=True,
+                timeout=15,
+            )
+            if result.returncode == 0 and result.stdout.strip() == "MERGED":
+                task["status"] = "complete"
+                marked_any = True
+        except (OSError, subprocess.TimeoutExpired, Exception):
+            continue  # skip this task, continue with others
+
+    return marked_any
+
+
 def auto_file_size_violations(project_root: Path) -> None:
     violations_path = project_root / ".agentflow" / "size_violations.jsonl"
     if not violations_path.exists():
@@ -47,13 +97,10 @@ def auto_file_size_violations(project_root: Path) -> None:
         return
 
     archive_path = project_root / ".agentflow" / "tasks.archive.json"
-    archive_tasks = []
-    if archive_path.exists():
-        try:
-            archive_tasks = flatten_archive(archive_path)
-        except Exception:
-            pass
-
+    try:
+        archive_tasks = flatten_archive(archive_path) if archive_path.exists() else []
+    except Exception:
+        archive_tasks = []
     all_tasks = tasks_data.get("tasks", []) + archive_tasks
 
     import re
@@ -99,17 +146,11 @@ def auto_file_size_violations(project_root: Path) -> None:
         if current_lines <= limit:
             continue
 
-        # Check if already filed
-        already_filed = False
-        for t in all_tasks + new_tasks:
-            if t.get("status") == "pending" and filename in t.get("owns", []):
-                already_filed = True
-                break
-            desc = t.get("description", "")
-            if filename in desc and ts in desc:
-                already_filed = True
-                break
-
+        already_filed = any(
+            (t.get("status") == "pending" and filename in t.get("owns", []))
+            or (filename in t.get("description", "") and ts in t.get("description", ""))
+            for t in all_tasks + new_tasks
+        )
         if already_filed:
             continue
 
@@ -140,6 +181,10 @@ def cleanup(project_root: Path) -> None:
 
     # --- tasks.json: trim completed tasks to stubs ---
     tasks_data = _load_json(tasks_path)
+
+    # Detect newly-merged PRs before trimming so they get archived in this run
+    _detect_merged_prs(project_root, tasks_data)
+
     tasks = tasks_data["tasks"]
 
     archived_ids = set()
@@ -171,6 +216,21 @@ def cleanup(project_root: Path) -> None:
         flat = flatten_archive(archive_path)
         _write_json(archive_path, flat)
         print(f"  flattened archive to {len(flat)} entries")
+
+    # --- tasks_in_flight.json: remove completed tasks ---
+    in_flight_path = project_root / ".agentflow" / "tasks_in_flight.json"
+    if in_flight_path.exists():
+        try:
+            complete_ids = {t["task_id"] for t in new_tasks if t.get("status") == "complete"}
+            with open(in_flight_path) as f:
+                in_flight: list = json.load(f)
+            still_pending = [tid for tid in in_flight if tid not in complete_ids]
+            if len(still_pending) != len(in_flight):
+                with open(in_flight_path, "w") as f:
+                    json.dump(still_pending, f)
+                print(f"  removed {len(in_flight) - len(still_pending)} completed task(s) from tasks_in_flight")
+        except (OSError, ValueError, json.JSONDecodeError):
+            pass
 
 
 def append_to_archive(archive_path: Path, task: dict) -> None:

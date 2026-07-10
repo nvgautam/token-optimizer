@@ -22,7 +22,6 @@ _DEFAULTS = {
     "restart_delay_seconds": 5
 }
 
-
 class SessionManager:
     """Monitors PTY I/O; drives state machine via file-polling and token thresholds."""
 
@@ -49,6 +48,7 @@ class SessionManager:
         self._cwd_hash = hashlib.sha256(os.getcwd().encode()).hexdigest()
         self._last_idx_injected = None
         self._last_accumulated_tokens = 0
+        self._last_audit_token_bucket: int = 0
         self._last_restart_ts: float = 0.0
         self._current_trigger = "auto"
         self._deadline_state = None
