@@ -24,13 +24,13 @@ def _write_jsonl(path: Path, records: list[dict]) -> None:
 def test_aggregate_tokens_sums_by_task_id():
     records = [
         {"task_id": "T-001", "token_delta": 100},
-        {"task_id": "T-001", "token_delta": -50},  # abs → 50
+        {"task_id": "T-001", "token_delta": -50},  # negative = session restart; skipped
         {"task_id": "T-002", "token_delta": 200},
         {"task_id": "T-002", "token_delta": 300},
         {"task_id": "T-003", "token_delta": 75},
     ]
     result = aggregate_tokens(records)
-    assert result == {"T-001": 150, "T-002": 500, "T-003": 75}
+    assert result == {"T-001": 100, "T-002": 500, "T-003": 75}
 
 
 def test_estimate_returns_static_default_when_few_samples(tmp_path):

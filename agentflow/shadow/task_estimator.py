@@ -15,17 +15,19 @@ HIGH_CV_THRESHOLD = 0.5
 
 
 def aggregate_tokens(records: list[dict]) -> dict[str, int]:
-    """Sum abs(token_delta) per task_id across all records.
+    """Sum positive token_delta per task_id across all records.
 
-    Records with missing or None task_id/token_delta are silently skipped.
+    Negative deltas represent session restarts (context wipes) and are skipped.
+    Records with missing or None task_id are also silently skipped.
     """
     totals: dict[str, int] = {}
     for record in records:
         task_id = record.get("task_id")
-        raw_delta = record.get("token_delta")
-        if task_id is None or raw_delta is None:
+        if task_id is None:
             continue
-        delta = abs(int(raw_delta))
+        delta = int(record.get("token_delta", 0))
+        if delta <= 0:
+            continue  # negative = session restart / context wipe; skip
         totals[task_id] = totals.get(task_id, 0) + delta
     return totals
 
