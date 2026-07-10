@@ -109,3 +109,34 @@ def test_cv_computation(tmp_path):
     stats = compute(log_path=log, output_path=out)
     expected_cv = statistics.stdev(values) / statistics.mean(values)
     assert abs(stats["cv"] - expected_cv) < 1e-9
+
+
+def test_estimate_returns_static_default_when_no_stats_file(tmp_path):
+    out = tmp_path / "task_estimator.json"
+    # File does not exist — should fall back to static default
+    result = estimate(estimated_lines=100, file_count=5, stats_path=out)
+    assert result == 2500
+
+
+def test_compute_skips_malformed_jsonl_lines(tmp_path):
+    log = tmp_path / "task_token_log.jsonl"
+    out = tmp_path / "task_estimator.json"
+    # Mix of valid lines and a malformed line; should skip bad line without crashing
+    with open(log, "w", encoding="utf-8") as fh:
+        fh.write('{"task_id": "T-001", "token_delta": 1000}\n')
+        fh.write("this is not valid json!!!\n")
+        fh.write('{"task_id": "T-002", "token_delta": 2000}\n')
+    stats = compute(log_path=log, output_path=out)
+    # Only 2 valid tasks should be counted
+    assert stats["sample_count"] == 2
+
+
+def test_estimate_returns_static_default_when_stats_keys_missing(tmp_path):
+    out = tmp_path / "task_estimator.json"
+    # Write a stats file with sample_count >= 7 but missing mean/p85 keys
+    out.write_text(
+        '{"sample_count": 10, "cv": 0.2, "timestamp": "2026-07-10T00:00:00+00:00"}',
+        encoding="utf-8",
+    )
+    result = estimate(estimated_lines=100, file_count=5, stats_path=out)
+    assert result == 2500

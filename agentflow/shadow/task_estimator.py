@@ -15,11 +15,17 @@ HIGH_CV_THRESHOLD = 0.5
 
 
 def aggregate_tokens(records: list[dict]) -> dict[str, int]:
-    """Sum abs(token_delta) per task_id across all records."""
+    """Sum abs(token_delta) per task_id across all records.
+
+    Records with missing or None task_id/token_delta are silently skipped.
+    """
     totals: dict[str, int] = {}
     for record in records:
-        task_id = record["task_id"]
-        delta = abs(int(record["token_delta"]))
+        task_id = record.get("task_id")
+        raw_delta = record.get("token_delta")
+        if task_id is None or raw_delta is None:
+            continue
+        delta = abs(int(raw_delta))
         totals[task_id] = totals.get(task_id, 0) + delta
     return totals
 
@@ -64,8 +70,12 @@ def compute(
         with open(log_path, encoding="utf-8") as fh:
             for raw in fh:
                 raw = raw.strip()
-                if raw:
+                if not raw:
+                    continue
+                try:
                     records.append(json.loads(raw))
+                except json.JSONDecodeError:
+                    continue  # skip malformed lines silently
 
     per_task = aggregate_tokens(records)
     stats = compute_stats(per_task)
@@ -104,5 +114,7 @@ def estimate(
 
     cv = float(stats.get("cv", 0.0))
     if cv < HIGH_CV_THRESHOLD:
-        return int(stats["mean"])
-    return int(stats["p85"])
+        mean = stats.get("mean")
+        return int(mean) if mean is not None else STATIC_DEFAULT
+    p85 = stats.get("p85")
+    return int(p85) if p85 is not None else STATIC_DEFAULT
