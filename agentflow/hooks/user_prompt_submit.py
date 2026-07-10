@@ -194,6 +194,18 @@ def main() -> None:
     # Clean up merged in-flight tasks
     _cleanup_merged_in_flight(agentflow_dir)
 
+    # Emit session type into every turn so skills never need to infer it.
+    try:
+        ss = agentflow_dir / "session_state.json"
+        if ss.exists():
+            st = json.loads(ss.read_text())
+            session_type = st.get("session_type") or "unknown"
+        else:
+            session_type = "unknown"
+        print(f"<agentflow-reminder>[SESSION: {session_type}]</agentflow-reminder>")
+    except Exception:
+        pass
+
     sys.exit(0)
 
 
