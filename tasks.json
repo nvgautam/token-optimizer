@@ -681,7 +681,7 @@
     {
       "task_id": "T-162",
       "title": "Split commands/claude/oracle.md \u2014 size violation",
-      "description": "Split commands/claude/oracle.md to resolve size violation of 160 lines (limit: 150). Violation timestamp: 2026-07-06T15:43:05.100701.",
+      "description": "Split commands/claude/oracle.md (160 lines, limit 150) by domain \u2014 NOT by line count. Domain boundary: the startup dispatch (Steps 1\u20132b) stays in oracle.md; Step 2c (Prioritization Spar, ~18 lines) extracts to commands/claude/oracle/prioritization.md, mirroring the existing phase-file pattern (market.md, checklist.md, generation.md, wrapup.md). oracle.md replaces the Step 2c block with: 'Lazy load: Read commands/claude/oracle/prioritization.md now.' No content changes \u2014 pure extraction.",
       "owns": [
         "commands/claude/oracle.md"
       ],
@@ -733,13 +733,7 @@
     },
     {
       "task_id": "T-170",
-      "title": "Orchestrate startup cache \u2014 pre-compute current_round + slim pending into .agentflow/orchestrate_cache.json",
-      "description": "Write agentflow/shell/orchestrate_cache.py that generates .agentflow/orchestrate_cache.json from tasks.json + execution_plan.md + rate_calibration. Cache contains: current_round name, pending tasks for that round (id+title+deps only), all_pending count, unresolved_design_decisions count, ewma_mean_tokens, ewma_cv, sample_count. Regenerate only when source file mtimes change. Update startup.md to read cache file first (mtime check), falling back to full startup if stale. Saves 4 bash commands + 1 IDX read from orchestrator context on every startup.",
-      "status": "complete",
-      "depends_on": [
-        "T-169"
-      ],
-      "estimated_lines": 90
+      "status": "complete"
     },
     {
       "task_id": "T-171",
@@ -764,7 +758,7 @@
     {
       "task_id": "T-175",
       "title": "Split agentflow/shell/session_manager.py \u2014 size violation",
-      "description": "Split agentflow/shell/session_manager.py to resolve size violation of 252 lines (limit: 250). Violation timestamp: 2026-07-04T17:44:33.317580.",
+      "description": "Split agentflow/shell/session_manager.py (252 lines, limit 250) by domain \u2014 NOT by line count. Two domains: (1) state machine coordination: poll(), on_idle_tick(), on_enter_*(), trigger_handoff(), _check_drain_restart(), _apply_session_threshold(), _sync_session_type() \u2014 stays in session_manager.py; (2) child process I/O: _spawn_new_child(), restart_child(), _handle_output(), _ansi_strip(), _detect_read_path(), _record_task_tokens(), _on_session_exit() \u2014 extract to session_io.py. session_manager.py imports from session_io. No logic changes \u2014 pure extraction.",
       "owns": [
         "agentflow/shell/session_manager.py"
       ],
@@ -809,6 +803,19 @@
     },
     {
       "task_id": "T-185",
+      "status": "pending"
+    },
+    {
+      "task_id": "T-186",
+      "title": "Unit tests for _split_description() \u2014 all three file-type branches",
+      "description": "Add unit tests for _split_description() in tests/test_cleanup_tasks.py. Cover all three branches: (1) commands/ file \u2192 phase/section guidance + lazy-load pattern + \u2264150 limit; (2) tests/ file \u2192 test class/fixture guidance + \u2264350 limit; (3) plain .py file \u2192 domain responsibility guidance + \u2264250 limit. Each test asserts: base string contains filename, line count, timestamp; guidance text uses 'split boundary by' (not 'NOT by line count'); limit appears as post-split constraint.",
+      "owns": [
+        "tests/test_cleanup_tasks.py"
+      ],
+      "reads": [
+        "agentflow/tools/cleanup_tasks.py"
+      ],
+      "depends_on": [],
       "status": "pending"
     }
   ]

@@ -105,7 +105,8 @@ def test_auto_file_size_violations(tmp_path):
     assert new_task is not None
     assert new_task["title"] == "Split path/to/oversized1.py — size violation"
     assert "2026-07-06T12:00:00.000000" in new_task["description"]
-    assert "limit: 250" in new_task["description"]
+    assert "limit 250" in new_task["description"]
+    assert "split boundary by domain" in new_task["description"]
     assert new_task["owns"] == ["path/to/oversized1.py"]
     assert new_task["status"] == "pending"
 

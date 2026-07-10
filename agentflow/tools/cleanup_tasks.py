@@ -1,9 +1,3 @@
-"""
-Enforce tasks.json / tasks.archive.json invariants after merge.
-
-- tasks.json: completed tasks trimmed to {"task_id": ..., "status": "complete"}
-- tasks.archive.json: flat list of full task definitions (no nested batches)
-"""
 import json
 import subprocess
 import sys
@@ -22,7 +16,6 @@ def _write_json(path: Path, data):
 
 
 def flatten_archive(archive_path: Path) -> list:
-    """Return flat list of task dicts from potentially nested-batch archive."""
     raw = _load_json(archive_path)
     flat = []
     for item in raw:
@@ -34,9 +27,6 @@ def flatten_archive(archive_path: Path) -> list:
 
 
 def _detect_merged_prs(project_root: Path, tasks_data: dict) -> bool:
-    """Check GitHub for merged PRs and mark matching tasks complete.
-    Returns True if any tasks were marked complete. Idempotent.
-    """
     task_prs_path = project_root / ".agentflow" / "task_prs.json"
     in_flight_path = project_root / ".agentflow" / "tasks_in_flight.json"
 
@@ -80,6 +70,16 @@ def _detect_merged_prs(project_root: Path, tasks_data: dict) -> bool:
             continue  # skip this task, continue with others
 
     return marked_any
+
+
+def _split_description(filename: str, current_lines: int, limit: int, ts: str) -> str:
+    parts = filename.replace("\\", "/").split("/")
+    base = f"Split {filename} ({current_lines} lines, limit {limit}). Violation timestamp: {ts}."
+    if "commands" in parts:
+        return base + " Choose the split boundary by phase/section responsibility, not line count. Extract a cohesive section into a sub-file; replace with 'Lazy load: Read <subfile>.md now.' Verify each output file is ≤ 150 lines after splitting."
+    if "tests" in parts:
+        return base + " Choose the split boundary by test class or fixture group, not line count. Verify each output file is ≤ 350 lines after splitting."
+    return base + " Read the file first, identify distinct responsibilities, then choose the split boundary by domain. Verify each output file is ≤ 250 lines after splitting."
 
 
 def auto_file_size_violations(project_root: Path) -> None:
@@ -159,7 +159,7 @@ def auto_file_size_violations(project_root: Path) -> None:
         new_task = {
             "task_id": new_task_id,
             "title": f"Split {filename} — size violation",
-            "description": f"Split {filename} to resolve size violation of {current_lines} lines (limit: {limit}). Violation timestamp: {ts}.",
+            "description": _split_description(filename, current_lines, limit, ts),
             "owns": [filename],
             "reads": [],
             "depends_on": [],
