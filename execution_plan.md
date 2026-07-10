@@ -415,12 +415,12 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | D3-durability — MERGED | T-157 (MERGED) | CLAUDE.md post-merge checklist — prevents skill/config losses on branch diverge |
 | D3-oracle — MERGED | T-153 (MERGED) ‖ T-154 (MERGED) | Oracle threshold config + incremental design_status flush |
 | D3b (MERGED) | T-122 ‖ T-120 ‖ T-112 ‖ T-147 ‖ T-160a ‖ T-163 (parallel) | Regression tests + installer + Nuitka binary + cache breakpoint + verbosity boundary fix + auto-capture /usage |
-| D3c | T-183 ‖ T-185 (parallel) | Orchestrator HANDOFF RECOMMENDED bypass + session state per-sid — unblocks auto-orchestrate loop + fixes session poisoning |
-| D3b-2 | T-184 (depends T-183) ‖ T-160 (depends T-160a) ‖ T-164 (depends T-163) (parallel) | /usage context % accuracy + verbosity A/B metrics + calibrate_capacity() wiring + ewma_cv |
+| D3c | T-184 ‖ T-185 (parallel) | /usage context % → accurate PTY restart threshold + session state per-sid — unblocks auto-orchestrate loop + fixes session poisoning |
+| D3b-2 | T-160 (depends T-160a) ‖ T-164 (depends T-163) (parallel) | Verbosity A/B metrics + calibrate_capacity() wiring + ewma_cv |
 | E | T-103 ‖ T-099 ‖ T-068 ‖ T-063 (parallel) | Measurement chain + multi-provider |
 | F | T-098, T-064, T-069 (parallel) | Model routing savings + rate headroom + parallel scheduling |
 
-Priority rationale (2026-07-10): D3c (T-183 ‖ T-185) is the immediate unblock — T-183 bypasses the broken token threshold so orchestrator auto-restarts on HANDOFF RECOMMENDED, T-185 fixes session poisoning so session_type is correct per PTY. T-184 follows T-183. D3b-2 after that.
+Priority rationale (2026-07-10): D3c (T-184 ‖ T-185) is the immediate unblock — T-184 parses /usage output for actual context window % so PTY threshold fires correctly (replaces broken terminal-char count), T-185 fixes session poisoning so session_type is correct per PTY. T-183 cancelled — HANDOFF RECOMMENDED string detection was decided against as fragile; hook-based cleanup after PR merge is the correct restart path. D3b-2 after that.
 
 ---
 
@@ -601,7 +601,7 @@ Pre-compute round state on PTY startup to skip startup commands. See commit 9245
 
 **Status:** PENDING
 
-**Goal:** Extend `usage_capture.py` `parse_usage_output()` to extract context window fill % (e.g. `Context window: 76,000 / 200,000 tokens (38%)`). Expose as `context_pct: float | None`. In `output_handler.py` stall-recovery path, use `context_pct >= 0.7` as threshold guard when available, falling back to terminal output token count when None. Add tests for parser extension and fallback logic. Depends on T-183.
+**Goal:** Extend `usage_capture.py` `parse_usage_output()` to extract context window fill % (e.g. `Context window: 76,000 / 200,000 tokens (38%)`). Expose as `context_pct: float | None`. In `output_handler.py` threshold check, use `context_pct >= 0.7` as the primary guard when available, falling back to terminal output token count when None. Add tests for parser extension and fallback logic. Independent — T-183 cancelled.
 
 **Files:** `agentflow/shell/usage_capture.py`, `agentflow/shell/session_manager.py`, `agentflow/shell/output_handler.py`, `tests/shell/test_usage_capture.py`
 
