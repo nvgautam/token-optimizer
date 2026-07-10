@@ -69,11 +69,6 @@ def handle_output(manager, chunk: bytes) -> None:
             manager.session_type, manager._turn_count, manager._arm = new_st, 0, manager._read_arm_file()
             manager._update_session_file()
 
-    if "/handoff" in text:
-        if not manager._manual_handoff:
-            manager._manual_handoff = True
-            manager._log_audit({"event": "manual_handoff_set"})
-
     if manager._state_machine.state == States.HANDOFF_PENDING and "HANDOFF_COMPLETE" in clean:
         try:
             manager._handoff_complete_path.parent.mkdir(parents=True, exist_ok=True)

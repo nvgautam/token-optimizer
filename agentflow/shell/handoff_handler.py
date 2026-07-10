@@ -43,11 +43,14 @@ def handle_enter_handoff_pending(manager) -> None:
 def trigger_handoff(manager, trigger: str = "auto") -> None:
     manager._current_trigger = trigger
     if getattr(manager._pty, "_exited", False):
-        manager._log_audit({"event": "handoff_aborted", "trigger": trigger, "tokens": manager._last_accumulated_tokens})
+        manager._log_audit({"event": "handoff_aborted", "trigger": trigger, "tokens": manager._last_accumulated_tokens, "session_type": manager.session_type})
         manager._state_machine.transition("pty_eof")
         return
 
-    manager._log_audit({"event": "trigger_handoff", "trigger": trigger})
+    if not manager._manual_handoff:
+        manager._manual_handoff = True
+        manager._log_audit({"event": "manual_handoff_set", "source": "trigger_handoff"})
+    manager._log_audit({"event": "trigger_handoff", "trigger": trigger, "session_type": manager.session_type, "tokens": manager._last_accumulated_tokens, "state": manager._state_machine.state.value})
     try:
         manager._state_machine.transition("trigger_handoff")
     except OSError:

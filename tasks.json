@@ -5,6 +5,20 @@
   "description": "Provider-agnostic multi-agent project management: skills for Claude and Gemini + PTY overlay shell",
   "tasks": [
     {
+      "task_id": "T-182",
+      "title": "Fix PTY handoff false-positive detection + RESTARTING/DEAD_CHILD race",
+      "description": "Three bugs fixed: (1) output_handler.py:72 fired on any output text containing '/handoff' (echoes, skill file rendering) — removed; _manual_handoff now set inside trigger_handoff() directly. (2) _on_session_exit transitioning to DEAD_CHILD while restart_child was still running caused orchestrate sessions to stop instead of restart — guarded with RESTARTING state check. (3) state_machine handles restart_done in DEAD_CHILD -> IDLE as fallback for the race. Added audit logging: trigger_handoff events include session_type/tokens/state; restart_done logged before transition; restart_prompt_injected/failed in on_enter_idle; session_exit_ignored when RESTARTING. Updated test_session_manager_handoff.py: test_primary_triggers uses oracle (not orchestrator); added test_orchestrator_never_triggers_auto_primary.",
+      "owns": [
+        "agentflow/shell/output_handler.py",
+        "agentflow/shell/handoff_handler.py",
+        "agentflow/shell/process_manager.py",
+        "agentflow/shell/session_manager.py",
+        "agentflow/shell/state_machine.py",
+        "tests/shell/test_session_manager_handoff.py"
+      ],
+      "status": "complete"
+    },
+    {
       "task_id": "T-042",
       "status": "complete"
     },
@@ -725,11 +739,7 @@
     },
     {
       "task_id": "T-169",
-      "title": "Orchestrate startup: strip task descriptions from pending listing",
-      "description": "Update startup.md Step 4 bash command to output only task_id, title, depends_on (not description) when listing pending tasks. Saves ~11K chars per startup. Full descriptions are only needed at agent-spawn time (worker reads task from tasks.json directly). One-line change to the python3 -c snippet in startup.md.",
-      "status": "pending",
-      "depends_on": [],
-      "estimated_lines": 5
+      "status": "complete"
     },
     {
       "task_id": "T-170",
@@ -747,23 +757,11 @@
     },
     {
       "task_id": "T-172",
-      "title": "Headroom A/B arm \u2014 headroom on/off in verbosity framework; shadow analyzer uses output_tokens delta as metric",
-      "description": "Extend the verbosity A/B arm system to include a headroom on/off dimension. Proxy reads arm from .agentflow/verbosity_ab_arm.txt; for headroom-off arm, skips compress() call. Shadow analyzer reads proxy_log.jsonl output_tokens (T-{n} prerequisite) and computes mean output_tokens per arm to quantify verbosity steering + effort routing savings.",
-      "status": "pending",
-      "depends_on": [
-        "T-171"
-      ],
-      "estimated_lines": 80
+      "status": "complete"
     },
     {
       "task_id": "T-173",
-      "title": "Design partner package \u2014 install script, README, binary bundle, settings merge",
-      "description": "Create a distributable package for design partners: (1) agentflow-install.sh that runs PTY installer (T-120), merges hooks into .claude/settings.json, sets ANTHROPIC_BASE_URL; (2) partner README covering install, python -m agentflow shell --command claude, orchestrate loop, what to expect; (3) bundle Nuitka binary (T-112 output) + Python runtime modules into a single download artifact. Target: zero-dependency install for a new machine.",
-      "status": "pending",
-      "depends_on": [
-        "T-120"
-      ],
-      "estimated_lines": 100
+      "status": "complete"
     },
     {
       "task_id": "T-174",
@@ -805,16 +803,11 @@
     },
     {
       "task_id": "T-180",
-      "title": "PR URL registry \u2014 write task_id\u2192PR URL on gh pr create; use gh pr view for merge detection",
-      "description": "Fix unreliable PR merge detection in post_tool_use_agent.py by replacing fuzzy title matching with deterministic gh pr view state checks.\n\n1. On Bash PostToolUse: detect gh pr create in command; extract PR URL from output (last non-empty line); derive task_id from branch name (pattern task/T-XXX-*) or from tasks_in_flight.json single entry; write/merge {task_id: pr_url} into .agentflow/task_prs.json.\n\n2. On merge detection: load task_prs.json; for each in-flight task with a known PR URL run gh pr view <url> --json state (timeout 5s); treat state==MERGED as confirmed. Fall back to existing title-match heuristic only for tasks with no registered URL.\n\ntests/hooks/test_post_tool_use_agent_pr_registry.py: test URL write on gh pr create output; test gh pr view detection returns MERGED; test fallback path when task_prs.json absent.",
-      "owns": [
-        "agentflow/hooks/post_tool_use_agent.py",
-        "tests/hooks/test_post_tool_use_agent_pr_registry.py"
-      ],
-      "depends_on": [],
-      "estimated_lines": 70,
-      "status": "complete",
-      "milestone": "M-DP"
+      "status": "complete"
+    },
+    {
+      "task_id": "T-181",
+      "status": "complete"
     }
   ]
 }

@@ -70,6 +70,11 @@ class StateMachine:
             if event == "restart_done":
                 return States.IDLE
 
+        elif state == States.DEAD_CHILD:
+            # Fallback: restart_child completed despite the PTY-EOF race winning first.
+            if event == "restart_done":
+                return States.IDLE
+
         return state
 
     def guard_tokens_threshold(self, tokens: int) -> bool:

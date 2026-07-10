@@ -53,6 +53,7 @@ def restart_child(manager) -> None:
     manager._last_accumulated_tokens = 0
     if hasattr(manager._tokenizer, "reset"):
         manager._tokenizer.reset()
+    manager._log_audit({"event": "restart_done", "state_before": manager._state_machine.state.value})
     manager._state_machine.transition("restart_done")
 
 def spawn_new_child(manager) -> None:

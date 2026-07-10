@@ -56,17 +56,28 @@ def test_safety_and_ceiling_triggers_removed():
         mock_hf.assert_not_called()
 
 def test_primary_triggers():
+    # Oracle sessions trigger auto-handoff when tokens >= primary and task just completed
+    tok = FakeTokenizer(fixed_return=85_000)
+    sm, pty, _ = make_manager(config={"handoff_primary_tokens": 80_000}, tokenizer=tok)
+    sm.session_type = "oracle"
+    with patch.object(sm, "trigger_handoff") as mock_hf:
+        fire_output(sm, pty, "AGENTFLOW_TASK_COMPLETE:T-001")
+        mock_hf.assert_called_once()
+
+def test_orchestrator_never_triggers_auto_primary():
+    # Orchestrator sessions are excluded from auto-primary handoff (they manage
+    # their own context lifecycle via handoff_complete.json).
     tok = FakeTokenizer(fixed_return=85_000)
     sm, pty, _ = make_manager(config={"handoff_primary_tokens": 80_000}, tokenizer=tok)
     sm.session_type = "orchestrator"
     with patch.object(sm, "trigger_handoff") as mock_hf:
         fire_output(sm, pty, "AGENTFLOW_TASK_COMPLETE:T-001")
-        mock_hf.assert_called_once()
+        mock_hf.assert_not_called()
 
 def test_primary_suppressed_cases():
     tok = FakeTokenizer(fixed_return=85_000)
     sm, pty, _ = make_manager(config={"handoff_primary_tokens": 80_000}, tokenizer=tok)
-    sm.session_type = "orchestrator"
+    sm.session_type = "oracle"
     # Task in-flight suppresses even when task_just_completed signal present
     sm._task_start_tokens["T-002"] = 40_000
     with patch.object(sm, "trigger_handoff") as mock_hf:
@@ -92,8 +103,7 @@ def test_pty_audit_logging(tmp_path):
         sm._project_root = tmp_path
         sm._task_complete_path = tmp_path / ".agentflow" / "task_complete.json"
         sm._handoff_complete_path = tmp_path / ".agentflow" / "handoff_complete.json"
-        for cmd in ["/oracle\r\n", "/handoff\r\n", "/clear\n"]:
-            fire_output(sm, pty, cmd)
+        fire_output(sm, pty, "/oracle\r\n")
         # Set above primary threshold and send task_complete signal
         tok._fixed, sm.session_type = 85_000, "oracle"
         with patch.object(sm, "trigger_handoff") as mock_hf:
@@ -102,7 +112,10 @@ def test_pty_audit_logging(tmp_path):
         with patch("agentflow.shell.session_manager.countdown") as mock_cd:
             mock_cd.side_effect = lambda s, on_complete, **kw: on_complete()
             sm._force_async_handoff = True
+            # trigger_handoff now sets _manual_handoff=True (manual_handoff_set event);
+            # the subsequent /clear output then emits manual_handoff_reset.
             sm.trigger_handoff(trigger="manual")
+            fire_output(sm, pty, "/clear\n")
             (tmp_path / ".agentflow" / "handoff_complete.json").write_text("{}", encoding="utf-8")
             sm.poll()
             sm.trigger_handoff(trigger="auto")

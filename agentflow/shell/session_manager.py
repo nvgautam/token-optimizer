@@ -202,8 +202,11 @@ class SessionManager:
             self._just_restarted = False
             cmd = "oracle" if self.session_type == "oracle" else "orchestrate" if self.session_type == "orchestrator" else None
             if cmd:
-                try: self._pty.write_input(f"/{cmd}\r")
-                except OSError: pass
+                try:
+                    self._pty.write_input(f"/{cmd}\r")
+                    self._log_audit({"event": "restart_prompt_injected", "cmd": cmd})
+                except OSError as exc:
+                    self._log_audit({"event": "restart_prompt_failed", "cmd": cmd, "error": str(exc)})
 
     def on_enter_dead_child(self) -> None:
         self._log_audit({"event": "dead_child_detected"})
@@ -242,6 +245,12 @@ class SessionManager:
         if (self._state_machine.state == States.HANDOFF_PENDING
                 and self._handoff_complete_path.exists()):
             self._state_machine.transition("handoff_complete_written")
+            return
+        # Child exit was expected — restart_child killed it intentionally.
+        # Transitioning to DEAD_CHILD here races with restart_done in the same
+        # call chain; let restart_child complete the RESTARTING → IDLE arc.
+        if self._state_machine.state == States.RESTARTING:
+            self._log_audit({"event": "session_exit_ignored", "reason": "restarting", "exit_code": exit_code, "pid": pid})
             return
         try:
             self._state_machine.transition("pty_eof")
