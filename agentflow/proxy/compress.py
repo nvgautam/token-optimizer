@@ -3,10 +3,12 @@
 Mutates the outgoing payload BEFORE forwarding to Anthropic:
 - headroom compression (removes redundant context)
 - cache_control breakpoint injection (when headroom is absent)
+- arm-based compression control (A/B testing: on/off)
 """
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
 try:
@@ -17,8 +19,24 @@ except ImportError:
     _HEADROOM_AVAILABLE = False
 
 from agentflow.proxy.hooks import AgentFlowHooks
+from agentflow.shadow.headroom_ab import record_compression
 
 _HOOKS = AgentFlowHooks()
+
+
+def _read_headroom_arm(project_root: Path | str) -> str:
+    """Read the headroom A/B arm from .agentflow/verbosity_ab_arm.txt.
+
+    Returns "on" or "off". Defaults to "on" if file is absent or unreadable.
+    """
+    arm_file = Path(project_root) / ".agentflow" / "verbosity_ab_arm.txt"
+    try:
+        arm = arm_file.read_text().strip()
+        if arm in ("on", "off"):
+            return arm
+    except (OSError, IOError):
+        pass
+    return "on"
 
 
 def _compress_payload(
@@ -27,8 +45,17 @@ def _compress_payload(
     model: str,
     compress_fn: Any = None,
     headroom_available: bool | None = None,
+    arm: str | None = None,
+    project_root: Path | str | None = None,
 ) -> tuple[int, int, float]:
     """Compress messages in-place and inject cache breakpoints if needed.
+
+    When arm="off", compression is skipped (headroom disabled for A/B testing).
+    When arm is None and project_root is provided, reads arm state from
+    .agentflow/verbosity_ab_arm.txt via _read_headroom_arm() so the A/B
+    mechanism activates for callers that pass project_root explicitly.
+    When project_root=None (server.py live path that doesn't pass project_root),
+    arm defaults to "on" for backwards compatibility.
 
     compress_fn and headroom_available allow the caller (server.py) to pass
     its own module-level references so unit-test patches on server.py take effect.
@@ -37,9 +64,20 @@ def _compress_payload(
         headroom_available = _HEADROOM_AVAILABLE
     if compress_fn is None:
         compress_fn = compress
+    # When project_root is explicitly provided, auto-detect arm from arm file.
+    # When project_root=None (server.py live path), default arm to "on" to
+    # preserve backwards compatibility until server.py passes project_root.
+    if project_root is not None:
+        root = Path(project_root)
+        if arm is None:
+            arm = _read_headroom_arm(root)
+    else:
+        root = Path.cwd()
+        if arm is None:
+            arm = "on"
     tb = ta = 0
     cr = 0.0
-    if headroom_available and compress_fn and msgs:
+    if arm == "on" and headroom_available and compress_fn and msgs:
         try:
             r = compress_fn(msgs, model=model, hooks=_HOOKS, compress_user_messages=False)
             tb, ta, cr = r.tokens_before, r.tokens_after, r.compression_ratio
@@ -48,6 +86,10 @@ def _compress_payload(
             pass
     if p.get("messages") and not headroom_available:
         p["messages"] = _inject_cache_breakpoints(p["messages"], _count_cache_blocks(p))
+    try:
+        record_compression(root, arm, tb, ta)
+    except Exception:
+        pass  # never fail the hot path on logging errors
     return tb, ta, cr
 
 
