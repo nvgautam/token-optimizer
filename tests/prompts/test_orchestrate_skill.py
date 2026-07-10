@@ -180,12 +180,22 @@ def test_orchestrate_skills_contain_cleanup_tasks_merge():
 
 def test_orchestrate_pass2_cross_tier_routing():
     """T-114: Route Pass 2 reviewer to the opposite tier from the implementer."""
-    content = CLAUDE_ORCHESTRATE.read_text(encoding="utf-8")
-    assert "Pass 2" in content
-    # Assert cross-tier reviewer routing rule is present
-    assert "opposite tier" in content.lower() or "cross-tier" in content.lower()
-    assert "haiku-implemented" in content.lower()
-    assert "sonnet-implemented" in content.lower()
+    for f in SKILL_FILES:
+        if f == AGY_ORCHESTRATE:
+            continue
+        content = f.read_text(encoding="utf-8")
+        assert "Pass 2" in content
+        # Assert cross-tier reviewer routing rule is present
+        assert "opposite tier" in content.lower() or "cross-tier" in content.lower()
+        assert "haiku-implemented" in content.lower()
+        assert "sonnet-implemented" in content.lower()
+
+
+def test_orchestrate_skills_contain_pty_signal():
+    """Verify that both Claude and Gemini skills call pty_signal.py for task status updates."""
+    for f in [CLAUDE_ORCHESTRATE, GEMINI_ORCHESTRATE]:
+        content = f.read_text(encoding="utf-8")
+        assert "pty_signal.py" in content, f"{f.name} must call pty_signal.py"
 
 
 def test_orchestrate_file_size():
