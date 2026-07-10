@@ -231,3 +231,49 @@ def test_orchestrate_extracted_files_exist():
         file_path = orchestrator_dir / file_name
         content = file_path.read_text(encoding="utf-8")
         assert len(content.strip()) > 0, f"Extracted file {file_path} is empty"
+
+
+# T-069: Parallel scheduling via task_estimator + disjoint owns check
+
+def test_claude_orchestrate_references_task_estimator():
+    """orchestrate.md must reference agentflow.shadow.task_estimator"""
+    content = CLAUDE_ORCHESTRATE.read_text(encoding="utf-8")
+    assert "task_estimator" in content, "Claude orchestrate skill must reference task_estimator"
+
+
+def test_gemini_orchestrate_references_task_estimator():
+    """SKILL.md must reference task_estimator"""
+    content = GEMINI_ORCHESTRATE.read_text(encoding="utf-8")
+    assert "task_estimator" in content, "Gemini orchestrate skill must reference task_estimator"
+
+
+def test_claude_orchestrate_has_disjoint_owns_check():
+    """orchestrate.md must contain disjoint owns check instruction"""
+    content = CLAUDE_ORCHESTRATE.read_text(encoding="utf-8")
+    assert "owns" in content.lower() and (
+        "conflict" in content.lower()
+        or "disjoint" in content.lower()
+        or "overlap" in content.lower()
+    ), "Claude orchestrate skill must have disjoint owns check"
+
+
+def test_gemini_orchestrate_has_disjoint_owns_check():
+    """SKILL.md must contain disjoint owns check instruction"""
+    content = GEMINI_ORCHESTRATE.read_text(encoding="utf-8")
+    assert "owns" in content.lower() and (
+        "conflict" in content.lower()
+        or "disjoint" in content.lower()
+        or "overlap" in content.lower()
+    ), "Gemini orchestrate skill must have disjoint owns check"
+
+
+def test_claude_orchestrate_size_limit():
+    """orchestrate.md must not exceed 250 lines"""
+    lines = CLAUDE_ORCHESTRATE.read_text(encoding="utf-8").splitlines()
+    assert len(lines) <= 250, f"Claude orchestrate.md is {len(lines)} lines (limit 250)"
+
+
+def test_gemini_orchestrate_size_limit():
+    """SKILL.md must not exceed 250 lines"""
+    lines = GEMINI_ORCHESTRATE.read_text(encoding="utf-8").splitlines()
+    assert len(lines) <= 250, f"Gemini SKILL.md is {len(lines)} lines (limit 250)"
