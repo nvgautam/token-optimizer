@@ -56,14 +56,9 @@ def handle_output(manager, chunk: bytes) -> None:
     
     manager.poll()
 
-    detected_path = detect_read_path(clean)
-    if detected_path and detected_path.startswith("/"):
-        cwd = os.getcwd() + "/"
-        detected_path = detected_path[len(cwd):] if detected_path.startswith(cwd) else None
-    if detected_path and detected_path != manager._last_idx_injected:
-        manager._last_idx_injected = detected_path
-
-    if "/clear" in text:
+    # Check for clear_signal file (written by UserPromptSubmit hook when /clear is in prompt)
+    clear_signal_path = manager._project_root / ".agentflow" / "clear_signal"
+    if clear_signal_path.exists():
         manager._log_audit({"event": "clear_detected"})
         if manager.session_type is not None:
             manager._log_audit({"event": "session_type_transition", "old": manager.session_type, "new": None})
@@ -74,6 +69,17 @@ def handle_output(manager, chunk: bytes) -> None:
         if hasattr(manager._tokenizer, "reset"):
             manager._tokenizer.reset()
         manager._update_session_file()
+        try:
+            clear_signal_path.unlink()
+        except Exception:
+            pass
+
+    detected_path = detect_read_path(clean)
+    if detected_path and detected_path.startswith("/"):
+        cwd = os.getcwd() + "/"
+        detected_path = detected_path[len(cwd):] if detected_path.startswith(cwd) else None
+    if detected_path and detected_path != manager._last_idx_injected:
+        manager._last_idx_injected = detected_path
 
     if manager.session_type is None:
         new_st = "oracle" if "/oracle" in text else "orchestrator" if "/orchestrate" in text else None

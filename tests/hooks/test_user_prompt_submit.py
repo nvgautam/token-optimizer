@@ -242,3 +242,33 @@ def test_oracle_writes_sid_keyed_session_state(monkeypatch, tmp_path):
     assert sid_keyed_file.exists()
     data = json.loads(sid_keyed_file.read_text("utf-8"))
     assert data == {"session_type": "oracle"}
+
+
+def test_clear_creates_clear_signal(monkeypatch, tmp_path):
+    """Submitting /clear writes .agentflow/clear_signal and NOT reset_accumulator."""
+    agentflow_dir = _run_with_stdin("/clear", monkeypatch, tmp_path)
+
+    # Should write clear_signal file
+    assert (agentflow_dir / "clear_signal").exists()
+
+    # Should NOT write reset_accumulator (that's only for /orchestrate and /handoff)
+    assert not (agentflow_dir / "reset_accumulator").exists()
+
+
+def test_clear_does_not_write_session_state(monkeypatch, tmp_path):
+    """Submitting /clear does not write session_state.json."""
+    agentflow_dir = _run_with_stdin("/clear", monkeypatch, tmp_path)
+
+    # Should not write session_state.json (that's only for /orchestrate and /oracle)
+    assert not (agentflow_dir / "session_state.json").exists()
+
+    # But should write clear_signal
+    assert (agentflow_dir / "clear_signal").exists()
+
+
+def test_clear_text_in_message_does_not_write_signal(monkeypatch, tmp_path):
+    """A prompt that mentions '/clear' in prose does NOT write clear_signal."""
+    agentflow_dir = _run_with_stdin("how does /clear work?", monkeypatch, tmp_path)
+
+    # Substring match must not fire — clear_signal must not be created
+    assert not (agentflow_dir / "clear_signal").exists()
