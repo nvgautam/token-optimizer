@@ -31,7 +31,7 @@ Execute the `commands/claude/orchestrator/startup.md` steps in order. Check desi
 1. `commands/claude/worker/system.md`
 2. `commands/claude/worker/context_bundle.md`
 3. `commands/claude/worker/testing_guide.md`
-4. Full task definitions for this group
+4. Full task definitions for this group — for each task_id, grep `^## Addendum: <task_id>` in `~/.agentflow/cache/<HASH>/index/execution_plan.md.idx` → `name:start-end` → `Read(execution_plan.md, offset=start, limit=end-start+1)`. If idx absent, grep `^## Addendum: <task_id>` in execution_plan.md directly and read that section.
 5. Milestone architecture anchor section
 6. For each `reads` file:
 
