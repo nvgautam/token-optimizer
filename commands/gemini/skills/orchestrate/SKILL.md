@@ -132,6 +132,8 @@ effective_rate = min(rate_5hr, rate_wkly)
 
 Close every prompt: `"End your final message with TOKENS: input=N output=N — nothing after that line."`
 
+**Per-round scheduling:** Per task, estimate cost via `agentflow.shadow.task_estimator.estimate(estimated_lines, file_count)` (fallback 2500). Cap: `floor(threshold/pct_cost)`. Disjoint owns: if tasks share an `owns` path — OWNS CONFLICT, move overlap to next sub-round.
+
 Spawn one agent per group, `isolation: "worktree"`. Parallel only if no cross-dependencies and rate supports. Save `.agentflow/state.json` after each.
 
 ### Round Lifecycle & PTY Signals
