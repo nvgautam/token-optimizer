@@ -19,6 +19,7 @@ except ImportError:
     _HEADROOM_AVAILABLE = False
 
 from agentflow.proxy.hooks import AgentFlowHooks
+from agentflow.shadow.headroom_ab import record_compression
 
 _HOOKS = AgentFlowHooks()
 
@@ -45,11 +46,16 @@ def _compress_payload(
     compress_fn: Any = None,
     headroom_available: bool | None = None,
     arm: str | None = None,
+    project_root: Path | str | None = None,
 ) -> tuple[int, int, float]:
     """Compress messages in-place and inject cache breakpoints if needed.
 
     When arm="off", compression is skipped (headroom disabled for A/B testing).
-    When arm="on" or None, compression runs normally if headroom_available.
+    When arm is None and project_root is provided, reads arm state from
+    .agentflow/verbosity_ab_arm.txt via _read_headroom_arm() so the A/B
+    mechanism activates for callers that pass project_root explicitly.
+    When project_root=None (server.py live path that doesn't pass project_root),
+    arm defaults to "on" for backwards compatibility.
 
     compress_fn and headroom_available allow the caller (server.py) to pass
     its own module-level references so unit-test patches on server.py take effect.
@@ -58,8 +64,17 @@ def _compress_payload(
         headroom_available = _HEADROOM_AVAILABLE
     if compress_fn is None:
         compress_fn = compress
-    if arm is None:
-        arm = "on"
+    # When project_root is explicitly provided, auto-detect arm from arm file.
+    # When project_root=None (server.py live path), default arm to "on" to
+    # preserve backwards compatibility until server.py passes project_root.
+    if project_root is not None:
+        root = Path(project_root)
+        if arm is None:
+            arm = _read_headroom_arm(root)
+    else:
+        root = Path.cwd()
+        if arm is None:
+            arm = "on"
     tb = ta = 0
     cr = 0.0
     if arm == "on" and headroom_available and compress_fn and msgs:
@@ -71,6 +86,10 @@ def _compress_payload(
             pass
     if p.get("messages") and not headroom_available:
         p["messages"] = _inject_cache_breakpoints(p["messages"], _count_cache_blocks(p))
+    try:
+        record_compression(root, arm, tb, ta)
+    except Exception:
+        pass  # never fail the hot path on logging errors
     return tb, ta, cr
 
 
