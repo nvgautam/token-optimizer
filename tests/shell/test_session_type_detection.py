@@ -132,7 +132,10 @@ def test_oracle_threshold_uses_config_override(tmp_path):
 
 
 def test_signal_file_not_read_when_session_type_already_set(tmp_path):
-    """If session_type is already set (e.g., by output_handler), signal file is not re-read."""
+    """T-189: sync_session_type re-reads signal file even when session_type is already set.
+
+    This fixes the bug where a stale session_type value causes wrong-command injection.
+    """
     _write_signal_file(tmp_path, "orchestrator")
     with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
         sm, _, _ = make_manager()
@@ -140,10 +143,10 @@ def test_signal_file_not_read_when_session_type_already_set(tmp_path):
     assert sm.session_type == "orchestrator"
     # Now overwrite signal file with different value
     _write_signal_file(tmp_path, "oracle")
-    # _sync_session_type should not override since session_type is already set
+    # T-189: _sync_session_type now re-reads even when session_type is already set
     sm._sync_session_type()
-    assert sm.session_type == "orchestrator"
-    assert sm._state_machine.threshold_tokens == 80000
+    assert sm.session_type == "oracle"  # Should update to new value
+    assert sm._state_machine.threshold_tokens == 50000  # Threshold should update to oracle's threshold
 
 
 def test_sync_session_type_reads_session_state_json(tmp_path):
