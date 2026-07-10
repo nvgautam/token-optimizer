@@ -31,6 +31,25 @@
             "command": "python3 \"$CLAUDE_PROJECT_DIR/agentflow/hooks/read_check.py\""
           }
         ]
+      },
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "AGENTFLOW_HOOK_EVENT=PreToolUse python3 \"$CLAUDE_PROJECT_DIR/agentflow/hooks/payload_inspector.py\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "AGENTFLOW_HOOK_EVENT=Stop python3 \"$CLAUDE_PROJECT_DIR/agentflow/hooks/payload_inspector.py\""
+          }
+        ]
       }
     ],
     "PostToolUse": [

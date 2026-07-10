@@ -415,12 +415,12 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | D3-durability — MERGED | T-157 (MERGED) | CLAUDE.md post-merge checklist — prevents skill/config losses on branch diverge |
 | D3-oracle — MERGED | T-153 (MERGED) ‖ T-154 (MERGED) | Oracle threshold config + incremental design_status flush |
 | D3b (MERGED) | T-122 ‖ T-120 ‖ T-112 ‖ T-147 ‖ T-160a ‖ T-163 (parallel) | Regression tests + installer + Nuitka binary + cache breakpoint + verbosity boundary fix + auto-capture /usage |
-| D3c | T-184 ‖ T-185 (parallel) | /usage context % → accurate PTY restart threshold + session state per-sid — unblocks auto-orchestrate loop + fixes session poisoning |
+| D3c | T-184 ‖ T-185 (parallel) | Stop hook → transcript fill tokens → accurate PTY restart threshold + session state per-sid — unblocks auto-orchestrate loop + fixes session poisoning |
 | D3b-2 | T-160 (depends T-160a) ‖ T-164 (depends T-163) (parallel) | Verbosity A/B metrics + calibrate_capacity() wiring + ewma_cv |
 | E | T-103 ‖ T-099 ‖ T-068 ‖ T-063 (parallel) | Measurement chain + multi-provider |
 | F | T-098, T-064, T-069 (parallel) | Model routing savings + rate headroom + parallel scheduling |
 
-Priority rationale (2026-07-10): D3c (T-184 ‖ T-185) is the immediate unblock — T-184 parses /usage output for actual context window % so PTY threshold fires correctly (replaces broken terminal-char count), T-185 fixes session poisoning so session_type is correct per PTY. T-183 cancelled — HANDOFF RECOMMENDED string detection was decided against as fragile; hook-based cleanup after PR merge is the correct restart path. D3b-2 after that.
+Priority rationale (2026-07-10): D3c (T-184 ‖ T-185) is the immediate unblock — T-184 adds a Stop hook that reads transcript_path for actual fill tokens (input + cache_read + cache_creation) so PTY threshold fires correctly, T-185 fixes session poisoning so session_type is correct per PTY. T-183 cancelled — HANDOFF RECOMMENDED string detection was decided against as fragile. D3b-2 after that.
 
 ---
 
@@ -597,13 +597,13 @@ Pre-compute round state on PTY startup to skip startup commands. See commit 9245
 
 ---
 
-## Addendum: T-184 — Context window % from /usage output
+## Addendum: T-184 — Context window fill via Stop hook transcript
 
 **Status:** PENDING
 
-**Goal:** Extend `usage_capture.py` `parse_usage_output()` to extract context window fill % (e.g. `Context window: 76,000 / 200,000 tokens (38%)`). Expose as `context_pct: float | None`. In `output_handler.py` threshold check, use `context_pct >= 0.7` as the primary guard when available, falling back to terminal output token count when None. Add tests for parser extension and fallback logic. Independent — T-183 cancelled.
+**Goal:** Add a Stop hook (`agentflow/hooks/stop_context_capture.py`) that reads `transcript_path` from its payload, finds the last `assistant`-type entry, and extracts `message.usage`. Compute fill = `input_tokens + cache_read_input_tokens + cache_creation_input_tokens` (all three required — `input_tokens` alone is 1 when cache hits). Write `{"fill_tokens": <int>, "ts": <epoch>}` to `.agentflow/context_fill.json` atomically. In `output_handler.py` threshold check, read `context_fill.json` and use `fill_tokens / model_context_window >= 0.7` as primary guard when file is fresh (< 60s old), falling back to terminal output token count otherwise. Wire hook in `.claude/settings.json` Stop event. Add tests for fill computation and fallback logic. Independent — T-183 cancelled.
 
-**Files:** `agentflow/shell/usage_capture.py`, `agentflow/shell/session_manager.py`, `agentflow/shell/output_handler.py`, `tests/shell/test_usage_capture.py`
+**Files:** `agentflow/hooks/stop_context_capture.py` (new), `agentflow/shell/output_handler.py`, `.claude/settings.json`, `tests/hooks/test_stop_context_capture.py` (new)
 
 ---
 
