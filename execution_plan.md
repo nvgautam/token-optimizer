@@ -208,7 +208,7 @@ Goal: Orchestrate spawns N workers in parallel per round, bounded by per-task to
 
 | Task | Title | Depends on | Status |
 |---|---|---|---|
-| T-068 | Per-task token estimator — regression model from task_token_log.jsonl | T-067 | PENDING |
+| T-068 | Per-task token estimator — regression model from task_token_log.jsonl | T-067 | MERGED (PR #103) |
 | T-069 | Orchestrate — parallel worker scheduling using token estimator | T-068, T-065 | PENDING |
 
 | Round | Tasks | Note |
@@ -415,12 +415,17 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | D3-durability — MERGED | T-157 (MERGED) | CLAUDE.md post-merge checklist — prevents skill/config losses on branch diverge |
 | D3-oracle — MERGED | T-153 (MERGED) ‖ T-154 (MERGED) | Oracle threshold config + incremental design_status flush |
 | D3b (MERGED) | T-122 ‖ T-120 ‖ T-112 ‖ T-147 ‖ T-160a ‖ T-163 (parallel) | Regression tests + installer + Nuitka binary + cache breakpoint + verbosity boundary fix + auto-capture /usage |
-| D3c | T-184 ‖ T-185 (parallel) | Stop hook → transcript fill tokens → accurate PTY restart threshold + session state per-sid — unblocks auto-orchestrate loop + fixes session poisoning |
-| D3b-2 | T-160 (depends T-160a) ‖ T-164 (depends T-163) (parallel) | Verbosity A/B metrics + calibrate_capacity() wiring + ewma_cv |
-| E | T-103 ‖ T-099 ‖ T-068 ‖ T-063 (parallel) | Measurement chain + multi-provider |
-| F | T-098, T-064, T-069 (parallel) | Model routing savings + rate headroom + parallel scheduling |
+| D3c — MERGED | T-184 ‖ T-185 (parallel) | Stop hook → transcript fill tokens → accurate PTY restart threshold + session state per-sid — unblocks auto-orchestrate loop + fixes session poisoning |
+| D3d (P0) — MERGED | T-186 | Replace PTY /clear string match with UserPromptSubmit hook signal — eliminates false session resets |
+| D3e (P0) — MERGED | T-187 (depends T-186) | PTY restart when tasks_in_flight drains empty + context ≥ 80K — closes auto-restart gap after PR merge cleanup |
+| D3b-2 — MERGED (PR #102 2026-07-10) | T-160 (depends T-160a) ‖ T-164 (depends T-163) (parallel) | Verbosity A/B metrics + calibrate_capacity() wiring + ewma_cv |
+| P0 — MERGED (PR #104 2026-07-10) | T-188 | cleanup_tasks.py PR merge detection + tasks_in_flight drain + conditional audit log — unblocks reliable PTY restart loop |
+| Demo-1 — MERGED (PR #103 2026-07-10) | T-068 | Token estimator (regression model from task_token_log) — unblocks Demo-2 |
+| Demo-2 | T-064 ‖ T-069 (parallel) | Rate headroom check + scheduler caps task selection to session budget |
+| Demo-3 | T-098 ‖ T-103 (parallel) | Combined savings report (USD + token-class) + Haiku vs Sonnet A/B — proves token reduction |
+| Later | T-063, T-099, T-162, T-167, T-168, T-174, T-178 | Multi-provider claiming + Gemini oracle + oracle polish + headroom spike + hook audit |
 
-Priority rationale (2026-07-10): D3c (T-184 ‖ T-185) is the immediate unblock — T-184 adds a Stop hook that reads transcript_path for actual fill tokens (input + cache_read + cache_creation) so PTY threshold fires correctly, T-185 fixes session poisoning so session_type is correct per PTY. T-183 cancelled — HANDOFF RECOMMENDED string detection was decided against as fragile. D3b-2 after that.
+Priority rationale (2026-07-10): Demo goal is orchestrate seamlessly looping — picks tasks that fit in one session, processes, recycles PTY, repeats. Demo-1 closes the gap where task selection is unbounded (T-068 estimates cost, T-064 checks headroom before claiming). Demo-2 wires scheduling to respect the budget. Demo-3 adds savings proof. Cross-provider (T-063, T-099) deferred; Claude-only for demo. Old rounds E/F dissolved into Demo-1–3.
 
 ---
 

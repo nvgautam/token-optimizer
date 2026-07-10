@@ -1,32 +1,14 @@
 {
-  "session_start": "2026-07-03T15:52:00",
-  "last_updated": "2026-07-09T00:00:00",
-  "tasks_completed": [
-    "T-161",
-    "T-160a",
-    "T-112",
-    "T-122",
-    "T-163",
-    "T-147",
-    "T-160",
-    "T-165"
+  "last_round": "P0",
+  "last_merged_tasks": [
+    "T-188"
   ],
-  "prs_merged": [
-    75,
-    78,
-    79,
-    80,
-    81,
-    82,
-    83,
-    84
+  "pr": "https://github.com/nvgautam/token-optimizer/pull/104",
+  "merged_at": "2026-07-10T20:44:30Z",
+  "next_round": "Demo-2",
+  "next_tasks": [
+    "T-069"
   ],
-  "pending": [],
   "in_flight": [],
-  "next_round": "DP-2",
-  "maintenance": [
-    "T-161: PostToolUse hook auto-PR detection delivered and verified"
-  ],
-  "prs_open": [],
-  "last_merged_task": "T-160"
+  "updated_at": "2026-07-10T20:49:51.466947Z"
 }

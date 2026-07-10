@@ -1470,5 +1470,65 @@
     "estimated_lines": 50,
     "status": "complete",
     "milestone": "M-DP"
+  },
+  {
+    "task_id": "T-170",
+    "title": "Orchestrate startup cache \u2014 pre-compute current_round + slim pending into .agentflow/orchestrate_cache.json",
+    "description": "Write agentflow/shell/orchestrate_cache.py that generates .agentflow/orchestrate_cache.json from tasks.json + execution_plan.md + rate_calibration. Cache contains: current_round name, pending tasks for that round (id+title+deps only), all_pending count, unresolved_design_decisions count, ewma_mean_tokens, ewma_cv, sample_count. Regenerate only when source file mtimes change. Update startup.md to read cache file first (mtime check), falling back to full startup if stale. Saves 4 bash commands + 1 IDX read from orchestrator context on every startup.",
+    "status": "complete",
+    "depends_on": [
+      "T-169"
+    ],
+    "estimated_lines": 90
+  },
+  {
+    "task_id": "T-068",
+    "title": "Per-task token estimator \u2014 regression model from task_token_log.jsonl",
+    "description": "Build empirical estimator to replace the 2500-token constant in round-sizing. (1) New file agentflow/shadow/task_estimator.py: reads ~/.agentflow/task_token_log.jsonl. (2) Requires sample_count >= 5; else returns fallback constant 2500. (3) Fits linear regression: tokens ~ intercept + slope_lines * estimated_lines + slope_files * file_count using least squares (stdlib only \u2014 no numpy; implement normal equations directly). (4) Writes model to ~/.agentflow/task_estimator.json: {slope_lines, slope_files, intercept, r2, sample_count, updated_at}. (5) Exposes estimate(estimated_lines, file_count) -> int. (6) Tests: test_task_estimator.py \u2014 synthetic log entries; assert model written; assert fallback on low sample count; assert estimate() output reasonable.",
+    "owns": [
+      "agentflow/shadow/task_estimator.py",
+      "tests/shadow/test_task_estimator.py"
+    ],
+    "reads": [
+      "~/.agentflow/task_token_log.jsonl"
+    ],
+    "depends_on": [
+      "T-067"
+    ],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-164",
+    "title": "Wire calibrate_capacity() at handoff + add ewma_cv computation",
+    "status": "complete",
+    "milestone": "D3b",
+    "depends": [
+      "T-163"
+    ],
+    "description": "Call calibrate_capacity() automatically at each handoff using ledger start/end pct (from T-163). Add ewma_cv computation to capacity_calibrator.py: track per-session pct_per_task values, compute std/mean CV across sessions, write ewma_cv + sample_count to rate_calibration_claude.json. Oracle already reads ewma_cv for task sizing \u2014 this closes the gap. Files: agentflow/shadow/capacity_calibrator.py, agentflow/shell/session_manager.py (handoff hook)."
+  },
+  {
+    "task_id": "T-175",
+    "title": "Split agentflow/shell/session_manager.py \u2014 size violation",
+    "description": "Split agentflow/shell/session_manager.py (252 lines, limit 250) by domain \u2014 NOT by line count. Two domains: (1) state machine coordination: poll(), on_idle_tick(), on_enter_*(), trigger_handoff(), _check_drain_restart(), _apply_session_threshold(), _sync_session_type() \u2014 stays in session_manager.py; (2) child process I/O: _spawn_new_child(), restart_child(), _handle_output(), _ansi_strip(), _detect_read_path(), _record_task_tokens(), _on_session_exit() \u2014 extract to session_io.py. session_manager.py imports from session_io. No logic changes \u2014 pure extraction.",
+    "owns": [
+      "agentflow/shell/session_manager.py"
+    ],
+    "reads": [],
+    "depends_on": [],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-186",
+    "title": "Unit tests for _split_description() \u2014 all three file-type branches",
+    "description": "Add unit tests for _split_description() in tests/test_cleanup_tasks.py. Cover all three branches: (1) commands/ file \u2192 phase/section guidance + lazy-load pattern + \u2264150 limit; (2) tests/ file \u2192 test class/fixture guidance + \u2264350 limit; (3) plain .py file \u2192 domain responsibility guidance + \u2264250 limit. Each test asserts: base string contains filename, line count, timestamp; guidance text uses 'split boundary by' (not 'NOT by line count'); limit appears as post-split constraint.",
+    "owns": [
+      "tests/test_cleanup_tasks.py"
+    ],
+    "reads": [
+      "agentflow/tools/cleanup_tasks.py"
+    ],
+    "depends_on": [],
+    "status": "complete"
   }
 ]
