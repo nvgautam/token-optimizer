@@ -66,11 +66,15 @@ def _run_cleanup(root: Path) -> None:
         pass
 
 
-def _write_session_state_atomic(agentflow_dir: Path, session_type: str) -> None:
-    """Write session_state.json atomically using temp file + replace."""
+def _write_session_state_atomic(agentflow_dir: Path, session_type: str, sid: str = "") -> None:
+    """Write session_state.json atomically using temp file + replace.
+
+    If sid is non-empty, write to session_state_{sid}.json; otherwise session_state.json.
+    """
     try:
         agentflow_dir.mkdir(parents=True, exist_ok=True)
-        session_state_file = agentflow_dir / "session_state.json"
+        filename = f"session_state_{sid}.json" if sid else "session_state.json"
+        session_state_file = agentflow_dir / filename
         data = {"session_type": session_type}
         # Write to temp file in the same directory for atomic replace
         with tempfile.NamedTemporaryFile(
@@ -166,11 +170,12 @@ def main() -> None:
         agentflow_dir = Path.cwd() / ".agentflow"
 
     # Write session_state.json for /orchestrate and /oracle
+    sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
     if prompt:
         if "/orchestrate" in prompt:
-            _write_session_state_atomic(agentflow_dir, "orchestrator")
+            _write_session_state_atomic(agentflow_dir, "orchestrator", sid=sid)
         elif "/oracle" in prompt:
-            _write_session_state_atomic(agentflow_dir, "oracle")
+            _write_session_state_atomic(agentflow_dir, "oracle", sid=sid)
 
     # If the prompt contains "/orchestrate" or "/handoff":
     if prompt and ("/orchestrate" in prompt or "/handoff" in prompt):
@@ -196,12 +201,19 @@ def main() -> None:
 
     # Emit session type into every turn so skills never need to infer it.
     try:
-        ss = agentflow_dir / "session_state.json"
-        if ss.exists():
-            st = json.loads(ss.read_text())
-            session_type = st.get("session_type") or "unknown"
-        else:
-            session_type = "unknown"
+        session_type = "unknown"
+        # Try sid-keyed file first if sid is set
+        if sid:
+            ss_sid = agentflow_dir / f"session_state_{sid}.json"
+            if ss_sid.exists():
+                st = json.loads(ss_sid.read_text())
+                session_type = st.get("session_type") or "unknown"
+        # Fall back to unkeyed file
+        if session_type == "unknown":
+            ss = agentflow_dir / "session_state.json"
+            if ss.exists():
+                st = json.loads(ss.read_text())
+                session_type = st.get("session_type") or "unknown"
         print(f"<agentflow-reminder>[SESSION: {session_type}]</agentflow-reminder>")
     except Exception:
         pass

@@ -77,7 +77,8 @@ def test_empty_prompt_does_nothing(monkeypatch, tmp_path):
 
 
 def test_orchestrate_writes_session_state_json(monkeypatch, tmp_path):
-    """When /orchestrate is in prompt, write session_state.json with orchestrator type."""
+    """When /orchestrate is in prompt (without sid), write session_state.json with orchestrator type."""
+    monkeypatch.delenv("AGENTFLOW_SESSION_ID", raising=False)
     agentflow_dir = _run_with_stdin("/orchestrate", monkeypatch, tmp_path)
     session_state_file = agentflow_dir / "session_state.json"
     assert session_state_file.exists()
@@ -86,7 +87,8 @@ def test_orchestrate_writes_session_state_json(monkeypatch, tmp_path):
 
 
 def test_oracle_writes_session_state_json(monkeypatch, tmp_path):
-    """When /oracle is in prompt, write session_state.json with oracle type."""
+    """When /oracle is in prompt (without sid), write session_state.json with oracle type."""
+    monkeypatch.delenv("AGENTFLOW_SESSION_ID", raising=False)
     agentflow_dir = _run_with_stdin("/oracle", monkeypatch, tmp_path)
     session_state_file = agentflow_dir / "session_state.json"
     assert session_state_file.exists()
@@ -194,3 +196,49 @@ def test_cleanup_merged_in_flight_skips_when_no_in_flight_file(monkeypatch, tmp_
         main()
 
     assert exc.value.code == 0
+
+
+def test_orchestrate_writes_sid_keyed_session_state_when_sid_set(monkeypatch, tmp_path):
+    """When AGENTFLOW_SESSION_ID=abc123 and /orchestrate, write to session_state_abc123.json."""
+    monkeypatch.setenv("AGENTFLOW_PROJECT_ROOT", str(tmp_path))
+    monkeypatch.setenv("AGENTFLOW_SESSION_ID", "abc123")
+    agentflow_dir = _run_with_stdin("/orchestrate", monkeypatch, tmp_path)
+
+    # Should write to sid-keyed file
+    sid_keyed_file = agentflow_dir / "session_state_abc123.json"
+    assert sid_keyed_file.exists()
+    data = json.loads(sid_keyed_file.read_text("utf-8"))
+    assert data == {"session_type": "orchestrator"}
+
+    # Should NOT write to unkeyed file
+    unkeyed_file = agentflow_dir / "session_state.json"
+    assert not unkeyed_file.exists()
+
+
+def test_orchestrate_writes_unkeyed_session_state_when_no_sid(monkeypatch, tmp_path):
+    """When no AGENTFLOW_SESSION_ID and /orchestrate, write to session_state.json."""
+    monkeypatch.setenv("AGENTFLOW_PROJECT_ROOT", str(tmp_path))
+    # Explicitly unset AGENTFLOW_SESSION_ID if present
+    monkeypatch.delenv("AGENTFLOW_SESSION_ID", raising=False)
+
+    agentflow_dir = _run_with_stdin("/orchestrate", monkeypatch, tmp_path)
+
+    # Should write to unkeyed file
+    unkeyed_file = agentflow_dir / "session_state.json"
+    assert unkeyed_file.exists()
+    data = json.loads(unkeyed_file.read_text("utf-8"))
+    assert data == {"session_type": "orchestrator"}
+
+
+def test_oracle_writes_sid_keyed_session_state(monkeypatch, tmp_path):
+    """When /oracle with AGENTFLOW_SESSION_ID, write sid-keyed file with oracle type."""
+    monkeypatch.setenv("AGENTFLOW_PROJECT_ROOT", str(tmp_path))
+    monkeypatch.setenv("AGENTFLOW_SESSION_ID", "xyz789")
+
+    agentflow_dir = _run_with_stdin("/oracle", monkeypatch, tmp_path)
+
+    # Should write to sid-keyed file
+    sid_keyed_file = agentflow_dir / "session_state_xyz789.json"
+    assert sid_keyed_file.exists()
+    data = json.loads(sid_keyed_file.read_text("utf-8"))
+    assert data == {"session_type": "oracle"}
