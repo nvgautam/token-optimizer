@@ -172,6 +172,8 @@ def check_drain_restart(manager) -> None:
     import json as _json
     if manager.session_type != "orchestrator":
         return
+    if time.monotonic() - getattr(manager, "_last_restart_ts", 0.0) < 30.0:
+        return
     if manager._state_machine.state != States.IDLE:
         return
     if manager._handoff_in_progress or manager._auto_handoff_disabled():

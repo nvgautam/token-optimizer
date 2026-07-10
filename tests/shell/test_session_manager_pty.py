@@ -50,14 +50,23 @@ def test_t148_restart_injection_uses_cr(tmp_path):
 
     The just_restarted flag triggers command injection in on_enter_idle;
     that injection must use CR so the PTY line discipline submits it immediately.
+    T-189: injection now uses 1.5s delayed daemon thread.
     """
+    import time as time_module
     sm, pty, _ = make_manager()
     sm.session_type = "oracle"
     sm._just_restarted = True
 
     # Trigger the injection path directly (on_enter_idle owns the injection)
-    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
-        sm.on_enter_idle()
+    # T-189: mock sleep to speed up test
+    with patch("time.sleep"):
+        with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+            sm.on_enter_idle()
+
+    # Wait for daemon thread to execute
+    deadline = time_module.monotonic() + 1.0
+    while not any("/oracle" in s for s in pty.inputs) and time_module.monotonic() < deadline:
+        time_module.sleep(0.01)
 
     oracle_inputs = [s for s in pty.inputs if "/oracle" in s]
     assert oracle_inputs, "No /oracle command was injected after restart"
@@ -67,13 +76,23 @@ def test_t148_restart_injection_uses_cr(tmp_path):
 
 
 def test_t148_restart_injection_orchestrate_uses_cr(tmp_path):
-    """T-148: orchestrator session injects /orchestrate\\r (CR) after restart."""
+    """T-148: orchestrator session injects /orchestrate\\r (CR) after restart.
+    T-189: injection now uses 1.5s delayed daemon thread.
+    """
+    import time as time_module
     sm, pty, _ = make_manager()
     sm.session_type = "orchestrator"
     sm._just_restarted = True
 
-    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
-        sm.on_enter_idle()
+    # T-189: mock sleep to speed up test
+    with patch("time.sleep"):
+        with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+            sm.on_enter_idle()
+
+    # Wait for daemon thread to execute
+    deadline = time_module.monotonic() + 1.0
+    while not any("/orchestrate" in s for s in pty.inputs) and time_module.monotonic() < deadline:
+        time_module.sleep(0.01)
 
     orchestrate_inputs = [s for s in pty.inputs if "/orchestrate" in s]
     assert orchestrate_inputs, "No /orchestrate command was injected after restart"

@@ -6,6 +6,7 @@ from __future__ import annotations
 import hashlib
 import os
 import pathlib
+import threading
 import time
 from typing import Optional
 
@@ -145,6 +146,10 @@ class SessionManager:
             try:
                 if path.exists(): path.unlink()
             except Exception: pass
+        cf = self._project_root / ".agentflow" / "context_fill.json"
+        try:
+            cf.write_text('{"fill_tokens": 0}', encoding="utf-8")
+        except Exception: pass
 
     def on_enter_handoff_pending(self) -> None:
         try:
@@ -181,11 +186,14 @@ class SessionManager:
             self._just_restarted = False
             cmd = "oracle" if self.session_type == "oracle" else "orchestrate" if self.session_type == "orchestrator" else None
             if cmd:
-                try:
-                    self._pty.write_input(f"/{cmd}\r")
-                    self._log_audit({"event": "restart_prompt_injected", "cmd": cmd})
-                except OSError as exc:
-                    self._log_audit({"event": "restart_prompt_failed", "cmd": cmd, "error": str(exc)})
+                def _delayed_inject(pty=self._pty, c=cmd, log=self._log_audit):
+                    time.sleep(1.5)
+                    try:
+                        pty.write_input(f"/{c}\r")
+                        log({"event": "restart_prompt_injected", "cmd": c})
+                    except OSError as exc:
+                        log({"event": "restart_prompt_failed", "cmd": c, "error": str(exc)})
+                threading.Thread(target=_delayed_inject, daemon=True).start()
 
     def on_enter_dead_child(self) -> None:
         self._log_audit({"event": "dead_child_detected"})

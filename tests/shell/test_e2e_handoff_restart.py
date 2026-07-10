@@ -131,7 +131,10 @@ def test_e2e_handoff_restart_real_pty(tmp_path):
         new_child_pid = pty_wrapper.child_pid
         assert new_child_pid != original_child_pid, "child_pid must change after restart"
 
-        # Verify on_enter_idle injected /orchestrate\r
+        # Verify on_enter_idle injected /orchestrate\r (T-189: uses 1.5s delayed daemon thread)
+        deadline = time.monotonic() + 2.0
+        while "/orchestrate\r" not in pty_wrapper.inputs and time.monotonic() < deadline:
+            time.sleep(0.1)
         assert "/orchestrate\r" in pty_wrapper.inputs, (
             f"on_enter_idle must inject /orchestrate\\r; got {pty_wrapper.inputs}"
         )
