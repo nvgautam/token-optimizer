@@ -235,7 +235,8 @@ class SessionManager:
 
     def _on_session_exit(self, exit_code: int) -> None:
         """Called by PTYWrapper when the child process exits."""
-        self._log_audit({"event": "session_exit", "exit_code": exit_code})
+        pid = getattr(self._pty, "child_pid", None)
+        self._log_audit({"event": "session_exit", "exit_code": exit_code, "pid": pid})
         # If handoff just completed, restart rather than die — oracle exits
         # immediately after writing handoff_complete.json; treat as restart signal.
         if (self._state_machine.state == States.HANDOFF_PENDING

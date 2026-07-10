@@ -20,6 +20,7 @@ def restart_child(manager) -> None:
     manager._log_audit({"event": "restart_session"})
     manager._last_restart_ts = time.monotonic()
     pid = getattr(manager._pty, "child_pid", None)
+    manager._log_audit({"event": "kill_child", "pid": pid, "signal": "SIGTERM", "caller": "restart_child"})
     if pid:
         try:
             os.kill(pid, signal.SIGTERM)
@@ -36,11 +37,13 @@ def restart_child(manager) -> None:
                     break
                 time.sleep(0.05)
             if not killed:
+                manager._log_audit({"event": "kill_child", "pid": pid, "signal": "SIGKILL", "caller": "restart_child_escalate"})
                 try:
                     os.kill(pid, signal.SIGKILL)
-                    os.waitpid(pid, 0)
                 except OSError:
                     pass
+                from agentflow.shell.handoff_handler import _reap_child
+                _reap_child(pid)
         except OSError:
             pass
 
@@ -72,6 +75,7 @@ def spawn_new_child(manager) -> None:
         except Exception:
             os._exit(127)
 
+    manager._log_audit({"event": "spawn_child", "pid": child_pid})
     manager._pty.child_pid = child_pid
     old_fd = getattr(manager._pty, "master_fd", None)
     if old_fd is not None:

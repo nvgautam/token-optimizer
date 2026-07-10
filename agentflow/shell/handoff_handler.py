@@ -54,15 +54,31 @@ def trigger_handoff(manager, trigger: str = "auto") -> None:
         return
 
 
+def _reap_child(pid: int, timeout: float = 2.0) -> None:
+    """Non-blocking waitpid loop — avoids hanging if SIGKILL is delayed."""
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            p, _ = os.waitpid(pid, os.WNOHANG)
+            if p == pid:
+                return
+        except ChildProcessError:
+            return
+        except OSError:
+            return
+        time.sleep(0.05)
+
+
 def _kill_child(manager) -> None:
     """SIGKILL child process; swallow all OS errors."""
     pid = getattr(manager._pty, "child_pid", None)
+    manager._log_audit({"event": "kill_child", "pid": pid, "signal": "SIGKILL", "caller": "deadline_expired"})
     if pid:
         try:
             os.kill(pid, signal.SIGKILL)
-            os.waitpid(pid, 0)
         except OSError:
             pass
+        _reap_child(pid)
 
 
 def _check_deadline(manager, state: States) -> bool:
