@@ -193,20 +193,62 @@ class TestOutputHandler(unittest.TestCase):
                 self.assertEqual(len(lines), 2)
 
     def test_handle_output_clear_resets_all_state(self):
-        """Clear command resets session type, turn count, manual handoff, and tokenizer."""
-        manager = self._create_mock_manager()
-        manager.session_type = "oracle"
-        manager._turn_count = 5
-        manager._manual_handoff = True
-        manager._tokenizer.reset = Mock()
-        handle_output(manager, b"/clear\n")
-        self.assertIsNone(manager.session_type)
-        self.assertEqual(manager._turn_count, 0)
-        self.assertFalse(manager._manual_handoff)
-        manager._tokenizer.reset.assert_called()
-        manager._update_session_file.assert_called()
-        audit_calls = [c[0][0] for c in manager._log_audit.call_args_list]
-        self.assertTrue(any("manual_handoff_reset" in str(c) for c in audit_calls))
+        """Clear signal file triggers reset of session type, turn count, manual handoff, and tokenizer."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            manager = self._create_mock_manager()
+            project_root = pathlib.Path(tmpdir)
+            manager._project_root = project_root
+            agentflow_dir = project_root / ".agentflow"
+            agentflow_dir.mkdir(parents=True, exist_ok=True)
+
+            # Create the clear_signal file
+            (agentflow_dir / "clear_signal").touch()
+
+            manager.session_type = "oracle"
+            manager._turn_count = 5
+            manager._manual_handoff = True
+            manager._tokenizer.reset = Mock()
+
+            # Call with benign text
+            handle_output(manager, b"Some benign output\n")
+
+            # Verify state was reset
+            self.assertIsNone(manager.session_type)
+            self.assertEqual(manager._turn_count, 0)
+            self.assertFalse(manager._manual_handoff)
+            manager._tokenizer.reset.assert_called()
+            manager._update_session_file.assert_called()
+
+            # Verify clear_signal file was deleted
+            self.assertFalse((agentflow_dir / "clear_signal").exists())
+
+            # Verify audit log
+            audit_calls = [c[0][0] for c in manager._log_audit.call_args_list]
+            self.assertTrue(any("manual_handoff_reset" in str(c) for c in audit_calls))
+
+    def test_handle_output_clear_text_no_longer_resets(self):
+        """Text containing '/clear' substring does NOT reset state without clear_signal file."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            manager = self._create_mock_manager()
+            project_root = pathlib.Path(tmpdir)
+            manager._project_root = project_root
+            agentflow_dir = project_root / ".agentflow"
+            agentflow_dir.mkdir(parents=True, exist_ok=True)
+
+            # No clear_signal file exists
+            manager.session_type = "oracle"
+            manager._turn_count = 5
+            manager._manual_handoff = True
+            manager._tokenizer.reset = Mock()
+
+            # Call with text containing "/clear" substring
+            handle_output(manager, b"You can use /clear to reset the session.\n")
+
+            # Verify state was NOT reset
+            self.assertEqual(manager.session_type, "oracle")
+            self.assertEqual(manager._turn_count, 5)
+            self.assertTrue(manager._manual_handoff)
+            manager._tokenizer.reset.assert_not_called()
 
     def test_handle_output_session_type_transition(self):
         """Session type transitions correctly on /oracle or /orchestrate."""

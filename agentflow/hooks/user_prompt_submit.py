@@ -196,6 +196,15 @@ def main() -> None:
             except Exception:
                 pass
 
+    # If the prompt contains "/clear", write the clear signal file
+    if prompt and "/clear" in prompt:
+        agentflow_dir.mkdir(parents=True, exist_ok=True)
+        clear_signal_file = agentflow_dir / "clear_signal"
+        try:
+            clear_signal_file.touch(exist_ok=True)
+        except Exception:
+            pass
+
     # Clean up merged in-flight tasks
     _cleanup_merged_in_flight(agentflow_dir)
 
