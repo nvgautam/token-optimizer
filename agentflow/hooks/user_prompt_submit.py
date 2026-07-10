@@ -196,8 +196,8 @@ def main() -> None:
             except Exception:
                 pass
 
-    # If the prompt contains "/clear", write the clear signal file
-    if prompt and "/clear" in prompt:
+    # If the prompt is exactly "/clear" (slash command, not prose), write the clear signal file
+    if prompt and prompt.strip() == "/clear":
         agentflow_dir.mkdir(parents=True, exist_ok=True)
         clear_signal_file = agentflow_dir / "clear_signal"
         try:

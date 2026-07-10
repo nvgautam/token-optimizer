@@ -264,3 +264,11 @@ def test_clear_does_not_write_session_state(monkeypatch, tmp_path):
 
     # But should write clear_signal
     assert (agentflow_dir / "clear_signal").exists()
+
+
+def test_clear_text_in_message_does_not_write_signal(monkeypatch, tmp_path):
+    """A prompt that mentions '/clear' in prose does NOT write clear_signal."""
+    agentflow_dir = _run_with_stdin("how does /clear work?", monkeypatch, tmp_path)
+
+    # Substring match must not fire — clear_signal must not be created
+    assert not (agentflow_dir / "clear_signal").exists()
