@@ -285,6 +285,28 @@ class TestOutputHandler(unittest.TestCase):
             manager.trigger_handoff.assert_called_with(trigger="auto-primary")
 
 
+    def test_auto_primary_no_trigger_for_orchestrate_session(self):
+        """auto-primary handoff is suppressed for orchestrator session_type."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            manager = self._create_mock_manager()
+            project_root = pathlib.Path(tmpdir)
+            manager._project_root = project_root
+            (project_root / ".agentflow").mkdir(parents=True, exist_ok=True)
+            manager.session_type = "orchestrator"
+            manager._manual_handoff = False
+            manager._auto_handoff_disabled = Mock(return_value=False)
+            manager._last_restart_ts = 0
+            manager._config = {"handoff_primary_tokens": 100}
+            manager._tokenizer.accumulate = Mock(return_value=120)
+            manager._task_start_tokens = {}
+            manager._state_machine.state = Mock()
+            manager.trigger_handoff = Mock()
+
+            handle_output(manager, b"Output\nAGENTFLOW_TASK_COMPLETE:T-001\n")
+
+            manager.trigger_handoff.assert_not_called()
+
+
     def test_handle_output_handoff_complete_signal(self):
         """HANDOFF_COMPLETE signal writes completion file."""
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -342,6 +364,22 @@ class TestOutputHandler(unittest.TestCase):
             handle_output(m, b"HANDOFF RECOMMENDED\n")
             self.assertNotIn("T-001", m._task_start_tokens)
             self.assertIn("T-002", m._task_start_tokens)
+            m.trigger_handoff.assert_not_called()
+
+    def test_handoff_recommended_no_trigger_for_orchestrate_session(self):
+        """orchestrator session_type blocks handoff trigger even when stalled."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            m = self._create_mock_manager()
+            m._project_root = pathlib.Path(tmpdir)
+            m.session_type = "orchestrator"
+            m._task_start_tokens = {"T-001": 1000}
+            m._config = {"handoff_primary_tokens": 100}
+            m._tokenizer.accumulate = Mock(return_value=90000)
+            m._state_machine.state = States.IDLE
+            m.trigger_handoff = Mock()
+            (pathlib.Path(tmpdir) / "tasks.json").write_text(
+                json.dumps({"tasks": [{"task_id": "T-001", "status": "complete"}]}))
+            handle_output(m, b"HANDOFF RECOMMENDED\n")
             m.trigger_handoff.assert_not_called()
 
 
