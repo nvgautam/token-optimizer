@@ -27,6 +27,12 @@ Run: `awk -F'|' '{gsub(/^[[:space:]]+|[[:space:]]+$/,"",$2); if($2=="UNRESOLVED"
 - `ABSENT` → proceed.
 - Count > 0 → stop: "Design has unresolved items. Run `/oracle` to resolve them first." No Read needed.
 
+### Step 3b — Load startup cache (fast path)
+```bash
+cat .agentflow/orchestrate_cache.json 2>/dev/null
+```
+If file exists and `python3 -c "from agentflow.shell.orchestrate_cache import is_cache_stale; import pathlib; print(is_cache_stale(pathlib.Path('.')))"` prints `False`: read cache JSON, skip Steps 4 and 4b, jump to Step 5. Otherwise continue to Step 4 (full load).
+
 ### Step 4 — Load execution state
 **No `architecture.md` or `CLAUDE.md` at startup.**
 
