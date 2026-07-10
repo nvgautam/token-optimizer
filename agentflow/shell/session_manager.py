@@ -145,14 +145,20 @@ class SessionManager:
             for fname in filenames:
                 try:
                     fp = self._project_root / ".agentflow" / fname
-                    if not fp.exists(): continue
-                    st = fp.read_text("utf-8").strip() if fname == "session_type" else json.loads(fp.read_text("utf-8")).get("session_type", "")
+                    if not fp.exists():
+                        continue
+                    if fname == "session_type":
+                        st = fp.read_text("utf-8").strip()
+                    else:
+                        data = json.loads(fp.read_text("utf-8"))
+                        st = data.get("session_type", "") if isinstance(data, dict) else ""
                     if st in ("oracle", "orchestrator"):
                         self.session_type = st
                         self._update_session_file()
                         self._apply_session_threshold()
                         return
-                except Exception: pass
+                except Exception:
+                    pass
         self._apply_session_threshold()
 
     def _run_stale_index_guard(self) -> None:
