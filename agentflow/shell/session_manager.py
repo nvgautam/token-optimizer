@@ -147,6 +147,24 @@ class SessionManager:
             except Exception: pass
 
     def on_enter_handoff_pending(self) -> None:
+        try:
+            import json as _json
+            from agentflow.shadow.capacity_calibrator import calibrate_capacity
+            current_start_pct = 0.0
+            ledger_path = self._project_root / "agentflow_ledger.json"
+            if ledger_path.exists():
+                try:
+                    with open(ledger_path, "r") as _f:
+                        _ledger = _json.load(_f)
+                    for _snap in reversed(_ledger.get("usage_snapshots", [])):
+                        if _snap.get("label") == "session_start":
+                            current_start_pct = float(_snap.get("start_pct_5hr", 0.0))
+                            break
+                except Exception:
+                    pass
+            calibrate_capacity(self._project_root, current_start_pct)
+        except Exception:
+            pass
         from agentflow.shell.handoff_handler import handle_enter_handoff_pending
         handle_enter_handoff_pending(self)
 
