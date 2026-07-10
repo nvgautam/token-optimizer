@@ -769,6 +769,32 @@
     {
       "task_id": "T-186",
       "status": "complete"
+    },
+    {
+      "task_id": "T-187",
+      "title": "Split agentflow/shell/session_manager.py \u2014 size violation",
+      "description": "Split agentflow/shell/session_manager.py (258 lines, limit 250). Violation timestamp: 2026-07-04T17:44:33.317580. Read the file first, identify distinct responsibilities, then choose the split boundary by domain. Verify each output file is \u2264 250 lines after splitting.",
+      "owns": [
+        "agentflow/shell/session_manager.py"
+      ],
+      "reads": [],
+      "depends_on": [],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-189",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-190",
+      "title": "Session isolation spike \u2014 per-SID volatile state folder design",
+      "status": "pending",
+      "estimated_lines": 0,
+      "owner": null,
+      "model": "sonnet",
+      "description": "Design spike: eliminate cross-session poisoning by isolating volatile PTY state into per-session folders.\n\nScope:\n- File taxonomy: classify each .agentflow/ file as session-scoped vs project-scoped\n  Session-scoped: context_fill.json, current_round.json, handoff_complete.json, task_complete.json,\n    tasks_in_flight.json, reset_accumulator, session_state_{sid}.json, pty_audit.jsonl\n  Project-scoped (shared): tasks.json, tasks_archive.json, handoff_*.md, size_violations.jsonl\n- Proposed structure: .agentflow/sessions/{AGENTFLOW_SESSION_ID}/ for session-scoped files\n- PTY startup: always generate+export AGENTFLOW_SESSION_ID if unset (never inherit from parent)\n- Lazy GC: on PTY start, remove .agentflow/sessions/ entries with heartbeat mtime > 24h\n- Hook updates: user_prompt_submit.py, stop_context_capture.py write to session folder\n- handoff_handler.py / session_manager.py: all path construction updated\n- Estimate task list: expect 5-8 tasks covering path abstraction, PTY init, hook migration, GC, tests\nOutput: updated execution_plan.md with new milestone + tasks filed in tasks.json",
+      "files": [],
+      "depends_on": []
     }
   ]
 }
