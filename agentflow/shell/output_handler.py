@@ -130,7 +130,7 @@ def handle_output(manager, chunk: bytes) -> None:
             except Exception:
                 pass
             primary = manager._config["handoff_primary_tokens"]
-            if total >= primary and not bool(manager._task_start_tokens):
+            if total >= primary and not bool(manager._task_start_tokens) and manager.session_type != "orchestrator":
                 manager.trigger_handoff(trigger="handoff-recommended-stall-recovery")
 
     _restart_cooldown = 30.0

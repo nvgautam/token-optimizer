@@ -344,6 +344,22 @@ class TestOutputHandler(unittest.TestCase):
             self.assertIn("T-002", m._task_start_tokens)
             m.trigger_handoff.assert_not_called()
 
+    def test_handoff_recommended_no_trigger_for_orchestrate_session(self):
+        """orchestrator session_type blocks handoff trigger even when stalled."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            m = self._create_mock_manager()
+            m._project_root = pathlib.Path(tmpdir)
+            m.session_type = "orchestrator"
+            m._task_start_tokens = {"T-001": 1000}
+            m._config = {"handoff_primary_tokens": 100}
+            m._tokenizer.accumulate = Mock(return_value=90000)
+            m._state_machine.state = States.IDLE
+            m.trigger_handoff = Mock()
+            (pathlib.Path(tmpdir) / "tasks.json").write_text(
+                json.dumps({"tasks": [{"task_id": "T-001", "status": "complete"}]}))
+            handle_output(m, b"HANDOFF RECOMMENDED\n")
+            m.trigger_handoff.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

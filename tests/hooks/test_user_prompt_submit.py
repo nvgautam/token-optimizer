@@ -108,3 +108,89 @@ def test_handoff_does_not_write_session_state(monkeypatch, tmp_path):
     assert not session_state_file.exists()
     # But reset_accumulator should still be created
     assert (agentflow_dir / "reset_accumulator").exists()
+
+
+def test_cleanup_merged_in_flight_marks_complete_and_removes(monkeypatch, tmp_path):
+    """When task_prs.json has URL and PR is MERGED, task removed from tasks_in_flight."""
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+
+    # Write tasks_in_flight.json with T-001
+    in_flight_file = agentflow_dir / "tasks_in_flight.json"
+    in_flight_file.write_text(json.dumps(["T-001"]))
+
+    # Write task_prs.json with T-001 -> URL mapping
+    prs_file = agentflow_dir / "task_prs.json"
+    prs_file.write_text(json.dumps({"T-001": "https://github.com/owner/repo/pull/123"}))
+
+    # Write tasks.json with T-001 as pending
+    tasks_file = tmp_path / "tasks.json"
+    tasks_file.write_text(json.dumps({"tasks": [{"task_id": "T-001", "status": "pending"}]}))
+
+    monkeypatch.setenv("AGENTFLOW_PROJECT_ROOT", str(tmp_path))
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+    monkeypatch.setattr("sys.argv", ["hook"])
+
+    # Mock _check_pr_state to return "MERGED"
+    with patch("agentflow.hooks.user_prompt_submit._check_pr_state", return_value="MERGED"):
+        with patch("agentflow.hooks.user_prompt_submit._mark_task_complete", return_value=True):
+            with patch("agentflow.hooks.user_prompt_submit._run_cleanup"):
+                with pytest.raises(SystemExit) as exc:
+                    main()
+
+    assert exc.value.code == 0
+
+    # Verify T-001 removed from tasks_in_flight.json
+    remaining = json.loads(in_flight_file.read_text())
+    assert "T-001" not in remaining
+
+
+def test_cleanup_merged_in_flight_uses_title_fallback(monkeypatch, tmp_path):
+    """When no task_prs.json, use merged PR title fallback (prefix match on task_id)."""
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+
+    # Write tasks_in_flight.json with T-001
+    in_flight_file = agentflow_dir / "tasks_in_flight.json"
+    in_flight_file.write_text(json.dumps(["T-001"]))
+
+    # No task_prs.json
+
+    # Write tasks.json with T-001 as pending
+    tasks_file = tmp_path / "tasks.json"
+    tasks_file.write_text(json.dumps({"tasks": [{"task_id": "T-001", "status": "pending"}]}))
+
+    monkeypatch.setenv("AGENTFLOW_PROJECT_ROOT", str(tmp_path))
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+    monkeypatch.setattr("sys.argv", ["hook"])
+
+    # Mock _fetch_merged_pr_titles to return a title with task_id: prefix (matching expected format)
+    with patch("agentflow.hooks.user_prompt_submit._fetch_merged_pr_titles", return_value={"T-001: feature description"}):
+        with patch("agentflow.hooks.user_prompt_submit._mark_task_complete", return_value=True):
+            with patch("agentflow.hooks.user_prompt_submit._run_cleanup"):
+                with pytest.raises(SystemExit) as exc:
+                    main()
+
+    assert exc.value.code == 0
+
+    # Verify T-001 removed from tasks_in_flight.json
+    remaining = json.loads(in_flight_file.read_text())
+    assert "T-001" not in remaining
+
+
+def test_cleanup_merged_in_flight_skips_when_no_in_flight_file(monkeypatch, tmp_path):
+    """When tasks_in_flight.json absent, cleanup runs silently with no errors."""
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+
+    # No tasks_in_flight.json
+
+    monkeypatch.setenv("AGENTFLOW_PROJECT_ROOT", str(tmp_path))
+    monkeypatch.setattr("sys.stdin.isatty", lambda: True)
+    monkeypatch.setattr("sys.argv", ["hook"])
+
+    # Should exit without error
+    with pytest.raises(SystemExit) as exc:
+        main()
+
+    assert exc.value.code == 0
