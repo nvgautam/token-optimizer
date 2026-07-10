@@ -443,11 +443,12 @@ Priority rationale (2026-07-08): Auto-orchestration loop (handoff → restart �
 | DP-2 — MERGED | T-171 ‖ T-166 (parallel) | SSE response parser + worker-token measurement |
 | DP-2b — MERGED | T-177 (MERGED), T-176 (MERGED) | Deterministic session_type via hook + stall recovery — engine reliably restarts |
 | DP-3 — MERGED | T-120 (MERGED PR #89), T-179 (MERGED PR #90) | PTY installer (+ cli.py split) + proxy/server.py split |
-| DP-3c | T-180 | PR URL registry — deterministic merge detection via gh pr view (fixes cleanup stall) |
-| DP-3b | T-172 (depends T-179) | Headroom A/B arm |
-| DP-4 | T-173 (depends T-120) | Design partner package |
-| DP-5 | T-169 ‖ T-170 (parallel, optional) | Orchestrate startup cost reduction (nice-to-have before demo) |
-| DP-post | T-164, T-175, T-178 | Capacity wiring + session_manager split + hook audit log |
+| DP-3c — MERGED | T-180 (MERGED PR #91) | PR URL registry — deterministic merge detection via gh pr view (fixes cleanup stall) |
+| DP-3b — MERGED | T-172 (MERGED PR #92) | Headroom A/B arm |
+| DP-3d — MERGED | T-181 (MERGED PR #93) | UserPromptSubmit cleanup hook + remove orchestrate handoff-inject (fixes spurious /handoff during cleanup) |
+| DP-4 — MERGED | T-173 (MERGED PR #95) | Design partner package |
+| DP-5 — MERGED (T-169 PR #96, T-170 PR #97) | T-169 ‖ T-170 (parallel, optional) | Orchestrate startup cost reduction (nice-to-have before demo) |
+| DP-post | T-162, T-164, T-175, T-178 | oracle.md split + capacity wiring + session_manager split + hook audit log |
 
 ---
 
@@ -576,6 +577,44 @@ T-141 depends on T-140 (test file references session_manager structure). T-139, 
 ## Addendum: T-143 + T-144 — CANCELLED (folded into T-121, 2026-07-06g)
 
 Root cause traced to session recycling making restart invisible to user. Both fixes are stub completions of T-121's state machine — not independent tasks. Timer-based stdin gating (T-144 original design) replaced with state-based gating (no timer needed). See T-121 addendum for implementation details.
+
+---
+
+## Addendum: T-170 — Startup cache (MERGED PR #97, 2026-07-09)
+
+Pre-compute round state on PTY startup to skip startup commands. See commit 924521ea3.
+
+---
+
+## Addendum: T-183 — Orchestrator HANDOFF RECOMMENDED bypass
+
+**Status:** PENDING
+
+**Goal:** In `output_handler.py`, detect the literal string `HANDOFF RECOMMENDED` in PTY output when `session_type == "orchestrator"` and call `trigger_handoff()` directly — bypassing the terminal-output token threshold. Guard: only fire when state is TASK_RUNNING or TASK_COMPLETE. Add audit log entry `handoff_recommended_detected`. Add test `test_orchestrator_handoff_recommended_triggers_handoff`.
+
+**Files:** `agentflow/shell/output_handler.py` (~10 lines), `tests/shell/test_output_handler.py` (~20 lines)
+
+---
+
+## Addendum: T-184 — Context window % from /usage output
+
+**Status:** PENDING
+
+**Goal:** Extend `usage_capture.py` `parse_usage_output()` to extract context window fill % (e.g. `Context window: 76,000 / 200,000 tokens (38%)`). Expose as `context_pct: float | None`. In `output_handler.py` stall-recovery path, use `context_pct >= 0.7` as threshold guard when available, falling back to terminal output token count when None. Add tests for parser extension and fallback logic. Depends on T-183.
+
+**Files:** `agentflow/shell/usage_capture.py`, `agentflow/shell/session_manager.py`, `agentflow/shell/output_handler.py`, `tests/shell/test_usage_capture.py`
+
+---
+
+## Addendum: T-185 — Session state scoped per PTY session-id
+
+**Status:** PENDING
+
+**Goal:** Fix session poisoning. `user_prompt_submit.py` writes `session_state.json` to project `.agentflow/` — shared by all PTY shells. Fix: write to `.agentflow/session_state_<sid>.json` keyed by `AGENTFLOW_SESSION_ID`. In `session_manager.py` `_sync_session_type()`, read sid-keyed file first, fall back to unkeyed file for backward compat. Add isolation test: two sessions with different sids writing opposing types must each read their own value. Independent of T-183/T-184.
+
+**Acceptance criteria (additional):** After fix, oracle auto-restart must inject `/oracle\r` into the correct PTY session only (no cross-session bleed). Verify with audit logs that a restarted oracle shell reads `session_type=oracle` from its own sid-keyed file, not a stale orchestrator value.
+
+**Files:** `agentflow/hooks/user_prompt_submit.py`, `agentflow/shell/session_manager.py`, `tests/hooks/test_user_prompt_submit.py`, `tests/shell/test_session_manager.py`
 
 ---
 
