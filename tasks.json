@@ -785,6 +785,33 @@
       "description": "Design spike: eliminate cross-session poisoning by isolating volatile PTY state into per-session folders.\n\nScope:\n- File taxonomy: classify each .agentflow/ file as session-scoped vs project-scoped\n  Session-scoped: context_fill.json, current_round.json, handoff_complete.json, task_complete.json,\n    tasks_in_flight.json, reset_accumulator, session_state_{sid}.json, pty_audit.jsonl\n  Project-scoped (shared): tasks.json, tasks_archive.json, handoff_*.md, size_violations.jsonl\n- Proposed structure: .agentflow/sessions/{AGENTFLOW_SESSION_ID}/ for session-scoped files\n- PTY startup: always generate+export AGENTFLOW_SESSION_ID if unset (never inherit from parent)\n- Lazy GC: on PTY start, remove .agentflow/sessions/ entries with heartbeat mtime > 24h\n- Hook updates: user_prompt_submit.py, stop_context_capture.py write to session folder\n- handoff_handler.py / session_manager.py: all path construction updated\n- Estimate task list: expect 5-8 tasks covering path abstraction, PTY init, hook migration, GC, tests\nOutput: updated execution_plan.md with new milestone + tasks filed in tasks.json",
       "files": [],
       "depends_on": []
+    },
+    {
+      "task_id": "T-191",
+      "title": "Deterministic session_type mapping via UserPromptSubmit hook",
+      "description": "Replace the fragile output-text heuristic in output_handler.py that detects session_type by scanning for '/oracle' or '/orchestrate' in PTY output. The current check-order bug (/oracle tested before /orchestrate) causes orchestrate sessions to misclassify as oracle whenever startup output mentions 'run /oracle', blocking check_drain_restart (condition 1). Fix: UserPromptSubmit hook writes session_state_<sid>.json with {\"session_type\": \"orchestrator\"} or {\"session_type\": \"oracle\"} when the submitted prompt contains /orchestrate or /oracle respectively. sync_session_type (already polling session_state_<sid>.json on every idle tick) becomes the authoritative source. Remove the text-scanning branch in output_handler.py (lines ~85-90). The hook fires before the skill renders output, so session_type is set deterministically before any ambiguous text reaches the PTY. owns: agentflow/hooks/verbosity_reminder.py (or whichever hook handles UserPromptSubmit), agentflow/shell/output_handler.py. Test: session classified correctly even when /orchestrate output references /oracle.",
+      "owns": [
+        "agentflow/hooks/verbosity_reminder.py",
+        "agentflow/shell/output_handler.py"
+      ],
+      "reads": [
+        "agentflow/shell/threshold_sync.py",
+        "agentflow/shell/session_manager.py"
+      ],
+      "depends_on": [],
+      "status": "pending",
+      "estimated_lines": 40
+    },
+    {
+      "task_id": "T-192",
+      "title": "Split tests/reporting/test_report_builder.py \u2014 size violation",
+      "description": "Split tests/reporting/test_report_builder.py (491 lines, limit 350). Violation timestamp: 2026-07-10T16:53:54.408581. Choose the split boundary by test class or fixture group, not line count. Verify each output file is \u2264 350 lines after splitting.",
+      "owns": [
+        "tests/reporting/test_report_builder.py"
+      ],
+      "reads": [],
+      "depends_on": [],
+      "status": "pending"
     }
   ]
 }

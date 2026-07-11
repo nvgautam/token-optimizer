@@ -170,21 +170,34 @@ def check_drain_restart(manager) -> None:
     6. context_fill.json fill_tokens >= handoff_primary_tokens
     """
     import json as _json
+    def _skip(reason: str, **extra) -> None:
+        manager._log_audit({"event": "drain_check_skip", "reason": reason, **extra})
+
     if manager.session_type != "orchestrator":
+        _skip("session_type", session_type=manager.session_type)
         return
-    if time.monotonic() - getattr(manager, "_last_restart_ts", 0.0) < 30.0:
+    cooldown_remaining = 30.0 - (time.monotonic() - getattr(manager, "_last_restart_ts", 0.0))
+    if cooldown_remaining > 0:
+        _skip("cooldown", cooldown_remaining=round(cooldown_remaining, 1))
         return
-    if manager._state_machine.state != States.IDLE:
+    state = manager._state_machine.state
+    if state != States.IDLE:
+        _skip("state_not_idle", state=str(state))
         return
     if manager._handoff_in_progress or manager._auto_handoff_disabled():
+        _skip("handoff_in_progress_or_disabled", in_progress=manager._handoff_in_progress)
         return
     if not manager._current_round_path.exists():
+        _skip("no_current_round")
         return
     tif = manager._project_root / ".agentflow" / "tasks_in_flight.json"
     try:
-        if tif.exists() and _json.loads(tif.read_text("utf-8")):
+        tif_content = _json.loads(tif.read_text("utf-8")) if tif.exists() else []
+        if tif_content:
+            _skip("tasks_in_flight_nonempty", tasks=tif_content)
             return
-    except Exception:
+    except Exception as e:
+        _skip("tif_read_error", error=str(e))
         return
     threshold = manager._config.get("handoff_primary_tokens", 80000)
     fill_tokens = 0
@@ -195,6 +208,7 @@ def check_drain_restart(manager) -> None:
     except Exception:
         pass
     if fill_tokens < threshold:
+        _skip("fill_tokens_below_threshold", fill_tokens=fill_tokens, threshold=threshold)
         return
     manager.trigger_handoff(trigger="drain")
     manager._log_audit({"event": "drain_restart_triggered", "fill_tokens": fill_tokens, "threshold": threshold})

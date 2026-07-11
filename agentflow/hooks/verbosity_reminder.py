@@ -1,58 +1,68 @@
 #!/usr/bin/env python3
-"""UserPromptSubmit hook: inject verbosity reminder every 2 turns (invisible to user input field)."""
-
-import os
-import sys
+"""UserPromptSubmit hook: verbosity reminder + session type detection."""
+import os, sys, json, tempfile
 from pathlib import Path
 
 INTERVAL = 2
 COUNTER_FILE = Path.home() / ".agentflow" / "verbosity_turn_counter"
-
-# T-081: lets an A/B comparison disable the hook entirely for one arm
-# (agentflow/shadow/verbosity_ab.py) without touching session_manager.py.
 _DISABLED_VALUES = {"1", "true", "yes", "on"}
-
 
 def _hook_disabled() -> bool:
     return os.environ.get("AGENTFLOW_VERBOSITY_HOOK_DISABLED", "").strip().lower() in _DISABLED_VALUES
 
-
 def _arm_suppressed() -> bool:
-    """Return True if the A/B arm file says 'off' (suppress reminder)."""
+    """A/B arm file says 'off' (suppress reminder)."""
     project_root = os.environ.get("AGENTFLOW_PROJECT_ROOT", "")
-    candidates = []
-    if project_root:
-        candidates.append(Path(project_root) / ".agentflow" / "verbosity_ab_arm.txt")
-    candidates.append(Path.home() / ".agentflow" / "verbosity_ab_arm.txt")
+    candidates = ([Path(project_root) / ".agentflow" / "verbosity_ab_arm.txt"] if project_root else []) + [Path.home() / ".agentflow" / "verbosity_ab_arm.txt"]
     for path in candidates:
-        if path.exists():
-            return path.read_text().strip() == "off"
+        if path.exists() and path.read_text().strip() == "off":
+            return True
     return False
 
+def _read_prompt_from_stdin() -> str | None:
+    """Read prompt from stdin JSON."""
+    if sys.stdin.isatty():
+        return None
+    try:
+        data = json.load(sys.stdin)
+        return data.get("prompt") if isinstance(data, dict) else None
+    except Exception:
+        return None
+
+def _write_session_state_atomic(agentflow_dir: Path, session_type: str, sid: str = "") -> None:
+    """Write session_state_{sid}.json atomically."""
+    try:
+        agentflow_dir.mkdir(parents=True, exist_ok=True)
+        filename = f"session_state_{sid}.json" if sid else "session_state.json"
+        with tempfile.NamedTemporaryFile(mode="w", dir=agentflow_dir, delete=False, suffix=".tmp", encoding="utf-8") as tmp:
+            json.dump({"session_type": session_type}, tmp)
+            tmp_path = Path(tmp.name)
+        os.replace(tmp_path, agentflow_dir / filename)
+    except Exception:
+        pass
 
 def main() -> None:
-    if _hook_disabled():
+    prompt = _read_prompt_from_stdin()
+    if prompt:
+        project_root = os.environ.get("AGENTFLOW_PROJECT_ROOT", "")
+        agentflow_dir = Path(project_root) / ".agentflow" if project_root else Path.cwd() / ".agentflow"
+        sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+        if "/orchestrate" in prompt:
+            _write_session_state_atomic(agentflow_dir, "orchestrator", sid=sid)
+        elif "/oracle" in prompt:
+            _write_session_state_atomic(agentflow_dir, "oracle", sid=sid)
+    if _hook_disabled() or _arm_suppressed():
         sys.exit(0)
-    if _arm_suppressed():
-        sys.exit(0)
-
     try:
         count = int(COUNTER_FILE.read_text().strip())
     except (FileNotFoundError, ValueError):
         count = 0
-
     count += 1
     COUNTER_FILE.parent.mkdir(parents=True, exist_ok=True)
     COUNTER_FILE.write_text(str(count))
-
     if count % INTERVAL == 0:
-        # Wrapped in a non-HTML tag so headroom's tag_protector (T-080)
-        # keeps it verbatim — a hook's stdout isn't a tool_result block,
-        # so exclude_tools config can't protect it any other way.
         print("<agentflow-reminder>[VERBOSITY] Keep responses concise (≤ 3 sentences / ~150 tokens).</agentflow-reminder>")
-
     sys.exit(0)
-
 
 if __name__ == "__main__":
     main()
