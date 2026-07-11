@@ -67,14 +67,16 @@ class SessionManager:
         self._just_restarted = False
 
         self._update_last_current_round_mtime()
-        if self._current_round_path.exists() and not self._task_complete_path.exists():
-            self._state_machine.state = States.TASK_RUNNING
 
         # Wire up wrappers
         pty_wrapper._on_output = self._handle_output
         pty_wrapper._on_exit = self._on_session_exit
         self._run_stale_index_guard()
         self._sync_session_type()
+
+        # T-194: Only enter TASK_RUNNING for orchestrator sessions with active round
+        if self.session_type == "orchestrator" and self._current_round_path.exists() and not self._task_complete_path.exists():
+            self._state_machine.state = States.TASK_RUNNING
 
     @property
     def _project_root(self) -> pathlib.Path: return getattr(self, "_project_root_override", None) or pathlib.Path.cwd()

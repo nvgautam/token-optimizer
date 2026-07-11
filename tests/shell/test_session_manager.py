@@ -102,6 +102,9 @@ def test_detect_read_path():
 def test_init_state_with_preexisting_current_round(tmp_path):
     (tmp_path / ".agentflow").mkdir()
     (tmp_path / ".agentflow" / "current_round.json").write_text("{}", encoding="utf-8")
+    (tmp_path / ".agentflow" / "session_state.json").write_text(
+        json.dumps({"session_type": "orchestrator"}), encoding="utf-8"
+    )
     pty, tok = FakePTY(), FakeTokenizer()
     with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
         sm = SessionManager(pty, tok, {})
@@ -110,6 +113,31 @@ def test_init_state_with_preexisting_current_round(tmp_path):
     with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
         sm2 = SessionManager(pty, tok, {})
     assert sm2._state_machine.state == States.IDLE
+
+
+def test_init_task_running_gated_on_orchestrator_session_type(tmp_path):
+    """T-194: Oracle sessions stay IDLE when current_round.json exists; orchestrator enters TASK_RUNNING."""
+    (tmp_path / ".agentflow").mkdir()
+    (tmp_path / ".agentflow" / "current_round.json").write_text("{}", encoding="utf-8")
+    pty, tok = FakePTY(), FakeTokenizer()
+
+    # Test 1: Oracle session with current_round.json should stay in IDLE
+    (tmp_path / ".agentflow" / "session_state.json").write_text(
+        json.dumps({"session_type": "oracle"}), encoding="utf-8"
+    )
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+        sm_oracle = SessionManager(pty, tok, {})
+    assert sm_oracle.session_type == "oracle"
+    assert sm_oracle._state_machine.state == States.IDLE
+
+    # Test 2: Orchestrator session with current_round.json should enter TASK_RUNNING
+    (tmp_path / ".agentflow" / "session_state.json").write_text(
+        json.dumps({"session_type": "orchestrator"}), encoding="utf-8"
+    )
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+        sm_orch = SessionManager(pty, tok, {})
+    assert sm_orch.session_type == "orchestrator"
+    assert sm_orch._state_machine.state == States.TASK_RUNNING
 
 
 def test_on_enter_idle_reinjects_skill():
