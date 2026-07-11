@@ -6,7 +6,6 @@ from __future__ import annotations
 import hashlib
 import os
 import pathlib
-import threading
 import time
 from typing import Optional
 
@@ -176,8 +175,6 @@ class SessionManager:
         from agentflow.shell.handoff_handler import handle_enter_handoff_pending
         handle_enter_handoff_pending(self)
 
-
-
     def on_enter_restarting(self) -> None:
         from agentflow.shell.process_manager import handle_enter_restarting
         handle_enter_restarting(self)
@@ -185,18 +182,7 @@ class SessionManager:
     def on_enter_idle(self) -> None:
         self._update_last_current_round_mtime()
         self._clear_signal_files()
-        if self._just_restarted:
-            self._just_restarted = False
-            cmd = "oracle" if self.session_type == "oracle" else "orchestrate" if self.session_type == "orchestrator" else None
-            if cmd:
-                def _delayed_inject(pty=self._pty, c=cmd, log=self._log_audit):
-                    time.sleep(1.5)
-                    try:
-                        pty.write_input(f"/{c}\r")
-                        log({"event": "restart_prompt_injected", "cmd": c})
-                    except OSError as exc:
-                        log({"event": "restart_prompt_failed", "cmd": c, "error": str(exc)})
-                threading.Thread(target=_delayed_inject, daemon=True).start()
+        self._just_restarted = False
 
     def on_enter_dead_child(self) -> None:
         self._log_audit({"event": "dead_child_detected"})
