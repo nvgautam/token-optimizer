@@ -67,10 +67,12 @@ def spawn_new_child(manager) -> None:
             manager._pty._exited = False
         return
 
-    # T-195: Append skill as positional arg when restarting with session_type set
-    if getattr(manager, "_just_restarted", False) and getattr(manager, "session_type", None):
-        skill = "oracle" if manager.session_type == "oracle" else "orchestrate"
-        command = list(command) + [f"/{skill}"]
+    # T-195: Append skill as positional arg when restarting with known session_type
+    if getattr(manager, "_just_restarted", False):
+        _stype = getattr(manager, "session_type", None)
+        skill = "oracle" if _stype == "oracle" else "orchestrate" if _stype == "orchestrator" else None
+        if skill:
+            command = list(command) + [f"/{skill}"]
 
     import pty
     import fcntl

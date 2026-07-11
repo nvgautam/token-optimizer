@@ -169,9 +169,10 @@ def test_spawn_new_child_appends_skill():
 
 
 def test_spawn_new_child_no_skill_conditions():
-    """T-195: spawn_new_child omits skill when _just_restarted=False or session_type=None."""
+    """T-195: spawn_new_child omits skill when _just_restarted=False, session_type=None, or unknown type."""
     _test_spawn_new_child_command(False, "orchestrator", ["claude"])
     _test_spawn_new_child_command(True, None, ["claude"])
+    _test_spawn_new_child_command(True, "reviewer", ["claude"])  # unknown type → no skill
 
 
 def test_on_enter_idle_clears_just_restarted_no_injection():
