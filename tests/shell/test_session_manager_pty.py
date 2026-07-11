@@ -46,59 +46,54 @@ def test_t148_handoff_injection_uses_cr(tmp_path):
 
 
 def test_t148_restart_injection_uses_cr(tmp_path):
-    """T-148: on_enter_idle writes /oracle\\r (CR) not LF when just_restarted.
+    """T-195: restart skill is now passed as spawn positional arg, not PTY injection.
 
-    The just_restarted flag triggers command injection in on_enter_idle;
-    that injection must use CR so the PTY line discipline submits it immediately.
-    T-189: injection now uses 1.5s delayed daemon thread.
+    on_enter_idle no longer writes to PTY stdin; spawn_new_child appends /oracle
+    as a positional arg so the CLI receives it at startup without stdin tricks.
     """
-    import time as time_module
+    import pty as pty_module
+    from agentflow.shell.process_manager import spawn_new_child
     sm, pty, _ = make_manager()
     sm.session_type = "oracle"
     sm._just_restarted = True
 
-    # Trigger the injection path directly (on_enter_idle owns the injection)
-    # T-189: mock sleep to speed up test
-    with patch("time.sleep"):
-        with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
-            sm.on_enter_idle()
+    exec_called = []
+    with patch.object(pty_module, "fork", return_value=(0, 123)), \
+         patch("os.execvp", side_effect=lambda cmd, args: exec_called.append(args) or (_ for _ in ()).throw(SystemExit(127))), \
+         patch("os._exit"):
+        try:
+            spawn_new_child(sm)
+        except SystemExit:
+            pass
 
-    # Wait for daemon thread to execute
-    deadline = time_module.monotonic() + 1.0
-    while not any("/oracle" in s for s in pty.inputs) and time_module.monotonic() < deadline:
-        time_module.sleep(0.01)
-
-    oracle_inputs = [s for s in pty.inputs if "/oracle" in s]
-    assert oracle_inputs, "No /oracle command was injected after restart"
-    assert all(s.endswith("\r") for s in oracle_inputs), (
-        f"Expected /oracle to end with \\r (CR), got: {oracle_inputs!r}"
+    assert exec_called and exec_called[0] == ["claude", "/oracle"], (
+        f"Expected ['claude', '/oracle'], got {exec_called}"
     )
+    # No PTY injection
+    assert len(pty.inputs) == 0, f"No PTY input expected; got {pty.inputs!r}"
 
 
 def test_t148_restart_injection_orchestrate_uses_cr(tmp_path):
-    """T-148: orchestrator session injects /orchestrate\\r (CR) after restart.
-    T-189: injection now uses 1.5s delayed daemon thread.
-    """
-    import time as time_module
+    """T-195: orchestrator spawn passes /orchestrate as positional arg (no PTY injection)."""
+    import pty as pty_module
+    from agentflow.shell.process_manager import spawn_new_child
     sm, pty, _ = make_manager()
     sm.session_type = "orchestrator"
     sm._just_restarted = True
 
-    # T-189: mock sleep to speed up test
-    with patch("time.sleep"):
-        with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
-            sm.on_enter_idle()
+    exec_called = []
+    with patch.object(pty_module, "fork", return_value=(0, 123)), \
+         patch("os.execvp", side_effect=lambda cmd, args: exec_called.append(args) or (_ for _ in ()).throw(SystemExit(127))), \
+         patch("os._exit"):
+        try:
+            spawn_new_child(sm)
+        except SystemExit:
+            pass
 
-    # Wait for daemon thread to execute
-    deadline = time_module.monotonic() + 1.0
-    while not any("/orchestrate" in s for s in pty.inputs) and time_module.monotonic() < deadline:
-        time_module.sleep(0.01)
-
-    orchestrate_inputs = [s for s in pty.inputs if "/orchestrate" in s]
-    assert orchestrate_inputs, "No /orchestrate command was injected after restart"
-    assert all(s.endswith("\r") for s in orchestrate_inputs), (
-        f"Expected /orchestrate to end with \\r (CR), got: {orchestrate_inputs!r}"
+    assert exec_called and exec_called[0] == ["claude", "/orchestrate"], (
+        f"Expected ['claude', '/orchestrate'], got {exec_called}"
     )
+    assert len(pty.inputs) == 0, f"No PTY input expected; got {pty.inputs!r}"
 
 
 def test_t148_no_lf_in_pty_injections(tmp_path):
