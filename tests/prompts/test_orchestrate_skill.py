@@ -187,8 +187,12 @@ def test_orchestrate_pass2_cross_tier_routing():
         assert "Pass 2" in content
         # Assert cross-tier reviewer routing rule is present
         assert "opposite tier" in content.lower() or "cross-tier" in content.lower()
-        assert "haiku-implemented" in content.lower()
-        assert "sonnet-implemented" in content.lower()
+        if "claude" in str(f):
+            assert "haiku-implemented" in content.lower()
+            assert "sonnet-implemented" in content.lower()
+        else: # gemini
+            assert "flash low-implemented" in content.lower()
+            assert "flash high-implemented" in content.lower()
 
 
 def test_orchestrate_skills_contain_pty_signal():

@@ -140,9 +140,13 @@ effective_rate = min(rate_5hr, rate_wkly)
 
 Close every prompt: `"End your final message with TOKENS: input=N output=N — nothing after that line."`
 
+**Model selection per task (before spawn):**
+- Mechanical (estimated_lines ≤ 80 OR title/description contains: test, fix, rename, stub, move, format, lint, config): model: "gemini-1.5-flash-8b" (Flash Low)
+- Default (exploratory, architecture, new module, algorithm): model: "gemini-2.5-flash" (Flash High)
+
 **Per-round scheduling:** Per task, run `python3 -c "from agentflow.shadow.task_estimator import estimate; print(estimate(<estimated_lines>, <file_count>))"` (fallback 2500 if absent). Cap: `floor(threshold/pct_cost)`. Disjoint owns: if tasks share an `owns` path — OWNS CONFLICT, move overlap to next sub-round.
 
-Spawn one agent per group, `isolation: "worktree"`. Parallel only if no cross-dependencies and rate supports. Save `.agentflow/state.json` after each.
+Spawn one agent per group, `isolation: "worktree"`, with the selected `model`. Parallel only if no cross-dependencies and rate supports. Save `.agentflow/state.json` after each.
 
 ### Round Lifecycle & PTY Signals
 At the start of each round, write `.agentflow/current_round.json` with the following schema:
@@ -178,9 +182,9 @@ CRITICAL: hardcoded secrets, signal injection. WARNING: bare except, size > 250 
 
 **Pass 2 — LLM Reviewer (cross-tier model routing):**
 Select the reviewer model based on the model used by the implementing agent to implement the task (opposite tier routing):
-- Haiku-implemented tasks (`claude-haiku-4-5-20251001`) → Route to Sonnet reviewer (`claude-sonnet-4-6`)
-- Sonnet-implemented tasks (`claude-sonnet-4-6`) → Route to Haiku reviewer (`claude-haiku-4-5-20251001`)
-*Rationale:* Cross-tier review catches blind spots cheaply, while the subsequent human gate backstops cases where a Haiku reviewer misses subtle issues in Sonnet output.
+- Flash Low-implemented tasks (`gemini-1.5-flash-8b`) → Route to Flash High reviewer (`gemini-2.5-flash`)
+- Flash High-implemented tasks (`gemini-2.5-flash`) → Route to Flash Low reviewer (`gemini-1.5-flash-8b`)
+*Rationale:* Aligns with Flash High / Flash Low experimentation to measure token consumption and review quality trade-offs.
 
 Embed `commands/claude/reviewer/code_review.md`, `commands/claude/reviewer/security_review.md`, `commands/claude/reviewer/test_review.md`. Include pre-filter findings, changed files, diff (max 300 lines).
 
