@@ -131,12 +131,12 @@ def test_e2e_handoff_restart_real_pty(tmp_path):
         new_child_pid = pty_wrapper.child_pid
         assert new_child_pid != original_child_pid, "child_pid must change after restart"
 
-        # Verify on_enter_idle injected /orchestrate\r (T-189: uses 1.5s delayed daemon thread)
-        deadline = time.monotonic() + 2.0
-        while "/orchestrate\r" not in pty_wrapper.inputs and time.monotonic() < deadline:
-            time.sleep(0.1)
-        assert "/orchestrate\r" in pty_wrapper.inputs, (
-            f"on_enter_idle must inject /orchestrate\\r; got {pty_wrapper.inputs}"
+        # T-195: skill is now a spawn positional arg, not a PTY stdin injection.
+        # Verify _just_restarted was consumed (cleared by on_enter_idle) and no injection in pty inputs.
+        assert sm._just_restarted is False, "_just_restarted must be cleared after reaching IDLE"
+        orchestrate_inputs = [s for s in pty_wrapper.inputs if "/orchestrate" in s]
+        assert orchestrate_inputs == [], (
+            f"T-195: /orchestrate must not be written to PTY stdin; got {pty_wrapper.inputs}"
         )
 
     # Cleanup: kill child
