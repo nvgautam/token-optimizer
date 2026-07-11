@@ -82,7 +82,7 @@ def handle_output(manager, chunk: bytes) -> None:
         manager._last_idx_injected = detected_path
 
     if manager.session_type is None:
-        new_st = "oracle" if "/oracle" in text else "orchestrator" if "/orchestrate" in text else None
+        new_st = "orchestrator" if "/orchestrate" in text else "oracle" if "/oracle" in text else None
         if new_st:
             manager._log_audit({"event": "session_type_transition", "old": manager.session_type, "new": new_st})
             manager.session_type, manager._turn_count, manager._arm = new_st, 0, manager._read_arm_file()
