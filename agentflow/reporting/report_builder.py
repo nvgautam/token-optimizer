@@ -5,6 +5,7 @@ from agentflow.shadow.analyzer import _load_log, get_bucketed_stats
 from agentflow.shadow.verbosity_ab import load_baseline, import_from_verbosity_log, run_ab_comparison
 from agentflow.reporting.steady_state import _parse_ts, WINDOW_START
 from agentflow.reporting import growth_tracker, code_size_savings
+from agentflow.reporting.model_routing import model_routing_savings
 
 def _reporting_window(entries: list[dict]) -> tuple[str, str] | None:
     ts = [e.get("ts") for e in entries if e.get("ts")]
@@ -197,7 +198,9 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
     proj = growth_tracker.projections(daily)
     file_reads_saved = idx_savings + offset_savings
     handoff_saved, handoff_real, n_sessions = _handoff_component(project_root)
-    total_saved = file_reads_saved + verbosity_savings + handoff_saved + compression_savings + code_size_saved
+    routing = model_routing_savings(project_root)
+    routing_usd, routing_tasks, routing_tokens = routing["usd_saved"], routing["haiku_tasks"], routing["token_saved_equivalent"]
+    total_saved = file_reads_saved + verbosity_savings + handoff_saved + compression_savings + code_size_saved + routing_tokens
     total_real = file_reads_real + sum(e.get("output_tokens", 0) for e in windowed_verb_entries) + handoff_real
     shadow_mode_tokens = total_real + total_saved
     pct_saved = (total_saved / shadow_mode_tokens * 100) if shadow_mode_tokens > 0 else 0.0
@@ -206,10 +209,10 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
     shadow_extra_all, real_all, n_all = _lifetime_recycling_callout(project_root)
     lifetime_recycle_pct = (shadow_extra_all / (shadow_extra_all + real_all) * 100) if (shadow_extra_all + real_all) > 0 else 0.0
     print(f"LIFETIME RECYCLING (N={n_all} sessions): {lifetime_recycle_pct:.1f}% vs shadow baseline (no-recycle model)")
-    denom = idx_savings + compression_savings + verbosity_savings + handoff_saved + code_size_saved
+    denom = idx_savings + compression_savings + verbosity_savings + handoff_saved + code_size_saved + routing_tokens
     def pct(val):
         return (val / denom * 100) if denom > 0 else 0.0
-    idx_savings_pct, verbosity_savings_pct, compression_savings_pct, handoff_savings_pct, code_size_savings_pct = pct(idx_savings), pct(verbosity_savings), pct(compression_savings), pct(handoff_saved), pct(code_size_saved)
+    idx_savings_pct, verbosity_savings_pct, compression_savings_pct, handoff_savings_pct, code_size_savings_pct, routing_savings_pct = pct(idx_savings), pct(verbosity_savings), pct(compression_savings), pct(handoff_saved), pct(code_size_saved), pct(routing_tokens)
     STRATEGY_ROWS = [
         ("stats_idx", "Symbol Index & Section loading (idx)", "waste", stats["targeted-reads"], ""),
         ("stats_no_reread", "No-re-read Rule compliance (no-reread)", "waste", stats["no-reread"], ""),
@@ -219,7 +222,8 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
         ("verbosity_savings", "Output Verbosity Savings (verbosity)", "real", verbosity_savings, verbosity_annotation),
         ("compression_savings", "Compression Savings (compression)", "real", compression_savings, ""),
         ("handoff_savings", "Session Recycling — measured from agentflow_ledger.json (handoff)", "real", handoff_saved, f" [windowed N={n_sessions} sessions since WINDOW_START]"),
-        ("code_size_savings", "Code-Size Savings via file splitting (code-size)", "real", code_size_saved, "")
+        ("code_size_savings", "Code-Size Savings via file splitting (code-size)", "real", code_size_saved, ""),
+        ("model_routing_savings", f"Model Routing — Haiku vs Sonnet ({routing_tasks} tasks, ${routing_usd:.4f} USD saved) (model-routing)", "real", routing_tokens, f" [${routing_usd:.4f} USD saved, token-equivalent at output price]"),
     ]
     print(f"Verbosity baseline (T-081):{verbosity_annotation}")
     print(f"  Per-turn savings: {verbosity_savings_per_turn:.1f} tokens/turn ({verbosity_pct_saved:.1f}% of output tokens)")
@@ -242,7 +246,8 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
         "{lifetime_recycling_str}": f"Lifetime (N={n_all} sessions) — {lifetime_recycle_pct:.1f}% vs shadow baseline (no-recycle model)",
         "{idx_savings_pct}": f"{idx_savings_pct:.1f}", "{verbosity_savings_pct}": f"{verbosity_savings_pct:.1f}",
         "{compression_savings_pct}": f"{compression_savings_pct:.1f}", "{handoff_savings_pct}": f"{handoff_savings_pct:.1f}",
-        "{code_size_savings_pct}": f"{code_size_savings_pct:.1f}", "{verbosity_ab_banner_html}": banner_html, "{capacity_calibration_html}": _load_calibration_html()
+        "{code_size_savings_pct}": f"{code_size_savings_pct:.1f}", "{model_routing_savings_pct}": f"{routing_savings_pct:.1f}",
+        "{verbosity_ab_banner_html}": banner_html, "{capacity_calibration_html}": _load_calibration_html()
     }
     replacements.update({f"{{{ph}_str}}": f"{val:,}{note}" for ph, _, _, val, note in STRATEGY_ROWS})
     replacements["{trend_panel_html}"] = growth_tracker.render_sparklines_html(daily)
