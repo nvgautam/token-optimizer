@@ -140,93 +140,49 @@ def test_init_task_running_gated_on_orchestrator_session_type(tmp_path):
     assert sm_orch._state_machine.state == States.TASK_RUNNING
 
 
-def test_on_enter_idle_reinjects_skill():
-    """Test that on_enter_idle reinjects the correct skill based on session_type."""
-    from unittest.mock import MagicMock, patch
-    import time as time_module
+def _test_spawn_new_child_command(just_restarted, session_type, expected_args):
+    """Helper: verify spawn_new_child command."""
+    from agentflow.shell.process_manager import spawn_new_child
+    import pty as pty_module
 
-    # Test orchestrator case (T-189: uses 1.5s delayed daemon thread)
+    sm, pty, _ = make_manager()
+    sm._just_restarted = just_restarted
+    sm.session_type = session_type
+
+    exec_called = []
+    with patch.object(pty_module, "fork", return_value=(0, 123)), \
+         patch("os.execvp", side_effect=lambda cmd, args: exec_called.append(args) or (_ for _ in ()).throw(SystemExit(127))), \
+         patch("os._exit"):
+        try:
+            spawn_new_child(sm)
+        except SystemExit:
+            pass
+
+    assert len(exec_called) == 1
+    assert exec_called[0] == expected_args, f"Expected {expected_args}, got {exec_called[0]}"
+
+
+def test_spawn_new_child_appends_skill():
+    """T-195: spawn_new_child appends /{skill} when _just_restarted and session_type set."""
+    _test_spawn_new_child_command(True, "orchestrator", ["claude", "/orchestrate"])
+    _test_spawn_new_child_command(True, "oracle", ["claude", "/oracle"])
+
+
+def test_spawn_new_child_no_skill_conditions():
+    """T-195: spawn_new_child omits skill when _just_restarted=False, session_type=None, or unknown type."""
+    _test_spawn_new_child_command(False, "orchestrator", ["claude"])
+    _test_spawn_new_child_command(True, None, ["claude"])
+    _test_spawn_new_child_command(True, "reviewer", ["claude"])  # unknown type → no skill
+
+
+def test_on_enter_idle_clears_just_restarted_no_injection():
+    """T-195: on_enter_idle clears _just_restarted without writing to pty.inputs."""
     sm, pty, _ = make_manager()
     sm._just_restarted = True
     sm.session_type = "orchestrator"
-    with patch("time.sleep"):  # Mock sleep to avoid 1.5s delay in test
-        sm.on_enter_idle()
-    # Wait briefly for daemon thread to execute
-    deadline = time_module.monotonic() + 1.0
-    while "/orchestrate\r" not in pty.inputs and time_module.monotonic() < deadline:
-        time_module.sleep(0.01)
-    assert "/orchestrate\r" in pty.inputs
+    sm.on_enter_idle()
     assert sm._just_restarted is False
-
-    # Test oracle case
-    sm2, pty2, _ = make_manager()
-    sm2._just_restarted = True
-    sm2.session_type = "oracle"
-    with patch("time.sleep"):
-        sm2.on_enter_idle()
-    deadline = time_module.monotonic() + 1.0
-    while "/oracle\r" not in pty2.inputs and time_module.monotonic() < deadline:
-        time_module.sleep(0.01)
-    assert "/oracle\r" in pty2.inputs
-    assert sm2._just_restarted is False
-
-    # Test None case (no injection)
-    sm3, pty3, _ = make_manager()
-    sm3._just_restarted = True
-    sm3.session_type = None
-    with patch("time.sleep"):
-        sm3.on_enter_idle()
-    assert len(pty3.inputs) == 0
-    assert sm3._just_restarted is False
-
-
-def test_restart_end_to_end_via_state_machine():
-    """Test the full restart flow: _just_restarted → on_enter_idle → skill reinjection."""
-    from unittest.mock import patch
-    import time as time_module
-
-    sm, pty, _ = make_manager()
-    sm.session_type = "orchestrator"
-    sm._just_restarted = True
-
-    # Simulate transitioning to idle state which calls on_enter_idle (T-189: delayed inject)
-    with patch("time.sleep"):
-        sm.on_enter_idle()
-
-    # Verify skill was reinjected (wait for daemon thread)
-    deadline = time_module.monotonic() + 1.0
-    while "/orchestrate\r" not in pty.inputs and time_module.monotonic() < deadline:
-        time_module.sleep(0.01)
-    assert "/orchestrate\r" in pty.inputs
-
-    # Verify _just_restarted flag was cleared
-    assert sm._just_restarted is False
-
-
-def test_on_enter_idle_oserror_safe():
-    """Test that OSError during skill injection is caught and does not propagate."""
-    from unittest.mock import MagicMock, patch
-    import time as time_module
-
-    sm, pty, _ = make_manager()
-    sm.session_type = "orchestrator"
-    sm._just_restarted = True
-
-    # Mock write_input to raise OSError
-    pty.write_input = MagicMock(side_effect=OSError("Broken pipe"))
-
-    # Should not raise an exception (T-189: delayed inject in daemon thread)
-    with patch("time.sleep"):
-        sm.on_enter_idle()
-
-    # Give daemon thread a moment to try executing (and fail safely)
-    time_module.sleep(0.05)
-
-    # Verify _just_restarted was still cleared despite the error
-    assert sm._just_restarted is False
-
-    # Verify write_input was attempted
-    pty.write_input.assert_called_once_with("/orchestrate\r")
+    assert len(pty.inputs) == 0  # No injection — skill is now passed via spawn arg
 
 
 def test_sync_session_type_reads_sid_keyed_file_first():

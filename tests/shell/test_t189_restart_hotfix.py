@@ -124,98 +124,50 @@ class TestContextFillReset:
 
 
 class TestDelayedInject:
-    """Fix #4: on_enter_idle injects restart command via 1.5s delayed daemon thread."""
+    """T-195: on_enter_idle no longer injects via thread; skill is now a spawn arg."""
 
-    def test_delayed_inject_spawns_daemon_thread(self):
-        """on_enter_idle should spawn a daemon thread for delayed injection."""
+    def test_on_enter_idle_no_thread_injection(self):
+        """T-195: on_enter_idle clears _just_restarted without spawning a thread or writing to PTY."""
         sm, pty, tok = make_manager()
         sm.session_type = "orchestrator"
         sm._just_restarted = True
+        sm.on_enter_idle()
+        assert sm._just_restarted is False
+        assert len(pty.inputs) == 0, "No PTY injection expected — skill is now a spawn arg"
 
-        with patch("threading.Thread") as mock_thread:
-            sm.on_enter_idle()
-
-            # Thread should be created
-            mock_thread.assert_called_once()
-            call_kwargs = mock_thread.call_args[1]
-            assert call_kwargs["daemon"] is True, "Thread should be a daemon"
-            mock_thread.return_value.start.assert_called_once()
-
-    def test_delayed_inject_sends_correct_command(self):
-        """The delayed inject thread should send the correct /orchestrate command."""
-        sm, pty, tok = make_manager()
-        sm.session_type = "orchestrator"
-        sm._just_restarted = True
-
-        with patch("time.sleep"):  # Mock sleep to avoid real delay
-            sm.on_enter_idle()
-
-        # Check that after a short delay, the PTY received the command
-        # We need to manually call the thread function to verify its behavior
-        # Better approach: mock threading.Thread and capture the target
-        sm2, pty2, tok2 = make_manager()
-        sm2.session_type = "orchestrator"
-        sm2._just_restarted = True
-
-        thread_target = None
-
-        def capture_thread(target, daemon):
-            nonlocal thread_target
-            thread_target = target
-            # Return a mock thread
-            mock_t = Mock()
-            mock_t.start = Mock()
-            return mock_t
-
-        with patch("threading.Thread", side_effect=capture_thread):
-            sm2.on_enter_idle()
-
-        # Verify the thread target was captured
-        assert thread_target is not None, "Thread target should be captured"
-
-        # Call the target function directly (with mocked sleep)
-        with patch("time.sleep"):
-            thread_target()
-
-        # Verify the command was written to PTY
-        assert "/orchestrate\r" in pty2.inputs, f"Expected /orchestrate\\r in {pty2.inputs}"
-
-    def test_delayed_inject_oracle_command(self):
-        """For oracle session_type, delayed inject should send /oracle."""
+    def test_on_enter_idle_oracle_no_thread_injection(self):
+        """T-195: on_enter_idle does not inject for oracle sessions either."""
         sm, pty, tok = make_manager()
         sm.session_type = "oracle"
         sm._just_restarted = True
+        sm.on_enter_idle()
+        assert sm._just_restarted is False
+        assert len(pty.inputs) == 0
 
-        thread_target = None
-
-        def capture_thread(target, daemon):
-            nonlocal thread_target
-            thread_target = target
-            mock_t = Mock()
-            mock_t.start = Mock()
-            return mock_t
-
-        with patch("threading.Thread", side_effect=capture_thread):
-            sm.on_enter_idle()
-
-        assert thread_target is not None
-
-        with patch("time.sleep"):
-            thread_target()
-
-        assert "/oracle\r" in pty.inputs, f"Expected /oracle\\r in {pty.inputs}"
+    def test_spawn_new_child_skill_arg_orchestrator(self):
+        """T-195: spawn_new_child passes /orchestrate as positional arg on restart."""
+        import pty as pty_module
+        from agentflow.shell.process_manager import spawn_new_child
+        sm, pty, tok = make_manager()
+        sm._just_restarted = True
+        sm.session_type = "orchestrator"
+        exec_called = []
+        with patch.object(pty_module, "fork", return_value=(0, 123)), \
+             patch("os.execvp", side_effect=lambda cmd, args: exec_called.append(args) or (_ for _ in ()).throw(SystemExit(127))), \
+             patch("os._exit"):
+            try:
+                spawn_new_child(sm)
+            except SystemExit:
+                pass
+        assert exec_called[0] == ["claude", "/orchestrate"]
 
     def test_delayed_inject_skipped_if_not_just_restarted(self):
         """on_enter_idle should not inject if _just_restarted is False."""
         sm, pty, tok = make_manager()
         sm.session_type = "orchestrator"
         sm._just_restarted = False
-
-        with patch("threading.Thread") as mock_thread:
-            sm.on_enter_idle()
-
-            # Thread should NOT be created
-            mock_thread.assert_not_called()
+        sm.on_enter_idle()
+        assert len(pty.inputs) == 0
 
 
 class TestSyncSessionTypeRereads:
