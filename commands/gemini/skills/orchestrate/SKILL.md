@@ -31,10 +31,16 @@ Compute `HASH=$(python3 -c "import hashlib,os; print(hashlib.sha256(os.getcwd().
 For `execution_plan.md` only: if `.idx` absent or source mtime newer than `.idx` mtime, regenerate (H2/H3 headers, `## Header:start-end`). Do not index `design_status.md` — Step 3 uses raw grep only.
 
 ### Step 3 — Oracle gate
-Run: `grep -c "| UNRESOLVED |" design_status.md 2>/dev/null || echo ABSENT`
+Run: `awk -F'|' '{gsub(/^[[:space:]]+|[[:space:]]+$/,"",$2); if($2=="UNRESOLVED")c++}END{print c+0}' design_status.md 2>/dev/null || echo ABSENT`
 
 - `ABSENT` → proceed.
 - Count > 0 → stop: "Design has unresolved items. Run `/oracle` to resolve them first." No Read needed.
+
+### Step 3b — Load startup cache (fast path)
+```bash
+cat .agentflow/orchestrate_cache.json 2>/dev/null
+```
+If file exists and `python3 -c "from agentflow.shell.orchestrate_cache import is_cache_stale; import pathlib; print(is_cache_stale(pathlib.Path('.')))"` prints `False`: read cache JSON, skip Steps 4 and 4b, jump to Step 5. Otherwise continue to Step 4 (full load).
 
 ### Step 4 — Load execution state
 **No `architecture.md` or `CLAUDE.md` at startup.**
@@ -46,9 +52,9 @@ grep "^## Master Round Table" ~/.agentflow/cache/$HASH/index/execution_plan.md.i
 ```
 Then `Read(offset=<start>, limit=<end-start+1>)`.
 
-`tasks.json` — extract pending entries only, never read full file:
+`tasks.json` — extract pending entries only (omit description to save context):
 ```bash
-python3 -c "import json; d=json.load(open('tasks.json')); [print(json.dumps(t)) for t in d['tasks'] if t['status']=='pending']"
+python3 -c "import json; d=json.load(open('tasks.json')); [print(json.dumps({k:v for k,v in t.items() if k != 'description'})) for t in d['tasks'] if t['status']=='pending']"
 ```
 
 Check `.agentflow/state.json`. Present → report resumed state and ask "Continue?". Absent → identify first incomplete milestone. `/orchestrate debug` → reveal grouping plan and ask "Proceed?".
@@ -60,6 +66,8 @@ Proceed directly to execute or decompose the round without prompting the user.
 
 ### Step 5 — Load prior calibration
 Load `~/.agentflow/rate_calibration_gemini.json` (if absent and `~/.agentflow/rate_calibration.json` exists, load `~/.agentflow/rate_calibration.json` as a one-time compat fallback); init EWMA: `ewma_mean_tokens=2500, ewma_cv=0.0, sample_count=0, ewma_alpha=0.3` if generic also absent.
+
+Gate file: same staleness rule as Step 3.
 
 
 ---
@@ -132,9 +140,13 @@ effective_rate = min(rate_5hr, rate_wkly)
 
 Close every prompt: `"End your final message with TOKENS: input=N output=N — nothing after that line."`
 
-**Per-round scheduling:** Per task, estimate cost via `agentflow.shadow.task_estimator.estimate(estimated_lines, file_count)` (fallback 2500). Cap: `floor(threshold/pct_cost)`. Disjoint owns: if tasks share an `owns` path — OWNS CONFLICT, move overlap to next sub-round.
+**Model selection per task (before spawn):**
+- Mechanical (estimated_lines ≤ 80 OR title/description contains: test, fix, rename, stub, move, format, lint, config): model: "gemini-1.5-flash-8b" (Flash Low)
+- Default (exploratory, architecture, new module, algorithm): model: "gemini-2.5-flash" (Flash High)
 
-Spawn one agent per group, `isolation: "worktree"`. Parallel only if no cross-dependencies and rate supports. Save `.agentflow/state.json` after each.
+**Per-round scheduling:** Per task, run `python3 -c "from agentflow.shadow.task_estimator import estimate; print(estimate(<estimated_lines>, <file_count>))"` (fallback 2500 if absent). Cap: `floor(threshold/pct_cost)`. Disjoint owns: if tasks share an `owns` path — OWNS CONFLICT, move overlap to next sub-round.
+
+Spawn one agent per group, `isolation: "worktree"`, with the selected `model`. Parallel only if no cross-dependencies and rate supports. Save `.agentflow/state.json` after each.
 
 ### Round Lifecycle & PTY Signals
 At the start of each round, write `.agentflow/current_round.json` with the following schema:
@@ -148,8 +160,8 @@ At the start of each round, write `.agentflow/current_round.json` with the follo
 }
 ```
 During the round execution, orchestrate the worker lifecycles with deterministic stdout print signals:
-- Before spawning each worker: print `AGENTFLOW_TASK_START:<task_id>`
-- After each worker completes: print `AGENTFLOW_TASK_COMPLETE:<task_id>`
+- Before spawning each worker: run `python agentflow/shell/pty_signal.py task_start <task_id>` and print `AGENTFLOW_TASK_START:<task_id>`
+- After each worker completes: print `AGENTFLOW_TASK_COMPLETE:<task_id>` and run `python agentflow/shell/pty_signal.py task_done <task_id>`
 - After all round tasks complete: print `AGENTFLOW_ROUND_COMPLETE`
 
 ---
@@ -168,7 +180,12 @@ grep -nE "(password|secret|api_key|token)\s*=\s*['\"][^'\"]{8,}" $(cat /tmp/rf.t
 ```
 CRITICAL: hardcoded secrets, signal injection. WARNING: bare except, size > 250 lines.
 
-**Pass 2 — LLM (fresh haiku agent):**
+**Pass 2 — LLM Reviewer (cross-tier model routing):**
+Select the reviewer model based on the model used by the implementing agent to implement the task (opposite tier routing):
+- Flash Low-implemented tasks (`gemini-1.5-flash-8b`) → Route to Flash High reviewer (`gemini-2.5-flash`)
+- Flash High-implemented tasks (`gemini-2.5-flash`) → Route to Flash Low reviewer (`gemini-1.5-flash-8b`)
+*Rationale:* Aligns with Flash High / Flash Low experimentation to measure token consumption and review quality trade-offs.
+
 Embed `commands/claude/reviewer/code_review.md`, `commands/claude/reviewer/security_review.md`, `commands/claude/reviewer/test_review.md`. Include pre-filter findings, changed files, diff (max 300 lines).
 
 - `CRITICAL` → rework (one retry; escalate on second failure)
