@@ -53,9 +53,32 @@ class ProxyShell:
         arm_file.parent.mkdir(parents=True, exist_ok=True)
         arm_file.write_text(arm)
 
+    def _write_model_arm(self) -> None:
+        """Write .agentflow/model_ab_arm.txt with 'haiku' or 'sonnet'.
+
+        Reads agentflow_ledger.json to find the last session's model_arm and
+        alternates; defaults to 'sonnet' if no prior session is found.
+        """
+        import json as _json
+        arm_file = self.project_root / ".agentflow" / "model_ab_arm.txt"
+        arm_file.parent.mkdir(parents=True, exist_ok=True)
+        last_arm = "sonnet"
+        ledger_path = self.project_root / "agentflow_ledger.json"
+        if ledger_path.exists():
+            try:
+                data = _json.loads(ledger_path.read_text(encoding="utf-8"))
+                sessions = data.get("sessions", [])
+                if sessions:
+                    last_arm = sessions[-1].get("model_arm", "sonnet")
+            except Exception:
+                pass
+        arm = "haiku" if last_arm == "sonnet" else "sonnet"
+        arm_file.write_text(arm)
+
     def start(self) -> None:
         """Spawn proxy subprocess, read port, set ANTHROPIC_BASE_URL env."""
         self._flip_ab_arm()
+        self._write_model_arm()
         self._secret = secrets.token_hex(32)
         env = {
             **os.environ,

@@ -54,7 +54,7 @@ def _parse_usage_from_response(resp_body: bytes, content_type: str) -> tuple[int
 def _log_entry(
     request_id: str, tokens_before: int, tokens_after: int, compression_ratio: float,
     output_tokens: int = 0, cache_read_input_tokens: int = 0,
-    cache_creation_input_tokens: int = 0,
+    cache_creation_input_tokens: int = 0, model: str = "",
 ) -> None:
     """Append telemetry to .agentflow/proxy_log.jsonl. Never logs content."""
     log_dir = _project_root / ".agentflow"
@@ -64,7 +64,8 @@ def _log_entry(
                   "tokens_before": tokens_before, "tokens_after": tokens_after,
                   "compression_ratio": compression_ratio, "output_tokens": output_tokens,
                   "cache_read_input_tokens": cache_read_input_tokens,
-                  "cache_creation_input_tokens": cache_creation_input_tokens}
+                  "cache_creation_input_tokens": cache_creation_input_tokens,
+                  "model": model}
         with open(log_dir / "proxy_log.jsonl", "a", encoding="utf-8") as fh:
             fh.write(json.dumps(record) + "\n")
     except OSError:
@@ -118,7 +119,7 @@ class _ProxyHandler(BaseHTTPRequestHandler):
             self.wfile.write(b'{"error":"upstream_failed"}')
             return
         ot, cr2, cc = _parse_usage_from_response(rb, rh.get("content-type", ""))
-        _log_entry(rid, tb, ta, cr, ot, cr2, cc)
+        _log_entry(rid, tb, ta, cr, ot, cr2, cc, model=p.get("model", ""))
         self.send_response(s)
         skip = {"transfer-encoding", "content-length", "connection", "content-encoding"}
         for h, v in rh.items():
