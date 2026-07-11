@@ -375,17 +375,7 @@
     },
     {
       "task_id": "T-098",
-      "title": "Model Routing Savings \u2014 track USD and token-class savings in combined report",
-      "description": "Extend agentflow reporting to calculate and display savings gained by routing subagent tasks to cheaper models (e.g. Claude Haiku vs. Sonnet). (1) Read agentflow_ledger.json sessions and log entries. (2) For each subagent run, check if a cheaper model (Haiku) was selected instead of the premium default (Sonnet). (3) Compute the shadow cost (what it would have cost on Sonnet) vs the actual cost (Haiku). (4) Integrate 'model_routing' as a new savings strategy row and daily trend in report_builder.py and combined_report.html. (5) Tests: write a test verifying the cost differential calculation and HTML output rendering.",
-      "owns": [
-        "agentflow/reporting/report_builder.py",
-        "tests/reporting/test_report_builder.py"
-      ],
-      "reads": [
-        "agentflow_ledger.json"
-      ],
-      "depends_on": [],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-103",
