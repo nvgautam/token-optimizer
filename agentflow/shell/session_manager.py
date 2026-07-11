@@ -118,6 +118,7 @@ class SessionManager:
         self._sync_session_type()
         self.poll()
         self._check_drain_restart()
+        self._check_debug_restart_trigger()
         now = time.monotonic()
         if not hasattr(self, "_last_guard_tick") or now - self._last_guard_tick > 60.0:
             self._last_guard_tick = now
@@ -256,3 +257,6 @@ class SessionManager:
 
     def _check_drain_restart(self) -> None:
         from agentflow.shell.handoff_handler import check_drain_restart; check_drain_restart(self)
+
+    def _check_debug_restart_trigger(self) -> None:
+        from agentflow.shell.debug_trigger import check_debug_restart_trigger; check_debug_restart_trigger(self)

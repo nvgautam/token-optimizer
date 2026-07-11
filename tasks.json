@@ -801,6 +801,17 @@
       "depends_on": [],
       "status": "pending",
       "estimated_lines": 40
+    },
+    {
+      "task_id": "T-192",
+      "title": "Split tests/reporting/test_report_builder.py \u2014 size violation",
+      "description": "Split tests/reporting/test_report_builder.py (491 lines, limit 350). Violation timestamp: 2026-07-10T16:53:54.408581. Choose the split boundary by test class or fixture group, not line count. Verify each output file is \u2264 350 lines after splitting.",
+      "owns": [
+        "tests/reporting/test_report_builder.py"
+      ],
+      "reads": [],
+      "depends_on": [],
+      "status": "pending"
     }
   ]
 }
