@@ -135,6 +135,11 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
         run_ab_comparison(project_root)
     except Exception:
         pass
+    try:
+        from agentflow.shadow.model_ab import run_model_ab
+        _model_ab = run_model_ab(project_root)
+    except Exception:
+        _model_ab = {}
     if store_url is None:
         local_db = project_root / ".headroom" / "headroom.db"
         store_url = f"sqlite:///{local_db.resolve()}" if local_db.exists() else f"sqlite:///{Path.home()}/.headroom/headroom.db"
@@ -228,6 +233,13 @@ def build_report(project_root: Path, mode: str = "aggregate", output_path: str =
     print(f"Verbosity baseline (T-081):{verbosity_annotation}")
     print(f"  Per-turn savings: {verbosity_savings_per_turn:.1f} tokens/turn ({verbosity_pct_saved:.1f}% of output tokens)")
     print(f"Verbosity A/B stopping criterion status: {stopping_status}")
+    _mab_models = _model_ab.get("models", {})
+    _h_n = _mab_models.get("haiku", {}).get("n", 0)
+    _s_n = _mab_models.get("sonnet", {}).get("n", 0)
+    if _h_n >= 5 and _s_n >= 5:
+        print(f"MODEL ROUTING A/B: haiku mean={_mab_models['haiku']['mean']:.1f} sonnet mean={_mab_models['sonnet']['mean']:.1f} delta={_model_ab.get('delta_pct', 0.0):.1f}%")
+    else:
+        print(f"MODEL ROUTING A/B: insufficient data (haiku n={_h_n}, sonnet n={_s_n}, need 5 each)")
     html_template = (Path(__file__).parent / "dashboard_template.html").read_text(encoding="utf-8")
     html_template = html_template.replace(
         '            <div class="card">\n                <div class="stat-label">Compression Savings</div>\n                <div class="stat-value">{compression_savings_str}</div>\n                <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Headroom context reduction</div>\n            </div>',
