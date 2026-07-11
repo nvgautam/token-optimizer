@@ -251,23 +251,6 @@ class TestOutputHandler(unittest.TestCase):
             self.assertTrue(manager._manual_handoff)
             manager._tokenizer.reset.assert_not_called()
 
-    def test_handle_output_session_type_transition(self):
-        """Session type transitions correctly on /oracle or /orchestrate."""
-        # Oracle transition
-        manager1 = self._create_mock_manager()
-        manager1.session_type = None
-        manager1._read_arm_file = Mock(return_value="A")
-        handle_output(manager1, b"/oracle\n")
-        self.assertEqual(manager1.session_type, "oracle")
-
-        # Orchestrator transition
-        manager2 = self._create_mock_manager()
-        manager2.session_type = None
-        manager2._read_arm_file = Mock(return_value="A")
-        handle_output(manager2, b"/orchestrate\n")
-        self.assertEqual(manager2.session_type, "orchestrator")
-
-
     def test_handle_output_task_signal_tracking(self):
         """Task start and complete signals are tracked and handled."""
         # Test task start tracking

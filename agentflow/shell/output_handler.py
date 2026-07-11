@@ -81,13 +81,6 @@ def handle_output(manager, chunk: bytes) -> None:
     if detected_path and detected_path != manager._last_idx_injected:
         manager._last_idx_injected = detected_path
 
-    if manager.session_type is None:
-        new_st = "orchestrator" if "/orchestrate" in text else "oracle" if "/oracle" in text else None
-        if new_st:
-            manager._log_audit({"event": "session_type_transition", "old": manager.session_type, "new": new_st})
-            manager.session_type, manager._turn_count, manager._arm = new_st, 0, manager._read_arm_file()
-            manager._update_session_file()
-
     if manager._state_machine.state == States.HANDOFF_PENDING and "HANDOFF_COMPLETE" in clean:
         try:
             manager._handoff_complete_path.parent.mkdir(parents=True, exist_ok=True)
