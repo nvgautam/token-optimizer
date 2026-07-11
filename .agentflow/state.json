@@ -1,12 +1,8 @@
 {
-  "last_round": "Demo-3",
-  "last_merged_tasks": [
-    "T-098"
-  ],
-  "pr": "https://github.com/nvgautam/token-optimizer/pull/107",
-  "merged_at": "2026-07-10T00:00:00Z",
-  "next_round": "Demo-3",
-  "next_tasks": [
-    "T-103"
-  ]
+  "last_round": "P0-pty-restart",
+  "last_merged_tasks": ["T-194"],
+  "pr": "https://github.com/nvgautam/token-optimizer/pull/111",
+  "merged_at": "2026-07-11T14:40:00",
+  "next_round": "P0-pty-restart-2",
+  "next_tasks": ["T-195"]
 }

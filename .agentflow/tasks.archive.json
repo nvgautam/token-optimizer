@@ -1562,5 +1562,21 @@
     ],
     "depends_on": [],
     "status": "complete"
+  },
+  {
+    "task_id": "T-191",
+    "title": "Deterministic session_type mapping via UserPromptSubmit hook",
+    "description": "Replace the fragile output-text heuristic in output_handler.py that detects session_type by scanning for '/oracle' or '/orchestrate' in PTY output. The current check-order bug (/oracle tested before /orchestrate) causes orchestrate sessions to misclassify as oracle whenever startup output mentions 'run /oracle', blocking check_drain_restart (condition 1). Fix: UserPromptSubmit hook writes session_state_<sid>.json with {\"session_type\": \"orchestrator\"} or {\"session_type\": \"oracle\"} when the submitted prompt contains /orchestrate or /oracle respectively. sync_session_type (already polling session_state_<sid>.json on every idle tick) becomes the authoritative source. Remove the text-scanning branch in output_handler.py (lines ~85-90). The hook fires before the skill renders output, so session_type is set deterministically before any ambiguous text reaches the PTY. owns: agentflow/hooks/verbosity_reminder.py (or whichever hook handles UserPromptSubmit), agentflow/shell/output_handler.py. Test: session classified correctly even when /orchestrate output references /oracle.",
+    "owns": [
+      "agentflow/hooks/verbosity_reminder.py",
+      "agentflow/shell/output_handler.py"
+    ],
+    "reads": [
+      "agentflow/shell/threshold_sync.py",
+      "agentflow/shell/session_manager.py"
+    ],
+    "depends_on": [],
+    "status": "complete",
+    "estimated_lines": 40
   }
 ]

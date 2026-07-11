@@ -424,8 +424,10 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Demo-2 — MERGED (PR #105 2026-07-10) | T-069 (T-064 deferred — blocked by T-063) | Parallel scheduling via task_estimator + disjoint owns check |
 | P0-restart — MERGED (PR #106 2026-07-10) | T-189 | PTY restart storm hotfix — context_fill reset + 30s cooldown + session_type re-sync + 1.5s delayed inject |
 | Demo-3 (MERGED PR #109 2026-07-11) | T-098 ‖ T-103 (parallel) | Combined savings report (USD + token-class) + Haiku vs Sonnet A/B — proves token reduction |
+| P0-session-type — MERGED (PR #110 2026-07-11) | T-191 | Deterministic session_type via UserPromptSubmit hook — eliminates output-text heuristic misclassification |
+| P0-pty-restart — MERGED (PR #111 2026-07-11) | T-194 | Fix init TASK_RUNNING oracle contamination — gate on orchestrator session_type |
+| P0-pty-restart-2 (next) | T-195 | Replace _delayed_inject with initialPrompt spawn mechanism |
 | Spike | T-190 | Session isolation design — per-SID volatile state folder; yields 5–8 implementation tasks |
-| P0-session-type | T-191 | Deterministic session_type via UserPromptSubmit hook — eliminates output-text heuristic misclassification |
 | Later | T-063, T-099, T-162, T-167, T-168, T-174, T-178 | Multi-provider claiming + Gemini oracle + oracle polish + headroom spike + hook audit |
 
 Priority rationale (2026-07-10): Demo goal is orchestrate seamlessly looping — picks tasks that fit in one session, processes, recycles PTY, repeats. Demo-1 closes the gap where task selection is unbounded (T-068 estimates cost, T-064 checks headroom before claiming). Demo-2 wires scheduling to respect the budget. Demo-3 adds savings proof. Cross-provider (T-063, T-099) deferred; Claude-only for demo. Old rounds E/F dissolved into Demo-1–3.
@@ -624,6 +626,28 @@ Pre-compute round state on PTY startup to skip startup commands. See commit 9245
 **Acceptance criteria (additional):** After fix, oracle auto-restart must inject `/oracle\r` into the correct PTY session only (no cross-session bleed). Verify with audit logs that a restarted oracle shell reads `session_type=oracle` from its own sid-keyed file, not a stale orchestrator value.
 
 **Files:** `agentflow/hooks/user_prompt_submit.py`, `agentflow/shell/session_manager.py`, `tests/hooks/test_user_prompt_submit.py`, `tests/shell/test_session_manager.py`
+
+---
+
+## Addendum: T-194 — Fix init TASK_RUNNING oracle contamination (MERGED PR #111 2026-07-11)
+
+**Goal:** `session_manager.py` `__init__` set `TASK_RUNNING` whenever `current_round.json` existed, regardless of session_type. Oracle sessions contaminated. Fix: move check after `_sync_session_type()` and gate on `self.session_type == "orchestrator"`.
+
+**Files:** `agentflow/shell/session_manager.py`, `tests/shell/test_session_manager.py`
+
+---
+
+## Addendum: T-195 — Replace _delayed_inject with initialPrompt spawn (filed 2026-07-11)
+
+**Status:** PENDING
+
+**Goal:** `on_enter_idle`'s `_delayed_inject` (1.5s sleep thread writing `/orchestrate\r` to PTY stdin) is fragile. Replace: in `spawn_new_child` (`process_manager.py`), when `_just_restarted=True` and `session_type` is set, build spawn command as `[cmd, f"/{skill}"]` (e.g. `["claude", "/orchestrate"]`) so the CLI receives the prompt as a positional arg. Remove `_delayed_inject` thread from `on_enter_idle` entirely. Depends on T-194 (MERGED).
+
+**Acceptance criteria:** No `threading.Thread` call in `on_enter_idle`. After restart, skill command appears as first user message. Unit test: mock `spawn_new_child`, assert command includes skill when `_just_restarted=True` and `session_type` set.
+
+**Files:** `agentflow/shell/session_manager.py`, `agentflow/shell/process_manager.py`, `tests/shell/test_session_manager.py`
+
+**estimated_lines:** 40
 
 ---
 
