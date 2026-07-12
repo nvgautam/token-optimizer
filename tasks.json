@@ -801,14 +801,7 @@
     },
     {
       "task_id": "T-198",
-      "status": "pending",
-      "title": "PostToolUse hook: write context_fill.json after each tool call",
-      "description": "Move context_fill.json writes from the Stop hook into a PostToolUse hook so fill_tokens is updated mid-turn after every tool call. Eliminates the race where PTY enters IDLE and check_drain_restart reads a stale cached value from the previous turn. PostToolUse payload already contains transcript_path; reuse extract_fill_from_transcript logic from stop_context_capture.py. Stop hook retains its write as a safety fallback. No new dependencies.",
-      "owns": [
-        "agentflow/hooks/post_tool_use.py",
-        ".claude/settings.json"
-      ],
-      "priority": "P0"
+      "status": "complete"
     }
   ]
 }

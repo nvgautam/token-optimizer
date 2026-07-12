@@ -427,7 +427,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | P0-session-type — MERGED (PR #110 2026-07-11) | T-191 | Deterministic session_type via UserPromptSubmit hook — eliminates output-text heuristic misclassification |
 | P0-pty-restart — MERGED (PR #111 2026-07-11) | T-194 | Fix init TASK_RUNNING oracle contamination — gate on orchestrator session_type |
 | P0-pty-restart-2 — MERGED (PR #112 2026-07-11) | T-195 | Replace _delayed_inject with initialPrompt spawn mechanism |
-| P0-context-fill (next) | T-198 | PostToolUse hook writes context_fill.json mid-turn — fixes drain check reading stale fill from previous turn, unblocks reliable 80K restart |
+| P0-context-fill — MERGED (PR #114 2026-07-11) | T-198 | PostToolUse hook writes context_fill.json mid-turn — fixes drain check reading stale fill from previous turn, unblocks reliable 80K restart |
 | Spike | T-190 | Session isolation design — per-SID volatile state folder; yields 5–8 implementation tasks |
 | split-1 — MERGED (PR #113 2026-07-11) | T-192 | Split test_report_builder.py (size violation) |
 | Later | T-063, T-099, T-162, T-167, T-168, T-174, T-178 | Multi-provider claiming + Gemini oracle + oracle polish + headroom spike + hook audit |
