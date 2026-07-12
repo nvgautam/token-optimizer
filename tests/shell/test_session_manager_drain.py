@@ -13,19 +13,18 @@ class TestDrainRestart:
     """Test check_drain_restart trigger conditions."""
 
     def test_drain_restart_fires(self, tmp_path):
-        """Orchestrator, IDLE, tasks_in_flight absent, current_round exists, fill_tokens >= threshold."""
+        """Orchestrator, IDLE, tasks_in_flight drained ([] tombstone), current_round exists, fill_tokens >= threshold."""
         sm, pty, tok = make_manager()
         sm._project_root = tmp_path
         sm.session_type = "orchestrator"
         sm._state_machine.state = States.IDLE
 
-        # Set up required files
         agentflow_dir = tmp_path / ".agentflow"
         agentflow_dir.mkdir()
         (agentflow_dir / "current_round.json").write_text('{"task":"T-001"}')
         (agentflow_dir / "context_fill.json").write_text(json.dumps({"fill_tokens": 90000, "ts": "2026-07-10T00:00:00"}))
+        (agentflow_dir / "tasks_in_flight.json").write_text("[]")  # [] tombstone = drained
 
-        # Mock trigger_handoff to verify it was called
         with patch.object(sm, "trigger_handoff") as mock_trigger:
             from agentflow.shell.handoff_handler import check_drain_restart
             check_drain_restart(sm)
@@ -48,8 +47,8 @@ class TestDrainRestart:
             check_drain_restart(sm)
             mock_trigger.assert_not_called()
 
-    def test_drain_restart_no_fire_not_idle(self, tmp_path):
-        """TASK_RUNNING state does not trigger drain restart."""
+    def test_drain_restart_no_fire_tif_absent(self, tmp_path):
+        """TASK_RUNNING with no tasks_in_flight.json (not initialized) does not trigger."""
         sm, pty, tok = make_manager()
         sm._project_root = tmp_path
         sm.session_type = "orchestrator"
@@ -59,11 +58,30 @@ class TestDrainRestart:
         agentflow_dir.mkdir()
         (agentflow_dir / "current_round.json").write_text('{"task":"T-001"}')
         (agentflow_dir / "context_fill.json").write_text(json.dumps({"fill_tokens": 90000, "ts": "2026-07-10T00:00:00"}))
+        # tasks_in_flight.json absent = not initialized → skip
 
         with patch.object(sm, "trigger_handoff") as mock_trigger:
             from agentflow.shell.handoff_handler import check_drain_restart
             check_drain_restart(sm)
             mock_trigger.assert_not_called()
+
+    def test_drain_restart_fires_from_task_running_when_tif_drained(self, tmp_path):
+        """TASK_RUNNING + [] tombstone fires drain restart (TASK_RUNNING now allowed)."""
+        sm, pty, tok = make_manager()
+        sm._project_root = tmp_path
+        sm.session_type = "orchestrator"
+        sm._state_machine.state = States.TASK_RUNNING
+
+        agentflow_dir = tmp_path / ".agentflow"
+        agentflow_dir.mkdir()
+        (agentflow_dir / "current_round.json").write_text('{"task":"T-001"}')
+        (agentflow_dir / "context_fill.json").write_text(json.dumps({"fill_tokens": 90000, "ts": "2026-07-10T00:00:00"}))
+        (agentflow_dir / "tasks_in_flight.json").write_text("[]")
+
+        with patch.object(sm, "trigger_handoff") as mock_trigger:
+            from agentflow.shell.handoff_handler import check_drain_restart
+            check_drain_restart(sm)
+            mock_trigger.assert_called_once_with(trigger="drain")
 
     def test_drain_restart_no_fire_fill_below_threshold(self, tmp_path):
         """fill_tokens below threshold does not trigger."""
@@ -182,6 +200,7 @@ class TestSessionLifecycleDelegation:
         agentflow_dir.mkdir()
         (agentflow_dir / "current_round.json").write_text('{"task":"T-001"}')
         (agentflow_dir / "context_fill.json").write_text(json.dumps({"fill_tokens": 90000, "ts": "2026-07-10T00:00:00"}))
+        (agentflow_dir / "tasks_in_flight.json").write_text("[]")  # [] tombstone = drained
 
         with patch.object(sm, "trigger_handoff") as mock_trigger:
             sm._check_drain_restart()

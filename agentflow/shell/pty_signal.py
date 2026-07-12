@@ -97,11 +97,7 @@ def task_done(task_id: str, workspace_root: Path = None):
 
         if not in_flight_set:
             _write_atomic(complete_file, {"status": "complete"})
-            if in_flight_file.exists():
-                try:
-                    os.remove(in_flight_file)
-                except OSError as e:
-                    print(f"Warning: failed to remove tasks_in_flight.json: {e}", file=sys.stderr)
+            _write_atomic(in_flight_file, [])  # tombstone: [] = drained; absent = never initialized
         else:
             _write_atomic(in_flight_file, sorted(list(in_flight_set)))
 

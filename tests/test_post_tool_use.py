@@ -124,6 +124,46 @@ def test_main_malformed_json_payload_exits_zero(tmp_path):
     assert code == 0
 
 
+# --- sync_tasks_in_flight ---
+
+def test_sync_tasks_in_flight_writes_on_current_round_write(tmp_path):
+    from agentflow.hooks.post_tool_use import sync_tasks_in_flight
+    af = tmp_path / ".agentflow"
+    af.mkdir()
+    content = json.dumps({"round_id": "r1", "task_ids": ["T-001", "T-002"]})
+    sync_tasks_in_flight("Write", {"file_path": str(tmp_path / ".agentflow/current_round.json"), "content": content}, af)
+    tif = af / "tasks_in_flight.json"
+    assert tif.exists()
+    assert json.loads(tif.read_text()) == ["T-001", "T-002"]
+
+
+def test_sync_tasks_in_flight_noop_for_non_write_tool(tmp_path):
+    from agentflow.hooks.post_tool_use import sync_tasks_in_flight
+    af = tmp_path / ".agentflow"
+    af.mkdir()
+    content = json.dumps({"round_id": "r1", "task_ids": ["T-001"]})
+    sync_tasks_in_flight("Edit", {"file_path": str(tmp_path / ".agentflow/current_round.json"), "content": content}, af)
+    assert not (af / "tasks_in_flight.json").exists()
+
+
+def test_sync_tasks_in_flight_noop_for_other_file(tmp_path):
+    from agentflow.hooks.post_tool_use import sync_tasks_in_flight
+    af = tmp_path / ".agentflow"
+    af.mkdir()
+    content = json.dumps({"task_ids": ["T-001"]})
+    sync_tasks_in_flight("Write", {"file_path": str(tmp_path / "other.json"), "content": content}, af)
+    assert not (af / "tasks_in_flight.json").exists()
+
+
+def test_sync_tasks_in_flight_noop_for_empty_task_ids(tmp_path):
+    from agentflow.hooks.post_tool_use import sync_tasks_in_flight
+    af = tmp_path / ".agentflow"
+    af.mkdir()
+    content = json.dumps({"round_id": "r1", "task_ids": []})
+    sync_tasks_in_flight("Write", {"file_path": str(tmp_path / ".agentflow/current_round.json"), "content": content}, af)
+    assert not (af / "tasks_in_flight.json").exists()
+
+
 def test_main_write_is_atomic(tmp_path):
     """context_fill.json should not appear as a partial file mid-write."""
     transcript = _make_transcript(tmp_path, [
