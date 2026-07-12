@@ -431,6 +431,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Spike — MERGED (PR #115 2026-07-12) | T-190 | Session isolation design — per-SID volatile state folder; yields 8 implementation tasks T-200–T-207 |
 | split-1 — MERGED (PR #113 2026-07-11) | T-192 | Split test_report_builder.py (size violation) |
 | split-2 — MERGED (PR #116, #117 2026-07-12) | T-197 ‖ T-187 (parallel) | Split report_builder.py + session_manager.py — size violations |
+| t196-spawn-ctx — MERGED (PR #119 2026-07-12) | T-196 | Pre-resolve task context into orchestrate initialPrompt — eliminates worker startup re-derivation (depends T-195, already merged) |
 | session-iso-1 | T-200 | Add _session_file() path helper (foundation for T-201–T-207) |
 | session-iso-2 | T-201 ‖ T-203 (parallel) | Migrate context_fill + session_state writes to per-SID paths (depends T-200) |
 | session-iso-3 | T-202 ‖ T-204 ‖ T-207 (parallel) | Migrate reads, threshold_sync, stale cleanup (depends T-200, T-201, T-203) |

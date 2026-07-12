@@ -1666,5 +1666,19 @@
     "reads": [],
     "depends_on": [],
     "status": "complete"
+  },
+  {
+    "task_id": "T-208",
+    "title": "Fix PTY drain restart \u2014 tasks_in_flight.json as single source of truth",
+    "description": "Three-part fix: (1) post_tool_use.py hook auto-populates tasks_in_flight.json from current_round.json task_ids on Write; (2) pty_signal.py task_done writes [] tombstone instead of deleting (absent=uninitialized, []=drained); (3) check_drain_restart fires from TASK_RUNNING too (not just IDLE), requiring tif.exists() as gate.",
+    "owns": [
+      "agentflow/hooks/post_tool_use.py",
+      "agentflow/shell/pty_signal.py",
+      "agentflow/shell/handoff_handler.py"
+    ],
+    "reads": [],
+    "depends_on": [],
+    "estimated_lines": 40,
+    "status": "complete"
   }
 ]

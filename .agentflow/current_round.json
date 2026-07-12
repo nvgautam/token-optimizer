@@ -1,7 +1,1 @@
-{
-  "round_id": "split-2",
-  "task_ids": ["T-190", "T-187", "T-197"],
-  "estimated_lines_per_task": {"T-190": 0, "T-187": 30, "T-197": 50},
-  "file_counts_per_task": {"T-190": 0, "T-187": 2, "T-197": 2},
-  "timestamp": "2026-07-11T20:48:00Z"
-}
+{}
