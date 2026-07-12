@@ -8,14 +8,29 @@ Mutates the outgoing payload BEFORE forwarding to Anthropic:
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Any
 
 try:
     from headroom.compress import compress
+    from headroom import CompressConfig
+    from headroom.agent_savings import _PROFILES, AGENT_90_PROFILE as _A90_KEY
+    _a90 = _PROFILES.get(_A90_KEY)
+    _AGENT_90_CONFIG: CompressConfig | None = CompressConfig(
+        compress_user_messages=_a90.compress_user_messages,
+        compress_system_messages=False,
+        protect_recent=6,
+        target_ratio=_a90.target_ratio,
+        min_tokens_to_compress=_a90.min_tokens_to_compress,
+        protect_analysis_context=True,
+    ) if _a90 else None
+    del _a90
     _HEADROOM_AVAILABLE = True
 except ImportError:
     compress = None
+    CompressConfig = None  # type: ignore[misc,assignment]
+    _AGENT_90_CONFIG = None
     _HEADROOM_AVAILABLE = False
 
 from agentflow.proxy.hooks import AgentFlowHooks
@@ -37,6 +52,17 @@ def _read_headroom_arm(project_root: Path | str) -> str:
     except (OSError, IOError):
         pass
     return "on"
+
+
+def _is_mid_round(project_root: Path) -> bool:
+    """True when tasks_in_flight.json exists and is non-empty (active round)."""
+    tif = project_root / ".agentflow" / "tasks_in_flight.json"
+    if not tif.exists():
+        return False
+    try:
+        return bool(json.loads(tif.read_text("utf-8")))
+    except Exception:
+        return False
 
 
 def _compress_payload(
@@ -79,7 +105,10 @@ def _compress_payload(
     cr = 0.0
     if arm == "on" and headroom_available and compress_fn and msgs:
         try:
-            r = compress_fn(msgs, model=model, hooks=_HOOKS, compress_user_messages=False)
+            if _AGENT_90_CONFIG is not None and not _is_mid_round(root):
+                r = compress_fn(msgs, model=model, hooks=_HOOKS, config=_AGENT_90_CONFIG)
+            else:
+                r = compress_fn(msgs, model=model, hooks=_HOOKS, compress_user_messages=False)
             tb, ta, cr = r.tokens_before, r.tokens_after, r.compression_ratio
             p["messages"] = r.messages
         except Exception:

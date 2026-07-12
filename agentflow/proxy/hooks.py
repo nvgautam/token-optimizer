@@ -20,6 +20,10 @@ except ImportError:  # headroom not installed — define stub base
 
 
 _IDX_PATTERN = re.compile(r"^[A-Za-z_][\w.]*:\d+-\d+$", re.MULTILINE)
+_SIGNAL_PATTERN = re.compile(
+    r"AGENTFLOW_TASK_(?:COMPLETE|START)|TOKENS: input=|T-\d+",
+    re.MULTILINE,
+)
 
 
 def _message_text(msg: dict[str, Any]) -> str:
@@ -54,6 +58,6 @@ class AgentFlowHooks(CompressionHooks):
         biases: dict[int, float] = {}
         for i, msg in enumerate(messages):
             text = _message_text(msg)
-            if _IDX_PATTERN.search(text):
+            if _IDX_PATTERN.search(text) or _SIGNAL_PATTERN.search(text):
                 biases[i] = 999.0
         return biases
