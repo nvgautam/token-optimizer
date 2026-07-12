@@ -22,36 +22,45 @@ def _run_with_stdin(prompt_text, monkeypatch, tmp_path):
 def test_orchestrate_creates_reset_and_removes_signal_files(monkeypatch, tmp_path):
     agentflow_dir = tmp_path / ".agentflow"
     agentflow_dir.mkdir()
-    (agentflow_dir / "handoff_complete.json").write_text("{}")
+    test_sid = "test-session-abc"
+    monkeypatch.setenv("AGENTFLOW_SESSION_ID", test_sid)
+    hc_file = agentflow_dir / f"handoff_complete_{test_sid}.json"
+    hc_file.write_text("{}")
     (agentflow_dir / "task_complete.json").write_text("{}")
 
     result_dir = _run_with_stdin("/orchestrate", monkeypatch, tmp_path)
 
     assert (result_dir / "reset_accumulator").exists()
-    assert not (result_dir / "handoff_complete.json").exists()
+    assert not hc_file.exists()
     assert not (result_dir / "task_complete.json").exists()
 
 
 def test_handoff_creates_reset_and_removes_signal_files(monkeypatch, tmp_path):
     agentflow_dir = tmp_path / ".agentflow"
     agentflow_dir.mkdir()
-    (agentflow_dir / "handoff_complete.json").write_text("{}")
+    test_sid = "test-session-abc"
+    monkeypatch.setenv("AGENTFLOW_SESSION_ID", test_sid)
+    hc_file = agentflow_dir / f"handoff_complete_{test_sid}.json"
+    hc_file.write_text("{}")
 
     result_dir = _run_with_stdin("/handoff", monkeypatch, tmp_path)
 
     assert (result_dir / "reset_accumulator").exists()
-    assert not (result_dir / "handoff_complete.json").exists()
+    assert not hc_file.exists()
 
 
 def test_non_matching_prompt_does_nothing(monkeypatch, tmp_path):
     agentflow_dir = tmp_path / ".agentflow"
     agentflow_dir.mkdir()
-    (agentflow_dir / "handoff_complete.json").write_text("{}")
+    test_sid = "test-session-abc"
+    monkeypatch.setenv("AGENTFLOW_SESSION_ID", test_sid)
+    hc_file = agentflow_dir / f"handoff_complete_{test_sid}.json"
+    hc_file.write_text("{}")
 
     result_dir = _run_with_stdin("regular user message", monkeypatch, tmp_path)
 
     assert not (result_dir / "reset_accumulator").exists()
-    assert (result_dir / "handoff_complete.json").exists()
+    assert hc_file.exists()
 
 
 def test_signal_files_absent_is_graceful(monkeypatch, tmp_path):

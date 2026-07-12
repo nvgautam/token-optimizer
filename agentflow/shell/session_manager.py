@@ -95,7 +95,13 @@ class SessionManager:
     def _task_complete_path(self, val: pathlib.Path) -> None: self._task_complete_path_override = val
 
     @property
-    def _handoff_complete_path(self) -> pathlib.Path: return getattr(self, "_handoff_complete_path_override", None) or (self._project_root / ".agentflow" / "handoff_complete.json")
+    def _handoff_complete_path(self) -> pathlib.Path:
+        override = getattr(self, "_handoff_complete_path_override", None)
+        if override:
+            return override
+        sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+        filename = f"handoff_complete_{sid}.json" if sid else "handoff_complete.json"
+        return self._project_root / ".agentflow" / filename
     @_handoff_complete_path.setter
     def _handoff_complete_path(self, val: pathlib.Path) -> None: self._handoff_complete_path_override = val
 

@@ -16,9 +16,9 @@ _DEADLINES: dict[States, float] = {
 
 
 def handle_enter_handoff_pending(manager) -> None:
-    # Clear any stale handoff_complete.json so the poll loop cannot
+    # Clear any stale handoff_complete so the poll loop cannot
     # immediately re-trigger a restart from a previous session's file.
-    stale = pathlib.Path(".agentflow/handoff_complete.json")
+    stale = manager._handoff_complete_path
     if stale.exists():
         stale.unlink()
     if manager.session_type == "orchestrator":
@@ -126,7 +126,7 @@ def poll_session(manager) -> None:
         manager._deadline_entered_at = 0.0
 
     if state == States.IDLE:
-        if manager._current_round_path.exists():
+        if manager.session_type == "orchestrator" and manager._current_round_path.exists():
             try:
                 mtime = manager._current_round_path.stat().st_mtime
                 if mtime > manager._last_current_round_mtime:
@@ -171,10 +171,14 @@ def check_drain_restart(manager) -> None:
     """
     import json as _json
     def _skip(reason: str, **extra) -> None:
+        key = f"_skip_last_{reason}"
+        now = time.monotonic()
+        if now - getattr(manager, key, 0.0) < 30.0:
+            return
+        setattr(manager, key, now)
         manager._log_audit({"event": "drain_check_skip", "reason": reason, **extra})
 
     if manager.session_type != "orchestrator":
-        _skip("session_type", session_type=manager.session_type)
         return
     cooldown_remaining = 30.0 - (time.monotonic() - getattr(manager, "_last_restart_ts", 0.0))
     if cooldown_remaining > 0:

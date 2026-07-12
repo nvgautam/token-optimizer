@@ -110,11 +110,11 @@ def test_e2e_handoff_restart_real_pty(tmp_path):
         sm.trigger_handoff("test")
         assert sm._state_machine.state == States.HANDOFF_PENDING
 
-        # Check that handoff_complete.json was written (orchestrator writes directly)
-        handoff_path = tmp_path / ".agentflow" / "handoff_complete.json"
+        # Check that the session-namespaced handoff_complete file was written (orchestrator writes directly)
+        handoff_path = sm._handoff_complete_path
         # For orchestrator, the file is written during on_enter_handoff_pending, synchronously
         time.sleep(0.1)  # brief pause to ensure file is written
-        assert handoff_path.exists(), "handoff_complete.json must be written by on_enter_handoff_pending"
+        assert handoff_path.exists(), "handoff_complete file must be written by on_enter_handoff_pending"
 
         # Poll for state transition: HANDOFF_PENDING → RESTARTING → IDLE
         # Note: on_enter_restarting runs synchronously and quickly transitions to IDLE

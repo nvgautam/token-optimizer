@@ -379,21 +379,7 @@
     },
     {
       "task_id": "T-103",
-      "title": "Haiku vs Sonnet subagent A/B \u2014 measure output token delta from model routing",
-      "description": "Run a controlled A/B to measure how many output tokens subagents save when routed to Haiku vs Sonnet. (1) PTY shell coin-flip at session start writes haiku/sonnet to .agentflow/model_ab_arm.txt alongside verbosity_ab_arm.txt. (2) proxy/server.py already extracts `model` from each request \u2014 log {ts, model, input_tokens, output_tokens, session_type} to .agentflow/model_ab_log.jsonl per completed request (skip streaming chunks; write on request close). (3) agentflow/shadow/model_ab.py: compute per-arm output token stats (mean, p90, n, 95% CI) and persist to .agentflow/model_ab_baseline.json. (4) report_builder.py: add a model-routing row showing measured output-token delta \u00d7 n_subagent_turns and annotate with CI. Stopping criterion: n>=30 per arm AND CI width < 100 tokens. Depends on T-101 (arm tagging pattern) and T-102 (stopping criterion signal in report). Do not begin until verbosity A/B stopping signal fires.",
-      "owns": [
-        "agentflow/proxy/server.py",
-        "agentflow/shell/pty_shell.py",
-        "agentflow/shadow/model_ab.py",
-        "agentflow/reporting/report_builder.py",
-        "tests/shadow/test_model_ab.py"
-      ],
-      "reads": [],
-      "depends_on": [
-        "T-101",
-        "T-102"
-      ],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-102",
@@ -788,30 +774,41 @@
     },
     {
       "task_id": "T-191",
-      "title": "Deterministic session_type mapping via UserPromptSubmit hook",
-      "description": "Replace the fragile output-text heuristic in output_handler.py that detects session_type by scanning for '/oracle' or '/orchestrate' in PTY output. The current check-order bug (/oracle tested before /orchestrate) causes orchestrate sessions to misclassify as oracle whenever startup output mentions 'run /oracle', blocking check_drain_restart (condition 1). Fix: UserPromptSubmit hook writes session_state_<sid>.json with {\"session_type\": \"orchestrator\"} or {\"session_type\": \"oracle\"} when the submitted prompt contains /orchestrate or /oracle respectively. sync_session_type (already polling session_state_<sid>.json on every idle tick) becomes the authoritative source. Remove the text-scanning branch in output_handler.py (lines ~85-90). The hook fires before the skill renders output, so session_type is set deterministically before any ambiguous text reaches the PTY. owns: agentflow/hooks/verbosity_reminder.py (or whichever hook handles UserPromptSubmit), agentflow/shell/output_handler.py. Test: session classified correctly even when /orchestrate output references /oracle.",
-      "owns": [
-        "agentflow/hooks/verbosity_reminder.py",
-        "agentflow/shell/output_handler.py"
-      ],
-      "reads": [
-        "agentflow/shell/threshold_sync.py",
-        "agentflow/shell/session_manager.py"
-      ],
-      "depends_on": [],
-      "status": "pending",
-      "estimated_lines": 40
+      "status": "complete"
     },
     {
       "task_id": "T-192",
-      "title": "Split tests/reporting/test_report_builder.py \u2014 size violation",
-      "description": "Split tests/reporting/test_report_builder.py (491 lines, limit 350). Violation timestamp: 2026-07-10T16:53:54.408581. Choose the split boundary by test class or fixture group, not line count. Verify each output file is \u2264 350 lines after splitting.",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-195",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-196",
+      "status": "pending"
+    },
+    {
+      "task_id": "T-197",
+      "title": "Split agentflow/reporting/report_builder.py \u2014 size violation",
+      "description": "Split agentflow/reporting/report_builder.py (272 lines, limit 250). Violation timestamp: 2026-07-07T00:21:15.929131. Read the file first, identify distinct responsibilities, then choose the split boundary by domain. Verify each output file is \u2264 250 lines after splitting.",
       "owns": [
-        "tests/reporting/test_report_builder.py"
+        "agentflow/reporting/report_builder.py"
       ],
       "reads": [],
       "depends_on": [],
       "status": "pending"
+    },
+    {
+      "task_id": "T-198",
+      "status": "pending",
+      "title": "PostToolUse hook: write context_fill.json after each tool call",
+      "description": "Move context_fill.json writes from the Stop hook into a PostToolUse hook so fill_tokens is updated mid-turn after every tool call. Eliminates the race where PTY enters IDLE and check_drain_restart reads a stale cached value from the previous turn. PostToolUse payload already contains transcript_path; reuse extract_fill_from_transcript logic from stop_context_capture.py. Stop hook retains its write as a safety fallback. No new dependencies.",
+      "owns": [
+        "agentflow/hooks/post_tool_use.py",
+        ".claude/settings.json"
+      ],
+      "priority": "P0"
     }
   ]
 }

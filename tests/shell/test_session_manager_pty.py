@@ -132,25 +132,26 @@ def test_t148_no_lf_in_pty_injections(tmp_path):
 # ---------------------------------------------------------------------------
 
 def test_t149_stale_handoff_complete_cleared_on_enter(tmp_path, monkeypatch):
-    """T-149: handle_enter_handoff_pending deletes a pre-existing handoff_complete.json.
+    """T-149: handle_enter_handoff_pending deletes a pre-existing handoff_complete file.
 
     A stale file from a previous session must be removed *before* write_input
     is called so the poll loop cannot instantly see it and trigger a restart storm.
     """
     from agentflow.shell.handoff_handler import handle_enter_handoff_pending
 
-    # Place a stale file where the handler will look
     monkeypatch.chdir(tmp_path)
     stale_dir = tmp_path / ".agentflow"
     stale_dir.mkdir(parents=True, exist_ok=True)
-    stale_file = stale_dir / "handoff_complete.json"
-    stale_file.write_text("{}", encoding="utf-8")
-    assert stale_file.exists(), "pre-condition: stale file must exist"
 
-    # Build a minimal manager stub
+    # Build manager first so we can resolve the session-namespaced path
     sm, pty, _ = make_manager()
     sm._current_trigger = "auto"
     sm._last_accumulated_tokens = 0
+
+    # Place the stale file at the path the handler will look for
+    stale_file = sm._handoff_complete_path
+    stale_file.write_text("{}", encoding="utf-8")
+    assert stale_file.exists(), "pre-condition: stale file must exist"
 
     # Track deletion order vs write_input order
     deleted_before_write = []
@@ -166,7 +167,7 @@ def test_t149_stale_handoff_complete_cleared_on_enter(tmp_path, monkeypatch):
 
     handle_enter_handoff_pending(sm)
 
-    assert not stale_file.exists(), "stale handoff_complete.json must be deleted by handle_enter_handoff_pending"
+    assert not stale_file.exists(), "stale handoff_complete file must be deleted by handle_enter_handoff_pending"
     assert deleted_before_write, "write_input must have been called"
     assert all(deleted_before_write), "stale file must be deleted BEFORE write_input is called"
 
