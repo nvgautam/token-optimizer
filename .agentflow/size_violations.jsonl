@@ -49,3 +49,4 @@
 {"file": "agentflow/reporting/report_builder.py", "blocked_lines": 260, "actual_lines": 260, "limit": 250, "ts": "2026-07-10T16:53:37.292263"}
 {"file": "tests/reporting/test_report_builder.py", "blocked_lines": 435, "actual_lines": 435, "limit": 350, "ts": "2026-07-10T16:53:54.408581"}
 {"file": "tests/reporting/test_report_builder.py", "blocked_lines": 491, "actual_lines": 491, "limit": 350, "ts": "2026-07-10T16:54:10.472949"}
+{"file": "agentflow/shell/session_manager.py", "blocked_lines": 256, "actual_lines": 256, "limit": 250, "ts": "2026-07-11T16:56:50.607410"}

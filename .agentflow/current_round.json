@@ -1,13 +1,13 @@
 {
-  "round_id": "Demo-2",
+  "round_id": "P0-context-fill",
   "task_ids": [
-    "T-069"
+    "T-198"
   ],
   "estimated_lines_per_task": {
-    "T-069": 50
+    "T-198": 60
   },
   "file_counts_per_task": {
-    "T-069": 3
+    "T-198": 1
   },
-  "timestamp": "2026-07-10T21:28:47Z"
+  "timestamp": "2026-07-12T02:33:59.741655Z"
 }
