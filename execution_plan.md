@@ -428,6 +428,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | P0-pty-restart — MERGED (PR #111 2026-07-11) | T-194 | Fix init TASK_RUNNING oracle contamination — gate on orchestrator session_type |
 | P0-pty-restart-2 — MERGED (PR #112 2026-07-11) | T-195 | Replace _delayed_inject with initialPrompt spawn mechanism |
 | Spike | T-190 | Session isolation design — per-SID volatile state folder; yields 5–8 implementation tasks |
+| split-1 — MERGED (PR #113 2026-07-11) | T-192 | Split test_report_builder.py (size violation) |
 | Later | T-063, T-099, T-162, T-167, T-168, T-174, T-178 | Multi-provider claiming + Gemini oracle + oracle polish + headroom spike + hook audit |
 
 Priority rationale (2026-07-10): Demo goal is orchestrate seamlessly looping — picks tasks that fit in one session, processes, recycles PTY, repeats. Demo-1 closes the gap where task selection is unbounded (T-068 estimates cost, T-064 checks headroom before claiming). Demo-2 wires scheduling to respect the budget. Demo-3 adds savings proof. Cross-provider (T-063, T-099) deferred; Claude-only for demo. Old rounds E/F dissolved into Demo-1–3.
