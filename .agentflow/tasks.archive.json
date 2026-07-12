@@ -1578,5 +1578,20 @@
     "depends_on": [],
     "status": "complete",
     "estimated_lines": 40
+  },
+  {
+    "task_id": "T-195",
+    "title": "Replace _delayed_inject with initialPrompt spawn mechanism",
+    "owns": [
+      "agentflow/shell/session_manager.py",
+      "agentflow/shell/process_manager.py",
+      "tests/shell/test_session_manager.py"
+    ],
+    "reads": [],
+    "depends_on": [
+      "T-194"
+    ],
+    "estimated_lines": 40,
+    "status": "complete"
   }
 ]

@@ -426,7 +426,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Demo-3 (MERGED PR #109 2026-07-11) | T-098 ‖ T-103 (parallel) | Combined savings report (USD + token-class) + Haiku vs Sonnet A/B — proves token reduction |
 | P0-session-type — MERGED (PR #110 2026-07-11) | T-191 | Deterministic session_type via UserPromptSubmit hook — eliminates output-text heuristic misclassification |
 | P0-pty-restart — MERGED (PR #111 2026-07-11) | T-194 | Fix init TASK_RUNNING oracle contamination — gate on orchestrator session_type |
-| P0-pty-restart-2 (next) | T-195 | Replace _delayed_inject with initialPrompt spawn mechanism |
+| P0-pty-restart-2 — MERGED (PR #112 2026-07-11) | T-195 | Replace _delayed_inject with initialPrompt spawn mechanism |
 | Spike | T-190 | Session isolation design — per-SID volatile state folder; yields 5–8 implementation tasks |
 | Later | T-063, T-099, T-162, T-167, T-168, T-174, T-178 | Multi-provider claiming + Gemini oracle + oracle polish + headroom spike + hook audit |
 
@@ -662,3 +662,16 @@ Pre-compute round state on PTY startup to skip startup commands. See commit 9245
 - Automated merge sequencer: v2
 - Tier/licensing: TBD
 - PTY binary naming: TBD
+## Addendum: T-196 — Pre-resolve task context into orchestrate initialPrompt (filed 2026-07-11)
+
+**Status:** PENDING
+
+**Goal:** When orchestrate builds the `spawn_new_child` command (after T-195 lands), embed pre-resolved task context — active task ID, title, deps, estimated_lines — directly into the positional prompt arg. This eliminates startup re-derivation (execution_plan.md + tasks.json reads) from the worker's context. Depends on T-195.
+
+**Acceptance criteria:** Worker session initialPrompt contains task ID, title, dep list, and estimated_lines. Orchestrate startup.md step 3b treats baked context as a fast-path hint: if present and task status in tasks.json matches, skip re-derivation; if absent or status mismatch, fall back to full re-derivation normally. Unit test: assert spawned command string contains task metadata; assert fallback triggers on stale context.
+
+**Files:** `commands/claude/orchestrate.md`, `commands/claude/orchestrator/startup.md`, `agentflow/shell/process_manager.py`
+
+**estimated_lines:** 30
+
+---

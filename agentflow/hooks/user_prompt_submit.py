@@ -187,8 +187,10 @@ def main() -> None:
         except Exception:
             pass
 
-        # Delete handoff_complete.json and task_complete.json if they exist
-        for name in ("handoff_complete.json", "task_complete.json"):
+        # Delete session-scoped handoff_complete and task_complete if they exist.
+        # handoff_complete is namespaced by session ID to prevent cross-session contamination.
+        hc_name = f"handoff_complete_{sid}.json" if sid else "handoff_complete.json"
+        for name in (hc_name, "task_complete.json"):
             complete_file = agentflow_dir / name
             try:
                 if complete_file.exists():
