@@ -1,14 +1,18 @@
 {
-  "last_round": "P0-context-fill",
+  "last_round": "split-2",
   "last_merged_tasks": [
-    "T-198"
-  ],
-  "pr": "https://github.com/nvgautam/token-optimizer/pull/114",
-  "merged_at": "2026-07-11T19:45:00Z",
-  "next_round": "split-2",
-  "next_tasks": [
-    "T-187",
+    "T-190",
     "T-197",
-    "T-190"
+    "T-187"
+  ],
+  "prs": [
+    "https://github.com/nvgautam/token-optimizer/pull/115",
+    "https://github.com/nvgautam/token-optimizer/pull/116",
+    "https://github.com/nvgautam/token-optimizer/pull/117"
+  ],
+  "merged_at": "2026-07-12T04:29:44Z",
+  "next_round": "session-iso-1",
+  "next_tasks": [
+    "T-200"
   ]
 }

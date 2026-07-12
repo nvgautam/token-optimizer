@@ -428,8 +428,13 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | P0-pty-restart — MERGED (PR #111 2026-07-11) | T-194 | Fix init TASK_RUNNING oracle contamination — gate on orchestrator session_type |
 | P0-pty-restart-2 — MERGED (PR #112 2026-07-11) | T-195 | Replace _delayed_inject with initialPrompt spawn mechanism |
 | P0-context-fill — MERGED (PR #114 2026-07-11) | T-198 | PostToolUse hook writes context_fill.json mid-turn — fixes drain check reading stale fill from previous turn, unblocks reliable 80K restart |
-| Spike | T-190 | Session isolation design — per-SID volatile state folder; yields 5–8 implementation tasks |
+| Spike — MERGED (PR #115 2026-07-12) | T-190 | Session isolation design — per-SID volatile state folder; yields 8 implementation tasks T-200–T-207 |
 | split-1 — MERGED (PR #113 2026-07-11) | T-192 | Split test_report_builder.py (size violation) |
+| split-2 — MERGED (PR #116, #117 2026-07-12) | T-197 ‖ T-187 (parallel) | Split report_builder.py + session_manager.py — size violations |
+| session-iso-1 | T-200 | Add _session_file() path helper (foundation for T-201–T-207) |
+| session-iso-2 | T-201 ‖ T-203 (parallel) | Migrate context_fill + session_state writes to per-SID paths (depends T-200) |
+| session-iso-3 | T-202 ‖ T-204 ‖ T-207 (parallel) | Migrate reads, threshold_sync, stale cleanup (depends T-200, T-201, T-203) |
+| session-iso-4 | T-205 | Update handoff skill for per-SID handoff docs (depends T-200) |
 | Later | T-063, T-099, T-162, T-167, T-168, T-174, T-178 | Multi-provider claiming + Gemini oracle + oracle polish + headroom spike + hook audit |
 
 Priority rationale (2026-07-10): Demo goal is orchestrate seamlessly looping — picks tasks that fit in one session, processes, recycles PTY, repeats. Demo-1 closes the gap where task selection is unbounded (T-068 estimates cost, T-064 checks headroom before claiming). Demo-2 wires scheduling to respect the budget. Demo-3 adds savings proof. Cross-provider (T-063, T-099) deferred; Claude-only for demo. Old rounds E/F dissolved into Demo-1–3.

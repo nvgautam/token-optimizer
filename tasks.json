@@ -748,14 +748,7 @@
     },
     {
       "task_id": "T-187",
-      "title": "Split agentflow/shell/session_manager.py \u2014 size violation",
-      "description": "Split agentflow/shell/session_manager.py (258 lines, limit 250). Violation timestamp: 2026-07-04T17:44:33.317580. Read the file first, identify distinct responsibilities, then choose the split boundary by domain. Verify each output file is \u2264 250 lines after splitting.",
-      "owns": [
-        "agentflow/shell/session_manager.py"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-189",
@@ -763,14 +756,7 @@
     },
     {
       "task_id": "T-190",
-      "title": "Session isolation spike \u2014 per-SID volatile state folder design",
-      "status": "pending",
-      "estimated_lines": 0,
-      "owner": null,
-      "model": "sonnet",
-      "description": "Design spike: eliminate cross-session poisoning by isolating volatile PTY state into per-session folders.\n\nScope:\n- File taxonomy: classify each .agentflow/ file as session-scoped vs project-scoped\n  Session-scoped: context_fill.json, current_round.json, handoff_complete.json, task_complete.json,\n    tasks_in_flight.json, reset_accumulator, session_state_{sid}.json, pty_audit.jsonl\n  Project-scoped (shared): tasks.json, tasks_archive.json, handoff_*.md, size_violations.jsonl\n- Proposed structure: .agentflow/sessions/{AGENTFLOW_SESSION_ID}/ for session-scoped files\n- PTY startup: always generate+export AGENTFLOW_SESSION_ID if unset (never inherit from parent)\n- Lazy GC: on PTY start, remove .agentflow/sessions/ entries with heartbeat mtime > 24h\n- Hook updates: user_prompt_submit.py, stop_context_capture.py write to session folder\n- handoff_handler.py / session_manager.py: all path construction updated\n- Estimate task list: expect 5-8 tasks covering path abstraction, PTY init, hook migration, GC, tests\nOutput: updated execution_plan.md with new milestone + tasks filed in tasks.json",
-      "files": [],
-      "depends_on": []
+      "status": "complete"
     },
     {
       "task_id": "T-191",
@@ -790,18 +776,81 @@
     },
     {
       "task_id": "T-197",
-      "title": "Split agentflow/reporting/report_builder.py \u2014 size violation",
-      "description": "Split agentflow/reporting/report_builder.py (272 lines, limit 250). Violation timestamp: 2026-07-07T00:21:15.929131. Read the file first, identify distinct responsibilities, then choose the split boundary by domain. Verify each output file is \u2264 250 lines after splitting.",
-      "owns": [
-        "agentflow/reporting/report_builder.py"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-198",
       "status": "complete"
+    },
+    {
+      "task_id": "T-200",
+      "title": "Add _session_file() path helper for per-SID volatile state",
+      "description": "Create agentflow/shell/session_paths.py with _session_file(agentflow_dir, sid, filename) helper. Returns sessions/<SID>/filename when SID is non-empty, else agentflow_dir/filename (global fallback for no-SID sessions). Ensures mkdir(parents=True, exist_ok=True). Used by T-201/T-202/T-203/T-204.",
+      "owns": ["agentflow/shell/session_paths.py"],
+      "reads": [],
+      "depends_on": [],
+      "estimated_lines": 20,
+      "status": "pending"
+    },
+    {
+      "task_id": "T-201",
+      "title": "Migrate context_fill.json writes to per-SID path in hooks",
+      "description": "Update agentflow/hooks/post_tool_use.py and agentflow/hooks/stop_context_capture.py to write context_fill.json to sessions/<SID>/ via _session_file(). Fixes race condition where two concurrent sessions overwrite each other's fill token count.",
+      "owns": ["agentflow/hooks/post_tool_use.py", "agentflow/hooks/stop_context_capture.py"],
+      "reads": ["agentflow/shell/session_paths.py"],
+      "depends_on": ["T-200"],
+      "estimated_lines": 25,
+      "status": "pending"
+    },
+    {
+      "task_id": "T-202",
+      "title": "Migrate context_fill.json reads to per-SID path in PTY shell",
+      "description": "Update agentflow/shell/output_handler.py and agentflow/shell/handoff_handler.py to read context_fill.json from sessions/<SID>/ via _session_file(). session_manager.py delegated call may also need updating.",
+      "owns": ["agentflow/shell/output_handler.py", "agentflow/shell/handoff_handler.py"],
+      "reads": ["agentflow/shell/session_paths.py"],
+      "depends_on": ["T-200", "T-201"],
+      "estimated_lines": 30,
+      "status": "pending"
+    },
+    {
+      "task_id": "T-203",
+      "title": "Migrate session_state writes to sessions/<SID>/session_state.json",
+      "description": "Update agentflow/hooks/user_prompt_submit.py and agentflow/hooks/verbosity_reminder.py to write session_state.json into sessions/<SID>/ via _session_file(). Keep global session_state.json fallback for no-SID sessions.",
+      "owns": ["agentflow/hooks/user_prompt_submit.py", "agentflow/hooks/verbosity_reminder.py"],
+      "reads": ["agentflow/shell/session_paths.py"],
+      "depends_on": ["T-200"],
+      "estimated_lines": 20,
+      "status": "pending"
+    },
+    {
+      "task_id": "T-204",
+      "title": "Update threshold_sync.py to read session_state from sessions/<SID>/",
+      "description": "Update sync_session_type() in agentflow/shell/threshold_sync.py to check sessions/<SID>/session_state.json first (via _session_file()), then fall back to root-level session_state.json and session_type files for backward compat.",
+      "owns": ["agentflow/shell/threshold_sync.py"],
+      "reads": ["agentflow/shell/session_paths.py"],
+      "depends_on": ["T-200", "T-203"],
+      "estimated_lines": 20,
+      "status": "pending"
+    },
+    {
+      "task_id": "T-205",
+      "title": "Update handoff skill to write handoff docs into sessions/<SID>/",
+      "description": "Update commands/claude/handoff.md to write handoff_<date>.md into .agentflow/sessions/<SID>/ instead of .agentflow/ root. Also symlink latest handoff doc as .agentflow/handoff_latest.md for discoverability.",
+      "owns": ["commands/claude/handoff.md"],
+      "reads": [],
+      "depends_on": ["T-200"],
+      "estimated_lines": 25,
+      "status": "pending"
+    },
+    {
+      "task_id": "T-207",
+      "title": "Add stale session folder cleanup on PTY startup (TTL 24h)",
+      "description": "Add cleanup_stale_sessions(agentflow_dir, ttl_seconds=86400) to agentflow/shell/session_paths.py. Call on PTY startup: enumerate sessions/<SID>/ folders, remove any where mtime > ttl_seconds. Best-effort (shutil.rmtree, silently ignore failures).",
+      "owns": ["agentflow/shell/session_paths.py"],
+      "reads": [],
+      "depends_on": ["T-200"],
+      "estimated_lines": 35,
+      "status": "pending"
     }
   ]
 }
