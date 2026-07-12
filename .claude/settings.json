@@ -58,6 +58,14 @@
     ],
     "PostToolUse": [
       {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/agentflow/hooks/post_tool_use.py\""
+          }
+        ]
+      },
+      {
         "matcher": "Write",
         "hooks": [
           {
