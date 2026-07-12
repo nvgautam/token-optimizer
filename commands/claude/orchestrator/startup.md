@@ -33,6 +33,8 @@ cat .agentflow/orchestrate_cache.json 2>/dev/null
 ```
 If file exists and `python3 -c "from agentflow.shell.orchestrate_cache import is_cache_stale; import pathlib; print(is_cache_stale(pathlib.Path('.')))"` prints `False`: read cache JSON, skip Steps 4 and 4b, jump to Step 5. Otherwise continue to Step 4 (full load).
 
+**InitialPrompt fast-path (T-196):** If the initialPrompt contains `TASK_CTX:task_id=T-NNN;title=...;deps=...;estimated_lines=...`, parse the metadata. Check `tasks.json` for the task_id status. If `pending`, skip execution_plan re-derivation and proceed directly with the task context from TASK_CTX. If absent, malformed, or task status is not `pending`, fall back to Step 4 normally.
+
 ### Step 4 — Load execution state
 **No `architecture.md` or `CLAUDE.md` at startup.**
 

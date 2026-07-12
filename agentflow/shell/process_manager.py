@@ -74,6 +74,30 @@ def spawn_new_child(manager) -> None:
         if skill:
             command = list(command) + [f"/{skill}"]
 
+    # T-196: Append pre-resolved task context if available
+    try:
+        from pathlib import Path
+        import json
+        current_round_path = Path(".agentflow/current_round.json")
+        if current_round_path.exists():
+            data = json.loads(current_round_path.read_text())
+            task_ctx = data.get("task_ctx")
+            if isinstance(task_ctx, dict):
+                task_id = task_ctx.get("task_id", "")
+                title = task_ctx.get("title", "")
+                deps = task_ctx.get("deps", [])
+                estimated_lines = task_ctx.get("estimated_lines", 0)
+
+                # Format deps as comma-separated string or NONE
+                deps_str = ",".join(deps) if deps else "NONE"
+
+                # Build TASK_CTX argument
+                task_ctx_arg = f"TASK_CTX:task_id={task_id};title={title};deps={deps_str};estimated_lines={estimated_lines}"
+                command = list(command) + [task_ctx_arg]
+    except Exception:
+        # Silently ignore any errors reading or parsing task_ctx
+        pass
+
     import pty
     import fcntl
     import termios
