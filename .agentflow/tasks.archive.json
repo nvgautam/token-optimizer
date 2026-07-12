@@ -1593,5 +1593,23 @@
     ],
     "estimated_lines": 40,
     "status": "complete"
+  },
+  {
+    "task_id": "T-103",
+    "title": "Haiku vs Sonnet subagent A/B \u2014 measure output token delta from model routing",
+    "description": "Run a controlled A/B to measure how many output tokens subagents save when routed to Haiku vs Sonnet. (1) PTY shell coin-flip at session start writes haiku/sonnet to .agentflow/model_ab_arm.txt alongside verbosity_ab_arm.txt. (2) proxy/server.py already extracts `model` from each request \u2014 log {ts, model, input_tokens, output_tokens, session_type} to .agentflow/model_ab_log.jsonl per completed request (skip streaming chunks; write on request close). (3) agentflow/shadow/model_ab.py: compute per-arm output token stats (mean, p90, n, 95% CI) and persist to .agentflow/model_ab_baseline.json. (4) report_builder.py: add a model-routing row showing measured output-token delta \u00d7 n_subagent_turns and annotate with CI. Stopping criterion: n>=30 per arm AND CI width < 100 tokens. Depends on T-101 (arm tagging pattern) and T-102 (stopping criterion signal in report). Do not begin until verbosity A/B stopping signal fires.",
+    "owns": [
+      "agentflow/proxy/server.py",
+      "agentflow/shell/pty_shell.py",
+      "agentflow/shadow/model_ab.py",
+      "agentflow/reporting/report_builder.py",
+      "tests/shadow/test_model_ab.py"
+    ],
+    "reads": [],
+    "depends_on": [
+      "T-101",
+      "T-102"
+    ],
+    "status": "complete"
   }
 ]
