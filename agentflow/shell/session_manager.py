@@ -53,7 +53,7 @@ class SessionManager:
         self._current_trigger = "auto"
         self._deadline_state = None
         self._deadline_entered_at: float = 0.0
-        
+
         # State machine initialization
         self._state_machine = StateMachine(
             initial_state=States.IDLE,
@@ -119,7 +119,8 @@ class SessionManager:
         except Exception: return None
 
     def _log_audit(self, entry: dict) -> None:
-        from agentflow.shell.session_audit import log_audit; log_audit(self, entry)
+        from agentflow.shell.session_manager_handlers import log_audit
+        log_audit(self, entry)
 
     def on_idle_tick(self) -> None:
         self._sync_session_type()
@@ -132,125 +133,91 @@ class SessionManager:
             self._run_stale_index_guard()
 
     def _apply_session_threshold(self) -> None:
-        from agentflow.shell.threshold_sync import apply_session_threshold; apply_session_threshold(self)
+        from agentflow.shell.session_manager_handlers import apply_session_threshold
+        apply_session_threshold(self)
 
     def _sync_session_type(self) -> None:
-        from agentflow.shell.threshold_sync import sync_session_type; sync_session_type(self)
+        from agentflow.shell.session_manager_handlers import sync_session_type
+        sync_session_type(self)
 
     def _run_stale_index_guard(self) -> None:
-        from agentflow.shell.stale_index_guard import run_stale_index_guard
-        run_stale_index_guard()
+        from agentflow.shell.session_manager_handlers import run_stale_index_guard
+        run_stale_index_guard(self)
 
     def poll(self) -> None:
-        from agentflow.shell.handoff_handler import poll_session
+        from agentflow.shell.session_manager_handlers import poll_session
         poll_session(self)
 
     def _update_last_current_round_mtime(self) -> None:
-        try: self._last_current_round_mtime = self._current_round_path.stat().st_mtime if self._current_round_path.exists() else 0.0
-        except Exception: self._last_current_round_mtime = 0.0
+        from agentflow.shell.session_manager_handlers import update_last_current_round_mtime
+        update_last_current_round_mtime(self)
 
     def _clear_signal_files(self) -> None:
-        for path in [self._task_complete_path, self._handoff_complete_path]:
-            try:
-                if path.exists(): path.unlink()
-            except Exception: pass
-        cf = self._project_root / ".agentflow" / "context_fill.json"
-        try:
-            cf.write_text('{"fill_tokens": 0}', encoding="utf-8")
-        except Exception: pass
+        from agentflow.shell.session_manager_handlers import clear_signal_files
+        clear_signal_files(self)
 
     def on_enter_handoff_pending(self) -> None:
-        try:
-            import json as _json
-            from agentflow.shadow.capacity_calibrator import calibrate_capacity
-            current_start_pct = 0.0
-            ledger_path = self._project_root / "agentflow_ledger.json"
-            if ledger_path.exists():
-                try:
-                    with open(ledger_path, "r") as _f:
-                        _ledger = _json.load(_f)
-                    for _snap in reversed(_ledger.get("usage_snapshots", [])):
-                        if _snap.get("label") == "session_start":
-                            current_start_pct = float(_snap.get("start_pct_5hr", 0.0))
-                            break
-                except Exception:
-                    pass
-            calibrate_capacity(self._project_root, current_start_pct)
-        except Exception:
-            pass
-        from agentflow.shell.handoff_handler import handle_enter_handoff_pending
+        from agentflow.shell.session_manager_handlers import handle_enter_handoff_pending
         handle_enter_handoff_pending(self)
 
     def on_enter_restarting(self) -> None:
-        from agentflow.shell.process_manager import handle_enter_restarting
+        from agentflow.shell.session_manager_handlers import handle_enter_restarting
         handle_enter_restarting(self)
 
     def on_enter_idle(self) -> None:
-        self._update_last_current_round_mtime()
-        self._clear_signal_files()
-        self._just_restarted = False
+        from agentflow.shell.session_manager_handlers import handle_enter_idle
+        handle_enter_idle(self)
 
     def on_enter_dead_child(self) -> None:
-        self._log_audit({"event": "dead_child_detected"})
+        from agentflow.shell.session_manager_handlers import handle_enter_dead_child
+        handle_enter_dead_child(self)
 
     def restart_child(self) -> None:
         """Kills the active Claude child process and restarts it."""
-        from agentflow.shell.process_manager import restart_child
-        restart_child(self)
+        from agentflow.shell.session_manager_handlers import restart_child_impl
+        restart_child_impl(self)
 
     def _spawn_new_child(self) -> None:
-        from agentflow.shell.process_manager import spawn_new_child
-        spawn_new_child(self)
+        from agentflow.shell.session_manager_handlers import spawn_new_child_impl
+        spawn_new_child_impl(self)
 
     def _handle_output(self, chunk: bytes) -> None:
-        from agentflow.shell.output_handler import handle_output
-        handle_output(self, chunk)
+        from agentflow.shell.session_manager_handlers import handle_output_impl
+        handle_output_impl(self, chunk)
 
     def _record_task_tokens(self, task_id: str, delta: int) -> None:
-        from agentflow.shell.output_handler import record_task_tokens
-        record_task_tokens(self, task_id, delta)
+        from agentflow.shell.session_manager_handlers import record_task_tokens_impl
+        record_task_tokens_impl(self, task_id, delta)
 
     def _ansi_strip(self, text: str) -> str:
-        from agentflow.shell.output_handler import ansi_strip
-        return ansi_strip(text)
+        from agentflow.shell.session_manager_handlers import ansi_strip_impl
+        return ansi_strip_impl(self, text)
 
     def _detect_read_path(self, text: str) -> str | None:
-        from agentflow.shell.output_handler import detect_read_path
-        return detect_read_path(text)
+        from agentflow.shell.session_manager_handlers import detect_read_path_impl
+        return detect_read_path_impl(self, text)
 
     def _on_session_exit(self, exit_code: int) -> None:
         """Called by PTYWrapper when the child process exits."""
-        pid = getattr(self._pty, "child_pid", None)
-        self._log_audit({"event": "session_exit", "exit_code": exit_code, "pid": pid})
-        # If handoff just completed, restart rather than die — oracle exits
-        # immediately after writing handoff_complete.json; treat as restart signal.
-        if (self._state_machine.state == States.HANDOFF_PENDING
-                and self._handoff_complete_path.exists()):
-            self._state_machine.transition("handoff_complete_written")
-            return
-        # Child exit was expected — restart_child killed it intentionally.
-        # Transitioning to DEAD_CHILD here races with restart_done in the same
-        # call chain; let restart_child complete the RESTARTING → IDLE arc.
-        if self._state_machine.state == States.RESTARTING:
-            self._log_audit({"event": "session_exit_ignored", "reason": "restarting", "exit_code": exit_code, "pid": pid})
-            return
-        try:
-            self._state_machine.transition("pty_eof")
-        except Exception:
-            pass
+        from agentflow.shell.session_manager_handlers import handle_session_exit
+        handle_session_exit(self, exit_code)
 
     def trigger_handoff(self, trigger: str = "auto") -> None:
-        from agentflow.shell.handoff_handler import trigger_handoff
-        trigger_handoff(self, trigger)
+        from agentflow.shell.session_manager_handlers import trigger_handoff_impl
+        trigger_handoff_impl(self, trigger)
 
     def _restart_session(self) -> None:
-        self._state_machine.transition("restart_session")
+        from agentflow.shell.session_manager_handlers import restart_session_impl
+        restart_session_impl(self)
 
     def _update_session_file(self) -> None:
-        from agentflow.shell.session_audit import update_session_file; update_session_file(self)
+        from agentflow.shell.session_manager_handlers import update_session_file_impl
+        update_session_file_impl(self)
 
     def _check_drain_restart(self) -> None:
-        from agentflow.shell.handoff_handler import check_drain_restart; check_drain_restart(self)
+        from agentflow.shell.session_manager_handlers import check_drain_restart_impl
+        check_drain_restart_impl(self)
 
     def _check_debug_restart_trigger(self) -> None:
-        from agentflow.shell.debug_trigger import check_debug_restart_trigger; check_debug_restart_trigger(self)
+        from agentflow.shell.session_manager_handlers import check_debug_restart_trigger_impl
+        check_debug_restart_trigger_impl(self)
