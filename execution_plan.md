@@ -682,3 +682,14 @@ Pre-compute round state on PTY startup to skip startup commands. See commit 9245
 **estimated_lines:** 30
 
 ---
+## Addendum: T-208 — Fix PTY drain restart — tasks_in_flight.json as single source of truth (filed 2026-07-12)
+
+**Status:** MERGED (PR #118, 2026-07-12)
+
+**Goal:** Fix PTY drain restart being blocked in TASK_RUNNING state across sessions. Root cause: state machine starts in TASK_RUNNING when current_round.json exists but task_complete.json is absent (cleared by prior session). New session has no escape path since task_done signal was already consumed.
+
+**Solution:** Three-part fix: (1) PostToolUse hook detects Write to current_round.json and atomically writes tasks_in_flight.json with task_ids — hook-driven, deterministic, no skill involvement; (2) pty_signal.py task_done writes [] tombstone instead of deleting file — absent=not initialized, []=drained, non-empty=tasks running; (3) check_drain_restart allows TASK_RUNNING state (alongside IDLE) and uses tasks_in_flight.json as sole truth.
+
+**Files:** `agentflow/hooks/post_tool_use.py`, `agentflow/shell/pty_signal.py`, `agentflow/shell/handoff_handler.py`
+
+---
