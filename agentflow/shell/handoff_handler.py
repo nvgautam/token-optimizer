@@ -163,7 +163,7 @@ def check_drain_restart(manager) -> None:
 
     All conditions must be true:
     1. session_type == "orchestrator"
-    2. state is IDLE (not TASK_RUNNING/HANDOFF_PENDING/RESTARTING)
+    2. state is IDLE or TASK_RUNNING (not HANDOFF_PENDING/RESTARTING)
     3. handoff not in progress and not disabled
     4. tasks_in_flight.json absent or empty
     5. current_round.json exists (prevents spurious startup trigger)
@@ -185,7 +185,7 @@ def check_drain_restart(manager) -> None:
         _skip("cooldown", cooldown_remaining=round(cooldown_remaining, 1))
         return
     state = manager._state_machine.state
-    if state != States.IDLE:
+    if state not in (States.IDLE, States.TASK_RUNNING):
         _skip("state_not_idle", state=str(state))
         return
     if manager._handoff_in_progress or manager._auto_handoff_disabled():
@@ -195,8 +195,12 @@ def check_drain_restart(manager) -> None:
         _skip("no_current_round")
         return
     tif = manager._project_root / ".agentflow" / "tasks_in_flight.json"
+    if not tif.exists():
+        # absent = round not initialized; [] tombstone = drained; non-empty = tasks running
+        _skip("no_tasks_in_flight_file")
+        return
     try:
-        tif_content = _json.loads(tif.read_text("utf-8")) if tif.exists() else []
+        tif_content = _json.loads(tif.read_text("utf-8"))
         if tif_content:
             _skip("tasks_in_flight_nonempty", tasks=tif_content)
             return

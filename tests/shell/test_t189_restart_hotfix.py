@@ -68,10 +68,10 @@ class TestCooldownGuard:
         cr_path.parent.mkdir(parents=True, exist_ok=True)
         cr_path.write_text('{}', encoding="utf-8")
 
-        # Setup tasks_in_flight empty
+        # Setup tasks_in_flight drained tombstone ([] = drained; absent = not initialized)
         tif_path = sm._project_root / ".agentflow" / "tasks_in_flight.json"
-        if tif_path.exists():
-            tif_path.unlink()
+        tif_path.parent.mkdir(parents=True, exist_ok=True)
+        tif_path.write_text("[]", encoding="utf-8")
 
         # Simulate old restart (> 31s ago)
         sm._last_restart_ts = time.monotonic() - 31.0

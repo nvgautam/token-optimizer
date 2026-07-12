@@ -84,7 +84,8 @@ def test_task_done_parallel(tmp_path):
 
     task_done("T-002", workspace_root=tmp_path)
 
-    assert not in_flight_file.exists()
+    assert in_flight_file.exists(), "tasks_in_flight.json must remain as [] tombstone"
+    assert json.loads(in_flight_file.read_text()) == []
     assert complete_file.exists()
     with open(complete_file, "r") as f:
         res = json.load(f)
@@ -157,7 +158,8 @@ def test_cli_task_done_success(tmp_path, monkeypatch):
     monkeypatch.setattr(sys, "argv", ["pty_signal.py", "task_done", "T-001"])
     main()
 
-    assert not (tmp_path / ".agentflow" / "tasks_in_flight.json").exists()
+    tif = tmp_path / ".agentflow" / "tasks_in_flight.json"
+    assert tif.exists() and json.loads(tif.read_text()) == []  # [] tombstone = drained
     assert (tmp_path / ".agentflow" / "task_complete.json").exists()
 
 def test_cli_handoff_complete_success(tmp_path, monkeypatch):

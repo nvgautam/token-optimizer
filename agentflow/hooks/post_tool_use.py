@@ -44,15 +44,43 @@ def extract_fill_from_transcript(transcript_path: str) -> int | None:
     return last_fill
 
 
+def _atomic_write(path: pathlib.Path, data_str: str) -> None:
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(data_str)
+        os.replace(tmp, str(path))
+    except Exception:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+
+
+def sync_tasks_in_flight(tool_name: str, tool_input: dict, agentflow_dir: pathlib.Path) -> None:
+    """When current_round.json is written, populate tasks_in_flight.json from task_ids.
+
+    Absent tif = round not initialized (PTY skips drain check).
+    [] tombstone = drained (PTY may restart).
+    Non-empty = tasks running (PTY skips drain check).
+    """
+    if tool_name != "Write":
+        return
+    if not tool_input.get("file_path", "").endswith("/.agentflow/current_round.json"):
+        return
+    try:
+        task_ids = json.loads(tool_input.get("content", "{}")).get("task_ids", [])
+        if not isinstance(task_ids, list) or not task_ids:
+            return
+        _atomic_write(agentflow_dir / "tasks_in_flight.json", json.dumps(task_ids))
+    except Exception:
+        pass
+
+
 def main() -> None:
     """Entry point — always exits 0 to avoid blocking Claude."""
     try:
         payload = json.loads(sys.stdin.read())
-        transcript_path = payload.get("transcript_path", "")
-
-        fill_tokens = extract_fill_from_transcript(transcript_path)
-        if fill_tokens is None:
-            sys.exit(0)
 
         project_root = pathlib.Path(
             os.environ.get("CLAUDE_PROJECT_DIR", os.getcwd())
@@ -60,19 +88,19 @@ def main() -> None:
         agentflow_dir = project_root / ".agentflow"
         agentflow_dir.mkdir(parents=True, exist_ok=True)
 
-        fill_path = agentflow_dir / "context_fill.json"
-        data_str = json.dumps({"fill_tokens": fill_tokens, "ts": time.time()})
+        sync_tasks_in_flight(
+            payload.get("tool_name", ""),
+            payload.get("tool_input", {}),
+            agentflow_dir,
+        )
 
-        fd, tmp_path = tempfile.mkstemp(dir=str(agentflow_dir))
-        try:
-            with os.fdopen(fd, "w", encoding="utf-8") as f:
-                f.write(data_str)
-            os.replace(tmp_path, str(fill_path))
-        except Exception:
-            try:
-                os.unlink(tmp_path)
-            except OSError:
-                pass
+        transcript_path = payload.get("transcript_path", "")
+        fill_tokens = extract_fill_from_transcript(transcript_path)
+        if fill_tokens is None:
+            sys.exit(0)
+
+        fill_path = agentflow_dir / "context_fill.json"
+        _atomic_write(fill_path, json.dumps({"fill_tokens": fill_tokens, "ts": time.time()}))
     except Exception:
         pass
     sys.exit(0)
