@@ -1,9 +1,9 @@
 {
-  "computed_at": "2026-07-11T21:01:43.847246",
-  "baseline_tokens": 2679,
-  "sample_size": 2213,
-  "ci95_low": 374.2749151276457,
-  "ci95_high": 4984.369459025088,
+  "computed_at": "2026-07-12T00:01:57.818153",
+  "baseline_tokens": 3194,
+  "sample_size": 2284,
+  "ci95_low": 875.4937945472825,
+  "ci95_high": 5512.450163421194,
   "measured": true,
   "arms": {
     "on": {
@@ -14,15 +14,15 @@
       "ci95_high": 1394.079783406593
     },
     "off": {
-      "n": 2213,
-      "mean": 2679.322187076367,
-      "p90": 648,
-      "ci95_low": 374.2749151276457,
-      "ci95_high": 4984.369459025088
+      "n": 2284,
+      "mean": 3193.9719789842384,
+      "p90": 970,
+      "ci95_low": 875.4937945472825,
+      "ci95_high": 5512.450163421194
     }
   },
   "stopping_met": false,
-  "stopping_status": "STILL COLLECTING \u2014 n_on=7621 / 20, n_off=2213 / 20",
-  "verbosity_savings_per_turn": 1742.4,
-  "verbosity_pct_saved": 65.0
+  "stopping_status": "STILL COLLECTING \u2014 n_on=7621 / 20, n_off=2284 / 20",
+  "verbosity_savings_per_turn": 2257.0,
+  "verbosity_pct_saved": 70.7
 }
