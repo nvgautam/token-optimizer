@@ -62,9 +62,17 @@ At the start of each round, write `.agentflow/current_round.json` with the follo
   "task_ids": ["string"],
   "estimated_lines_per_task": {"task_id": "int"},
   "file_counts_per_task": {"task_id": "int"},
-  "timestamp": "ISO8601"
+  "timestamp": "ISO8601",
+  "task_ctx": {
+    "task_id": "string",
+    "title": "string",
+    "deps": ["string"],
+    "estimated_lines": "int"
+  }
 }
 ```
+The `task_ctx` field (optional) contains the first task's metadata for fast-path initialization in the worker startup (T-196). Populate with task_id, title, dependencies list, and estimated line count.
+
 During the round execution, orchestrate the worker lifecycles with deterministic stdout print signals:
 - Before spawning each worker: run `python agentflow/shell/pty_signal.py task_start <task_id>` and print `AGENTFLOW_TASK_START:<task_id>`
 - After each worker completes: print `AGENTFLOW_TASK_COMPLETE:<task_id>` and run `python agentflow/shell/pty_signal.py task_done <task_id>`
