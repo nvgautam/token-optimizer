@@ -11,6 +11,8 @@ import sys
 import tempfile
 import time
 
+from agentflow.shell.session_paths import session_file
+
 
 def compute_fill(usage: dict) -> int:
     """Sum the three input token fields; output_tokens not included."""
@@ -99,7 +101,9 @@ def main() -> None:
         if fill_tokens is None:
             sys.exit(0)
 
-        fill_path = agentflow_dir / "context_fill.json"
+        # Read AGENTFLOW_SESSION_ID from env (default to empty string for backward compat)
+        sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+        fill_path = session_file(agentflow_dir, "context_fill.json", sid if sid else None)
         _atomic_write(fill_path, json.dumps({"fill_tokens": fill_tokens, "ts": time.time()}))
     except Exception:
         pass
