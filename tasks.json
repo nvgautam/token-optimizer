@@ -780,15 +780,7 @@
     },
     {
       "task_id": "T-200",
-      "title": "Add _session_file() path helper for per-SID volatile state",
-      "description": "Create agentflow/shell/session_paths.py with _session_file(agentflow_dir, sid, filename) helper. Returns sessions/<SID>/filename when SID is non-empty, else agentflow_dir/filename (global fallback for no-SID sessions). Ensures mkdir(parents=True, exist_ok=True). Used by T-201/T-202/T-203/T-204.",
-      "owns": [
-        "agentflow/shell/session_paths.py"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "estimated_lines": 20,
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-201",
@@ -893,16 +885,37 @@
     },
     {
       "task_id": "T-209",
-      "title": "Orchestrate drain restart \u2014 direct RESTARTING path, no output parsing",
-      "description": "Remove all output-based PTY restart triggers and replace with a deterministic file-based drain path for orchestrate sessions.\n\n## Changes\n\n1. **Add direct RESTARTING transition for orchestrate drain path** (`handoff_handler.check_drain_restart`): instead of calling `trigger_handoff()` (which routes through HANDOFF_PENDING and waits for HANDOFF_COMPLETE), transition directly to RESTARTING when conditions are met (tasks_in_flight=[] AND context_fill>=80K AND on_idle_tick). HANDOFF_PENDING remains intact for oracle sessions \u2014 orchestrate gets its own transition only.\n\n2. **Call `clear_signal_files()` before `execvp`** in `process_manager.handle_enter_restarting` so the new session starts with context_fill reset to 0. Ensures no duplicate restart on session start.\n\n3. **Delete output-based triggers** in `output_handler.py`: line 84 (HANDOFF_COMPLETE text detection) and lines 126-162 (HANDOFF RECOMMENDED + accumulated-token trigger). These are the fragile output-parsing paths.\n\n4. **Delete `reset_accumulator`**: remove the `reset_file.touch()` call in `user_prompt_submit.py:184` and delete `.agentflow/reset_accumulator` from the repo. Nothing in the PTY shell reads this file \u2014 it is a dead artifact.\n\n5. **Rename/comment `_last_accumulated_tokens`** to make clear it is observability-only (audit logs + TASK_COMPLETE state transition for oracle). Add a comment: 'output token accumulator \u2014 observability only, not used for restart decisions'.\n\n## Guards that make restart deterministic\n- Guard 1: tasks_in_flight.json must be [] tombstone (tasks done)\n- Guard 2: check_drain_restart only runs in on_idle_tick (Claude idle between turns)\n- Both must be true simultaneously \u2014 no false-positive restart possible\n\n## Files\n- agentflow/shell/handoff_handler.py (drain path transition)\n- agentflow/shell/process_manager.py (clear_signal_files before execvp)\n- agentflow/shell/output_handler.py (delete output-based triggers)\n- agentflow/shell/session_manager.py (comment on _last_accumulated_tokens)\n- agentflow/hooks/user_prompt_submit.py (remove reset_accumulator write)\n- .agentflow/reset_accumulator (delete)\n\n## Estimated lines changed: ~60\n## Model: Sonnet",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-210",
+      "title": "Fix write_indexer tests leaking cache dirs per pytest run",
+      "status": "pending",
+      "description": "Each pytest run of test_write_indexer.py creates 3-4 new ~/.agentflow/cache/<hash>/ directories because tmp_path produces a unique cwd per invocation, and sha256(cwd) generates a fresh cache key. Fix: patch the cache root in write_indexer tests to point at a fixed temp dir (e.g. monkeypatch the CACHE_ROOT constant) instead of relying on tmp_path as cwd. Also add agentflow cache prune --older-than <days> CLI subcommand to evict stale entries. Owned files: tests/test_write_indexer.py, agentflow/cli.py (or cli_cmds.py for prune subcommand).",
+      "model": "haiku",
+      "estimated_lines": 60,
       "owns": [
-        "agentflow/shell/handoff_handler.py",
-        "agentflow/shell/process_manager.py",
-        "agentflow/shell/output_handler.py",
-        "agentflow/shell/session_manager.py",
-        "agentflow/hooks/user_prompt_submit.py"
+        "tests/test_write_indexer.py"
       ],
-      "status": "pending"
+      "context_section": "Symbol indexer"
+    },
+    {
+      "task_id": "T-211",
+      "title": "Spike: agy/Gemini CLI session lifecycle \u2014 restart feasibility",
+      "status": "pending",
+      "description": "Investigate what agy (Gemini CLI) exposes for session lifecycle management, to determine whether a PTY-equivalent restart mechanism is feasible. Key questions: (1) Does agy have a hook system analogous to Claude Code's PostToolUse/UserPromptSubmit hooks? (2) Is there a /clear or session-reset command? (3) Can context fill be measured (token count per turn)? (4) Is there a skill/command injection mechanism equivalent to /orchestrate? (5) What is the process model \u2014 single long-lived process or per-turn subprocess? Output: a design_status.md entry capturing RESOLVED/UNRESOLVED for each question, and a recommendation on whether agy restart parity is achievable in v1 or must be deferred. No implementation \u2014 research + decision only.",
+      "model": "claude-sonnet-4-6",
+      "estimated_lines": 0,
+      "owns": [
+        "design_status.md"
+      ],
+      "context_section": "Multi-provider"
+    },
+    {
+      "task_id": "T-212",
+      "status": "complete",
+      "title": "Block oracle session restart in handle_session_exit",
+      "description": "Oracle auto-restart is DEFERRED (design_status.md). Guard the HANDOFF_PENDING restart branch in session_manager_handlers.py:handle_session_exit to only restart orchestrator sessions."
     }
   ]
 }
