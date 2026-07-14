@@ -148,7 +148,10 @@ class TestMain(unittest.TestCase):
             payload = json.dumps({"transcript_path": str(transcript_path)})
             code = self._call_main(
                 payload,
-                env_overrides={"CLAUDE_PROJECT_DIR": str(project_dir)},
+                env_overrides={
+                    "CLAUDE_PROJECT_DIR": str(project_dir),
+                    "AGENTFLOW_SESSION_ID": "",
+                },
             )
             self.assertEqual(code, 0)
 
@@ -166,9 +169,140 @@ class TestMain(unittest.TestCase):
             payload = json.dumps({"transcript_path": "/nonexistent/transcript.jsonl"})
             code = self._call_main(
                 payload,
-                env_overrides={"CLAUDE_PROJECT_DIR": str(project_dir)},
+                env_overrides={
+                    "CLAUDE_PROJECT_DIR": str(project_dir),
+                    "AGENTFLOW_SESSION_ID": "",
+                },
             )
             self.assertEqual(code, 0)
+
+    # --- per-SID path tests ---
+
+    def test_main_writes_to_sid_path(self):
+        """When AGENTFLOW_SESSION_ID is set, context_fill.json goes to sessions/<SID>/."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            transcript_path = pathlib.Path(tmpdir) / "transcript.jsonl"
+            transcript_path.write_text(
+                json.dumps(
+                    {
+                        "type": "assistant",
+                        "message": {
+                            "usage": {
+                                "input_tokens": 300,
+                                "cache_read_input_tokens": 50,
+                                "cache_creation_input_tokens": 0,
+                            }
+                        },
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            project_dir = pathlib.Path(tmpdir) / "project"
+            project_dir.mkdir()
+
+            payload = json.dumps({"transcript_path": str(transcript_path)})
+            code = self._call_main(
+                payload,
+                env_overrides={
+                    "CLAUDE_PROJECT_DIR": str(project_dir),
+                    "AGENTFLOW_SESSION_ID": "test-session-123",
+                },
+            )
+            self.assertEqual(code, 0)
+
+            # Check that file was written to sessions/<SID>/ path
+            fill_path = project_dir / ".agentflow" / "sessions" / "test-session-123" / "context_fill.json"
+            self.assertTrue(fill_path.exists(), f"Expected {fill_path} to exist")
+            data = json.loads(fill_path.read_text(encoding="utf-8"))
+            self.assertEqual(data["fill_tokens"], 350)
+            self.assertIn("ts", data)
+            self.assertIsInstance(data["ts"], float)
+            # Ensure root-level file was NOT created
+            root_fill_path = project_dir / ".agentflow" / "context_fill.json"
+            self.assertFalse(root_fill_path.exists(), "Root-level context_fill.json should not exist when SID is set")
+
+    def test_main_writes_to_root_path_without_sid(self):
+        """When AGENTFLOW_SESSION_ID is absent, context_fill.json goes to root (backward compat)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            transcript_path = pathlib.Path(tmpdir) / "transcript.jsonl"
+            transcript_path.write_text(
+                json.dumps(
+                    {
+                        "type": "assistant",
+                        "message": {
+                            "usage": {
+                                "input_tokens": 300,
+                                "cache_read_input_tokens": 50,
+                                "cache_creation_input_tokens": 0,
+                            }
+                        },
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            project_dir = pathlib.Path(tmpdir) / "project"
+            project_dir.mkdir()
+
+            payload = json.dumps({"transcript_path": str(transcript_path)})
+            # Explicitly set AGENTFLOW_SESSION_ID to empty string to override any env setting
+            code = self._call_main(
+                payload,
+                env_overrides={
+                    "CLAUDE_PROJECT_DIR": str(project_dir),
+                    "AGENTFLOW_SESSION_ID": "",
+                },
+            )
+            self.assertEqual(code, 0)
+
+            fill_path = project_dir / ".agentflow" / "context_fill.json"
+            self.assertTrue(fill_path.exists())
+            data = json.loads(fill_path.read_text(encoding="utf-8"))
+            self.assertEqual(data["fill_tokens"], 350)
+            self.assertIn("ts", data)
+            self.assertIsInstance(data["ts"], float)
+
+    def test_main_writes_to_root_path_with_empty_sid(self):
+        """When AGENTFLOW_SESSION_ID is empty string, context_fill.json goes to root (backward compat)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            transcript_path = pathlib.Path(tmpdir) / "transcript.jsonl"
+            transcript_path.write_text(
+                json.dumps(
+                    {
+                        "type": "assistant",
+                        "message": {
+                            "usage": {
+                                "input_tokens": 300,
+                                "cache_read_input_tokens": 50,
+                                "cache_creation_input_tokens": 0,
+                            }
+                        },
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            project_dir = pathlib.Path(tmpdir) / "project"
+            project_dir.mkdir()
+
+            payload = json.dumps({"transcript_path": str(transcript_path)})
+            # Empty AGENTFLOW_SESSION_ID
+            code = self._call_main(
+                payload,
+                env_overrides={
+                    "CLAUDE_PROJECT_DIR": str(project_dir),
+                    "AGENTFLOW_SESSION_ID": "",
+                },
+            )
+            self.assertEqual(code, 0)
+
+            fill_path = project_dir / ".agentflow" / "context_fill.json"
+            self.assertTrue(fill_path.exists())
+            data = json.loads(fill_path.read_text(encoding="utf-8"))
+            self.assertEqual(data["fill_tokens"], 350)
+            self.assertIn("ts", data)
+            self.assertIsInstance(data["ts"], float)
 
 
 if __name__ == "__main__":

@@ -7,6 +7,8 @@ import sys
 import tempfile
 import time
 
+from agentflow.shell.session_paths import session_file
+
 MODEL_CONTEXT_WINDOW = 200_000  # claude-sonnet-4-6 / claude-opus-4
 FILL_STALE_SECONDS = 60
 
@@ -59,11 +61,13 @@ def main() -> None:
         agentflow_dir = project_root / ".agentflow"
         agentflow_dir.mkdir(parents=True, exist_ok=True)
 
-        fill_path = agentflow_dir / "context_fill.json"
+        # Read AGENTFLOW_SESSION_ID from env (default to empty string for backward compat)
+        sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+        fill_path = session_file(agentflow_dir, "context_fill.json", sid if sid else None)
         data_str = json.dumps({"fill_tokens": fill_tokens, "ts": time.time()})
 
-        # Atomic write: temp file in same dir + os.replace
-        fd, tmp_path = tempfile.mkstemp(dir=str(agentflow_dir))
+        # Atomic write: temp file in same dir as fill_path + os.replace
+        fd, tmp_path = tempfile.mkstemp(dir=str(fill_path.parent))
         try:
             with os.fdopen(fd, "w", encoding="utf-8") as f:
                 f.write(data_str)
