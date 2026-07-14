@@ -713,4 +713,4 @@ Pre-compute round state on PTY startup to skip startup commands. See commit 9245
 **Owns:** commands/gemini/skills/orchestrate/SKILL.md
 **Estimated lines:** 60
 **Depends:** none
-**Status:** PENDING
+**Status:** MERGED (PR #124, 2026-07-14)

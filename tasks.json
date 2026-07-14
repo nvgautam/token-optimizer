@@ -917,23 +917,11 @@
     },
     {
       "task_id": "T-213",
-      "title": "Fix AGENTS.md \u2014 replace dead headless-layer paths with live commands/ structure",
-      "description": "AGENTS.md (used by Gemini/agy sessions) references agentflow/oracle/prompts/, agentflow/worker/prompts/, agentflow/reviewer/prompts/, agentflow/orchestrator/prompts/ \u2014 the deferred headless-automation layer that is dead code per CLAUDE.md. Gemini workers are oriented against the wrong surface. Fix: update AGENTS.md Structure section to match CLAUDE.md \u2014 point to commands/gemini/skills/ and commands/claude/ as the live skill surface. Remove all references to the dead Python prompt packages. Tests: read AGENTS.md and assert none of the dead paths appear.",
-      "owns": [
-        "commands/gemini/AGENTS.md"
-      ],
-      "estimated_lines": 60,
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-214",
-      "title": "Flatten Gemini orchestrate model selection to gemini-2.5-flash (single tier)",
-      "description": "Gemini orchestrate uses gemini-1.5-flash-8b for mechanical tasks and gemini-2.5-flash for exploratory \u2014 the 8B model is too weak for precise code edits. Fix: replace both tier entries in commands/gemini/skills/orchestrate/SKILL.md with gemini-2.5-flash for all tasks. Remove the mechanical/exploratory split and the cross-tier reviewer model-routing section (collapse to same-model review since human gate backstops). Tests: test_orchestrate_skill.py \u2014 assert gemini-1.5-flash-8b does not appear in Gemini orchestrate skill content.",
-      "owns": [
-        "commands/gemini/skills/orchestrate/SKILL.md"
-      ],
-      "estimated_lines": 60,
-      "status": "pending"
+      "status": "complete"
     }
   ]
 }
