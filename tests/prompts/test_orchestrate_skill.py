@@ -179,20 +179,25 @@ def test_orchestrate_skills_contain_cleanup_tasks_merge():
 
 
 def test_orchestrate_pass2_cross_tier_routing():
-    """T-114: Route Pass 2 reviewer to the opposite tier from the implementer."""
+    """T-114: Route Pass 2 reviewer to the opposite tier from the implementer (Claude only)."""
     for f in SKILL_FILES:
         if f == AGY_ORCHESTRATE:
             continue
         content = f.read_text(encoding="utf-8")
         assert "Pass 2" in content
-        # Assert cross-tier reviewer routing rule is present
-        assert "opposite tier" in content.lower() or "cross-tier" in content.lower()
         if "commands/claude" in str(f):
+            # Assert cross-tier reviewer routing rule is present
+            assert "opposite tier" in content.lower() or "cross-tier" in content.lower()
             assert "haiku-implemented" in content.lower()
             assert "sonnet-implemented" in content.lower()
-        else: # gemini
-            assert "flash low-implemented" in content.lower()
-            assert "flash high-implemented" in content.lower()
+
+
+def test_gemini_orchestrate_no_8b():
+    """T-214: Assert gemini-1.5-flash-8b does not appear in Gemini orchestrate skill content."""
+    content = GEMINI_ORCHESTRATE.read_text(encoding="utf-8")
+    assert "gemini-1.5-flash-8b" not in content, "gemini-1.5-flash-8b must not appear in Gemini orchestrate skill"
+    assert "flash low" not in content.lower(), "flash low must not appear in Gemini orchestrate skill"
+
 
 
 def test_orchestrate_skills_contain_pty_signal():
