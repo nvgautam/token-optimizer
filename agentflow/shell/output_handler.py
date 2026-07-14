@@ -6,8 +6,7 @@ import time
 import datetime
 import json
 import pathlib
-from agentflow.shell.state_machine import States
-from agentflow.hooks.stop_context_capture import MODEL_CONTEXT_WINDOW, FILL_STALE_SECONDS
+from agentflow.hooks.stop_context_capture import FILL_STALE_SECONDS
 
 _ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;]*[mGKHFABCDhJlsu]")
 _READ_PATH_RE = re.compile(
@@ -81,14 +80,6 @@ def handle_output(manager, chunk: bytes) -> None:
     if detected_path and detected_path != manager._last_idx_injected:
         manager._last_idx_injected = detected_path
 
-    if manager._state_machine.state == States.HANDOFF_PENDING and "HANDOFF_COMPLETE" in clean:
-        try:
-            manager._handoff_complete_path.parent.mkdir(parents=True, exist_ok=True)
-            manager._handoff_complete_path.write_text(json.dumps({"status": "complete"}), encoding="utf-8")
-        except Exception:
-            pass
-        manager._state_machine.transition("handoff_complete_written")
-
     manager._current_turn_output_tokens += manager._tokenizer.count_tokens(text, "claude")
     total = manager._tokenizer.accumulate(text, "claude")
     manager._last_accumulated_tokens = total
@@ -123,41 +114,4 @@ def handle_output(manager, chunk: bytes) -> None:
         manager._last_idx_injected = None
         manager._run_stale_index_guard()
 
-    if "HANDOFF RECOMMENDED" in clean:
-        if not manager._manual_handoff and not manager._auto_handoff_disabled() and manager._state_machine.state not in (States.HANDOFF_PENDING, States.RESTARTING):
-            try:
-                tasks_path = manager._project_root / "tasks.json"
-                if tasks_path.exists():
-                    data = json.loads(tasks_path.read_text("utf-8"))
-                    completed = {t["task_id"] for t in data.get("tasks", []) if t.get("status") == "complete"}
-                    for tid in list(manager._task_start_tokens):
-                        if tid in completed:
-                            manager._task_start_tokens.pop(tid)
-                            manager._log_audit({"event": "handoff_recommended_evict", "task_id": tid})
-            except Exception:
-                pass
-            primary = manager._config["handoff_primary_tokens"]
-            if total >= primary and not bool(manager._task_start_tokens) and manager.session_type != "orchestrator":
-                manager.trigger_handoff(trigger="handoff-recommended-stall-recovery")
-
-    _restart_cooldown = 30.0
-    _since_restart = time.monotonic() - manager._last_restart_ts
-    if not manager._manual_handoff and not manager._auto_handoff_disabled() and manager._state_machine.state not in (States.HANDOFF_PENDING, States.RESTARTING) and _since_restart >= _restart_cooldown:
-        primary = manager._config["handoff_primary_tokens"]
-        if total // 10_000 > manager._last_audit_token_bucket:
-            manager._log_audit({"event": "token_evaluation", "accumulated_tokens": total, "primary": primary})
-            manager._last_audit_token_bucket = total // 10_000
-
-        # T-151: only trigger on 80K + task just completed + no task in-flight.
-        # Safety and ceiling triggers removed — they caused mid-task restart storms
-        # with no recovery path.
-        task_just_completed = complete_m is not None
-        task_in_flight = bool(manager._task_start_tokens) or manager._state_machine.state == States.TASK_RUNNING
-        fill = _read_fill_tokens(manager._project_root)
-        if fill is not None:
-            triggered = fill / MODEL_CONTEXT_WINDOW >= 0.7
-        else:
-            triggered = total >= primary
-        if triggered and task_just_completed and not task_in_flight and manager.session_type != "orchestrator":
-            manager.trigger_handoff(trigger="auto-primary")
 

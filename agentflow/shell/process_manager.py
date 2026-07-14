@@ -6,6 +6,8 @@ import signal
 
 def handle_enter_restarting(manager) -> None:
     manager._just_restarted = True
+    # T-209: reset context_fill to 0 before spawning so new session starts clean
+    manager._clear_signal_files()
     manager.restart_child()
     try:
         os.write(1, b"\x1b[0m")
