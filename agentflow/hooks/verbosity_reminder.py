@@ -3,6 +3,8 @@
 import os, sys, json, tempfile
 from pathlib import Path
 
+from agentflow.shell.session_paths import session_file
+
 INTERVAL = 2
 COUNTER_FILE = Path.home() / ".agentflow" / "verbosity_turn_counter"
 _DISABLED_VALUES = {"1", "true", "yes", "on"}
@@ -30,14 +32,14 @@ def _read_prompt_from_stdin() -> str | None:
         return None
 
 def _write_session_state_atomic(agentflow_dir: Path, session_type: str, sid: str = "") -> None:
-    """Write session_state_{sid}.json atomically."""
+    """Write session_state.json to sessions/<sid>/ if sid, else to root."""
     try:
         agentflow_dir.mkdir(parents=True, exist_ok=True)
-        filename = f"session_state_{sid}.json" if sid else "session_state.json"
-        with tempfile.NamedTemporaryFile(mode="w", dir=agentflow_dir, delete=False, suffix=".tmp", encoding="utf-8") as tmp:
+        session_state_file = session_file(agentflow_dir, "session_state.json", sid)
+        with tempfile.NamedTemporaryFile(mode="w", dir=session_state_file.parent, delete=False, suffix=".tmp", encoding="utf-8") as tmp:
             json.dump({"session_type": session_type}, tmp)
             tmp_path = Path(tmp.name)
-        os.replace(tmp_path, agentflow_dir / filename)
+        os.replace(tmp_path, session_state_file)
     except Exception:
         pass
 

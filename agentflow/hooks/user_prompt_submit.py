@@ -9,6 +9,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+from agentflow.shell.session_paths import session_file
+
 
 def _check_pr_state(pr_url: str) -> str | None:
     """Call gh pr view <url> --json state; return state string or None on error."""
@@ -67,19 +69,15 @@ def _run_cleanup(root: Path) -> None:
 
 
 def _write_session_state_atomic(agentflow_dir: Path, session_type: str, sid: str = "") -> None:
-    """Write session_state.json atomically using temp file + replace.
-
-    If sid is non-empty, write to session_state_{sid}.json; otherwise session_state.json.
-    """
+    """Write session_state.json to sessions/<sid>/ if sid, else to root."""
     try:
         agentflow_dir.mkdir(parents=True, exist_ok=True)
-        filename = f"session_state_{sid}.json" if sid else "session_state.json"
-        session_state_file = agentflow_dir / filename
+        session_state_file = session_file(agentflow_dir, "session_state.json", sid)
         data = {"session_type": session_type}
         # Write to temp file in the same directory for atomic replace
         with tempfile.NamedTemporaryFile(
             mode="w",
-            dir=agentflow_dir,
+            dir=session_state_file.parent,
             delete=False,
             suffix=".tmp",
             encoding="utf-8"

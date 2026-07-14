@@ -98,7 +98,10 @@ def test_main_writes_context_fill_json(tmp_path):
     agentflow_dir.mkdir()
     payload = json.dumps({"transcript_path": str(transcript)})
 
-    code = _invoke(payload, env={"CLAUDE_PROJECT_DIR": str(tmp_path)})
+    code = _invoke(payload, env={
+        "CLAUDE_PROJECT_DIR": str(tmp_path),
+        "AGENTFLOW_SESSION_ID": "",
+    })
 
     assert code == 0
     fill_path = agentflow_dir / "context_fill.json"
@@ -113,7 +116,10 @@ def test_main_absent_transcript_exits_clean(tmp_path):
     agentflow_dir.mkdir()
     payload = json.dumps({"transcript_path": "/nonexistent/path.jsonl"})
 
-    code = _invoke(payload, env={"CLAUDE_PROJECT_DIR": str(tmp_path)})
+    code = _invoke(payload, env={
+        "CLAUDE_PROJECT_DIR": str(tmp_path),
+        "AGENTFLOW_SESSION_ID": "",
+    })
 
     assert code == 0
     assert not (agentflow_dir / "context_fill.json").exists()
@@ -173,10 +179,87 @@ def test_main_write_is_atomic(tmp_path):
     agentflow_dir.mkdir()
     payload = json.dumps({"transcript_path": str(transcript)})
 
-    code = _invoke(payload, env={"CLAUDE_PROJECT_DIR": str(tmp_path)})
+    code = _invoke(payload, env={
+        "CLAUDE_PROJECT_DIR": str(tmp_path),
+        "AGENTFLOW_SESSION_ID": "",
+    })
 
     assert code == 0
     fill_path = agentflow_dir / "context_fill.json"
     # If atomic, the file is either absent or fully written — never partial
     data = json.loads(fill_path.read_text())
     assert isinstance(data["fill_tokens"], int)
+
+
+# --- per-SID path tests ---
+
+def test_main_writes_to_sid_path(tmp_path):
+    """When AGENTFLOW_SESSION_ID is set, context_fill.json goes to sessions/<SID>/."""
+    transcript = _make_transcript(tmp_path, [
+        {"type": "assistant", "message": {"usage": {"input_tokens": 300, "cache_read_input_tokens": 50, "cache_creation_input_tokens": 0}}},
+    ])
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+    payload = json.dumps({"transcript_path": str(transcript)})
+
+    code = _invoke(payload, env={
+        "CLAUDE_PROJECT_DIR": str(tmp_path),
+        "AGENTFLOW_SESSION_ID": "test-session-123",
+    })
+
+    assert code == 0
+    # Check that file was written to sessions/<SID>/ path
+    fill_path = agentflow_dir / "sessions" / "test-session-123" / "context_fill.json"
+    assert fill_path.exists(), f"Expected {fill_path} to exist"
+    data = json.loads(fill_path.read_text())
+    assert data["fill_tokens"] == 350
+    assert "ts" in data
+    # Ensure root-level file was NOT created
+    root_fill_path = agentflow_dir / "context_fill.json"
+    assert not root_fill_path.exists(), "Root-level context_fill.json should not exist when SID is set"
+
+
+def test_main_writes_to_root_path_without_sid(tmp_path):
+    """When AGENTFLOW_SESSION_ID is absent, context_fill.json goes to root (backward compat)."""
+    transcript = _make_transcript(tmp_path, [
+        {"type": "assistant", "message": {"usage": {"input_tokens": 300, "cache_read_input_tokens": 50, "cache_creation_input_tokens": 0}}},
+    ])
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+    payload = json.dumps({"transcript_path": str(transcript)})
+
+    # Explicitly set AGENTFLOW_SESSION_ID to empty string to override any env setting
+    code = _invoke(payload, env={
+        "CLAUDE_PROJECT_DIR": str(tmp_path),
+        "AGENTFLOW_SESSION_ID": "",
+    })
+
+    assert code == 0
+    fill_path = agentflow_dir / "context_fill.json"
+    assert fill_path.exists()
+    data = json.loads(fill_path.read_text())
+    assert data["fill_tokens"] == 350
+    assert "ts" in data
+
+
+def test_main_writes_to_root_path_with_empty_sid(tmp_path):
+    """When AGENTFLOW_SESSION_ID is empty string, context_fill.json goes to root (backward compat)."""
+    transcript = _make_transcript(tmp_path, [
+        {"type": "assistant", "message": {"usage": {"input_tokens": 300, "cache_read_input_tokens": 50, "cache_creation_input_tokens": 0}}},
+    ])
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+    payload = json.dumps({"transcript_path": str(transcript)})
+
+    # Explicitly set AGENTFLOW_SESSION_ID to empty string
+    code = _invoke(payload, env={
+        "CLAUDE_PROJECT_DIR": str(tmp_path),
+        "AGENTFLOW_SESSION_ID": "",
+    })
+
+    assert code == 0
+    fill_path = agentflow_dir / "context_fill.json"
+    assert fill_path.exists()
+    data = json.loads(fill_path.read_text())
+    assert data["fill_tokens"] == 350
+    assert "ts" in data
