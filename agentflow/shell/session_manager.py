@@ -16,6 +16,7 @@ except ImportError:
 
 from agentflow.shell.countdown import countdown  # noqa: F401
 from agentflow.shell.state_machine import StateMachine, States
+from agentflow.shell.session_paths import session_file
 
 _DEFAULTS = {
     "handoff_primary_tokens": 80000,  # T-151: only threshold that triggers auto-handoff
@@ -90,7 +91,20 @@ class SessionManager:
     def _current_round_path(self, val: pathlib.Path) -> None: self._current_round_path_override = val
 
     @property
-    def _task_complete_path(self) -> pathlib.Path: return getattr(self, "_task_complete_path_override", None) or (self._project_root / ".agentflow" / "task_complete.json")
+    def _task_complete_path(self) -> pathlib.Path:
+        override = getattr(self, "_task_complete_path_override", None)
+        if override:
+            return override
+        sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+        agentflow_dir = self._project_root / ".agentflow"
+        sid_scoped_path = session_file(agentflow_dir, "task_complete.json", sid)
+        # Backward compatibility: if SID is set but the SID-scoped file doesn't exist,
+        # fall back to the flat path (legacy behavior)
+        if sid and not sid_scoped_path.exists():
+            flat_path = agentflow_dir / "task_complete.json"
+            if flat_path.exists():
+                return flat_path
+        return sid_scoped_path
     @_task_complete_path.setter
     def _task_complete_path(self, val: pathlib.Path) -> None: self._task_complete_path_override = val
 
