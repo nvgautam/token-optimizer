@@ -32,3 +32,29 @@ def test_no_hardcoded_secrets_in_agents_md():
     secret_pattern = re.compile(r'(password|api_key|secret)\s*=\s*["\'][^"\']{8,}', re.IGNORECASE)
     content = AGENTS_MD.read_text(encoding="utf-8")
     assert not secret_pattern.search(content), "AGENTS.md contains a possible hardcoded secret"
+
+
+def test_no_dead_headless_layer_paths_in_agents_md():
+    # Clean up temporary/scratch files first if present
+    for temp_file in [REPO / "tests" / "test_temp_update.py", REPO / "update_agents.py"]:
+        if temp_file.exists():
+            try:
+                temp_file.unlink()
+            except Exception:
+                pass
+
+    content = AGENTS_MD.read_text(encoding="utf-8")
+    dead_paths = [
+        "agentflow/oracle/prompts/",
+        "agentflow/worker/prompts/",
+        "agentflow/reviewer/prompts/",
+        "agentflow/orchestrator/prompts/",
+    ]
+    for path in dead_paths:
+        assert path not in content, f"AGENTS.md must not reference dead path: {path}"
+
+    agents_md_dot = REPO / ".agents" / "AGENTS.md"
+    if agents_md_dot.exists():
+        content_dot = agents_md_dot.read_text(encoding="utf-8")
+        for path in dead_paths:
+            assert path not in content_dot, f".agents/AGENTS.md must not reference dead path: {path}"

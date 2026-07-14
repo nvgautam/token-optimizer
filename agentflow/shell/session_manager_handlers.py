@@ -146,10 +146,10 @@ def handle_session_exit(session_manager, exit_code: int) -> None:
     pid = getattr(session_manager._pty, "child_pid", None)
     log_audit(session_manager, {"event": "session_exit", "exit_code": exit_code, "pid": pid})
 
-    # If handoff just completed, restart rather than die — oracle exits
-    # immediately after writing handoff_complete.json; treat as restart signal.
+    # Oracle auto-restart is DEFERRED — only orchestrator sessions restart on handoff.
     if (session_manager._state_machine.state == States.HANDOFF_PENDING
-            and session_manager._handoff_complete_path.exists()):
+            and session_manager._handoff_complete_path.exists()
+            and getattr(session_manager, "session_type", None) == "orchestrator"):
         session_manager._state_machine.transition("handoff_complete_written")
         return
 

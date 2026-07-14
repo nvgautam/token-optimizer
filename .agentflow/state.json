@@ -1,14 +1,11 @@
 {
-  "last_round": "drain-fix-1",
-  "last_merged_tasks": [
-    "T-208"
-  ],
+  "last_round": "t196-spawn-ctx",
+  "last_merged_tasks": ["T-174", "T-196"],
   "prs": [
-    "https://github.com/nvgautam/token-optimizer/pull/118"
+    "https://github.com/nvgautam/token-optimizer/pull/119",
+    "https://github.com/nvgautam/token-optimizer/pull/120"
   ],
-  "merged_at": "2026-07-12T06:24:52Z",
-  "next_round": "session-iso-1",
-  "next_tasks": [
-    "T-200"
-  ]
+  "merged_at": "2026-07-12T00:00:00Z",
+  "next_round": "restart-deterministic",
+  "next_tasks": ["T-209"]
 }

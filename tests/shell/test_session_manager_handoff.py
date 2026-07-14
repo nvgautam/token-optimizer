@@ -250,3 +250,60 @@ def test_orchestrator_handoff_complete_json_content(tmp_path):
     handle_enter_handoff_pending(sm)
     data = json.loads(sm._handoff_complete_path.read_text())
     assert data["status"] == "complete"
+
+
+# ---------------------------------------------------------------------------
+# T-212: oracle sessions must NOT restart after handoff
+# ---------------------------------------------------------------------------
+
+def test_oracle_session_exit_does_not_restart(tmp_path):
+    """T-212: oracle sessions must exit cleanly — no restart after handoff_complete.json."""
+    from agentflow.shell.session_manager_handlers import handle_session_exit
+    from agentflow.shell.state_machine import States
+
+    sm, pty, _ = make_manager()
+    sm.session_type = "oracle"
+    sm._handoff_complete_path = tmp_path / ".agentflow" / "handoff_complete.json"
+    sm._handoff_complete_path.parent.mkdir(parents=True, exist_ok=True)
+    sm._handoff_complete_path.write_text("{}", encoding="utf-8")
+
+    sm._state_machine.transition("trigger_handoff")  # → HANDOFF_PENDING
+    assert sm._state_machine.state == States.HANDOFF_PENDING
+
+    transitions = []
+    original = sm._state_machine.transition
+    def capture(name, **kw):
+        transitions.append(name)
+        return original(name, **kw)
+    sm._state_machine.transition = capture
+
+    handle_session_exit(sm, exit_code=0)
+
+    assert "handoff_complete_written" not in transitions, "oracle must not trigger restart"
+    assert "pty_eof" in transitions
+
+
+def test_orchestrator_session_exit_restarts(tmp_path):
+    """T-212: orchestrator sessions still restart via handoff_complete_written."""
+    from agentflow.shell.session_manager_handlers import handle_session_exit
+    from agentflow.shell.state_machine import States
+
+    sm, pty, _ = make_manager()
+    sm.session_type = "orchestrator"
+    sm._handoff_complete_path = tmp_path / ".agentflow" / "handoff_complete.json"
+    sm._handoff_complete_path.parent.mkdir(parents=True, exist_ok=True)
+    sm._handoff_complete_path.write_text("{}", encoding="utf-8")
+
+    sm._state_machine.transition("trigger_handoff")  # → HANDOFF_PENDING
+    assert sm._state_machine.state == States.HANDOFF_PENDING
+
+    transitions = []
+    original = sm._state_machine.transition
+    def capture(name, **kw):
+        transitions.append(name)
+        return original(name, **kw)
+    sm._state_machine.transition = capture
+
+    handle_session_exit(sm, exit_code=0)
+
+    assert "handoff_complete_written" in transitions

@@ -1680,5 +1680,13 @@
     "depends_on": [],
     "estimated_lines": 40,
     "status": "complete"
+  },
+  {
+    "task_id": "T-174",
+    "title": "Headroom agent-90 spike \u2014 enable full savings profile with agentflow-safe guards",
+    "description": "Activate headroom agent-90 savings profile in agentflow/proxy/server.py with three guards: (1) compress_system_messages=False to protect skill instructions; (2) extend AgentFlowHooks.compute_biases to bias=999.0 for messages containing AGENTFLOW_TASK_COMPLETE, AGENTFLOW_TASK_START, TOKENS: input=, and task ID patterns (T-\\d+); (3) protect_recent=6 instead of 2 to cover a full 5-worker round. Run between orchestrate rounds only \u2014 never mid-session. Measure tokens_before/tokens_after delta vs current baseline in proxy_log.jsonl.",
+    "status": "complete",
+    "depends_on": [],
+    "estimated_lines": 50
   }
 ]

@@ -693,11 +693,7 @@
     },
     {
       "task_id": "T-174",
-      "title": "Headroom agent-90 spike \u2014 enable full savings profile with agentflow-safe guards",
-      "description": "Activate headroom agent-90 savings profile in agentflow/proxy/server.py with three guards: (1) compress_system_messages=False to protect skill instructions; (2) extend AgentFlowHooks.compute_biases to bias=999.0 for messages containing AGENTFLOW_TASK_COMPLETE, AGENTFLOW_TASK_START, TOKENS: input=, and task ID patterns (T-\\d+); (3) protect_recent=6 instead of 2 to cover a full 5-worker round. Run between orchestrate rounds only \u2014 never mid-session. Measure tokens_before/tokens_after delta vs current baseline in proxy_log.jsonl.",
-      "status": "pending",
-      "depends_on": [],
-      "estimated_lines": 50
+      "status": "complete"
     },
     {
       "task_id": "T-175",
@@ -772,7 +768,7 @@
     },
     {
       "task_id": "T-196",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-197",
@@ -784,15 +780,7 @@
     },
     {
       "task_id": "T-200",
-      "title": "Add _session_file() path helper for per-SID volatile state",
-      "description": "Create agentflow/shell/session_paths.py with _session_file(agentflow_dir, sid, filename) helper. Returns sessions/<SID>/filename when SID is non-empty, else agentflow_dir/filename (global fallback for no-SID sessions). Ensures mkdir(parents=True, exist_ok=True). Used by T-201/T-202/T-203/T-204.",
-      "owns": [
-        "agentflow/shell/session_paths.py"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "estimated_lines": 20,
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-201",
@@ -894,6 +882,60 @@
     {
       "task_id": "T-208",
       "status": "complete"
+    },
+    {
+      "task_id": "T-209",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-210",
+      "title": "Fix write_indexer tests leaking cache dirs per pytest run",
+      "status": "pending",
+      "description": "Each pytest run of test_write_indexer.py creates 3-4 new ~/.agentflow/cache/<hash>/ directories because tmp_path produces a unique cwd per invocation, and sha256(cwd) generates a fresh cache key. Fix: patch the cache root in write_indexer tests to point at a fixed temp dir (e.g. monkeypatch the CACHE_ROOT constant) instead of relying on tmp_path as cwd. Also add agentflow cache prune --older-than <days> CLI subcommand to evict stale entries. Owned files: tests/test_write_indexer.py, agentflow/cli.py (or cli_cmds.py for prune subcommand).",
+      "model": "haiku",
+      "estimated_lines": 60,
+      "owns": [
+        "tests/test_write_indexer.py"
+      ],
+      "context_section": "Symbol indexer"
+    },
+    {
+      "task_id": "T-211",
+      "title": "Spike: agy/Gemini CLI session lifecycle \u2014 restart feasibility",
+      "status": "pending",
+      "description": "Investigate what agy (Gemini CLI) exposes for session lifecycle management, to determine whether a PTY-equivalent restart mechanism is feasible. Key questions: (1) Does agy have a hook system analogous to Claude Code's PostToolUse/UserPromptSubmit hooks? (2) Is there a /clear or session-reset command? (3) Can context fill be measured (token count per turn)? (4) Is there a skill/command injection mechanism equivalent to /orchestrate? (5) What is the process model \u2014 single long-lived process or per-turn subprocess? Output: a design_status.md entry capturing RESOLVED/UNRESOLVED for each question, and a recommendation on whether agy restart parity is achievable in v1 or must be deferred. No implementation \u2014 research + decision only.",
+      "model": "claude-sonnet-4-6",
+      "estimated_lines": 0,
+      "owns": [
+        "design_status.md"
+      ],
+      "context_section": "Multi-provider"
+    },
+    {
+      "task_id": "T-212",
+      "status": "complete",
+      "title": "Block oracle session restart in handle_session_exit",
+      "description": "Oracle auto-restart is DEFERRED (design_status.md). Guard the HANDOFF_PENDING restart branch in session_manager_handlers.py:handle_session_exit to only restart orchestrator sessions."
+    },
+    {
+      "task_id": "T-213",
+      "title": "Fix AGENTS.md \u2014 replace dead headless-layer paths with live commands/ structure",
+      "description": "AGENTS.md (used by Gemini/agy sessions) references agentflow/oracle/prompts/, agentflow/worker/prompts/, agentflow/reviewer/prompts/, agentflow/orchestrator/prompts/ \u2014 the deferred headless-automation layer that is dead code per CLAUDE.md. Gemini workers are oriented against the wrong surface. Fix: update AGENTS.md Structure section to match CLAUDE.md \u2014 point to commands/gemini/skills/ and commands/claude/ as the live skill surface. Remove all references to the dead Python prompt packages. Tests: read AGENTS.md and assert none of the dead paths appear.",
+      "owns": [
+        "commands/gemini/AGENTS.md"
+      ],
+      "estimated_lines": 60,
+      "status": "pending"
+    },
+    {
+      "task_id": "T-214",
+      "title": "Flatten Gemini orchestrate model selection to gemini-2.5-flash (single tier)",
+      "description": "Gemini orchestrate uses gemini-1.5-flash-8b for mechanical tasks and gemini-2.5-flash for exploratory \u2014 the 8B model is too weak for precise code edits. Fix: replace both tier entries in commands/gemini/skills/orchestrate/SKILL.md with gemini-2.5-flash for all tasks. Remove the mechanical/exploratory split and the cross-tier reviewer model-routing section (collapse to same-model review since human gate backstops). Tests: test_orchestrate_skill.py \u2014 assert gemini-1.5-flash-8b does not appear in Gemini orchestrate skill content.",
+      "owns": [
+        "commands/gemini/skills/orchestrate/SKILL.md"
+      ],
+      "estimated_lines": 60,
+      "status": "pending"
     }
   ]
 }
