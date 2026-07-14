@@ -10,15 +10,14 @@ Project guide for Antigravity (AGY) sessions in the Token Optimizer / AgentFlow 
 ## Structure
 ```
 agentflow/shell/                → PTY overlay shell — token counting, threshold, handoff inject, session restart (zero LLM calls)
-commands/                       → Provider skill files: Claude (claude/) and Gemini (gemini/skills/)
-agentflow/oracle/prompts/       → Oracle prompt files (system, market, checklist, generation)
-agentflow/worker/prompts/       → Worker prompt files (system, context_bundle, testing_guide)
-agentflow/worker/context_builder.py → Assembles minimal context bundle per task; writes context_bundle.md to disk
-agentflow/reviewer/prompts/     → Reviewer prompt files (code_review, security_review, test_review)
-agentflow/orchestrator/prompts/ → Orchestrator prompt files (system, planning)
+agentflow/hooks/                → PostToolUse/UserPromptSubmit hooks: read_check, idx_reminder, verbosity_reminder, write_indexer, size_check
+commands/                       → Provider skill files: Claude (claude/) and Gemini (gemini/skills/) — this IS the oracle/worker/reviewer/orchestrator logic
 agentflow/config/               → Layered config: threshold settings, model config (Pydantic v2)
 agentflow/indexer/              → Symbol index — ~/.agentflow/cache/<project-hash>/index/ (standalone CLI tool)
+agentflow/shadow/               → Savings-across-strategies analyzer (targeted reads, no-reread, verbosity, headroom) — feeds `agentflow report`
 ```
+
+`agentflow/oracle/`, `orchestrator/`, `worker/`, `reviewer/`, `tools/` (Python packages, not the skill files above) are a deferred/dead headless-automation-layer prototype — never wired into `cli.py` or any skill. See architecture.md's "Deferred (v2)" section. Do not extend or document as live.
 
 ## State documents (living — updated continuously, not written once)
 ```
