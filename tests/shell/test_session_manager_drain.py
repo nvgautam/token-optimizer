@@ -25,10 +25,13 @@ class TestDrainRestart:
         (agentflow_dir / "context_fill.json").write_text(json.dumps({"fill_tokens": 90000, "ts": "2026-07-10T00:00:00"}))
         (agentflow_dir / "tasks_in_flight.json").write_text("[]")  # [] tombstone = drained
 
-        with patch.object(sm, "trigger_handoff") as mock_trigger:
+        with patch.object(sm, "trigger_handoff") as mock_trigger, \
+             patch.object(sm._state_machine, "on_enter_restarting"):
             from agentflow.shell.handoff_handler import check_drain_restart
             check_drain_restart(sm)
-            mock_trigger.assert_called_once_with(trigger="drain")
+            mock_trigger.assert_not_called()
+
+        assert sm._state_machine.state == States.RESTARTING
 
     def test_drain_restart_no_fire_wrong_session_type(self, tmp_path):
         """Oracle session does not trigger drain restart."""
@@ -78,10 +81,13 @@ class TestDrainRestart:
         (agentflow_dir / "context_fill.json").write_text(json.dumps({"fill_tokens": 90000, "ts": "2026-07-10T00:00:00"}))
         (agentflow_dir / "tasks_in_flight.json").write_text("[]")
 
-        with patch.object(sm, "trigger_handoff") as mock_trigger:
+        with patch.object(sm, "trigger_handoff") as mock_trigger, \
+             patch.object(sm._state_machine, "on_enter_restarting"):
             from agentflow.shell.handoff_handler import check_drain_restart
             check_drain_restart(sm)
-            mock_trigger.assert_called_once_with(trigger="drain")
+            mock_trigger.assert_not_called()
+
+        assert sm._state_machine.state == States.RESTARTING
 
     def test_drain_restart_no_fire_fill_below_threshold(self, tmp_path):
         """fill_tokens below threshold does not trigger."""
@@ -202,9 +208,12 @@ class TestSessionLifecycleDelegation:
         (agentflow_dir / "context_fill.json").write_text(json.dumps({"fill_tokens": 90000, "ts": "2026-07-10T00:00:00"}))
         (agentflow_dir / "tasks_in_flight.json").write_text("[]")  # [] tombstone = drained
 
-        with patch.object(sm, "trigger_handoff") as mock_trigger:
+        with patch.object(sm, "trigger_handoff") as mock_trigger, \
+             patch.object(sm._state_machine, "on_enter_restarting"):
             sm._check_drain_restart()
-            mock_trigger.assert_called_once_with(trigger="drain")
+            mock_trigger.assert_not_called()
+
+        assert sm._state_machine.state == States.RESTARTING
 
     def test_on_idle_tick_calls_drain_check(self, tmp_path):
         """on_idle_tick calls _check_drain_restart after poll."""

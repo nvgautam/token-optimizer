@@ -47,7 +47,7 @@ class SessionManager:
         self._arm = self._read_arm_file()
         self._cwd_hash = hashlib.sha256(os.getcwd().encode()).hexdigest()
         self._last_idx_injected = None
-        self._last_accumulated_tokens = 0
+        self._last_accumulated_tokens = 0  # output token accumulator — observability only, not used for restart decisions
         self._last_audit_token_bucket: int = 0
         self._last_restart_ts: float = 0.0
         self._current_trigger = "auto"

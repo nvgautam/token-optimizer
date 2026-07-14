@@ -43,7 +43,7 @@ class TestOutputHandlerHandoff(unittest.TestCase):
         return manager
 
     def test_handle_output_handoff_auto_trigger_conditions(self):
-        """Auto handoff trigger requires task completion and no in-flight tasks."""
+        """T-209: auto-primary output trigger removed — no trigger_handoff on task complete."""
         with tempfile.TemporaryDirectory() as tmpdir:
             manager = self._create_mock_manager()
             project_root = pathlib.Path(tmpdir)
@@ -63,7 +63,7 @@ class TestOutputHandlerHandoff(unittest.TestCase):
             chunk = b"Output\nAGENTFLOW_TASK_COMPLETE:T-001\n"
             handle_output(manager, chunk)
 
-            manager.trigger_handoff.assert_called_with(trigger="auto-primary")
+            manager.trigger_handoff.assert_not_called()
 
     def test_auto_primary_no_trigger_for_orchestrate_session(self):
         """auto-primary handoff is suppressed for orchestrator session_type."""
@@ -87,7 +87,7 @@ class TestOutputHandlerHandoff(unittest.TestCase):
             manager.trigger_handoff.assert_not_called()
 
     def test_handle_output_handoff_complete_signal(self):
-        """HANDOFF_COMPLETE signal writes completion file."""
+        """T-209: HANDOFF_COMPLETE text detection removed — no file write or transition on text."""
         with tempfile.TemporaryDirectory() as tmpdir:
             manager = self._create_mock_manager()
             manager._handoff_complete_path = pathlib.Path(tmpdir) / "handoff.json"
@@ -96,10 +96,15 @@ class TestOutputHandlerHandoff(unittest.TestCase):
             chunk = b"Processing\nHANDOFF_COMPLETE\n"
             handle_output(manager, chunk)
 
-            manager._state_machine.transition.assert_called_with("handoff_complete_written")
+            # Text scanning removed — file not written, no state transition triggered
+            self.assertFalse(manager._handoff_complete_path.exists())
+            assert not any(
+                c == (("handoff_complete_written",), {})
+                for c in manager._state_machine.transition.call_args_list
+            )
 
     def test_handoff_recommended_evicts_completed_tasks(self):
-        """Completed task IDs are evicted from _task_start_tokens on HANDOFF RECOMMENDED."""
+        """T-209: HANDOFF RECOMMENDED output trigger removed — task tokens NOT evicted."""
         with tempfile.TemporaryDirectory() as tmpdir:
             m = self._create_mock_manager()
             m._project_root = pathlib.Path(tmpdir)
@@ -108,10 +113,11 @@ class TestOutputHandlerHandoff(unittest.TestCase):
             (pathlib.Path(tmpdir) / "tasks.json").write_text(
                 json.dumps({"tasks": [{"task_id": "T-001", "status": "complete"}]}))
             handle_output(m, b"HANDOFF RECOMMENDED\n")
-            self.assertEqual(m._task_start_tokens, {})
+            # T-209: eviction trigger removed; token tracking unchanged
+            self.assertIn("T-001", m._task_start_tokens)
 
     def test_handoff_recommended_triggers_handoff_when_stalled(self):
-        """trigger_handoff fires with stall-recovery trigger when total >= primary."""
+        """T-209: HANDOFF RECOMMENDED stall-recovery trigger removed — no trigger_handoff call."""
         with tempfile.TemporaryDirectory() as tmpdir:
             m = self._create_mock_manager()
             m._project_root = pathlib.Path(tmpdir)
@@ -123,10 +129,10 @@ class TestOutputHandlerHandoff(unittest.TestCase):
             (pathlib.Path(tmpdir) / "tasks.json").write_text(
                 json.dumps({"tasks": [{"task_id": "T-001", "status": "complete"}]}))
             handle_output(m, b"HANDOFF RECOMMENDED\n")
-            m.trigger_handoff.assert_called_with(trigger="handoff-recommended-stall-recovery")
+            m.trigger_handoff.assert_not_called()
 
     def test_handoff_recommended_skips_when_task_still_in_flight(self):
-        """T-001 evicted, T-002 retained; trigger_handoff not called."""
+        """T-209: HANDOFF RECOMMENDED removed — no eviction or trigger regardless of in-flight."""
         with tempfile.TemporaryDirectory() as tmpdir:
             m = self._create_mock_manager()
             m._project_root = pathlib.Path(tmpdir)
@@ -140,7 +146,8 @@ class TestOutputHandlerHandoff(unittest.TestCase):
                 {"task_id": "T-002", "status": "pending"},
             ]}))
             handle_output(m, b"HANDOFF RECOMMENDED\n")
-            self.assertNotIn("T-001", m._task_start_tokens)
+            # No eviction; no trigger
+            self.assertIn("T-001", m._task_start_tokens)
             self.assertIn("T-002", m._task_start_tokens)
             m.trigger_handoff.assert_not_called()
 

@@ -30,7 +30,8 @@ def test_orchestrate_creates_reset_and_removes_signal_files(monkeypatch, tmp_pat
 
     result_dir = _run_with_stdin("/orchestrate", monkeypatch, tmp_path)
 
-    assert (result_dir / "reset_accumulator").exists()
+    # T-209: reset_accumulator no longer written (dead artifact)
+    assert not (result_dir / "reset_accumulator").exists()
     assert not hc_file.exists()
     assert not (result_dir / "task_complete.json").exists()
 
@@ -45,7 +46,8 @@ def test_handoff_creates_reset_and_removes_signal_files(monkeypatch, tmp_path):
 
     result_dir = _run_with_stdin("/handoff", monkeypatch, tmp_path)
 
-    assert (result_dir / "reset_accumulator").exists()
+    # T-209: reset_accumulator no longer written
+    assert not (result_dir / "reset_accumulator").exists()
     assert not hc_file.exists()
 
 
@@ -66,7 +68,8 @@ def test_non_matching_prompt_does_nothing(monkeypatch, tmp_path):
 def test_signal_files_absent_is_graceful(monkeypatch, tmp_path):
     result_dir = _run_with_stdin("/orchestrate", monkeypatch, tmp_path)
 
-    assert (result_dir / "reset_accumulator").exists()
+    # T-209: reset_accumulator no longer written — graceful when signal files absent
+    assert not (result_dir / "reset_accumulator").exists()
 
 
 def test_argv_fallback_when_stdin_is_tty(monkeypatch, tmp_path):
@@ -77,7 +80,8 @@ def test_argv_fallback_when_stdin_is_tty(monkeypatch, tmp_path):
     with pytest.raises(SystemExit) as exc:
         main()
     assert exc.value.code == 0
-    assert (tmp_path / ".agentflow" / "reset_accumulator").exists()
+    # T-209: reset_accumulator no longer written
+    assert not (tmp_path / ".agentflow" / "reset_accumulator").exists()
 
 
 def test_empty_prompt_does_nothing(monkeypatch, tmp_path):
@@ -117,8 +121,8 @@ def test_handoff_does_not_write_session_state(monkeypatch, tmp_path):
     agentflow_dir = _run_with_stdin("/handoff", monkeypatch, tmp_path)
     session_state_file = agentflow_dir / "session_state.json"
     assert not session_state_file.exists()
-    # But reset_accumulator should still be created
-    assert (agentflow_dir / "reset_accumulator").exists()
+    # T-209: reset_accumulator no longer written
+    assert not (agentflow_dir / "reset_accumulator").exists()
 
 
 def test_cleanup_merged_in_flight_marks_complete_and_removes(monkeypatch, tmp_path):
@@ -281,3 +285,12 @@ def test_clear_text_in_message_does_not_write_signal(monkeypatch, tmp_path):
 
     # Substring match must not fire — clear_signal must not be created
     assert not (agentflow_dir / "clear_signal").exists()
+
+
+def test_reset_accumulator_not_written(monkeypatch, tmp_path):
+    """T-209: reset_file.touch() removed — reset_accumulator is never written."""
+    result_dir = _run_with_stdin("/orchestrate", monkeypatch, tmp_path)
+    assert not (result_dir / "reset_accumulator").exists()
+
+    result_dir2 = _run_with_stdin("/handoff", monkeypatch, tmp_path)
+    assert not (result_dir2 / "reset_accumulator").exists()

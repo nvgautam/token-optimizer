@@ -218,5 +218,6 @@ def check_drain_restart(manager) -> None:
     if fill_tokens < threshold:
         _skip("fill_tokens_below_threshold", fill_tokens=fill_tokens, threshold=threshold)
         return
-    manager.trigger_handoff(trigger="drain")
     manager._log_audit({"event": "drain_restart_triggered", "fill_tokens": fill_tokens, "threshold": threshold})
+    # T-209: bypass HANDOFF_PENDING for orchestrate — transition directly to RESTARTING
+    manager._state_machine.transition("restart_session")

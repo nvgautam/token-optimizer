@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""UserPromptSubmit hook: reset accumulator and clear signal files on /orchestrate."""
+"""UserPromptSubmit hook: clear signal files on /orchestrate and /handoff."""
 
 import fcntl
 import json
@@ -179,16 +179,9 @@ def main() -> None:
 
     # If the prompt contains "/orchestrate" or "/handoff":
     if prompt and ("/orchestrate" in prompt or "/handoff" in prompt):
-        # Write the reset signal file
-        agentflow_dir.mkdir(parents=True, exist_ok=True)
-        reset_file = agentflow_dir / "reset_accumulator"
-        try:
-            reset_file.touch(exist_ok=True)
-        except Exception:
-            pass
-
         # Delete session-scoped handoff_complete and task_complete if they exist.
         # handoff_complete is namespaced by session ID to prevent cross-session contamination.
+        agentflow_dir.mkdir(parents=True, exist_ok=True)
         hc_name = f"handoff_complete_{sid}.json" if sid else "handoff_complete.json"
         for name in (hc_name, "task_complete.json"):
             complete_file = agentflow_dir / name
