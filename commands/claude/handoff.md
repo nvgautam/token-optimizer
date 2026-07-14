@@ -62,7 +62,11 @@ Append:
 
 ### Step 6 — Write handoff file
 
-Write `.agentflow/handoff_<YYYY-MM-DD>.md`:
+Check `AGENTFLOW_SESSION_ID` env var:
+- **If set:** write to `.agentflow/sessions/<SID>/handoff_<YYYY-MM-DD>.md`
+- **If absent:** write to `.agentflow/handoff_<YYYY-MM-DD>.md` (root)
+
+Markdown format (both paths):
 ```markdown
 ---
 name: handoff-<YYYY-MM-DD>
@@ -83,6 +87,10 @@ session_type: oracle|orchestrator|unknown
 <path flushed, or "none">
 ```
 
+After writing, create/update symlink `.agentflow/handoff_latest.md`:
+- **SID set:** `ln -sf sessions/<SID>/handoff_<YYYY-MM-DD>.md .agentflow/handoff_latest.md`
+- **SID absent:** `ln -sf handoff_<YYYY-MM-DD>.md .agentflow/handoff_latest.md`
+
 ### Step 7 — Run ledger script
 
 Run silently:
@@ -94,8 +102,10 @@ python /Users/gautam/code/token-optimizer/agentflow.py handoff --ledger <cwd>/ag
 
 Last output (PTY scans stdout for this):
 ```
-HANDOFF_COMPLETE: .agentflow/handoff_<YYYY-MM-DD>.md
+HANDOFF_COMPLETE: <actual-path-written>
 ```
+
+Use the actual path from Step 6 (either `.agentflow/handoff_<YYYY-MM-DD>.md` or `.agentflow/sessions/<SID>/handoff_<YYYY-MM-DD>.md`).
 
 ### Step 9 — Prompt session restart
 
