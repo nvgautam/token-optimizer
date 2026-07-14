@@ -199,7 +199,7 @@ def test_session_type_not_written_on_unrelated_prompt(tmp_path, monkeypatch):
 
 
 def test_session_type_with_session_id(tmp_path, monkeypatch):
-    """Session type is written to session_state_{sid}.json when AGENTFLOW_SESSION_ID is set."""
+    """Session type is written to sessions/<sid>/session_state.json when AGENTFLOW_SESSION_ID is set."""
     import json
     from io import StringIO
 
@@ -221,8 +221,8 @@ def test_session_type_with_session_id(tmp_path, monkeypatch):
                     main()
                 assert exc.value.code == 0
 
-    # Verify session_state_{sid}.json was written
-    session_state_file = agentflow_dir / f"session_state_{session_id}.json"
+    # Verify session_state.json was written to sessions/<sid>/
+    session_state_file = agentflow_dir / "sessions" / session_id / "session_state.json"
     assert session_state_file.exists()
     data = json.loads(session_state_file.read_text())
     assert data["session_type"] == "orchestrator"
