@@ -141,8 +141,8 @@ effective_rate = min(rate_5hr, rate_wkly)
 Close every prompt: `"End your final message with TOKENS: input=N output=N — nothing after that line."`
 
 **Model selection per task (before spawn):**
-- Mechanical (estimated_lines ≤ 80 OR title/description contains: test, fix, rename, stub, move, format, lint, config): model: "gemini-1.5-flash-8b" (Flash Low)
-- Default (exploratory, architecture, new module, algorithm): model: "gemini-2.5-flash" (Flash High)
+- model: "gemini-2.5-flash" for all tasks.
+
 
 **Per-round scheduling:** Per task, run `python3 -c "from agentflow.shadow.task_estimator import estimate; print(estimate(<estimated_lines>, <file_count>))"` (fallback 2500 if absent). Cap: `floor(threshold/pct_cost)`. Disjoint owns: if tasks share an `owns` path — OWNS CONFLICT, move overlap to next sub-round.
 
@@ -180,11 +180,9 @@ grep -nE "(password|secret|api_key|token)\s*=\s*['\"][^'\"]{8,}" $(cat /tmp/rf.t
 ```
 CRITICAL: hardcoded secrets, signal injection. WARNING: bare except, size > 250 lines.
 
-**Pass 2 — LLM Reviewer (cross-tier model routing):**
-Select the reviewer model based on the model used by the implementing agent to implement the task (opposite tier routing):
-- Flash Low-implemented tasks (`gemini-1.5-flash-8b`) → Route to Flash High reviewer (`gemini-2.5-flash`)
-- Flash High-implemented tasks (`gemini-2.5-flash`) → Route to Flash Low reviewer (`gemini-1.5-flash-8b`)
-*Rationale:* Aligns with Flash High / Flash Low experimentation to measure token consumption and review quality trade-offs.
+**Pass 2 — LLM Reviewer:**
+- Route all tasks to `gemini-2.5-flash` reviewer.
+
 
 Embed `commands/claude/reviewer/code_review.md`, `commands/claude/reviewer/security_review.md`, `commands/claude/reviewer/test_review.md`. Include pre-filter findings, changed files, diff (max 300 lines).
 
