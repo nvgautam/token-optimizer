@@ -96,15 +96,7 @@ class SessionManager:
         if override:
             return override
         sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
-        agentflow_dir = self._project_root / ".agentflow"
-        sid_scoped_path = session_file(agentflow_dir, "task_complete.json", sid)
-        # Backward compatibility: if SID is set but the SID-scoped file doesn't exist,
-        # fall back to the flat path (legacy behavior)
-        if sid and not sid_scoped_path.exists():
-            flat_path = agentflow_dir / "task_complete.json"
-            if flat_path.exists():
-                return flat_path
-        return sid_scoped_path
+        return session_file(self._project_root / ".agentflow", "task_complete.json", sid)
     @_task_complete_path.setter
     def _task_complete_path(self, val: pathlib.Path) -> None: self._task_complete_path_override = val
 

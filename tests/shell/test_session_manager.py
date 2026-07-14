@@ -106,11 +106,16 @@ def test_init_state_with_preexisting_current_round(tmp_path):
         json.dumps({"session_type": "orchestrator"}), encoding="utf-8"
     )
     pty, tok = FakePTY(), FakeTokenizer()
-    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+    # Run without SID so _task_complete_path uses the flat path
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path), \
+         patch.dict(os.environ, {}, clear=False) as env:
+        env.pop("AGENTFLOW_SESSION_ID", None)
         sm = SessionManager(pty, tok, {})
     assert sm._state_machine.state == States.TASK_RUNNING
     (tmp_path / ".agentflow" / "task_complete.json").write_text("{}", encoding="utf-8")
-    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path), \
+         patch.dict(os.environ, {}, clear=False) as env:
+        env.pop("AGENTFLOW_SESSION_ID", None)
         sm2 = SessionManager(pty, tok, {})
     assert sm2._state_machine.state == States.IDLE
 
