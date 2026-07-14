@@ -106,11 +106,16 @@ def test_init_state_with_preexisting_current_round(tmp_path):
         json.dumps({"session_type": "orchestrator"}), encoding="utf-8"
     )
     pty, tok = FakePTY(), FakeTokenizer()
-    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+    # Run without SID so _task_complete_path uses the flat path
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path), \
+         patch.dict(os.environ, {}, clear=False) as env:
+        env.pop("AGENTFLOW_SESSION_ID", None)
         sm = SessionManager(pty, tok, {})
     assert sm._state_machine.state == States.TASK_RUNNING
     (tmp_path / ".agentflow" / "task_complete.json").write_text("{}", encoding="utf-8")
-    with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
+    with patch.object(pathlib.Path, "cwd", return_value=tmp_path), \
+         patch.dict(os.environ, {}, clear=False) as env:
+        env.pop("AGENTFLOW_SESSION_ID", None)
         sm2 = SessionManager(pty, tok, {})
     assert sm2._state_machine.state == States.IDLE
 
@@ -256,3 +261,26 @@ def test_isolation_two_sessions_independent_state():
         sm2.session_type = None
         sm2._sync_session_type()
         assert sm2.session_type == "orchestrator"
+
+def test_task_complete_path_uses_sid_from_env():
+    """When AGENTFLOW_SESSION_ID=abc env var set, _task_complete_path returns sessions/abc/task_complete.json."""
+    sm, pty, _ = make_manager()
+    proj_root = sm._project_root
+
+    # With SID set, should return sessions/<sid>/task_complete.json
+    sid = "test-abc-123"
+    with patch.dict(os.environ, {"AGENTFLOW_SESSION_ID": sid}):
+        path = sm._task_complete_path
+        expected = proj_root / ".agentflow" / "sessions" / sid / "task_complete.json"
+        assert path == expected
+
+def test_task_complete_path_uses_flat_path_without_sid():
+    """Without SID env, _task_complete_path returns flat .agentflow/task_complete.json."""
+    sm, pty, _ = make_manager()
+    proj_root = sm._project_root
+
+    # Without SID, should return flat .agentflow/task_complete.json
+    with patch.dict(os.environ, {"AGENTFLOW_SESSION_ID": ""}):
+        path = sm._task_complete_path
+        expected = proj_root / ".agentflow" / "task_complete.json"
+        assert path == expected

@@ -56,7 +56,10 @@ def test_task_start_clears_stale(tmp_path):
     assert "T-001" in in_flight
     assert in_flight == ["T-001"]
 
-def test_task_done_parallel(tmp_path):
+def test_task_done_parallel(tmp_path, monkeypatch):
+    # Ensure no SID is set for backward compatibility test
+    monkeypatch.delenv("AGENTFLOW_SESSION_ID", raising=False)
+
     tasks_file = tmp_path / "tasks.json"
     tasks_data = {
         "tasks": [
@@ -149,6 +152,9 @@ def test_cli_task_start_success(tmp_path, monkeypatch):
 
 def test_cli_task_done_success(tmp_path, monkeypatch):
     monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
+    # Ensure no SID is set for backward compatibility test
+    monkeypatch.delenv("AGENTFLOW_SESSION_ID", raising=False)
+
     tasks_file = tmp_path / "tasks.json"
     tasks_file.write_text(json.dumps({"tasks": [{"task_id": "T-001"}]}))
 
@@ -185,3 +191,51 @@ def test_cli_errors(tmp_path, monkeypatch):
     with pytest.raises(SystemExit) as exc_info:
         main()
     assert exc_info.value.code == 1
+
+def test_task_done_writes_task_complete_to_sid_path(tmp_path, monkeypatch):
+    """With SID set, task_done() writes to sessions/<sid>/task_complete.json."""
+    tasks_file = tmp_path / "tasks.json"
+    tasks_data = {"tasks": [{"task_id": "T-001"}]}
+    tasks_file.write_text(json.dumps(tasks_data))
+
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+
+    # Set SID via environment variable
+    sid = "test-session-123"
+    monkeypatch.setenv("AGENTFLOW_SESSION_ID", sid)
+
+    task_start("T-001", workspace_root=tmp_path)
+    task_done("T-001", workspace_root=tmp_path)
+
+    # Verify task_complete.json is in sessions/<sid>/ directory, not flat .agentflow/
+    sid_complete_file = agentflow_dir / "sessions" / sid / "task_complete.json"
+    flat_complete_file = agentflow_dir / "task_complete.json"
+
+    assert sid_complete_file.exists(), f"Expected {sid_complete_file} to exist"
+    assert not flat_complete_file.exists(), f"Expected {flat_complete_file} to NOT exist"
+    with open(sid_complete_file, "r") as f:
+        res = json.load(f)
+        assert res.get("status") == "complete"
+
+def test_task_done_writes_task_complete_to_flat_path_without_sid(tmp_path, monkeypatch):
+    """Without SID, task_done() writes to .agentflow/task_complete.json (backward compat)."""
+    tasks_file = tmp_path / "tasks.json"
+    tasks_data = {"tasks": [{"task_id": "T-001"}]}
+    tasks_file.write_text(json.dumps(tasks_data))
+
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+
+    # Ensure no SID is set
+    monkeypatch.delenv("AGENTFLOW_SESSION_ID", raising=False)
+
+    task_start("T-001", workspace_root=tmp_path)
+    task_done("T-001", workspace_root=tmp_path)
+
+    # Verify task_complete.json is in flat .agentflow/ directory
+    flat_complete_file = agentflow_dir / "task_complete.json"
+    assert flat_complete_file.exists(), f"Expected {flat_complete_file} to exist"
+    with open(flat_complete_file, "r") as f:
+        res = json.load(f)
+        assert res.get("status") == "complete"

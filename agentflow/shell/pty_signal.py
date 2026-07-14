@@ -5,6 +5,7 @@ import fcntl
 from pathlib import Path
 import tempfile
 import contextlib
+from agentflow.shell.session_paths import session_file
 
 def find_workspace_root() -> Path:
     p = Path.cwd().resolve()
@@ -73,12 +74,14 @@ def task_start(task_id: str, workspace_root: Path = None):
         in_flight_set.add(task_id)
         _write_atomic(in_flight_file, sorted(list(in_flight_set)))
 
-def task_done(task_id: str, workspace_root: Path = None):
+def task_done(task_id: str, workspace_root: Path = None, sid: str = ""):
     if not workspace_root:
         workspace_root = find_workspace_root()
+    if not sid:
+        sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
     agentflow_dir = workspace_root / ".agentflow"
     in_flight_file = agentflow_dir / "tasks_in_flight.json"
-    complete_file = agentflow_dir / "task_complete.json"
+    complete_file = session_file(agentflow_dir, "task_complete.json", sid)
     lock_path = agentflow_dir / "tasks_in_flight.lock"
 
     with file_lock(lock_path):
