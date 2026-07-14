@@ -56,13 +56,13 @@ def test_safety_and_ceiling_triggers_removed():
         mock_hf.assert_not_called()
 
 def test_primary_triggers():
-    # Oracle sessions trigger auto-handoff when tokens >= primary and task just completed
+    # T-209: auto-primary output trigger removed — oracle sessions use file-based path
     tok = FakeTokenizer(fixed_return=85_000)
     sm, pty, _ = make_manager(config={"handoff_primary_tokens": 80_000}, tokenizer=tok)
     sm.session_type = "oracle"
     with patch.object(sm, "trigger_handoff") as mock_hf:
         fire_output(sm, pty, "AGENTFLOW_TASK_COMPLETE:T-001")
-        mock_hf.assert_called_once()
+        mock_hf.assert_not_called()
 
 def test_orchestrator_never_triggers_auto_primary():
     # Orchestrator sessions are excluded from auto-primary handoff (they manage
@@ -95,7 +95,7 @@ def test_primary_suppressed_cases():
         mock_hf.assert_not_called()
 
 def test_pty_audit_logging(tmp_path):
-    """T-151: trigger via primary path (80K + task_just_completed)."""
+    """Audit log captures handoff and restart events; T-209 removed output-based triggers."""
     (tmp_path / ".agentflow").mkdir()
     tok = FakeTokenizer(fixed_return=100)
     sm, pty, _ = make_manager(config={"handoff_primary_tokens": 80_000}, tokenizer=tok)
@@ -104,18 +104,20 @@ def test_pty_audit_logging(tmp_path):
         sm._task_complete_path = tmp_path / ".agentflow" / "task_complete.json"
         sm._handoff_complete_path = tmp_path / ".agentflow" / "handoff_complete.json"
         fire_output(sm, pty, "/oracle\r\n")
-        # Set above primary threshold and send task_complete signal
+        # T-209: auto-primary output trigger removed — no trigger_handoff from handle_output
         tok._fixed, sm.session_type = 85_000, "oracle"
         with patch.object(sm, "trigger_handoff") as mock_hf:
             fire_output(sm, pty, "AGENTFLOW_TASK_COMPLETE:T-999")
-            mock_hf.assert_called_once()
-        with patch("agentflow.shell.session_manager.countdown") as mock_cd:
+            mock_hf.assert_not_called()
+        with patch("agentflow.shell.session_manager.countdown") as mock_cd, \
+             patch.object(sm, "_spawn_new_child"):
             mock_cd.side_effect = lambda s, on_complete, **kw: on_complete()
             sm._force_async_handoff = True
-            # trigger_handoff now sets _manual_handoff=True (manual_handoff_set event);
-            # the subsequent /clear output then emits manual_handoff_reset.
+            # trigger_handoff logs trigger_handoff + manual_handoff_set events
             sm.trigger_handoff(trigger="manual")
-            fire_output(sm, pty, "/clear\n")
+            # Write clear_signal file so clear_detected + session_type_transition fire
+            (tmp_path / ".agentflow" / "clear_signal").touch()
+            fire_output(sm, pty, "some output after clear\n")
             (tmp_path / ".agentflow" / "handoff_complete.json").write_text("{}", encoding="utf-8")
             sm.poll()
             sm.trigger_handoff(trigger="auto")
@@ -124,8 +126,9 @@ def test_pty_audit_logging(tmp_path):
     assert log_path.exists()
     events = [json.loads(line) for line in log_path.read_text(encoding="utf-8").strip().split("\n")]
     event_names = [e["event"] for e in events]
-    for ev in ["session_type_transition", "manual_handoff_set", "clear_detected", "manual_handoff_reset", "token_evaluation", "trigger_handoff", "restart_session"]:
-        assert ev in event_names
+    # T-209: token_evaluation removed; other audit events still fire
+    for ev in ["manual_handoff_set", "clear_detected", "session_type_transition", "trigger_handoff", "restart_session"]:
+        assert ev in event_names, f"Expected event '{ev}' in {event_names}"
 
 def test_async_trigger_handoff_success(tmp_path):
     sm, pty, _ = make_manager()

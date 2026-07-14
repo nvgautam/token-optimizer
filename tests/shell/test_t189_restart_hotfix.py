@@ -53,7 +53,7 @@ class TestCooldownGuard:
             mock_trigger.assert_not_called()
 
     def test_cooldown_expired_allows_restart(self):
-        """When cooldown has expired (> 30s since restart), restart should be allowed."""
+        """When cooldown has expired (> 30s since restart), restart transitions to RESTARTING (T-209)."""
         sm, pty, tok = make_manager()
         sm.session_type = "orchestrator"
         sm._state_machine.state = States.IDLE
@@ -76,12 +76,15 @@ class TestCooldownGuard:
         # Simulate old restart (> 31s ago)
         sm._last_restart_ts = time.monotonic() - 31.0
 
-        # Call check_drain_restart
+        # Call check_drain_restart — T-209: transitions directly to RESTARTING
         from agentflow.shell.handoff_handler import check_drain_restart
-        with patch.object(sm, 'trigger_handoff') as mock_trigger:
+        with patch.object(sm, 'trigger_handoff') as mock_trigger, \
+             patch.object(sm._state_machine, "on_enter_restarting"):
             check_drain_restart(sm)
-            # Should trigger because cooldown has expired
-            mock_trigger.assert_called_once()
+            # T-209: no trigger_handoff; direct state transition
+            mock_trigger.assert_not_called()
+
+        assert sm._state_machine.state == States.RESTARTING
 
 
 class TestContextFillReset:
