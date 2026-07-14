@@ -434,7 +434,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | t196-spawn-ctx — MERGED (PR #119 2026-07-12) | T-196 | Pre-resolve task context into orchestrate initialPrompt — eliminates worker startup re-derivation (depends T-195, already merged) |
 | restart-deterministic — MERGED (PR #121 2026-07-14) | T-209 | Orchestrate drain restart — direct RESTARTING path, no output parsing |
 | session-iso-1 — MERGED (PR #122 2026-07-14) | T-200 | Add _session_file() path helper (foundation for T-201–T-207) |
-| gemini-quality | T-213 ‖ T-214 (parallel) | Fix AGENTS.md dead paths + flatten Gemini model to gemini-2.5-flash — unblocks reliable Gemini orchestrate — **PRIORITY** |
+| gemini-quality | T-213 (MERGED) ‖ T-214 (parallel) | Fix AGENTS.md dead paths + flatten Gemini model to gemini-2.5-flash — unblocks reliable Gemini orchestrate — **PRIORITY** |
 | session-iso-2 | T-201 ‖ T-203 (parallel) | Migrate context_fill + session_state writes to per-SID paths (depends T-200) |
 | session-iso-3 | T-202 ‖ T-204 ‖ T-207 (parallel) | Migrate reads, threshold_sync, stale cleanup (depends T-200, T-201, T-203) |
 | session-iso-4 | T-205 | Update handoff skill for per-SID handoff docs (depends T-200) |
@@ -704,7 +704,7 @@ Pre-compute round state on PTY startup to skip startup commands. See commit 9245
 **Owns:** commands/gemini/AGENTS.md
 **Estimated lines:** 60
 **Depends:** none
-**Status:** PENDING
+**Status:** MERGED
 
 ## Addendum: T-214 — Flatten Gemini orchestrate model to gemini-2.5-flash (filed 2026-07-14)
 

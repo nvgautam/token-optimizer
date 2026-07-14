@@ -913,9 +913,7 @@
     },
     {
       "task_id": "T-212",
-      "status": "complete",
-      "title": "Block oracle session restart in handle_session_exit",
-      "description": "Oracle auto-restart is DEFERRED (design_status.md). Guard the HANDOFF_PENDING restart branch in session_manager_handlers.py:handle_session_exit to only restart orchestrator sessions."
+      "status": "complete"
     },
     {
       "task_id": "T-213",
