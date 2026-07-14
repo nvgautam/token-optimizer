@@ -432,11 +432,12 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | split-1 — MERGED (PR #113 2026-07-11) | T-192 | Split test_report_builder.py (size violation) |
 | split-2 — MERGED (PR #116, #117 2026-07-12) | T-197 ‖ T-187 (parallel) | Split report_builder.py + session_manager.py — size violations |
 | t196-spawn-ctx — MERGED (PR #119 2026-07-12) | T-196 | Pre-resolve task context into orchestrate initialPrompt — eliminates worker startup re-derivation (depends T-195, already merged) |
+| restart-deterministic (NEXT) | T-209 | Orchestrate drain restart — direct RESTARTING path, no output parsing |
 | session-iso-1 | T-200 | Add _session_file() path helper (foundation for T-201–T-207) |
 | session-iso-2 | T-201 ‖ T-203 (parallel) | Migrate context_fill + session_state writes to per-SID paths (depends T-200) |
 | session-iso-3 | T-202 ‖ T-204 ‖ T-207 (parallel) | Migrate reads, threshold_sync, stale cleanup (depends T-200, T-201, T-203) |
 | session-iso-4 | T-205 | Update handoff skill for per-SID handoff docs (depends T-200) |
-| Later | T-063, T-099, T-162, T-167, T-168, T-174, T-178 | Multi-provider claiming + Gemini oracle + oracle polish + headroom spike + hook audit |
+| Later | T-063, T-099, T-162, T-167, T-168, T-174 MERGED, T-178 | Multi-provider claiming + Gemini oracle + oracle polish + headroom spike + hook audit |
 
 Priority rationale (2026-07-10): Demo goal is orchestrate seamlessly looping — picks tasks that fit in one session, processes, recycles PTY, repeats. Demo-1 closes the gap where task selection is unbounded (T-068 estimates cost, T-064 checks headroom before claiming). Demo-2 wires scheduling to respect the budget. Demo-3 adds savings proof. Cross-provider (T-063, T-099) deferred; Claude-only for demo. Old rounds E/F dissolved into Demo-1–3.
 
@@ -672,7 +673,7 @@ Pre-compute round state on PTY startup to skip startup commands. See commit 9245
 - PTY binary naming: TBD
 ## Addendum: T-196 — Pre-resolve task context into orchestrate initialPrompt (filed 2026-07-11)
 
-**Status:** PENDING
+**Status:** MERGED (PR #119, 2026-07-12)
 
 **Goal:** When orchestrate builds the `spawn_new_child` command (after T-195 lands), embed pre-resolved task context — active task ID, title, deps, estimated_lines — directly into the positional prompt arg. This eliminates startup re-derivation (execution_plan.md + tasks.json reads) from the worker's context. Depends on T-195.
 

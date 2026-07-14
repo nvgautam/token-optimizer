@@ -693,11 +693,7 @@
     },
     {
       "task_id": "T-174",
-      "title": "Headroom agent-90 spike \u2014 enable full savings profile with agentflow-safe guards",
-      "description": "Activate headroom agent-90 savings profile in agentflow/proxy/server.py with three guards: (1) compress_system_messages=False to protect skill instructions; (2) extend AgentFlowHooks.compute_biases to bias=999.0 for messages containing AGENTFLOW_TASK_COMPLETE, AGENTFLOW_TASK_START, TOKENS: input=, and task ID patterns (T-\\d+); (3) protect_recent=6 instead of 2 to cover a full 5-worker round. Run between orchestrate rounds only \u2014 never mid-session. Measure tokens_before/tokens_after delta vs current baseline in proxy_log.jsonl.",
-      "status": "pending",
-      "depends_on": [],
-      "estimated_lines": 50
+      "status": "complete"
     },
     {
       "task_id": "T-175",
@@ -772,7 +768,7 @@
     },
     {
       "task_id": "T-196",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-197",
@@ -894,6 +890,19 @@
     {
       "task_id": "T-208",
       "status": "complete"
+    },
+    {
+      "task_id": "T-209",
+      "title": "Orchestrate drain restart \u2014 direct RESTARTING path, no output parsing",
+      "description": "Remove all output-based PTY restart triggers and replace with a deterministic file-based drain path for orchestrate sessions.\n\n## Changes\n\n1. **Add direct RESTARTING transition for orchestrate drain path** (`handoff_handler.check_drain_restart`): instead of calling `trigger_handoff()` (which routes through HANDOFF_PENDING and waits for HANDOFF_COMPLETE), transition directly to RESTARTING when conditions are met (tasks_in_flight=[] AND context_fill>=80K AND on_idle_tick). HANDOFF_PENDING remains intact for oracle sessions \u2014 orchestrate gets its own transition only.\n\n2. **Call `clear_signal_files()` before `execvp`** in `process_manager.handle_enter_restarting` so the new session starts with context_fill reset to 0. Ensures no duplicate restart on session start.\n\n3. **Delete output-based triggers** in `output_handler.py`: line 84 (HANDOFF_COMPLETE text detection) and lines 126-162 (HANDOFF RECOMMENDED + accumulated-token trigger). These are the fragile output-parsing paths.\n\n4. **Delete `reset_accumulator`**: remove the `reset_file.touch()` call in `user_prompt_submit.py:184` and delete `.agentflow/reset_accumulator` from the repo. Nothing in the PTY shell reads this file \u2014 it is a dead artifact.\n\n5. **Rename/comment `_last_accumulated_tokens`** to make clear it is observability-only (audit logs + TASK_COMPLETE state transition for oracle). Add a comment: 'output token accumulator \u2014 observability only, not used for restart decisions'.\n\n## Guards that make restart deterministic\n- Guard 1: tasks_in_flight.json must be [] tombstone (tasks done)\n- Guard 2: check_drain_restart only runs in on_idle_tick (Claude idle between turns)\n- Both must be true simultaneously \u2014 no false-positive restart possible\n\n## Files\n- agentflow/shell/handoff_handler.py (drain path transition)\n- agentflow/shell/process_manager.py (clear_signal_files before execvp)\n- agentflow/shell/output_handler.py (delete output-based triggers)\n- agentflow/shell/session_manager.py (comment on _last_accumulated_tokens)\n- agentflow/hooks/user_prompt_submit.py (remove reset_accumulator write)\n- .agentflow/reset_accumulator (delete)\n\n## Estimated lines changed: ~60\n## Model: Sonnet",
+      "owns": [
+        "agentflow/shell/handoff_handler.py",
+        "agentflow/shell/process_manager.py",
+        "agentflow/shell/output_handler.py",
+        "agentflow/shell/session_manager.py",
+        "agentflow/hooks/user_prompt_submit.py"
+      ],
+      "status": "pending"
     }
   ]
 }
