@@ -26,10 +26,10 @@ def detect_read_path(text: str) -> str | None:
 
 def _read_fill_tokens(project_root: pathlib.Path) -> int | None:
     """Return fill_tokens from context_fill.json if fresh (< FILL_STALE_SECONDS old)."""
-    agentflow_dir = project_root / ".agentflow"
-    sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
-    fill_path = session_file(agentflow_dir, "context_fill.json", sid)
     try:
+        agentflow_dir = project_root / ".agentflow"
+        sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+        fill_path = session_file(agentflow_dir, "context_fill.json", sid)
         data = json.loads(fill_path.read_text("utf-8"))
         if time.time() - data["ts"] < FILL_STALE_SECONDS:
             return int(data["fill_tokens"])
