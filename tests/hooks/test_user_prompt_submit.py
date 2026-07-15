@@ -143,6 +143,7 @@ def test_cleanup_merged_in_flight_marks_complete_and_removes(monkeypatch, tmp_pa
     tasks_file.write_text(json.dumps({"tasks": [{"task_id": "T-001", "status": "pending"}]}))
 
     monkeypatch.setenv("AGENTFLOW_PROJECT_ROOT", str(tmp_path))
+    monkeypatch.delenv("AGENTFLOW_SESSION_ID", raising=False)
     monkeypatch.setattr("sys.stdin.isatty", lambda: True)
     monkeypatch.setattr("sys.argv", ["hook"])
 
@@ -176,6 +177,7 @@ def test_cleanup_merged_in_flight_uses_title_fallback(monkeypatch, tmp_path):
     tasks_file.write_text(json.dumps({"tasks": [{"task_id": "T-001", "status": "pending"}]}))
 
     monkeypatch.setenv("AGENTFLOW_PROJECT_ROOT", str(tmp_path))
+    monkeypatch.delenv("AGENTFLOW_SESSION_ID", raising=False)
     monkeypatch.setattr("sys.stdin.isatty", lambda: True)
     monkeypatch.setattr("sys.argv", ["hook"])
 
