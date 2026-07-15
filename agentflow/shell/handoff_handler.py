@@ -6,6 +6,7 @@ import pathlib
 import signal
 import time
 from agentflow.shell.state_machine import States
+from agentflow.shell.session_paths import session_file
 
 _DEADLINES: dict[States, float] = {
     States.TASK_COMPLETE: 30.0,
@@ -220,7 +221,9 @@ def check_drain_restart(manager) -> None:
     threshold = manager._config.get("handoff_primary_tokens", 80000)
     fill_tokens = 0
     try:
-        cf = manager._project_root / ".agentflow" / "context_fill.json"
+        agentflow_dir = manager._project_root / ".agentflow"
+        sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+        cf = session_file(agentflow_dir, "context_fill.json", sid)
         if cf.exists():
             data = _json.loads(cf.read_text("utf-8"))
             fill_tokens = data.get("fill_tokens", 0)
