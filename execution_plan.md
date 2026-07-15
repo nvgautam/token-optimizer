@@ -873,3 +873,21 @@ tif = session_file(project_root / ".agentflow", "tasks_in_flight.json", os.envir
 
 **Owns:** `agentflow/hooks/pre_tool_use_agent.py` (new), `agentflow/hooks/post_tool_use_agent.py`, `agentflow/hooks/user_prompt_submit.py`, `commands/claude/orchestrate.md`, `.claude/settings.json`
 **estimated_lines:** 120
+
+---
+
+## Addendum: T-224 — Fix session_state read/write mismatch + hook sys.path self-bootstrap (MERGED PR #140 2026-07-15)
+
+**Status:** MERGED
+
+**Problem 1 (read/write mismatch):** `user_prompt_submit.py` `_write_session_state_atomic()` (line 75) writes to `sessions/<SID>/session_state.json` via `session_file()`. But the read path (lines 230–239) checks `agentflow_dir / f"session_state_{SID}.json"` (old flat+keyed) then `agentflow_dir / "session_state.json"` (old flat) — never `sessions/<SID>/session_state.json`. Result: `[SESSION: unknown]` on every hook firing; PTY never detects orchestrator session type; `check_drain_restart` never runs.
+
+**Problem 2 (sys.path fragility):** All hooks use absolute package imports (`from agentflow.shell.session_paths import session_file`) but are invoked as standalone scripts by Claude Code without PYTHONPATH set. This requires `pip install -e .` to be current — any new module added to the source tree silently breaks all hooks until reinstalled. Fix: add `sys.path.insert(0, str(Path(__file__).resolve().parents[2]))` before all project imports in every hook.
+
+**Fix:**
+- `agentflow/hooks/user_prompt_submit.py` — read path (lines 230–239): replace flat+keyed lookup with `session_file(agentflow_dir, "session_state.json", sid)` matching the write path.
+- `agentflow/hooks/verbosity_reminder.py` — same read/write audit (write uses session_file correctly; verify no stale read path).
+- All hook files (`post_tool_use.py`, `post_tool_use_agent.py`, `pre_tool_use_agent.py`, `user_prompt_submit.py`, `verbosity_reminder.py`, `idx_reminder.py`, `read_check.py`, `write_indexer.py`, `size_check.py`) — add `sys.path.insert(0, str(Path(__file__).resolve().parents[2]))` before first project import.
+
+**Owns:** `agentflow/hooks/user_prompt_submit.py`, `agentflow/hooks/verbosity_reminder.py`, all other hook files for sys.path fix
+**estimated_lines:** 35
