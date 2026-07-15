@@ -3,6 +3,7 @@
 
 import json
 import sys
+import time
 from pathlib import Path
 
 
@@ -22,8 +23,8 @@ def main() -> None:
                     continue
                 from agentflow.indexer.index_manager import update
                 update(path, contents)
-            except Exception:
-                pass
+            except Exception as e:
+                print(json.dumps({"hook": "write_indexer.py", "event": "index_update_error", "error": str(e), "path": str(path), "ts": time.time()}), file=sys.stderr)
         sys.exit(0)
 
     try:
@@ -55,8 +56,8 @@ def main() -> None:
 
         from agentflow.indexer.index_manager import update
         update(path, contents)
-    except Exception:
-        pass
+    except Exception as e:
+        print(json.dumps({"hook": "write_indexer.py", "event": "index_update_stdin_error", "error": str(e), "ts": time.time()}), file=sys.stderr)
 
     sys.exit(0)
 

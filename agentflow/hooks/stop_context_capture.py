@@ -41,7 +41,8 @@ def extract_fill_from_transcript(transcript_path: str) -> int | None:
                 usage = entry.get("message", {}).get("usage")
                 if usage is not None:
                     last_fill = compute_fill(usage)
-    except OSError:
+    except OSError as e:
+        print(json.dumps({"hook": "stop_context_capture.py", "event": "extract_fill_error", "error": str(e), "ts": time.time()}), file=sys.stderr)
         return None
     return last_fill
 
@@ -68,18 +69,22 @@ def main() -> None:
         data_str = json.dumps({"fill_tokens": fill_tokens, "ts": time.time()})
 
         # Atomic write: temp file in same dir as fill_path + os.replace
-        fd, tmp_path = tempfile.mkstemp(dir=str(fill_path.parent))
+        fd = None
+        tmp_path = None
         try:
+            fd, tmp_path = tempfile.mkstemp(dir=str(fill_path.parent))
             with os.fdopen(fd, "w", encoding="utf-8") as f:
                 f.write(data_str)
             os.replace(tmp_path, str(fill_path))
-        except Exception:
-            try:
-                os.unlink(tmp_path)
-            except OSError:
-                pass
-    except Exception:
-        pass
+        except Exception as e:
+            print(json.dumps({"hook": "stop_context_capture.py", "event": "atomic_write_error", "error": str(e), "ts": time.time()}), file=sys.stderr)
+            if tmp_path is not None:
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+    except Exception as e:
+        print(json.dumps({"hook": "stop_context_capture.py", "event": "context_capture_error", "error": str(e), "ts": time.time()}), file=sys.stderr)
     sys.exit(0)
 
 

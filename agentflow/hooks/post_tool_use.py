@@ -49,16 +49,20 @@ def extract_fill_from_transcript(transcript_path: str) -> int | None:
 
 
 def _atomic_write(path: pathlib.Path, data_str: str) -> None:
-    fd, tmp = tempfile.mkstemp(dir=str(path.parent))
+    fd = None
+    tmp = None
     try:
+        fd, tmp = tempfile.mkstemp(dir=str(path.parent))
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(data_str)
         os.replace(tmp, str(path))
-    except Exception:
-        try:
-            os.unlink(tmp)
-        except OSError:
-            pass
+    except Exception as e:
+        print(json.dumps({"hook": "post_tool_use.py", "event": "atomic_write_error", "error": str(e), "ts": time.time()}), file=sys.stderr)
+        if tmp is not None:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
 
 
 def _log(agentflow_dir: pathlib.Path, entry: dict) -> None:
@@ -122,8 +126,8 @@ def main() -> None:
         sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
         fill_path = session_file(agentflow_dir, "context_fill.json", sid if sid else None)
         _atomic_write(fill_path, json.dumps({"fill_tokens": fill_tokens, "ts": time.time()}))
-    except Exception:
-        pass
+    except Exception as e:
+        _log(agentflow_dir, {"event": "context_fill_write_error", "error": str(e)})
     sys.exit(0)
 
 

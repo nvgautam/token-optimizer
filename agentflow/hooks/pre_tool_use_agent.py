@@ -5,6 +5,7 @@ import json
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 
@@ -19,7 +20,8 @@ def _find_workspace_root() -> Path:
 def main() -> None:
     try:
         hook_data = json.load(sys.stdin)
-    except Exception:
+    except Exception as e:
+        print(json.dumps({"hook": "pre_tool_use_agent.py", "event": "load_stdin_error", "error": str(e), "ts": time.time()}), file=sys.stderr)
         sys.exit(0)
 
     prompt = hook_data.get("tool_input", {}).get("prompt", "")
@@ -39,8 +41,8 @@ def main() -> None:
             check=False,
             capture_output=True,
         )
-    except Exception:
-        pass
+    except Exception as e:
+        print(json.dumps({"hook": "pre_tool_use_agent.py", "event": "task_start_signal_error", "error": str(e), "task_id": task_id, "ts": time.time()}), file=sys.stderr)
 
     sys.exit(0)
 
