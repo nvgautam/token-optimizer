@@ -905,56 +905,19 @@
     },
     {
       "task_id": "T-219",
-      "title": "Fix context_fill.json reset in _clear_signal_files + staleness check in check_drain_restart",
-      "status": "pending",
-      "model": "haiku",
-      "estimated_lines": 20,
-      "owns": [
-        "agentflow/shell/session_manager_handlers.py",
-        "agentflow/shell/handoff_handler.py"
-      ],
-      "context_section": "PTY Shell"
+      "status": "complete"
     },
     {
       "task_id": "T-220",
-      "title": "Fix handoff.md doc drift: PTY polls file, does not scan stdout for HANDOFF_COMPLETE",
-      "status": "pending",
-      "model": "haiku",
-      "estimated_lines": 3,
-      "owns": [
-        "commands/claude/handoff.md"
-      ],
-      "context_section": "PTY Shell"
+      "status": "complete"
     },
     {
       "task_id": "T-221",
-      "title": "Split tests/test_post_tool_use_agent.py \u2014 size violation",
-      "description": "Split tests/test_post_tool_use_agent.py (360 lines, limit 350). Violation timestamp: 2026-07-15T06:51:34.912929. Choose the split boundary by test class or fixture group, not line count. Verify each output file is \u2264 350 lines after splitting.",
-      "owns": [
-        "tests/test_post_tool_use_agent.py"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-222",
-      "title": "Fix compress.py _is_mid_round() missed SID callsite",
-      "description": "Update agentflow/proxy/compress.py _is_mid_round() to use session_file() so it reads the SID-keyed tasks_in_flight.json after T-217. See execution_plan.md Addendum T-222.",
-      "owns": [
-        "agentflow/proxy/compress.py"
-      ],
-      "reads": [
-        "agentflow/shell/session_paths.py"
-      ],
-      "depends_on": [
-        "T-217"
-      ],
-      "estimated_lines": 5,
-      "context_section": "PTY Shell",
-      "model": "haiku",
-      "milestone": "PTY Shell",
-      "status": "pending"
+      "status": "complete"
     }
   ]
 }

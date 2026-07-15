@@ -441,9 +441,10 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | session-iso-2c — MERGED (PR #129 2026-07-14) | T-216 | SID-scope task_complete.json — PTY path property + pty_signal writer + poll_session reader |
 | session-iso-2d — MERGED (PR #130 2026-07-15) | T-218 | SID-scope current_round.json mtime guard via SID content validation (depends T-216 — shared session_manager.py) |
 | session-iso-2e | T-217 — MERGED PR #131 2026-07-15 | SID-scope tasks_in_flight.json — all hook writers + drain reader + session_manager property (depends T-218 — shared handoff_handler.py) |
-| session-iso-2f | T-219 | Fix context_fill.json reset in _clear_signal_files (SID path) + staleness check in check_drain_restart (depends T-217 — shared handoff_handler.py) |
+| session-iso-2f — MERGED PR #135 2026-07-15 | T-219 | Fix context_fill.json reset in _clear_signal_files (SID path) + staleness check in check_drain_restart (depends T-217 — shared handoff_handler.py) |
+| session-iso-misc — MERGED PR #132,#133,#134 2026-07-15 | T-220 ‖ T-221 ‖ T-222 | Fix handoff.md doc drift + compress.py _is_mid_round() SID callsite + split test_post_tool_use_agent.py |
 | session-iso-3 | T-202 ‖ T-204 ‖ T-207 (parallel) | Migrate reads, threshold_sync, stale cleanup (depends session-iso-2f, T-200, T-201, T-203) |
-| Later | T-063, T-099, T-162, T-167, T-168, T-178, T-210, T-211, T-220 | Multi-provider + Gemini oracle + oracle polish + hook audit + test cleanup + Gemini lifecycle spike + handoff.md doc fix |
+| Later | T-063, T-099, T-162, T-167, T-168, T-178, T-210, T-211 | Multi-provider + Gemini oracle + oracle polish + hook audit + test cleanup + Gemini lifecycle spike |
 
 Priority rationale (2026-07-10): Demo goal is orchestrate seamlessly looping — picks tasks that fit in one session, processes, recycles PTY, repeats. Demo-1 closes the gap where task selection is unbounded (T-068 estimates cost, T-064 checks headroom before claiming). Demo-2 wires scheduling to respect the budget. Demo-3 adds savings proof. Cross-provider (T-063, T-099) deferred; Claude-only for demo. Old rounds E/F dissolved into Demo-1–3.
 
