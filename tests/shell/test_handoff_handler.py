@@ -7,6 +7,77 @@ from agentflow.shell.state_machine import States
 from tests.shell.conftest import make_manager
 
 
+class TestCurrentRoundSessionIdValidation:
+    """T-218: Validate session_id in current_round.json mtime guard."""
+
+    def test_poll_session_skips_current_round_transition_on_sid_mismatch(self, tmp_path, monkeypatch):
+        """current_round.json has session_id=other-session, env var=my-session → skip transition."""
+        sm, pty, tok = make_manager()
+        sm._project_root = tmp_path
+        sm.session_type = "orchestrator"
+        sm._state_machine.state = States.IDLE
+
+        agentflow_dir = tmp_path / ".agentflow"
+        agentflow_dir.mkdir()
+        (agentflow_dir / "current_round.json").write_text(
+            json.dumps({"task": "T-001", "session_id": "other-session"})
+        )
+
+        # Set env var to a different session ID
+        monkeypatch.setenv("AGENTFLOW_SESSION_ID", "my-session")
+
+        # Update mtime tracker to trigger mtime comparison
+        sm._last_current_round_mtime = 0.0
+
+        from agentflow.shell.handoff_handler import poll_session
+        poll_session(sm)
+
+        # State should remain IDLE, no transition
+        assert sm._state_machine.state == States.IDLE
+
+    def test_poll_session_allows_current_round_transition_on_sid_match(self, tmp_path, monkeypatch):
+        """current_round.json has session_id=my-session, env var matches → allow transition."""
+        sm, pty, tok = make_manager()
+        sm._project_root = tmp_path
+        sm.session_type = "orchestrator"
+        sm._state_machine.state = States.IDLE
+
+        agentflow_dir = tmp_path / ".agentflow"
+        agentflow_dir.mkdir()
+        (agentflow_dir / "current_round.json").write_text(
+            json.dumps({"task": "T-001", "session_id": "my-session"})
+        )
+
+        monkeypatch.setenv("AGENTFLOW_SESSION_ID", "my-session")
+        sm._last_current_round_mtime = 0.0
+
+        with patch.object(sm._state_machine, "transition") as mock_transition:
+            from agentflow.shell.handoff_handler import poll_session
+            poll_session(sm)
+            mock_transition.assert_called_once_with("current_round_written")
+
+    def test_poll_session_allows_current_round_transition_when_no_sid_in_file(self, tmp_path, monkeypatch):
+        """current_round.json has no session_id field (legacy) → allow transition regardless."""
+        sm, pty, tok = make_manager()
+        sm._project_root = tmp_path
+        sm.session_type = "orchestrator"
+        sm._state_machine.state = States.IDLE
+
+        agentflow_dir = tmp_path / ".agentflow"
+        agentflow_dir.mkdir()
+        (agentflow_dir / "current_round.json").write_text(
+            json.dumps({"task": "T-001"})
+        )
+
+        monkeypatch.setenv("AGENTFLOW_SESSION_ID", "my-session")
+        sm._last_current_round_mtime = 0.0
+
+        with patch.object(sm._state_machine, "transition") as mock_transition:
+            from agentflow.shell.handoff_handler import poll_session
+            poll_session(sm)
+            mock_transition.assert_called_once_with("current_round_written")
+
+
 class TestCheckDrainRestartDirectPath:
     """T-209: check_drain_restart transitions directly to RESTARTING, not via trigger_handoff."""
 
