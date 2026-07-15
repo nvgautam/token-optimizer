@@ -1,0 +1,354 @@
+"""Tests for structured error logging in shell exception handlers."""
+import pytest
+from unittest.mock import MagicMock, patch, call
+import json
+import pathlib
+
+
+class TestThresholdSyncLogging:
+    """Test structured logging in threshold_sync.py exception handlers."""
+
+    def test_sync_session_type_logs_on_read_error(self):
+        """Test that sync_session_type logs JSON read errors."""
+        manager = MagicMock()
+        manager._project_root = pathlib.Path("/tmp/test")
+        manager.session_type = None
+        manager._log_audit = MagicMock()
+
+        # Return a mock path that exists but has invalid JSON content
+        mock_sid_path = MagicMock()
+        mock_sid_path.exists.return_value = True
+        mock_sid_path.read_text.return_value = "not-valid-json{"
+
+        with patch("agentflow.shell.threshold_sync.session_file", return_value=mock_sid_path), \
+             patch.dict("os.environ", {"AGENTFLOW_SESSION_ID": "test-sid-123"}):
+            from agentflow.shell.threshold_sync import sync_session_type
+            sync_session_type(manager)
+
+            # Verify _log_audit was called with an error event for the JSON parse failure
+            manager._log_audit.assert_called()
+            called_events = [c.args[0]["event"] for c in manager._log_audit.call_args_list]
+            assert any("sync_session_type" in ev for ev in called_events), (
+                f"Expected a sync_session_type error event, got: {called_events}"
+            )
+
+
+class TestProcessManagerLogging:
+    """Test structured logging in process_manager.py exception handlers."""
+
+    def test_handle_enter_restarting_logs_on_write_error(self):
+        """Test that handle_enter_restarting logs when os.write fails."""
+        manager = MagicMock()
+        manager._pty = MagicMock()
+        manager._log_audit = MagicMock()
+
+        with patch("agentflow.shell.process_manager.os.write") as mock_write:
+            mock_write.side_effect = OSError("EPIPE")
+
+            from agentflow.shell.process_manager import handle_enter_restarting
+            handle_enter_restarting(manager)
+
+            # Verify _log_audit was called with reset event
+            manager._log_audit.assert_called()
+
+
+    def test_restart_child_logs_on_kill_error(self):
+        """Test that restart_child logs when os.kill fails."""
+        manager = MagicMock()
+        manager._pty = MagicMock()
+        manager._pty._command = ["claude"]
+        manager._pty.child_pid = 1234
+        manager._log_audit = MagicMock()
+
+        with patch("agentflow.shell.process_manager.os.kill") as mock_kill, \
+             patch("agentflow.shell.process_manager.os.waitpid") as mock_waitpid:
+            mock_kill.side_effect = OSError("ESRCH")
+
+            from agentflow.shell.process_manager import restart_child
+            restart_child(manager)
+
+            # Verify logging was called
+            manager._log_audit.assert_called()
+
+
+class TestOutputHandlerLogging:
+    """Test structured logging in output_handler.py exception handlers."""
+
+    def test_read_fill_tokens_handles_read_error(self):
+        """Test that _read_fill_tokens silently handles read errors."""
+        project_root = pathlib.Path("/tmp/test")
+
+        with patch("agentflow.shell.output_handler.session_file") as mock_session_file, \
+             patch("agentflow.shell.output_handler.json.loads") as mock_loads:
+            mock_session_file.return_value = pathlib.Path("/tmp/fill.json")
+            mock_loads.side_effect = json.JSONDecodeError("msg", "doc", 0)
+
+            from agentflow.shell.output_handler import _read_fill_tokens
+            result = _read_fill_tokens(project_root)
+
+            # Should return None on error
+            assert result is None
+
+
+    def test_record_task_tokens_logs_on_read_error(self):
+        """Test that record_task_tokens logs read errors for current_round.json."""
+        import tempfile
+        manager = MagicMock()
+        manager.session_type = "oracle"
+        manager._log_audit = MagicMock()
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_root = pathlib.Path(tmpdir)
+            agentflow_dir = project_root / ".agentflow"
+            agentflow_dir.mkdir()
+            # Write invalid JSON so json.loads raises
+            (agentflow_dir / "current_round.json").write_text("not-json{", encoding="utf-8")
+            manager._project_root = project_root
+
+            with patch("agentflow.shell.output_handler.pathlib.Path.home") as mock_home:
+                mock_log_dir = MagicMock()
+                mock_log_dir.__truediv__ = lambda self, other: MagicMock(
+                    parent=MagicMock(mkdir=MagicMock()),
+                    __enter__=lambda s: MagicMock(write=MagicMock()),
+                    __exit__=lambda s, *a: False,
+                )
+                mock_home.return_value = MagicMock(__truediv__=lambda s, o: MagicMock(
+                    parent=MagicMock(mkdir=MagicMock()),
+                ))
+                with patch("builtins.open", MagicMock()):
+                    from agentflow.shell.output_handler import record_task_tokens
+                    record_task_tokens(manager, "T-100", 1000)
+
+            # Verify _log_audit was called with the expected event
+            manager._log_audit.assert_called()
+            called_events = [c.args[0]["event"] for c in manager._log_audit.call_args_list]
+            assert "record_task_tokens_read_error" in called_events, (
+                f"Expected 'record_task_tokens_read_error' event, got: {called_events}"
+            )
+
+
+    def test_handle_output_logs_on_unlink_error(self):
+        """Test that handle_output logs when clear_signal unlink fails."""
+        manager = MagicMock()
+        # Use MagicMock for project_root so path division returns controllable mocks
+        mock_agentflow_dir = MagicMock()
+        mock_clear_signal = MagicMock()
+        mock_clear_signal.exists.return_value = True
+        mock_clear_signal.unlink.side_effect = OSError("Permission denied")
+        mock_agentflow_dir.__truediv__ = MagicMock(return_value=mock_clear_signal)
+        manager._project_root.__truediv__ = MagicMock(return_value=mock_agentflow_dir)
+
+        manager.session_type = "oracle"
+        manager._log_audit = MagicMock()
+        manager.poll = MagicMock()
+        manager._tokenizer = MagicMock()
+        manager._tokenizer.count_tokens.return_value = 100
+        manager._tokenizer.accumulate.return_value = 1000
+        manager._manual_handoff = False
+        manager._turn_count = 0
+        manager._last_idx_injected = None
+        manager._task_start_tokens = {}
+        manager._turn_output_history = []
+        manager._current_turn_output_tokens = 0
+        manager._last_accumulated_tokens = 0
+
+        from agentflow.shell.output_handler import handle_output
+        handle_output(manager, b"test output")
+
+        # Verify _log_audit was called with the clear_signal_unlink_error event
+        manager._log_audit.assert_called()
+        called_events = [c.args[0]["event"] for c in manager._log_audit.call_args_list]
+        assert "clear_signal_unlink_error" in called_events, (
+            f"Expected 'clear_signal_unlink_error' event, got: {called_events}"
+        )
+
+
+class TestHandoffHandlerLogging:
+    """Test structured logging in handoff_handler.py exception handlers."""
+
+    def test_kill_child_logs_on_signal_error(self):
+        """Test that _kill_child logs when os.kill fails."""
+        manager = MagicMock()
+        manager._pty = MagicMock()
+        manager._pty.child_pid = 1234
+        manager._log_audit = MagicMock()
+
+        with patch("agentflow.shell.handoff_handler.os.kill") as mock_kill, \
+             patch("agentflow.shell.handoff_handler._reap_child") as mock_reap:
+            mock_kill.side_effect = OSError("ESRCH")
+
+            from agentflow.shell.handoff_handler import _kill_child
+            _kill_child(manager)
+
+            # Verify _log_audit was called
+            manager._log_audit.assert_called()
+
+
+    def test_poll_session_logs_on_stat_error(self):
+        """Test that poll_session logs when stat() fails."""
+        from agentflow.shell.state_machine import States
+
+        manager = MagicMock()
+        manager._state_machine = MagicMock()
+        # Must be the actual enum value so `state == States.IDLE` is True
+        manager._state_machine.state = States.IDLE
+        manager.session_type = "orchestrator"
+        manager._log_audit = MagicMock()
+        manager._current_round_path = MagicMock()
+        manager._current_round_path.exists.return_value = True
+        manager._current_round_path.stat.side_effect = OSError("Permission denied")
+        manager._last_current_round_mtime = 0.0
+        manager._task_complete_path = MagicMock()
+        manager._task_complete_path.exists.return_value = False
+        manager._handoff_complete_path = MagicMock()
+        manager._handoff_complete_path.exists.return_value = False
+        manager._deadline_state = States.IDLE  # match initial state
+        manager._deadline_entered_at = 0.0
+        # Prevent early return via the "pty exited" check
+        manager._pty = MagicMock()
+        manager._pty._exited = False
+
+        from agentflow.shell.handoff_handler import poll_session
+        # Should not raise on stat error
+        poll_session(manager)
+
+        # Verify _log_audit was called with the poll_session_stat_error event
+        manager._log_audit.assert_called()
+        called_events = [c.args[0]["event"] for c in manager._log_audit.call_args_list]
+        assert "poll_session_stat_error" in called_events, (
+            f"Expected 'poll_session_stat_error' event, got: {called_events}"
+        )
+
+
+class TestSessionManagerHandlersLogging:
+    """Test structured logging in session_manager_handlers.py exception handlers."""
+
+    def test_update_last_current_round_mtime_logs_on_stat_error(self):
+        """Test that update_last_current_round_mtime logs on stat failure."""
+        session_manager = MagicMock()
+        session_manager._current_round_path = MagicMock()
+        session_manager._current_round_path.exists.return_value = True
+        session_manager._current_round_path.stat.side_effect = OSError("Permission denied")
+
+        from agentflow.shell.session_manager_handlers import update_last_current_round_mtime
+        update_last_current_round_mtime(session_manager)
+
+        # Should set mtime to 0.0 even on error
+        assert session_manager._last_current_round_mtime == 0.0
+
+
+    def test_clear_signal_files_logs_on_unlink_error(self):
+        """Test that clear_signal_files logs when unlink fails."""
+        session_manager = MagicMock()
+        session_manager._project_root = pathlib.Path("/tmp/test")
+        session_manager._log_audit = MagicMock()
+
+        # Create mock paths — unlink raises so the error handler fires
+        task_complete_path = MagicMock()
+        task_complete_path.exists.return_value = True
+        task_complete_path.unlink.side_effect = OSError("Permission denied")
+
+        handoff_complete_path = MagicMock()
+        handoff_complete_path.exists.return_value = False
+
+        session_manager._task_complete_path = task_complete_path
+        session_manager._handoff_complete_path = handoff_complete_path
+
+        # Patch session_file where it is defined (imported locally inside clear_signal_files)
+        with patch("agentflow.shell.session_paths.session_file") as mock_session_file:
+            mock_cf = MagicMock()
+            mock_session_file.return_value = mock_cf
+
+            from agentflow.shell.session_manager_handlers import clear_signal_files
+            clear_signal_files(session_manager)
+
+        # Error handler calls session_manager._log_audit directly
+        session_manager._log_audit.assert_called()
+        called_events = [c.args[0]["event"] for c in session_manager._log_audit.call_args_list]
+        assert "clear_signal_unlink_error" in called_events, (
+            f"Expected 'clear_signal_unlink_error' event, got: {called_events}"
+        )
+
+
+    def test_handle_enter_handoff_pending_logs_on_calibrate_error(self):
+        """Test that handle_enter_handoff_pending logs on calibrate_capacity error."""
+        session_manager = MagicMock()
+        session_manager._project_root = pathlib.Path("/tmp/test")
+        session_manager._log_audit = MagicMock()
+
+        # calibrate_capacity is imported inside the try block; patch at source
+        with patch("agentflow.shadow.capacity_calibrator.calibrate_capacity",
+                   side_effect=OSError("File not found")), \
+             patch("agentflow.shell.handoff_handler.handle_enter_handoff_pending"):
+            from agentflow.shell.session_manager_handlers import handle_enter_handoff_pending
+            # Should not raise on calibrate error
+            handle_enter_handoff_pending(session_manager)
+
+        # Error handler calls session_manager._log_audit directly
+        session_manager._log_audit.assert_called()
+        called_events = [c.args[0]["event"] for c in session_manager._log_audit.call_args_list]
+        assert "calibrate_capacity_error" in called_events, (
+            f"Expected 'calibrate_capacity_error' event, got: {called_events}"
+        )
+
+
+    def test_handle_session_exit_logs_on_transition_error(self):
+        """Test that handle_session_exit logs when transition fails."""
+        from agentflow.shell.state_machine import States
+
+        session_manager = MagicMock()
+        session_manager._state_machine = MagicMock()
+        # Must not be HANDOFF_PENDING or RESTARTING so the transition attempt is reached
+        session_manager._state_machine.state = States.IDLE
+        session_manager._state_machine.transition.side_effect = Exception("State error")
+        session_manager._pty = MagicMock()
+        session_manager._pty.child_pid = 1234
+        session_manager.session_type = None
+        session_manager._log_audit = MagicMock()
+
+        from agentflow.shell.session_manager_handlers import handle_session_exit
+        # Should not raise on transition error
+        handle_session_exit(session_manager, 1)
+
+        # Error handler calls session_manager._log_audit directly
+        session_manager._log_audit.assert_called()
+        called_events = [c.args[0]["event"] for c in session_manager._log_audit.call_args_list]
+        assert "session_exit_transition_error" in called_events, (
+            f"Expected 'session_exit_transition_error' event, got: {called_events}"
+        )
+
+
+class TestSessionAuditLogging:
+    """Test that session_audit.log_audit stays silent."""
+
+    def test_log_audit_stays_silent_on_write_error(self):
+        """Test that log_audit's own exception handler stays silent."""
+        manager = MagicMock()
+        manager._project_root = pathlib.Path("/tmp/test")
+
+        with patch("builtins.open") as mock_open:
+            mock_open.side_effect = OSError("Permission denied")
+
+            from agentflow.shell.session_audit import log_audit
+            # Should not raise — must stay silent
+            log_audit(manager, {"event": "test", "error": "something"})
+
+            # No exception should be raised
+
+
+    def test_update_session_file_logs_read_error(self):
+        """Test that update_session_file handles read errors."""
+        manager = MagicMock()
+        manager._project_root = pathlib.Path("/tmp/test")
+        manager._arm = "control"
+        manager.session_type = "oracle"
+
+        with patch("pathlib.Path.home") as mock_home, \
+             patch("pathlib.Path.exists") as mock_exists, \
+             patch("pathlib.Path.read_text") as mock_read:
+            mock_exists.return_value = True
+            mock_read.side_effect = OSError("Permission denied")
+
+            from agentflow.shell.session_audit import update_session_file
+            # Should not raise — use empty dict on error
+            update_session_file(manager)
