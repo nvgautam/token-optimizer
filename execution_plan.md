@@ -444,7 +444,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | session-iso-2f — MERGED PR #135 2026-07-15 | T-219 | Fix context_fill.json reset in _clear_signal_files (SID path) + staleness check in check_drain_restart (depends T-217 — shared handoff_handler.py) |
 | session-iso-misc — MERGED PR #132,#133,#134 2026-07-15 | T-220 ‖ T-221 ‖ T-222 | Fix handoff.md doc drift + compress.py _is_mid_round() SID callsite + split test_post_tool_use_agent.py |
 | session-iso-2g — MERGED (PR #136 2026-07-15) | T-223 | Hook-driven task_start via PreToolUse Agent + fix drain paths (gh pr view race, SID path, outside-CLI merge) |
-| session-iso-3 | T-202 ‖ T-204 ‖ T-207 (parallel) | Migrate reads, threshold_sync, stale cleanup (depends session-iso-2f, T-200, T-201, T-203) |
+| session-iso-3 — MERGED (PR #137/#138/#139 2026-07-15) | T-202 ‖ T-204 ‖ T-207 (parallel) | Migrate reads, threshold_sync, stale cleanup (depends session-iso-2f, T-200, T-201, T-203) |
 | Later | T-063, T-099, T-162, T-167, T-168, T-178, T-210, T-211 | Multi-provider + Gemini oracle + oracle polish + hook audit + test cleanup + Gemini lifecycle spike |
 
 Priority rationale (2026-07-10): Demo goal is orchestrate seamlessly looping — picks tasks that fit in one session, processes, recycles PTY, repeats. Demo-1 closes the gap where task selection is unbounded (T-068 estimates cost, T-064 checks headroom before claiming). Demo-2 wires scheduling to respect the budget. Demo-3 adds savings proof. Cross-provider (T-063, T-099) deferred; Claude-only for demo. Old rounds E/F dissolved into Demo-1–3.

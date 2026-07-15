@@ -1,15 +1,19 @@
 {
-  "last_round": "session-iso-2g",
+  "last_round": "session-iso-3",
   "tasks_merged": [
-    "T-223"
-  ],
-  "prs": [
-    136
-  ],
-  "next_round": "session-iso-3",
-  "next_tasks": [
     "T-202",
     "T-204",
     "T-207"
+  ],
+  "prs": [
+    137,
+    138,
+    139
+  ],
+  "next_round": "later",
+  "next_tasks": [
+    "T-162",
+    "T-210",
+    "T-178"
   ]
 }

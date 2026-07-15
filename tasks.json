@@ -788,21 +788,7 @@
     },
     {
       "task_id": "T-202",
-      "title": "Migrate context_fill.json reads to per-SID path in PTY shell",
-      "description": "Update agentflow/shell/output_handler.py and agentflow/shell/handoff_handler.py to read context_fill.json from sessions/<SID>/ via _session_file(). session_manager.py delegated call may also need updating.",
-      "owns": [
-        "agentflow/shell/output_handler.py",
-        "agentflow/shell/handoff_handler.py"
-      ],
-      "reads": [
-        "agentflow/shell/session_paths.py"
-      ],
-      "depends_on": [
-        "T-200",
-        "T-201"
-      ],
-      "estimated_lines": 30,
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-203",
@@ -810,20 +796,7 @@
     },
     {
       "task_id": "T-204",
-      "title": "Update threshold_sync.py to read session_state from sessions/<SID>/",
-      "description": "Update sync_session_type() in agentflow/shell/threshold_sync.py to check sessions/<SID>/session_state.json first (via _session_file()), then fall back to root-level session_state.json and session_type files for backward compat.",
-      "owns": [
-        "agentflow/shell/threshold_sync.py"
-      ],
-      "reads": [
-        "agentflow/shell/session_paths.py"
-      ],
-      "depends_on": [
-        "T-200",
-        "T-203"
-      ],
-      "estimated_lines": 20,
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-205",
@@ -831,17 +804,7 @@
     },
     {
       "task_id": "T-207",
-      "title": "Add stale session folder cleanup on PTY startup (TTL 24h)",
-      "description": "Add cleanup_stale_sessions(agentflow_dir, ttl_seconds=86400) to agentflow/shell/session_paths.py. Call on PTY startup: enumerate sessions/<SID>/ folders, remove any where mtime > ttl_seconds. Best-effort (shutil.rmtree, silently ignore failures).",
-      "owns": [
-        "agentflow/shell/session_paths.py"
-      ],
-      "reads": [],
-      "depends_on": [
-        "T-200"
-      ],
-      "estimated_lines": 35,
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-208",
