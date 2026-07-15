@@ -35,8 +35,8 @@ def sync_session_type(manager) -> None:
                         update_session_file(manager)
                     apply_session_threshold(manager)
                     return
-        except Exception:
-            pass
+        except Exception as e:
+            manager._log_audit({"event": "sync_session_type_sid_read_error", "error": str(e)})
 
     # Fallback: root-level session_state.json, then session_type file
     for fname in ["session_state.json", "session_type"]:
@@ -56,6 +56,6 @@ def sync_session_type(manager) -> None:
                     update_session_file(manager)
                 apply_session_threshold(manager)
                 return
-        except Exception:
-            pass
+        except Exception as e:
+            manager._log_audit({"event": "sync_session_type_fallback_read_error", "error": str(e)})
     apply_session_threshold(manager)

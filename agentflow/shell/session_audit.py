@@ -4,6 +4,7 @@ import datetime
 import json
 import os
 import pathlib
+import sys
 
 
 def log_audit(manager, entry: dict) -> None:
@@ -25,12 +26,13 @@ def update_session_file(manager) -> None:
     sf = pathlib.Path.home() / ".agentflow" / "sessions" / f"{sid}.json"
     try:
         data = json.loads(sf.read_text("utf-8")) if sf.exists() else {}
-    except Exception:
+    except Exception as e:
+        sys.stderr.write(f"[agentflow] update_session_file read error: {e}\n")
         data = {}
     try:
         data.setdefault("started_at", datetime.datetime.now().isoformat())
         data.update({"arm": manager._arm, "session_type": manager.session_type})
         sf.parent.mkdir(parents=True, exist_ok=True)
         sf.write_text(json.dumps(data), encoding="utf-8")
-    except Exception:
-        pass
+    except Exception as e:
+        sys.stderr.write(f"[agentflow] update_session_file write error: {e}\n")

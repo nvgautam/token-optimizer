@@ -11,3 +11,17 @@
 {"ts": 1784079225.050145, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "git diff tests/shell/test_handoff_handler.py | head -80"}
 {"ts": 1784079227.507156, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "git diff tests/test_process_manager_task_ctx.py | tail -60"}
 {"ts": 1784079234.74972, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "python -m pytest tests/shell/test_handoff_handler.py tests/test_process_manager_"}
+{"ts": 1784134987.56963, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "cd /Users/gautam/code/token-optimizer && python3 -c \"import hashlib,os; print(ha"}
+{"ts": 1784135048.8327072, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "pwd"}
+{"ts": 1784135118.860029, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "python -m pytest tests/shell/test_structured_error_logging.py -v 2>&1 | head -10"}
+{"ts": 1784135453.440316, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "python -m pytest tests/shell/test_structured_error_logging.py -v 2>&1 | tail -50"}
+{"ts": 1784135500.1740139, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "python -m pytest tests/shell/test_structured_error_logging.py -v 2>&1 | tail -20"}
+{"ts": 1784135510.9007528, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "python -m pytest tests/shell/test_structured_error_logging.py::TestSessionManage"}
+{"ts": 1784135567.122952, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "python -m pytest tests/shell/test_structured_error_logging.py -v 2>&1 | tail -30"}
+{"ts": 1784135577.3347101, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "python -m pytest tests/ -x 2>&1 | tail -50"}
+{"ts": 1784135596.309302, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "python -m pytest tests/shell/ -v 2>&1 | tail -30"}
+{"ts": 1784135596.357344, "source": "user_prompt_submit", "event": "cleanup_tif_skip", "reason": "no_file"}
+{"ts": 1784135613.750685, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "python -m pytest tests/shell/test_session_manager.py::test_sync_session_type_rea"}
+{"ts": 1784135624.348814, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "python -c \"\nfrom agentflow.shell import threshold_sync\nfrom agentflow.shell impo"}
+{"ts": 1784135633.102145, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "git status"}
+{"ts": 1784135648.813222, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "python -m pytest tests/shell/test_structured_error_logging.py -v --tb=short 2>&1"}
