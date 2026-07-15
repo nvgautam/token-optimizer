@@ -16,3 +16,9 @@ build/
 .headroom/
 .agentflow/proxy_log.jsonl
 .agentflow/verbosity_log.jsonl
+.agentflow/hook_drain_debug.jsonl
+.agentflow/pty_audit.jsonl
+.agentflow/session_state*.json
+.agentflow/size_violations.jsonl
+.agentflow/telemetry.jsonl
+.agentflow/verbosity_ab_log.jsonl
