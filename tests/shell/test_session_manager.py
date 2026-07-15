@@ -284,3 +284,64 @@ def test_task_complete_path_uses_flat_path_without_sid():
         path = sm._task_complete_path
         expected = proj_root / ".agentflow" / "task_complete.json"
         assert path == expected
+
+
+def test_clear_signal_files_uses_sid_path():
+    """T-219: clear_signal_files() writes context_fill to sessions/<sid>/context_fill.json."""
+    sm, pty, _ = make_manager()
+    proj_root = sm._project_root
+    agentflow_dir = proj_root / ".agentflow"
+    agentflow_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create task_complete and handoff_complete in sessions/<sid>/ to simulate real state
+    sid = "test-session-123"
+    sid_dir = agentflow_dir / "sessions" / sid
+    sid_dir.mkdir(parents=True, exist_ok=True)
+
+    task_complete = sid_dir / "task_complete.json"
+    handoff_complete = sid_dir / "handoff_complete.json"
+    task_complete.write_text('{}')
+    handoff_complete.write_text('{}')
+
+    # Manually set the paths on sm
+    sm._task_complete_path = task_complete
+    sm._handoff_complete_path = handoff_complete
+
+    # Mock AGENTFLOW_SESSION_ID
+    with patch.dict(os.environ, {"AGENTFLOW_SESSION_ID": sid}):
+        from agentflow.shell.session_manager_handlers import clear_signal_files
+        clear_signal_files(sm)
+
+    # Verify context_fill was written to sessions/<sid>/context_fill.json
+    expected_cf = sid_dir / "context_fill.json"
+    assert expected_cf.exists()
+    cf_data = json.loads(expected_cf.read_text(encoding="utf-8"))
+    assert cf_data == {"fill_tokens": 0}
+
+
+def test_clear_signal_files_fallback_no_sid():
+    """T-219: clear_signal_files() writes to flat path when AGENTFLOW_SESSION_ID is empty."""
+    sm, pty, _ = make_manager()
+    proj_root = sm._project_root
+    agentflow_dir = proj_root / ".agentflow"
+    agentflow_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create flat signal files
+    task_complete = agentflow_dir / "task_complete.json"
+    handoff_complete = agentflow_dir / "handoff_complete.json"
+    task_complete.write_text('{}')
+    handoff_complete.write_text('{}')
+
+    sm._task_complete_path = task_complete
+    sm._handoff_complete_path = handoff_complete
+
+    # No SID (fallback to flat path)
+    with patch.dict(os.environ, {"AGENTFLOW_SESSION_ID": ""}):
+        from agentflow.shell.session_manager_handlers import clear_signal_files
+        clear_signal_files(sm)
+
+    # Verify context_fill was written to flat .agentflow/context_fill.json
+    expected_cf = agentflow_dir / "context_fill.json"
+    assert expected_cf.exists()
+    cf_data = json.loads(expected_cf.read_text(encoding="utf-8"))
+    assert cf_data == {"fill_tokens": 0}

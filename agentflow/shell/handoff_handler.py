@@ -222,7 +222,13 @@ def check_drain_restart(manager) -> None:
     try:
         cf = manager._project_root / ".agentflow" / "context_fill.json"
         if cf.exists():
-            fill_tokens = _json.loads(cf.read_text("utf-8")).get("fill_tokens", 0)
+            data = _json.loads(cf.read_text("utf-8"))
+            fill_tokens = data.get("fill_tokens", 0)
+            # T-219: Check staleness of context_fill.json data
+            ts = data.get("ts")
+            if ts is not None and time.time() - ts > 60:
+                _skip("fill_stale", ts_age=round(time.time() - ts, 1))
+                return
     except Exception:
         pass
     if fill_tokens < threshold:
