@@ -100,7 +100,7 @@ python /Users/gautam/code/token-optimizer/agentflow.py handoff --ledger <cwd>/ag
 
 ### Step 8 — Print HANDOFF_COMPLETE
 
-Last output (PTY scans stdout for this):
+Last output (PTY polls handoff_complete_{sid}.json — this line is for human feedback only):
 ```
 HANDOFF_COMPLETE: <actual-path-written>
 ```
@@ -113,7 +113,7 @@ Use the actual path from Step 6 (either `.agentflow/handoff_<YYYY-MM-DD>.md` or 
 
 > Session context has been flushed. **Start a new Claude Code session now**, then run `/orchestrate` (or `/oracle`) to continue. Do not continue in this session.
 
-In PTY mode the shell will restart automatically on `HANDOFF_COMPLETE`. In interactive mode this message is the restart signal.
+In PTY mode the shell polls `handoff_complete_{sid}.json` and restarts automatically when the file appears. In interactive mode this message is the restart signal.
 
 ### Step 10 — Report to user
 
