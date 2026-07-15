@@ -1811,5 +1811,33 @@
       "agentflow/shell/handoff_handler.py"
     ],
     "context_section": "PTY Shell"
+  },
+  {
+    "task_id": "T-218",
+    "title": "Scope current_round.json mtime guard to SID via content validation",
+    "status": "complete",
+    "model": "haiku",
+    "estimated_lines": 20,
+    "owns": [
+      "agentflow/shell/handoff_handler.py",
+      "agentflow/shell/session_manager.py",
+      "agentflow/shell/process_manager.py"
+    ],
+    "context_section": "PTY Shell"
+  },
+  {
+    "task_id": "T-217",
+    "title": "Scope tasks_in_flight.json to SID",
+    "status": "complete",
+    "model": "haiku",
+    "estimated_lines": 60,
+    "owns": [
+      "agentflow/shell/pty_signal.py",
+      "agentflow/hooks/post_tool_use.py",
+      "agentflow/hooks/post_tool_use_agent.py",
+      "agentflow/hooks/user_prompt_submit.py",
+      "agentflow/shell/handoff_handler.py"
+    ],
+    "context_section": "PTY Shell"
   }
 ]

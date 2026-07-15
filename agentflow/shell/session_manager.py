@@ -101,6 +101,16 @@ class SessionManager:
     def _task_complete_path(self, val: pathlib.Path) -> None: self._task_complete_path_override = val
 
     @property
+    def _tasks_in_flight_path(self) -> pathlib.Path:
+        override = getattr(self, "_tasks_in_flight_path_override", None)
+        if override:
+            return override
+        sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+        return session_file(self._project_root / ".agentflow", "tasks_in_flight.json", sid)
+    @_tasks_in_flight_path.setter
+    def _tasks_in_flight_path(self, val: pathlib.Path) -> None: self._tasks_in_flight_path_override = val
+
+    @property
     def _handoff_complete_path(self) -> pathlib.Path:
         override = getattr(self, "_handoff_complete_path_override", None)
         if override:

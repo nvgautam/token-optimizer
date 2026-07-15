@@ -99,9 +99,9 @@ def _log_drain(agentflow_dir: Path, entry: dict) -> None:
         pass
 
 
-def _cleanup_merged_in_flight(agentflow_dir: Path) -> None:
+def _cleanup_merged_in_flight(agentflow_dir: Path, sid: str = "") -> None:
     """Clean up merged tasks from tasks_in_flight.json and mark complete in tasks.json."""
-    in_flight_file = agentflow_dir / "tasks_in_flight.json"
+    in_flight_file = session_file(agentflow_dir, "tasks_in_flight.json", sid)
     if not in_flight_file.exists():
         _log_drain(agentflow_dir, {"event": "cleanup_tif_skip", "reason": "no_file"})
         return
@@ -212,7 +212,7 @@ def main() -> None:
             pass
 
     # Clean up merged in-flight tasks
-    _cleanup_merged_in_flight(agentflow_dir)
+    _cleanup_merged_in_flight(agentflow_dir, sid=sid)
 
     # Emit session type into every turn so skills never need to infer it.
     try:

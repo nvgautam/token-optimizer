@@ -86,7 +86,9 @@ def sync_tasks_in_flight(tool_name: str, tool_input: dict, agentflow_dir: pathli
         if not isinstance(task_ids, list) or not task_ids:
             _log(agentflow_dir, {"event": "sync_tif_skip", "reason": "no_task_ids"})
             return
-        _atomic_write(agentflow_dir / "tasks_in_flight.json", json.dumps(task_ids))
+        sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+        tif_path = session_file(agentflow_dir, "tasks_in_flight.json", sid)
+        _atomic_write(tif_path, json.dumps(task_ids))
         _log(agentflow_dir, {"event": "sync_tif_written", "task_ids": task_ids})
     except Exception as e:
         _log(agentflow_dir, {"event": "sync_tif_error", "err": str(e)})

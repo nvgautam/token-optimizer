@@ -440,7 +440,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | spike-restart-det — MERGED (PR #128 2026-07-14) | T-215 | Audit restart signal chain — catalogue every stdout/LLM-call dependency before session-iso-3 ships |
 | session-iso-2c — MERGED (PR #129 2026-07-14) | T-216 | SID-scope task_complete.json — PTY path property + pty_signal writer + poll_session reader |
 | session-iso-2d — MERGED (PR #130 2026-07-15) | T-218 | SID-scope current_round.json mtime guard via SID content validation (depends T-216 — shared session_manager.py) |
-| session-iso-2e | T-217 — **NEXT** | SID-scope tasks_in_flight.json — all hook writers + drain reader + session_manager property (depends T-218 — shared handoff_handler.py) |
+| session-iso-2e | T-217 — MERGED PR #131 2026-07-15 | SID-scope tasks_in_flight.json — all hook writers + drain reader + session_manager property (depends T-218 — shared handoff_handler.py) |
 | session-iso-2f | T-219 | Fix context_fill.json reset in _clear_signal_files (SID path) + staleness check in check_drain_restart (depends T-217 — shared handoff_handler.py) |
 | session-iso-3 | T-202 ‖ T-204 ‖ T-207 (parallel) | Migrate reads, threshold_sync, stale cleanup (depends session-iso-2f, T-200, T-201, T-203) |
 | Later | T-063, T-099, T-162, T-167, T-168, T-178, T-210, T-211, T-220 | Multi-provider + Gemini oracle + oracle polish + hook audit + test cleanup + Gemini lifecycle spike + handoff.md doc fix |
@@ -776,9 +776,9 @@ Pre-compute round state on PTY startup to skip startup commands. See commit 9245
 
 ---
 
-## Addendum: T-217 — Scope tasks_in_flight.json to SID (filed 2026-07-14)
+## Addendum: T-217 — Scope tasks_in_flight.json to SID (MERGED PR #131 2026-07-15)
 
-**Status:** PENDING
+**Status:** MERGED
 
 **Depends on:** T-218 (shared handoff_handler.py)
 
@@ -824,3 +824,22 @@ Pre-compute round state on PTY startup to skip startup commands. See commit 9245
 **Fix:** Remove or correct the stdout-scanning claim in Step 8. State that the PTY polls for `handoff_complete_{sid}.json`.
 
 **estimated_lines:** 3
+
+---
+
+## Addendum: T-222 — Fix compress.py _is_mid_round() missed SID callsite (filed 2026-07-15)
+
+**Status:** PENDING
+
+**Depends on:** T-217 (merged)
+
+**Problem:** `agentflow/proxy/compress.py:59` `_is_mid_round()` reads the flat `project_root / ".agentflow" / "tasks_in_flight.json"`. After T-217 ships, this file is absent when a SID is active (tasks_in_flight lives in `sessions/<SID>/`). So `_is_mid_round()` always returns False mid-round → compression runs when it should be suppressed.
+
+**Fix:** Update `_is_mid_round()` to use `session_file()`:
+```python
+from agentflow.shell.session_paths import session_file
+tif = session_file(project_root / ".agentflow", "tasks_in_flight.json", os.environ.get("AGENTFLOW_SESSION_ID", ""))
+```
+
+**Owns:** `agentflow/proxy/compress.py`
+**estimated_lines:** 5
