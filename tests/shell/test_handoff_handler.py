@@ -1,6 +1,7 @@
 """Tests for T-209: drain restart direct RESTARTING path (no trigger_handoff)."""
 from __future__ import annotations
 import json
+import time
 from unittest.mock import patch
 import pytest
 from agentflow.shell.state_machine import States
@@ -191,3 +192,56 @@ class TestCheckDrainRestartDirectPath:
         assert "clear_signal_files" in call_order
         assert "restart_child" in call_order
         assert call_order.index("clear_signal_files") < call_order.index("restart_child")
+
+
+class TestCheckDrainRestartStalenessCheck:
+    """T-219: check_drain_restart must skip stale context_fill.json entries."""
+
+    def test_check_drain_restart_skips_stale_fill(self, tmp_path):
+        """context_fill.json ts from 90s ago → skip with fill_stale reason."""
+        sm, pty, tok = make_manager()
+        sm._project_root = tmp_path
+        sm.session_type = "orchestrator"
+        sm._state_machine.state = States.IDLE
+
+        agentflow_dir = tmp_path / ".agentflow"
+        agentflow_dir.mkdir()
+        (agentflow_dir / "current_round.json").write_text('{"task":"T-001"}')
+        (agentflow_dir / "tasks_in_flight.json").write_text("[]")
+
+        # Write context_fill with ts from 90 seconds ago
+        stale_ts = time.time() - 90.0
+        (agentflow_dir / "context_fill.json").write_text(
+            json.dumps({"fill_tokens": 85000, "ts": stale_ts})
+        )
+
+        from agentflow.shell.handoff_handler import check_drain_restart
+        check_drain_restart(sm)
+
+        # State should remain IDLE, not transition to RESTARTING
+        assert sm._state_machine.state == States.IDLE
+
+    def test_check_drain_restart_uses_fresh_fill(self, tmp_path):
+        """context_fill.json ts from 10s ago and fill >= threshold → RESTARTING."""
+        sm, pty, tok = make_manager()
+        sm._project_root = tmp_path
+        sm.session_type = "orchestrator"
+        sm._state_machine.state = States.IDLE
+
+        agentflow_dir = tmp_path / ".agentflow"
+        agentflow_dir.mkdir()
+        (agentflow_dir / "current_round.json").write_text('{"task":"T-001"}')
+        (agentflow_dir / "tasks_in_flight.json").write_text("[]")
+
+        # Write context_fill with ts from 10 seconds ago (fresh)
+        fresh_ts = time.time() - 10.0
+        (agentflow_dir / "context_fill.json").write_text(
+            json.dumps({"fill_tokens": 85000, "ts": fresh_ts})
+        )
+
+        with patch.object(sm._state_machine, "on_enter_restarting"):
+            from agentflow.shell.handoff_handler import check_drain_restart
+            check_drain_restart(sm)
+
+        # Fresh data should trigger restart
+        assert sm._state_machine.state == States.RESTARTING

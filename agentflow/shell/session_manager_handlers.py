@@ -48,13 +48,20 @@ def update_last_current_round_mtime(session_manager) -> None:
 
 def clear_signal_files(session_manager) -> None:
     """Clear task completion and handoff signal files."""
+    import os
+    from agentflow.shell.session_paths import session_file
+
     for path in [session_manager._task_complete_path, session_manager._handoff_complete_path]:
         try:
             if path.exists():
                 path.unlink()
         except Exception:
             pass
-    cf = session_manager._project_root / ".agentflow" / "context_fill.json"
+
+    # T-219: Use SID-scoped path for context_fill.json reset
+    sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+    agentflow_dir = session_manager._project_root / ".agentflow"
+    cf = session_file(agentflow_dir, "context_fill.json", sid)
     try:
         cf.write_text('{"fill_tokens": 0}', encoding="utf-8")
     except Exception:
