@@ -57,16 +57,7 @@ Lead with:
 - Recommended round table (A / B / C…) + dominant rationale (one line per round: what ships)
 - The key trade-off driving the order (e.g., "shortest path to token savings vs. differentiator features")
 
-Spar on — ≤3 sentences per exchange; challenge vague answers:
-1. **Delivery context**: internal validation or external audience? → shifts differentiator weight
-2. **Next increment**: what's the next meaningful demo or handoff point?
-3. **Constraints**: deadlines, blocked deps, team limits?
-
-On agreement: write the round table into `execution_plan.md` for each milestone with PENDING tasks. Emit:
-```
-HANDOFF RECOMMENDED: task prioritization resolved — good stopping point
-```
-Say: "Run `/orchestrate` to begin implementation."
+Spar on — ≤3 sentences per exchange; challenge vague answers: delivery context (internal/external), next increment, constraints. On agreement: write round table into `execution_plan.md`. Emit `HANDOFF RECOMMENDED: task prioritization resolved — good stopping point`. Say: "Run `/orchestrate` to begin implementation."
 
 ### Step 3 — Opening question
 Ask: "Tell me about your project. What are you building?"
@@ -79,18 +70,9 @@ Argument provided (`/oracle "desc"`) → use it and skip.
 
 **Lazy load:** Read `commands/claude/oracle/market.md` now.
 
-Ask:
-```
-Who is your primary user — consumer (B2C), small/medium business (SMB), or enterprise?
-Describe them in one sentence.
-```
+Ask: "Who is your primary user — B2C, SMB, or enterprise? Describe them in one sentence." Silently apply segment defaults; ask follow-ups. Don't ask user to confirm defaults.
 
-Silently apply segment defaults. Ask segment follow-ups. Don't ask user to confirm defaults.
-
-Emit:
-```
-HANDOFF RECOMMENDED: market segment resolved — good stopping point if context is growing
-```
+Emit: `HANDOFF RECOMMENDED: market segment resolved — good stopping point if context is growing`
 
 ---
 
@@ -106,16 +88,13 @@ Read(file="architecture.md", offset=<start>, limit=<end-start+1>)
 ```
 No match → proceed without architecture context for that topic.
 
+### Reactive Re-prioritization
+
+**Trigger: task filed OR goal change (scope, audience, timeline, priority).** Immediately propose rounds (A/B/C, one-line rationale per round, what ships). End with "Does this order work for you?" Spar on disagreements; update `execution_plan.md` on agreement.
+
 ### Incremental Flush
 
-**After each design decision resolves, append the row to `design_status.md` immediately — do not batch writes at phase end.**
-
-For each resolved item, append this row to the table in `design_status.md`:
-```
-| Topic | RESOLVED | Decision summary |
-```
-
-Write immediately. This minimizes the in-flight window if PTY restarts mid-phase.
+**After each decision resolves, immediately append `| Topic | RESOLVED | Decision summary |` to `design_status.md` — no batching (PTY may restart mid-phase).**
 
 ### Batch HANDOFF signals
 

@@ -892,36 +892,11 @@
     },
     {
       "task_id": "T-225",
-      "title": "Add structured error logging to shell exception handlers \u2014 replace silent except:pass with _log_audit entries",
-      "status": "pending",
-      "estimated_lines": 80,
-      "depends_on": [],
-      "owns": [
-        "agentflow/shell/threshold_sync.py",
-        "agentflow/shell/session_audit.py",
-        "agentflow/shell/process_manager.py",
-        "agentflow/shell/output_handler.py",
-        "agentflow/shell/handoff_handler.py",
-        "agentflow/shell/session_manager_handlers.py"
-      ]
+      "status": "complete"
     },
     {
       "task_id": "T-226",
-      "title": "Add structured error logging to hook exception handlers \u2014 replace silent except:pass with stderr JSON entries",
-      "status": "pending",
-      "estimated_lines": 100,
-      "depends_on": [],
-      "owns": [
-        "agentflow/hooks/user_prompt_submit.py",
-        "agentflow/hooks/post_tool_use.py",
-        "agentflow/hooks/post_tool_use_agent.py",
-        "agentflow/hooks/pre_tool_use_agent.py",
-        "agentflow/hooks/verbosity_reminder.py",
-        "agentflow/hooks/size_check.py",
-        "agentflow/hooks/write_indexer.py",
-        "agentflow/hooks/read_check.py",
-        "agentflow/hooks/stop_context_capture.py"
-      ]
+      "status": "complete"
     },
     {
       "task_id": "T-227",
@@ -935,6 +910,18 @@
         "agentflow/shell/threshold_sync.py",
         "tests/shell/test_threshold_sync.py"
       ]
+    },
+    {
+      "task_id": "T-228",
+      "title": "Atomic tasks.json sync on merge \u2014 close execution_plan/tasks.json split-brain gap",
+      "status": "pending",
+      "estimated_lines": 40,
+      "depends_on": [],
+      "owns": [
+        "commands/claude/orchestrate.md",
+        "commands/claude/worker/system.md"
+      ],
+      "description": "When a worker marks a task MERGED in execution_plan.md, it must atomically write status=complete to tasks.json in the same step. Currently execution_plan.md is updated by the worker but tasks.json is expected to be updated by the orchestrator \u2014 if the orchestrator session exits or restarts between those two writes, tasks.json is left stale (pending) while execution_plan.md shows MERGED. Fix: (1) update orchestrate.md post-merge step to write tasks.json immediately after confirming merge; (2) update worker/system.md post-merge checklist to include tasks.json write as a required atomic step alongside execution_plan.md; (3) add startup reconciliation guard (already exists as the detection message) \u2014 confirm it auto-repairs by writing complete when MERGED detected. Tests: assert that the worker post-merge checklist in system.md contains tasks.json write step."
     }
   ]
 }
