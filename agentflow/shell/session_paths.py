@@ -43,14 +43,12 @@ def cleanup_stale_sessions(agentflow_dir: Path, ttl_seconds: int = 86400) -> Non
 
     current_time = time.time()
 
-    # Enumerate subdirectories under sessions/
     for folder in sessions_dir.iterdir():
         if not folder.is_dir():
             continue
-
-        folder_mtime = folder.stat().st_mtime
-        age_seconds = current_time - folder_mtime
-
-        # Remove if older than TTL
-        if age_seconds > ttl_seconds:
+        try:
+            folder_mtime = folder.stat().st_mtime
+        except OSError:
+            continue
+        if current_time - folder_mtime > ttl_seconds:
             shutil.rmtree(folder, ignore_errors=True)
