@@ -9,6 +9,7 @@ Mutates the outgoing payload BEFORE forwarding to Anthropic:
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -35,6 +36,7 @@ except ImportError:
 
 from agentflow.proxy.hooks import AgentFlowHooks
 from agentflow.shadow.headroom_ab import record_compression
+from agentflow.shell.session_paths import session_file
 
 _HOOKS = AgentFlowHooks()
 
@@ -56,7 +58,11 @@ def _read_headroom_arm(project_root: Path | str) -> str:
 
 def _is_mid_round(project_root: Path) -> bool:
     """True when tasks_in_flight.json exists and is non-empty (active round)."""
-    tif = project_root / ".agentflow" / "tasks_in_flight.json"
+    tif = session_file(
+        project_root / ".agentflow",
+        "tasks_in_flight.json",
+        os.environ.get("AGENTFLOW_SESSION_ID", "")
+    )
     if not tif.exists():
         return False
     try:
