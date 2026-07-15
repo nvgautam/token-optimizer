@@ -439,8 +439,8 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | session-iso-4 — MERGED (PR #128 2026-07-14) | T-205 | Update handoff skill for per-SID handoff docs (depends T-200) |
 | spike-restart-det — MERGED (PR #128 2026-07-14) | T-215 | Audit restart signal chain — catalogue every stdout/LLM-call dependency before session-iso-3 ships |
 | session-iso-2c — MERGED (PR #129 2026-07-14) | T-216 | SID-scope task_complete.json — PTY path property + pty_signal writer + poll_session reader |
-| session-iso-2d | T-218 — **NEXT** | SID-scope current_round.json mtime guard via SID content validation (depends T-216 — shared session_manager.py) |
-| session-iso-2e | T-217 | SID-scope tasks_in_flight.json — all hook writers + drain reader + session_manager property (depends T-218 — shared handoff_handler.py) |
+| session-iso-2d — MERGED (PR #130 2026-07-15) | T-218 | SID-scope current_round.json mtime guard via SID content validation (depends T-216 — shared session_manager.py) |
+| session-iso-2e | T-217 — **NEXT** | SID-scope tasks_in_flight.json — all hook writers + drain reader + session_manager property (depends T-218 — shared handoff_handler.py) |
 | session-iso-2f | T-219 | Fix context_fill.json reset in _clear_signal_files (SID path) + staleness check in check_drain_restart (depends T-217 — shared handoff_handler.py) |
 | session-iso-3 | T-202 ‖ T-204 ‖ T-207 (parallel) | Migrate reads, threshold_sync, stale cleanup (depends session-iso-2f, T-200, T-201, T-203) |
 | Later | T-063, T-099, T-162, T-167, T-168, T-178, T-210, T-211, T-220 | Multi-provider + Gemini oracle + oracle polish + hook audit + test cleanup + Gemini lifecycle spike + handoff.md doc fix |
@@ -761,7 +761,7 @@ Pre-compute round state on PTY startup to skip startup commands. See commit 9245
 
 ## Addendum: T-218 — Scope current_round.json mtime guard to SID via content validation (filed 2026-07-14)
 
-**Status:** PENDING
+**Status:** MERGED (PR #130, 2026-07-15)
 
 **Depends on:** T-216 (shared session_manager.py)
 

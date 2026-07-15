@@ -90,16 +90,27 @@ def _write_session_state_atomic(agentflow_dir: Path, session_type: str, sid: str
         pass
 
 
+def _log_drain(agentflow_dir: Path, entry: dict) -> None:
+    import time
+    try:
+        with open(agentflow_dir / "hook_drain_debug.jsonl", "a") as f:
+            f.write(json.dumps({"ts": time.time(), "source": "user_prompt_submit", **entry}) + "\n")
+    except Exception:
+        pass
+
+
 def _cleanup_merged_in_flight(agentflow_dir: Path) -> None:
     """Clean up merged tasks from tasks_in_flight.json and mark complete in tasks.json."""
     in_flight_file = agentflow_dir / "tasks_in_flight.json"
     if not in_flight_file.exists():
+        _log_drain(agentflow_dir, {"event": "cleanup_tif_skip", "reason": "no_file"})
         return
     try:
         with open(in_flight_file) as f:
             in_flight: list[str] = json.load(f)
     except Exception:
         return
+    _log_drain(agentflow_dir, {"event": "cleanup_tif_start", "in_flight": in_flight})
     if not in_flight:
         return
 
@@ -135,6 +146,8 @@ def _cleanup_merged_in_flight(agentflow_dir: Path) -> None:
                 _run_cleanup(root)
             completed.append(task_id)
 
+    _log_drain(agentflow_dir, {"event": "cleanup_tif_done", "completed": completed,
+                               "still_in_flight": [t for t in in_flight if t not in set(completed)]})
     if completed:
         still_pending = [tid for tid in in_flight if tid not in set(completed)]
         try:

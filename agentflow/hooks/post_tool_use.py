@@ -59,6 +59,14 @@ def _atomic_write(path: pathlib.Path, data_str: str) -> None:
             pass
 
 
+def _log(agentflow_dir: pathlib.Path, entry: dict) -> None:
+    try:
+        with open(agentflow_dir / "hook_drain_debug.jsonl", "a") as f:
+            f.write(json.dumps({"ts": time.time(), **entry}) + "\n")
+    except Exception:
+        pass
+
+
 def sync_tasks_in_flight(tool_name: str, tool_input: dict, agentflow_dir: pathlib.Path) -> None:
     """When current_round.json is written, populate tasks_in_flight.json from task_ids.
 
@@ -66,17 +74,22 @@ def sync_tasks_in_flight(tool_name: str, tool_input: dict, agentflow_dir: pathli
     [] tombstone = drained (PTY may restart).
     Non-empty = tasks running (PTY skips drain check).
     """
+    file_path = tool_input.get("file_path", "")
     if tool_name != "Write":
+        if file_path.endswith("/.agentflow/current_round.json"):
+            _log(agentflow_dir, {"event": "sync_tif_skip", "reason": "not_write_tool", "tool": tool_name})
         return
-    if not tool_input.get("file_path", "").endswith("/.agentflow/current_round.json"):
+    if not file_path.endswith("/.agentflow/current_round.json"):
         return
     try:
         task_ids = json.loads(tool_input.get("content", "{}")).get("task_ids", [])
         if not isinstance(task_ids, list) or not task_ids:
+            _log(agentflow_dir, {"event": "sync_tif_skip", "reason": "no_task_ids"})
             return
         _atomic_write(agentflow_dir / "tasks_in_flight.json", json.dumps(task_ids))
-    except Exception:
-        pass
+        _log(agentflow_dir, {"event": "sync_tif_written", "task_ids": task_ids})
+    except Exception as e:
+        _log(agentflow_dir, {"event": "sync_tif_error", "err": str(e)})
 
 
 def main() -> None:

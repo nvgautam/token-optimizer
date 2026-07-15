@@ -1,13 +1,14 @@
 {
-  "round_id": "session-iso-2c",
+  "round_id": "session-iso-2d",
   "task_ids": [
-    "T-216"
+    "T-218"
   ],
   "estimated_lines_per_task": {
-    "T-216": 25
+    "T-218": 20
   },
   "file_counts_per_task": {
-    "T-216": 3
+    "T-218": 3
   },
-  "timestamp": "2026-07-14T16:12:44.481501Z"
+  "timestamp": "2026-07-15T01:30:12.760620Z",
+  "session_id": ""
 }
