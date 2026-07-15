@@ -9,6 +9,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from agentflow.shell.session_paths import session_file
 
 
@@ -225,18 +226,10 @@ def main() -> None:
     # Emit session type into every turn so skills never need to infer it.
     try:
         session_type = "unknown"
-        # Try sid-keyed file first if sid is set
-        if sid:
-            ss_sid = agentflow_dir / f"session_state_{sid}.json"
-            if ss_sid.exists():
-                st = json.loads(ss_sid.read_text())
-                session_type = st.get("session_type") or "unknown"
-        # Fall back to unkeyed file
-        if session_type == "unknown":
-            ss = agentflow_dir / "session_state.json"
-            if ss.exists():
-                st = json.loads(ss.read_text())
-                session_type = st.get("session_type") or "unknown"
+        ss = session_file(agentflow_dir, "session_state.json", sid)
+        if ss.exists():
+            st = json.loads(ss.read_text())
+            session_type = st.get("session_type") or "unknown"
         print(f"<agentflow-reminder>[SESSION: {session_type}]</agentflow-reminder>")
     except Exception:
         pass
