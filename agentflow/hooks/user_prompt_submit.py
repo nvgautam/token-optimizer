@@ -144,6 +144,14 @@ def _cleanup_merged_in_flight(agentflow_dir: Path, sid: str = "") -> None:
         if is_merged:
             if _mark_task_complete(tasks_file, task_id):
                 _run_cleanup(root)
+            try:
+                signal_script = root / "agentflow" / "shell" / "pty_signal.py"
+                subprocess.run(
+                    [sys.executable, str(signal_script), "task_done", task_id],
+                    check=False, capture_output=True,
+                )
+            except Exception:
+                pass
             completed.append(task_id)
 
     _log_drain(agentflow_dir, {"event": "cleanup_tif_done", "completed": completed,

@@ -102,36 +102,47 @@ def _check_pr_state(pr_url: str) -> str | None:
     return None
 
 
-def _detect_pr_create(hook_data: dict, agentflow_dir: Path) -> None:
-    cmd = hook_data.get("tool_input", {}).get("command", "")
-    output = hook_data.get("tool_response", {}).get("output", "")
-    pr_url = next((l.strip() for l in output.strip().split("\n") if l.strip().startswith("https://")), None)
-    if not pr_url:
-        _log(agentflow_dir, {"event": "pr_create_no_url", "cmd": cmd[:80], "output_preview": output[:120]})
+def _handle_pr_merge(cmd: str, in_flight: list[str], agentflow_dir: Path, root: Path, tasks_file: Path) -> None:
+    """Direct path: extract PR number from gh pr merge N, call gh pr view, handle MERGED/OPEN."""
+    m = re.search(r'gh pr merge (\d+)', cmd)
+    if not m:
+        return
+    pr_num = m.group(1)
+    try:
+        r = subprocess.run(
+            ["gh", "pr", "view", pr_num, "--json", "url,title,state"],
+            capture_output=True, text=True, timeout=5, check=False,
+        )
+        if r.returncode != 0:
+            return
+        data = json.loads(r.stdout)
+    except Exception:
         return
 
-    root = _find_workspace_root()
-    task_id = None
-    try:
-        r = subprocess.run(["git", "rev-parse", "--abbrev-ref", "HEAD"], capture_output=True, text=True, cwd=root, check=False)
-        if r.returncode == 0:
-            m = re.search(r"task/(T-\d+)", r.stdout.strip())
-            if m:
-                task_id = m.group(1)
-    except Exception:
-        pass
+    url = data.get("url", "")
+    title = data.get("title", "")
+    state = data.get("state", "")
 
+    tm = re.search(r'\b(T-\d+)\b', title)
+    task_id = tm.group(1) if tm else (in_flight[0] if len(in_flight) == 1 else None)
     if not task_id:
+        return
+    _log(agentflow_dir, {"event": "pr_merge_direct", "pr_num": pr_num, "task_id": task_id, "state": state})
+
+    if state == "MERGED":
+        result = _mark_task_complete(tasks_file, task_id)
+        if result in ("marked", "already_complete"):
+            _run_cleanup(root)
         try:
-            with open(session_file(agentflow_dir, "tasks_in_flight.json", os.environ.get("AGENTFLOW_SESSION_ID", ""))) as f:
-                in_flight = json.load(f)
-            if len(in_flight) == 1:
-                task_id = in_flight[0]
+            signal_script = root / "agentflow" / "shell" / "pty_signal.py"
+            subprocess.run(
+                [sys.executable, str(signal_script), "task_done", task_id],
+                check=False, capture_output=True,
+            )
         except Exception:
             pass
-
-    registered = _register_pr_url(agentflow_dir, task_id, pr_url) if task_id else False
-    _log(agentflow_dir, {"event": "pr_create_detected", "task_id": task_id, "pr_url": pr_url, "registered": registered})
+    elif state == "OPEN":
+        _register_pr_url(agentflow_dir, task_id, url)
 
 
 def main() -> None:
@@ -144,43 +155,36 @@ def main() -> None:
     root = _find_workspace_root()
     agentflow_dir = root / ".agentflow"
 
-    if tool_name == "Bash":
-        cmd = hook_data.get("tool_input", {}).get("command", "")
-        if "gh pr create" in cmd:
-            _detect_pr_create(hook_data, agentflow_dir)
-
     is_merge_trigger = tool_name == "Agent" or _is_pr_merge_bash(hook_data)
-    _log(agentflow_dir, {"event": "hook_fired", "tool": tool_name, "is_merge_trigger": is_merge_trigger,
-                          "cmd": hook_data.get("tool_input", {}).get("command", "")[:80]})
+    _log(agentflow_dir, {"event": "hook_fired", "tool": tool_name, "is_merge_trigger": is_merge_trigger, "cmd": hook_data.get("tool_input", {}).get("command", "")[:80]})
 
     if tool_name == "Bash" and not _is_pr_merge_bash(hook_data):
         sys.exit(0)
 
     in_flight_file = session_file(agentflow_dir, "tasks_in_flight.json", os.environ.get("AGENTFLOW_SESSION_ID", ""))
     if not in_flight_file.exists():
-        _log(agentflow_dir, {"event": "early_exit", "reason": "no_tasks_in_flight_file"})
         sys.exit(0)
 
     try:
         in_flight: list[str] = json.loads(in_flight_file.read_text())
-    except Exception as e:
-        _log(agentflow_dir, {"event": "early_exit", "reason": "tasks_in_flight_read_error", "err": str(e)})
+    except Exception:
         sys.exit(0)
 
     if not in_flight:
-        _log(agentflow_dir, {"event": "early_exit", "reason": "tasks_in_flight_empty"})
         sys.exit(0)
 
     tasks_file = root / "tasks.json"
     if not tasks_file.exists():
-        _log(agentflow_dir, {"event": "early_exit", "reason": "no_tasks_file"})
         sys.exit(0)
 
     try:
         json.loads(tasks_file.read_text())
-    except Exception as e:
-        _log(agentflow_dir, {"event": "early_exit", "reason": "tasks_file_read_error", "err": str(e)})
+    except Exception:
         sys.exit(0)
+
+    if tool_name == "Bash":
+        cmd = hook_data.get("tool_input", {}).get("command", "")
+        _handle_pr_merge(cmd, in_flight, agentflow_dir, root, tasks_file)
 
     task_pr_urls = {}
     try:
@@ -190,8 +194,7 @@ def main() -> None:
     except Exception:
         pass
     merged_titles = _fetch_merged_pr_titles()
-    _log(agentflow_dir, {"event": "merge_check_start", "in_flight": in_flight,
-                          "task_pr_urls_keys": list(task_pr_urls.keys()), "merged_title_count": len(merged_titles)})
+    _log(agentflow_dir, {"event": "merge_check_start", "in_flight": in_flight, "task_pr_urls_keys": list(task_pr_urls.keys()), "merged_title_count": len(merged_titles)})
 
     pr_states: dict[str, str | None] = {}
     mark_results: dict[str, str] = {}
@@ -225,11 +228,9 @@ def main() -> None:
         if status_by_id.get(task_id, "pending") != "pending":
             completed.append(task_id)
             try:
-                r = subprocess.run(
-                    [sys.executable, str(signal_script), "task_done", task_id],
-                    check=False, capture_output=True,
-                )
-                signal_results[task_id] = "ok" if r.returncode == 0 else f"rc={r.returncode} stderr={r.stderr[:80]}"
+                r = subprocess.run([sys.executable, str(signal_script), "task_done", task_id],
+                                   check=False, capture_output=True)
+                signal_results[task_id] = "ok" if r.returncode == 0 else f"rc={r.returncode}"
             except Exception as e:
                 signal_results[task_id] = f"error:{e}"
 
@@ -241,8 +242,7 @@ def main() -> None:
         except Exception:
             pass
 
-    _log(agentflow_dir, {"event": "drain_done", "completed": completed,
-                          "signal_results": signal_results, "still_in_flight": still_in_flight})
+    _log(agentflow_dir, {"event": "drain_done", "completed": completed, "signal_results": signal_results, "still_in_flight": still_in_flight})
     sys.exit(0)
 
 
