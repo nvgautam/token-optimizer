@@ -260,27 +260,27 @@ class TestMarkTaskComplete:
         tasks_file = tmp_path / "tasks.json"
         tasks_file.write_text(json.dumps({"tasks": [{"task_id": "T-123", "status": "pending"}]}))
         result = _mark_task_complete(tasks_file, "T-123")
-        assert result is True
+        assert result == "marked"
         data = json.loads(tasks_file.read_text())
         assert data["tasks"][0]["status"] == "complete"
 
     def test_mark_task_complete_returns_false_for_nonexistent_task(self, tmp_path):
         tasks_file = tmp_path / "tasks.json"
         tasks_file.write_text(json.dumps({"tasks": [{"task_id": "T-999", "status": "pending"}]}))
-        assert _mark_task_complete(tasks_file, "T-123") is False
+        assert _mark_task_complete(tasks_file, "T-123") == "not_found"
 
     def test_mark_task_complete_skips_already_complete_task(self, tmp_path):
         tasks_file = tmp_path / "tasks.json"
         tasks_file.write_text(json.dumps({"tasks": [{"task_id": "T-123", "status": "complete"}]}))
-        assert _mark_task_complete(tasks_file, "T-123") is False
+        assert _mark_task_complete(tasks_file, "T-123") == "already_complete"
 
     def test_mark_task_complete_is_idempotent(self, tmp_path):
         tasks_file = tmp_path / "tasks.json"
         tasks_file.write_text(json.dumps({"tasks": [{"task_id": "T-123", "status": "pending"}]}))
         first = _mark_task_complete(tasks_file, "T-123")
         second = _mark_task_complete(tasks_file, "T-123")
-        assert first is True
-        assert second is False
+        assert first == "marked"
+        assert second == "already_complete"
         data = json.loads(tasks_file.read_text())
         assert data["tasks"][0]["status"] == "complete"
 
@@ -324,7 +324,7 @@ class TestCoverageEdgeCases:
         tasks_file = tmp_path / "tasks.json"
         tasks_file.write_text(json.dumps({"tasks": [{"task_id": "T-1", "status": "pending"}]}))
         with patch("agentflow.hooks.post_tool_use_agent.fcntl.flock", side_effect=BlockingIOError()):
-            assert _mark_task_complete(tasks_file, "T-1") is False
+            assert _mark_task_complete(tasks_file, "T-1") == "locked"
 
     def test_main_exits_zero_when_tasks_json_missing(self, tmp_path):
         agentflow_dir = tmp_path / ".agentflow"
@@ -341,7 +341,7 @@ class TestEdgeCases:
     def test_mark_task_complete_returns_false_on_json_decode_error(self, tmp_path):
         tasks_file = tmp_path / "tasks.json"
         tasks_file.write_text("not valid json{{{")
-        assert _mark_task_complete(tasks_file, "T-1") is False
+        assert _mark_task_complete(tasks_file, "T-1").startswith("error:")
 
     def test_no_false_positive_prefix_match(self, tmp_path):
         # T-1 must not match a PR titled "T-12: something"
