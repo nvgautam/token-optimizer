@@ -37,8 +37,11 @@ def sync_session_type(manager) -> None:
                     return
         except Exception as e:
             manager._log_audit({"event": "sync_session_type_sid_read_error", "error": str(e)})
+        # When SID is present, never fall through to root-level fallback
+        apply_session_threshold(manager)
+        return
 
-    # Fallback: root-level session_state.json, then session_type file
+    # Fallback: root-level session_state.json, then session_type file (only when no SID)
     for fname in ["session_state.json", "session_type"]:
         try:
             fp = agentflow_dir / fname
