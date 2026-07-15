@@ -83,6 +83,9 @@ def spawn_new_child(manager) -> None:
         current_round_path = Path(".agentflow/current_round.json")
         if current_round_path.exists():
             data = json.loads(current_round_path.read_text())
+            # T-218: Note when session_id field is absent (legacy fallback)
+            if "session_id" not in data:
+                manager._log_audit({"event": "spawn_new_child_no_session_id", "note": "legacy fallback"})
             task_ctx = data.get("task_ctx")
             if isinstance(task_ctx, dict):
                 task_id = task_ctx.get("task_id", "")

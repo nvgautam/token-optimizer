@@ -130,6 +130,16 @@ def poll_session(manager) -> None:
             try:
                 mtime = manager._current_round_path.stat().st_mtime
                 if mtime > manager._last_current_round_mtime:
+                    # T-218: Validate session_id field before transitioning
+                    try:
+                        data = json.loads(manager._current_round_path.read_text(encoding="utf-8"))
+                        file_sid = data.get("session_id")
+                        env_sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+                        # Skip transition if file has session_id AND it doesn't match env var
+                        if file_sid and file_sid != env_sid:
+                            return
+                    except Exception:
+                        pass
                     manager._state_machine.transition("current_round_written")
             except Exception:
                 pass
