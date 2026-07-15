@@ -4,6 +4,8 @@ import datetime
 import json
 import os
 import pathlib
+import traceback
+import sys
 
 
 def log_audit(manager, entry: dict) -> None:
@@ -14,8 +16,15 @@ def log_audit(manager, entry: dict) -> None:
         entry = {**entry, "ts": datetime.datetime.now().isoformat(), "session_id": os.environ.get("AGENTFLOW_SESSION_ID")}
         with open(lp, "a", encoding="utf-8") as fh:
             fh.write(json.dumps(entry) + "\n")
-    except Exception:
-        pass
+    except Exception as e:
+        # Self-referential case: can't call log_audit from within log_audit
+        # Use stderr JSON fallback instead
+        error_entry = {
+            "event": "log_audit_error",
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
+        print(json.dumps(error_entry), file=sys.stderr)
 
 
 def update_session_file(manager) -> None:
@@ -25,12 +34,27 @@ def update_session_file(manager) -> None:
     sf = pathlib.Path.home() / ".agentflow" / "sessions" / f"{sid}.json"
     try:
         data = json.loads(sf.read_text("utf-8")) if sf.exists() else {}
-    except Exception:
+    except Exception as e:
+        # Can't call log_audit during read error (might fail again)
+        # Log to stderr instead
+        error_entry = {
+            "event": "update_session_file_read_error",
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
+        print(json.dumps(error_entry), file=sys.stderr)
         data = {}
     try:
         data.setdefault("started_at", datetime.datetime.now().isoformat())
         data.update({"arm": manager._arm, "session_type": manager.session_type})
         sf.parent.mkdir(parents=True, exist_ok=True)
         sf.write_text(json.dumps(data), encoding="utf-8")
-    except Exception:
-        pass
+    except Exception as e:
+        # Can't call log_audit during write error (might fail again)
+        # Log to stderr instead
+        error_entry = {
+            "event": "update_session_file_write_error",
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
+        print(json.dumps(error_entry), file=sys.stderr)

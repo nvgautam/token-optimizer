@@ -5,6 +5,7 @@ import os
 import pathlib
 import signal
 import time
+import traceback
 from agentflow.shell.state_machine import States
 from agentflow.shell.session_paths import session_file
 
@@ -139,11 +140,11 @@ def poll_session(manager) -> None:
                         # Skip transition if file has session_id AND it doesn't match env var
                         if file_sid and file_sid != env_sid:
                             return
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        manager._log_audit({"event": "current_round_parse_error", "error": str(e), "traceback": traceback.format_exc()})
                     manager._state_machine.transition("current_round_written")
-            except Exception:
-                pass
+            except Exception as e:
+                manager._log_audit({"event": "poll_session_mtime_error", "error": str(e), "traceback": traceback.format_exc()})
         # T-151: safety and ceiling threshold triggers removed from poll loop.
         # Handoff is only triggered via output_handler (primary: 80K + task_just_completed)
         # or explicit /handoff signal — not by polling token counts here.
@@ -232,8 +233,8 @@ def check_drain_restart(manager) -> None:
             if ts is not None and time.time() - ts > 60:
                 _skip("fill_stale", ts_age=round(time.time() - ts, 1))
                 return
-    except Exception:
-        pass
+    except Exception as e:
+        manager._log_audit({"event": "drain_check_fill_tokens_error", "error": str(e), "traceback": traceback.format_exc()})
     if fill_tokens < threshold:
         _skip("fill_tokens_below_threshold", fill_tokens=fill_tokens, threshold=threshold)
         return

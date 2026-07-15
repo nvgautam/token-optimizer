@@ -6,6 +6,7 @@ import time
 import datetime
 import json
 import pathlib
+import traceback
 from agentflow.hooks.stop_context_capture import FILL_STALE_SECONDS
 from agentflow.shell.session_paths import session_file
 
@@ -33,8 +34,15 @@ def _read_fill_tokens(project_root: pathlib.Path) -> int | None:
         data = json.loads(fill_path.read_text("utf-8"))
         if time.time() - data["ts"] < FILL_STALE_SECONDS:
             return int(data["fill_tokens"])
-    except Exception:
-        pass
+    except Exception as e:
+        # No session_manager available here; log to stderr
+        import sys
+        error_entry = {
+            "event": "read_fill_tokens_error",
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
+        print(json.dumps(error_entry), file=sys.stderr)
     return None
 
 
@@ -44,8 +52,8 @@ def record_task_tokens(manager, task_id: str, delta: int) -> None:
         d = json.loads(rp.read_text("utf-8")) if rp.exists() else {}
         el = d.get("estimated_lines_per_task", {}).get(task_id, 0)
         fc = d.get("file_counts_per_task", {}).get(task_id, 0)
-    except Exception:
-        pass
+    except Exception as e:
+        manager._log_audit({"event": "record_task_tokens_read_error", "task_id": task_id, "error": str(e), "traceback": traceback.format_exc()})
     log_path = pathlib.Path.home() / ".agentflow" / "task_token_log.jsonl"
     log_path.parent.mkdir(parents=True, exist_ok=True)
     entry = {"task_id": task_id, "session_type": manager.session_type, "token_delta": delta, "estimated_lines": el, "file_count": fc, "timestamp": datetime.datetime.now().isoformat()}
@@ -73,8 +81,8 @@ def handle_output(manager, chunk: bytes) -> None:
         manager._update_session_file()
         try:
             clear_signal_path.unlink()
-        except Exception:
-            pass
+        except Exception as e:
+            manager._log_audit({"event": "clear_signal_unlink_error", "error": str(e), "traceback": traceback.format_exc()})
 
     detected_path = detect_read_path(clean)
     if detected_path and detected_path.startswith("/"):
@@ -111,8 +119,8 @@ def handle_output(manager, chunk: bytes) -> None:
                 entry = {"ts": datetime.datetime.now().isoformat(), "session_type": manager.session_type, "turn": manager._turn_count, "output_tokens": manager._current_turn_output_tokens, "arm": manager._arm, "session_id": os.environ.get("AGENTFLOW_SESSION_ID")}
                 with open(lp, "a", encoding="utf-8") as fh:
                     fh.write(json.dumps(entry) + "\n")
-            except Exception:
-                pass
+            except Exception as e:
+                manager._log_audit({"event": "verbosity_log_write_error", "error": str(e), "traceback": traceback.format_exc()})
         manager._current_turn_output_tokens = 0
         manager._last_idx_injected = None
         manager._run_stale_index_guard()

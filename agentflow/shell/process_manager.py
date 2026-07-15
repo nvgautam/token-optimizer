@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import time
 import signal
+import traceback
 
 def handle_enter_restarting(manager) -> None:
     manager._just_restarted = True
@@ -11,8 +12,8 @@ def handle_enter_restarting(manager) -> None:
     manager.restart_child()
     try:
         os.write(1, b"\x1b[0m")
-    except OSError:
-        pass
+    except OSError as e:
+        manager._log_audit({"event": "ansi_reset_write_error", "error": str(e), "traceback": traceback.format_exc()})
 
 def restart_child(manager) -> None:
     """Kills the active Claude child process and restarts it."""
@@ -46,12 +47,12 @@ def restart_child(manager) -> None:
                 manager._log_audit({"event": "kill_child", "pid": pid, "signal": "SIGKILL", "caller": "restart_child_escalate"})
                 try:
                     os.kill(pid, signal.SIGKILL)
-                except OSError:
-                    pass
+                except OSError as e:
+                    manager._log_audit({"event": "sigkill_error", "pid": pid, "error": str(e), "traceback": traceback.format_exc()})
                 from agentflow.shell.handoff_handler import _reap_child
                 _reap_child(pid)
-        except OSError:
-            pass
+        except OSError as e:
+            manager._log_audit({"event": "restart_child_kill_error", "pid": pid, "error": str(e), "traceback": traceback.format_exc()})
 
     manager._clear_signal_files()
     manager._spawn_new_child()
@@ -99,9 +100,9 @@ def spawn_new_child(manager) -> None:
                 # Build TASK_CTX argument
                 task_ctx_arg = f"TASK_CTX:task_id={task_id};title={title};deps={deps_str};estimated_lines={estimated_lines}"
                 command = list(command) + [task_ctx_arg]
-    except Exception:
-        # Silently ignore any errors reading or parsing task_ctx
-        pass
+    except Exception as e:
+        # Log error but continue with spawn (task_ctx is optional)
+        manager._log_audit({"event": "spawn_task_ctx_read_error", "error": str(e), "traceback": traceback.format_exc()})
 
     import pty
     import fcntl
@@ -143,5 +144,5 @@ def spawn_new_child(manager) -> None:
         else:
             rows, cols = packed
         fcntl.ioctl(master_fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
-    except Exception:
-        pass
+    except Exception as e:
+        manager._log_audit({"event": "pty_size_set_error", "error": str(e), "traceback": traceback.format_exc()})

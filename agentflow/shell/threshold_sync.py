@@ -2,6 +2,7 @@
 from __future__ import annotations
 import json
 import os
+import traceback
 
 from agentflow.shell.session_paths import session_file
 
@@ -35,8 +36,8 @@ def sync_session_type(manager) -> None:
                         update_session_file(manager)
                     apply_session_threshold(manager)
                     return
-        except Exception:
-            pass
+        except Exception as e:
+            manager._log_audit({"event": "sync_session_type_sid_error", "error": str(e), "traceback": traceback.format_exc()})
 
     # Fallback: root-level session_state.json, then session_type file
     for fname in ["session_state.json", "session_type"]:
@@ -56,6 +57,6 @@ def sync_session_type(manager) -> None:
                     update_session_file(manager)
                 apply_session_threshold(manager)
                 return
-        except Exception:
-            pass
+        except Exception as e:
+            manager._log_audit({"event": "sync_session_type_fallback_error", "file": fname, "error": str(e), "traceback": traceback.format_exc()})
     apply_session_threshold(manager)

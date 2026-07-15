@@ -5,6 +5,7 @@ while maintaining all functionality.
 """
 from __future__ import annotations
 import pathlib
+import traceback
 
 
 def log_audit(session_manager, entry: dict) -> None:
@@ -42,7 +43,8 @@ def update_last_current_round_mtime(session_manager) -> None:
     try:
         mtime = session_manager._current_round_path.stat().st_mtime if session_manager._current_round_path.exists() else 0.0
         session_manager._last_current_round_mtime = mtime
-    except Exception:
+    except Exception as e:
+        log_audit(session_manager, {"event": "update_mtime_error", "error": str(e), "traceback": traceback.format_exc()})
         session_manager._last_current_round_mtime = 0.0
 
 
@@ -55,8 +57,8 @@ def clear_signal_files(session_manager) -> None:
         try:
             if path.exists():
                 path.unlink()
-        except Exception:
-            pass
+        except Exception as e:
+            log_audit(session_manager, {"event": "clear_signal_file_unlink_error", "error": str(e), "traceback": traceback.format_exc()})
 
     # T-219: Use SID-scoped path for context_fill.json reset
     sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
@@ -64,8 +66,8 @@ def clear_signal_files(session_manager) -> None:
     cf = session_file(agentflow_dir, "context_fill.json", sid)
     try:
         cf.write_text('{"fill_tokens": 0}', encoding="utf-8")
-    except Exception:
-        pass
+    except Exception as e:
+        log_audit(session_manager, {"event": "clear_signal_file_write_error", "error": str(e), "traceback": traceback.format_exc()})
 
 
 def handle_enter_handoff_pending(session_manager) -> None:
@@ -83,11 +85,11 @@ def handle_enter_handoff_pending(session_manager) -> None:
                     if _snap.get("label") == "session_start":
                         current_start_pct = float(_snap.get("start_pct_5hr", 0.0))
                         break
-            except Exception:
-                pass
+            except Exception as e:
+                log_audit(session_manager, {"event": "ledger_read_error", "error": str(e), "traceback": traceback.format_exc()})
         calibrate_capacity(session_manager._project_root, current_start_pct)
-    except Exception:
-        pass
+    except Exception as e:
+        log_audit(session_manager, {"event": "capacity_calibration_error", "error": str(e), "traceback": traceback.format_exc()})
     from agentflow.shell.handoff_handler import handle_enter_handoff_pending as _handler
     _handler(session_manager)
 
@@ -169,8 +171,8 @@ def handle_session_exit(session_manager, exit_code: int) -> None:
 
     try:
         session_manager._state_machine.transition("pty_eof")
-    except Exception:
-        pass
+    except Exception as e:
+        log_audit(session_manager, {"event": "session_exit_transition_error", "error": str(e), "traceback": traceback.format_exc()})
 
 
 def trigger_handoff_impl(session_manager, trigger: str = "auto") -> None:
