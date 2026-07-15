@@ -35,7 +35,8 @@ def _fetch_merged_pr_titles(limit: int = 20) -> set[str]:
         r = subprocess.run(["gh", "pr", "list", "--state", "merged", "--json", "title", "--limit", str(limit)],
                            capture_output=True, text=True, timeout=5, check=False)
         return {pr["title"] for pr in json.loads(r.stdout)}
-    except Exception:
+    except Exception as e:
+        print(json.dumps({"hook": "post_tool_use_agent.py", "event": "fetch_merged_pr_titles_error", "error": str(e), "ts": time.time()}), file=sys.stderr)
         return set()
 
 
@@ -67,8 +68,8 @@ def _run_cleanup(root: Path) -> None:
     try:
         subprocess.run([sys.executable, str(root / "agentflow" / "tools" / "cleanup_tasks.py"), str(root)],
                        check=False, capture_output=True)
-    except Exception:
-        pass
+    except Exception as e:
+        print(json.dumps({"hook": "post_tool_use_agent.py", "event": "run_cleanup_error", "error": str(e), "ts": time.time()}), file=sys.stderr)
 
 
 def _is_pr_merge_bash(hook_data: dict) -> bool:
@@ -98,8 +99,8 @@ def _check_pr_state(pr_url: str) -> str | None:
                            capture_output=True, text=True, timeout=5, check=False)
         if r.returncode == 0:
             return json.loads(r.stdout).get("state")
-    except Exception:
-        pass
+    except Exception as e:
+        print(json.dumps({"hook": "post_tool_use_agent.py", "event": "check_pr_state_error", "error": str(e), "ts": time.time()}), file=sys.stderr)
     return None
 
 
@@ -117,7 +118,8 @@ def _handle_pr_merge(cmd: str, in_flight: list[str], agentflow_dir: Path, root: 
         if r.returncode != 0:
             return
         data = json.loads(r.stdout)
-    except Exception:
+    except Exception as e:
+        print(json.dumps({"hook": "post_tool_use_agent.py", "event": "handle_pr_merge_view_error", "error": str(e), "pr_num": pr_num, "ts": time.time()}), file=sys.stderr)
         return
 
     url = data.get("url", "")
@@ -140,8 +142,8 @@ def _handle_pr_merge(cmd: str, in_flight: list[str], agentflow_dir: Path, root: 
                 [sys.executable, str(signal_script), "task_done", task_id],
                 check=False, capture_output=True,
             )
-        except Exception:
-            pass
+        except Exception as e:
+            _log(agentflow_dir, {"event": "handle_pr_merge_signal_error", "error": str(e), "task_id": task_id})
     elif state == "OPEN":
         _register_pr_url(agentflow_dir, task_id, url)
 
@@ -149,7 +151,8 @@ def _handle_pr_merge(cmd: str, in_flight: list[str], agentflow_dir: Path, root: 
 def main() -> None:
     try:
         hook_data = json.load(sys.stdin)
-    except Exception:
+    except Exception as e:
+        print(json.dumps({"hook": "post_tool_use_agent.py", "event": "load_stdin_error", "error": str(e), "ts": time.time()}), file=sys.stderr)
         hook_data = {}
 
     tool_name = hook_data.get("tool_name", "")
@@ -168,7 +171,8 @@ def main() -> None:
 
     try:
         in_flight: list[str] = json.loads(in_flight_file.read_text())
-    except Exception:
+    except Exception as e:
+        _log(agentflow_dir, {"event": "load_in_flight_error", "error": str(e)})
         sys.exit(0)
 
     if not in_flight:
@@ -180,7 +184,8 @@ def main() -> None:
 
     try:
         json.loads(tasks_file.read_text())
-    except Exception:
+    except Exception as e:
+        _log(agentflow_dir, {"event": "load_tasks_file_error", "error": str(e)})
         sys.exit(0)
 
     if tool_name == "Bash":
@@ -192,8 +197,8 @@ def main() -> None:
         prs_file = agentflow_dir / "task_prs.json"
         if prs_file.exists():
             task_pr_urls = json.loads(prs_file.read_text())
-    except Exception:
-        pass
+    except Exception as e:
+        _log(agentflow_dir, {"event": "load_task_prs_error", "error": str(e)})
     merged_titles = _fetch_merged_pr_titles()
     _log(agentflow_dir, {"event": "merge_check_start", "in_flight": in_flight, "task_pr_urls_keys": list(task_pr_urls.keys()), "merged_title_count": len(merged_titles)})
 
@@ -217,7 +222,8 @@ def main() -> None:
     _log(agentflow_dir, {"event": "merge_check_done", "pr_states": pr_states, "mark_results": mark_results})
     try:
         tasks_data = json.loads(tasks_file.read_text())
-    except Exception:
+    except Exception as e:
+        _log(agentflow_dir, {"event": "reload_tasks_file_error", "error": str(e)})
         sys.exit(0)
 
     status_by_id = {t["task_id"]: t.get("status", "pending") for t in tasks_data.get("tasks", [])}
@@ -240,8 +246,8 @@ def main() -> None:
         try:
             with open(in_flight_file, "w") as f:
                 json.dump(still_in_flight, f)
-        except Exception:
-            pass
+        except Exception as e:
+            _log(agentflow_dir, {"event": "drain_write_in_flight_error", "error": str(e)})
 
     _log(agentflow_dir, {"event": "drain_done", "completed": completed, "signal_results": signal_results, "still_in_flight": still_in_flight})
     sys.exit(0)

@@ -4,6 +4,7 @@
 import json
 import os
 import sys
+import time
 from datetime import datetime
 from pathlib import Path
 
@@ -84,11 +85,12 @@ def main() -> None:
                 }
                 with violations_path.open("a", encoding="utf-8") as _f:
                     _f.write(json.dumps(entry) + "\n")
-            except Exception:
-                pass
+            except Exception as e:
+                print(json.dumps({"hook": "size_check.py", "event": "violations_write_error", "error": str(e), "ts": time.time()}), file=sys.stderr)
             sys.exit(1)
 
-    except Exception:
+    except Exception as e:
+        print(json.dumps({"hook": "size_check.py", "event": "size_check_error", "error": str(e), "ts": time.time()}), file=sys.stderr)
         sys.exit(0)
 
     sys.exit(0)

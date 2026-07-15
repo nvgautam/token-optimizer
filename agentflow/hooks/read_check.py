@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import sys
+import time
 from pathlib import Path
 
 
@@ -44,13 +45,13 @@ def main() -> None:
         try:
             offset = int(start_line)
             limit = int(end_line) - offset + 1
-        except (ValueError, TypeError):
-            pass
+        except (ValueError, TypeError) as e:
+            print(json.dumps({"hook": "read_check.py", "event": "parse_line_range_error", "error": str(e), "start_line": str(start_line), "end_line": str(end_line), "ts": time.time()}), file=sys.stderr)
     elif start_line is not None:
         try:
             offset = int(start_line)
-        except (ValueError, TypeError):
-            pass
+        except (ValueError, TypeError) as e:
+            print(json.dumps({"hook": "read_check.py", "event": "parse_start_line_error", "error": str(e), "start_line": str(start_line), "ts": time.time()}), file=sys.stderr)
 
     if offset is not None and limit is not None:
         if not map_path.exists():
@@ -66,7 +67,8 @@ def main() -> None:
                 p = Path(cwd) / p
             with open(p, "r", encoding="utf-8", errors="ignore") as f:
                 total_lines = sum(1 for _ in f)
-        except Exception:
+        except Exception as e:
+            print(json.dumps({"hook": "read_check.py", "event": "count_file_lines_error", "error": str(e), "file_path": file_path, "ts": time.time()}), file=sys.stderr)
             sys.exit(0)
 
         # If file < 50 lines → skip check

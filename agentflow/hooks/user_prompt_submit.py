@@ -7,6 +7,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
@@ -23,8 +24,8 @@ def _check_pr_state(pr_url: str) -> str | None:
         if result.returncode == 0:
             data = json.loads(result.stdout)
             return data.get("state")
-    except Exception:
-        pass
+    except Exception as e:
+        print(json.dumps({"hook": "user_prompt_submit.py", "event": "check_pr_state_error", "error": str(e), "ts": time.time()}), file=sys.stderr)
     return None
 
 
@@ -36,7 +37,8 @@ def _fetch_merged_pr_titles(limit: int = 20) -> set[str]:
             capture_output=True, text=True, timeout=5, check=False,
         )
         return {pr["title"] for pr in json.loads(result.stdout)}
-    except Exception:
+    except Exception as e:
+        print(json.dumps({"hook": "user_prompt_submit.py", "event": "fetch_merged_pr_titles_error", "error": str(e), "ts": time.time()}), file=sys.stderr)
         return set()
 
 
@@ -65,8 +67,8 @@ def _run_cleanup(root: Path) -> None:
     """Run cleanup_tasks.py as subprocess."""
     try:
         subprocess.run([sys.executable, str(root / "agentflow" / "tools" / "cleanup_tasks.py"), str(root)], check=False, capture_output=True)
-    except Exception:
-        pass
+    except Exception as e:
+        print(json.dumps({"hook": "user_prompt_submit.py", "event": "run_cleanup_error", "error": str(e), "ts": time.time()}), file=sys.stderr)
 
 
 def _write_session_state_atomic(agentflow_dir: Path, session_type: str, sid: str = "") -> None:
@@ -87,8 +89,8 @@ def _write_session_state_atomic(agentflow_dir: Path, session_type: str, sid: str
             tmp_path = Path(tmp.name)
         # Atomic replace
         os.replace(tmp_path, session_state_file)
-    except Exception:
-        pass
+    except Exception as e:
+        _log_drain(agentflow_dir, {"event": "write_session_state_error", "error": str(e)})
 
 
 def _log_drain(agentflow_dir: Path, entry: dict) -> None:
@@ -109,7 +111,8 @@ def _cleanup_merged_in_flight(agentflow_dir: Path, sid: str = "") -> None:
     try:
         with open(in_flight_file) as f:
             in_flight: list[str] = json.load(f)
-    except Exception:
+    except Exception as e:
+        _log_drain(agentflow_dir, {"event": "cleanup_tif_read_error", "error": str(e)})
         return
     _log_drain(agentflow_dir, {"event": "cleanup_tif_start", "in_flight": in_flight})
     if not in_flight:
@@ -127,8 +130,8 @@ def _cleanup_merged_in_flight(agentflow_dir: Path, sid: str = "") -> None:
         if prs_file.exists():
             with open(prs_file) as f:
                 task_pr_urls = json.load(f)
-    except Exception:
-        pass
+    except Exception as e:
+        _log_drain(agentflow_dir, {"event": "cleanup_tif_read_prs_error", "error": str(e)})
 
     # Fetch merged PR titles only once (fallback for tasks without registered URL)
     merged_titles: set[str] | None = None
@@ -151,8 +154,8 @@ def _cleanup_merged_in_flight(agentflow_dir: Path, sid: str = "") -> None:
                     [sys.executable, str(signal_script), "task_done", task_id],
                     check=False, capture_output=True,
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                _log_drain(agentflow_dir, {"event": "cleanup_tif_signal_error", "error": str(e), "task_id": task_id})
             completed.append(task_id)
 
     _log_drain(agentflow_dir, {"event": "cleanup_tif_done", "completed": completed,
@@ -162,8 +165,8 @@ def _cleanup_merged_in_flight(agentflow_dir: Path, sid: str = "") -> None:
         try:
             with open(in_flight_file, "w") as f:
                 json.dump(still_pending, f)
-        except Exception:
-            pass
+        except Exception as e:
+            _log_drain(agentflow_dir, {"event": "cleanup_tif_write_error", "error": str(e)})
 
 
 def main() -> None:
@@ -175,8 +178,8 @@ def main() -> None:
             data = json.load(sys.stdin)
             if isinstance(data, dict):
                 prompt = data.get("prompt")
-        except (json.JSONDecodeError, Exception):
-            pass
+        except (json.JSONDecodeError, Exception) as e:
+            print(json.dumps({"hook": "user_prompt_submit.py", "event": "read_prompt_error", "error": str(e), "ts": time.time()}), file=sys.stderr)
 
     # If not found or stdin is not a TTY/empty, fallback to sys.argv[1:]
     if prompt is None:
@@ -208,8 +211,8 @@ def main() -> None:
             try:
                 if complete_file.exists():
                     complete_file.unlink()
-            except Exception:
-                pass
+            except Exception as e:
+                _log_drain(agentflow_dir, {"event": "delete_signal_file_error", "error": str(e), "file": name})
 
     # If the prompt is exactly "/clear" (slash command, not prose), write the clear signal file
     if prompt and prompt.strip() == "/clear":
@@ -217,8 +220,8 @@ def main() -> None:
         clear_signal_file = agentflow_dir / "clear_signal"
         try:
             clear_signal_file.touch(exist_ok=True)
-        except Exception:
-            pass
+        except Exception as e:
+            _log_drain(agentflow_dir, {"event": "touch_clear_signal_error", "error": str(e)})
 
     # Clean up merged in-flight tasks
     _cleanup_merged_in_flight(agentflow_dir, sid=sid)
@@ -231,8 +234,8 @@ def main() -> None:
             st = json.loads(ss.read_text())
             session_type = st.get("session_type") or "unknown"
         print(f"<agentflow-reminder>[SESSION: {session_type}]</agentflow-reminder>")
-    except Exception:
-        pass
+    except Exception as e:
+        print(json.dumps({"hook": "user_prompt_submit.py", "event": "session_type_error", "error": str(e), "ts": time.time()}), file=sys.stderr)
 
     sys.exit(0)
 
