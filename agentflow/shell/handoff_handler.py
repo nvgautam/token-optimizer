@@ -204,7 +204,7 @@ def check_drain_restart(manager) -> None:
     if not manager._current_round_path.exists():
         _skip("no_current_round")
         return
-    tif = manager._project_root / ".agentflow" / "tasks_in_flight.json"
+    tif = manager._tasks_in_flight_path
     if not tif.exists():
         # absent = round not initialized; [] tombstone = drained; non-empty = tasks running
         _skip("no_tasks_in_flight_file")

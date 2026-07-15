@@ -132,10 +132,11 @@ def test_main_malformed_json_payload_exits_zero(tmp_path):
 
 # --- sync_tasks_in_flight ---
 
-def test_sync_tasks_in_flight_writes_on_current_round_write(tmp_path):
+def test_sync_tasks_in_flight_writes_on_current_round_write(tmp_path, monkeypatch):
     from agentflow.hooks.post_tool_use import sync_tasks_in_flight
     af = tmp_path / ".agentflow"
     af.mkdir()
+    monkeypatch.delenv("AGENTFLOW_SESSION_ID", raising=False)
     content = json.dumps({"round_id": "r1", "task_ids": ["T-001", "T-002"]})
     sync_tasks_in_flight("Write", {"file_path": str(tmp_path / ".agentflow/current_round.json"), "content": content}, af)
     tif = af / "tasks_in_flight.json"
@@ -263,3 +264,37 @@ def test_main_writes_to_root_path_with_empty_sid(tmp_path):
     data = json.loads(fill_path.read_text())
     assert data["fill_tokens"] == 350
     assert "ts" in data
+
+
+# --- sync_tasks_in_flight SID-scoping tests ---
+
+def test_main_sync_tasks_in_flight_sid_scoped(tmp_path):
+    """main() should sync tasks_in_flight to SID-scoped path when AGENTFLOW_SESSION_ID is set."""
+    transcript = _make_transcript(tmp_path, [
+        {"type": "assistant", "message": {"usage": {"input_tokens": 100}}},
+    ])
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+    payload = json.dumps({
+        "transcript_path": str(transcript),
+        "tool_name": "Write",
+        "tool_input": {
+            "file_path": str(tmp_path / ".agentflow/current_round.json"),
+            "content": json.dumps({"task_ids": ["T-100", "T-101"]})
+        }
+    })
+
+    code = _invoke(payload, env={
+        "CLAUDE_PROJECT_DIR": str(tmp_path),
+        "AGENTFLOW_SESSION_ID": "my-session-999",
+    })
+
+    assert code == 0
+    # Should write to sessions/my-session-999/tasks_in_flight.json
+    sid_tif_path = agentflow_dir / "sessions" / "my-session-999" / "tasks_in_flight.json"
+    assert sid_tif_path.exists()
+    assert json.loads(sid_tif_path.read_text()) == ["T-100", "T-101"]
+
+    # Ensure root-level file was NOT created
+    flat_tif = agentflow_dir / "tasks_in_flight.json"
+    assert not flat_tif.exists()

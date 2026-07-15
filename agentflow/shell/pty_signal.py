@@ -43,7 +43,8 @@ def task_start(task_id: str, workspace_root: Path = None):
     if not workspace_root:
         workspace_root = find_workspace_root()
     agentflow_dir = workspace_root / ".agentflow"
-    in_flight_file = agentflow_dir / "tasks_in_flight.json"
+    sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+    in_flight_file = session_file(agentflow_dir, "tasks_in_flight.json", sid)
     lock_path = agentflow_dir / "tasks_in_flight.lock"
 
     tasks_file = workspace_root / "tasks.json"
@@ -80,7 +81,7 @@ def task_done(task_id: str, workspace_root: Path = None, sid: str = ""):
     if not sid:
         sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
     agentflow_dir = workspace_root / ".agentflow"
-    in_flight_file = agentflow_dir / "tasks_in_flight.json"
+    in_flight_file = session_file(agentflow_dir, "tasks_in_flight.json", sid)
     complete_file = session_file(agentflow_dir, "task_complete.json", sid)
     lock_path = agentflow_dir / "tasks_in_flight.lock"
 

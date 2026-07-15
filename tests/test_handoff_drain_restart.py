@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from agentflow.shell.state_machine import StateMachine, States
+import os
 
 
 class _StubManager:
@@ -28,6 +29,13 @@ class _StubManager:
         self._last_restart_ts = 0.0
         self._audit_calls: list[dict] = []
         self.trigger_handoff_calls: list[str] = []
+
+    @property
+    def _tasks_in_flight_path(self) -> Path:
+        """Return SID-scoped or root path for tasks_in_flight.json."""
+        from agentflow.shell.session_paths import session_file
+        sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+        return session_file(self._project_root / ".agentflow", "tasks_in_flight.json", sid)
 
     def _auto_handoff_disabled(self) -> bool:
         return False
