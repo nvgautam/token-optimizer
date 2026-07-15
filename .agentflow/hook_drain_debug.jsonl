@@ -1,0 +1,13 @@
+{"ts": 1784079110.029676, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "pwd"}
+{"ts": 1784079148.1565409, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "python -m pytest tests/shell/test_handoff_handler.py::TestCurrentRoundSessionIdV"}
+{"ts": 1784079170.385448, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "python -m pytest tests/shell/test_handoff_handler.py::TestCurrentRoundSessionIdV"}
+{"ts": 1784079177.905091, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "python -m pytest tests/test_process_manager_task_ctx.py::test_spawn_new_child_no"}
+{"ts": 1784079199.502053, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "python -m pytest tests/shell/test_handoff_handler.py::TestCurrentRoundSessionIdV"}
+{"ts": 1784079207.6480079, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "python -m pytest tests/shell/test_handoff_handler.py tests/test_process_manager_"}
+{"ts": 1784079214.0228102, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "cd /Users/gautam/code/token-optimizer && git status"}
+{"ts": 1784079217.031102, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "git status"}
+{"ts": 1784079219.980374, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "git diff agentflow/shell/handoff_handler.py"}
+{"ts": 1784079222.2277849, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "git diff agentflow/shell/process_manager.py"}
+{"ts": 1784079225.050145, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "git diff tests/shell/test_handoff_handler.py | head -80"}
+{"ts": 1784079227.507156, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "git diff tests/test_process_manager_task_ctx.py | tail -60"}
+{"ts": 1784079234.74972, "event": "hook_fired", "tool": "Bash", "is_merge_trigger": false, "cmd": "python -m pytest tests/shell/test_handoff_handler.py tests/test_process_manager_"}
