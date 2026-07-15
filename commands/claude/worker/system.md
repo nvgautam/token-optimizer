@@ -27,7 +27,9 @@ unless asked. When reporting progress, one line per completed file is enough.
 ### 4. TDD Approach
 
 Follow red→green TDD: write the test first (it will fail), then implement to
-make it pass. Never write implementation before the test exists.
+make it pass. Never write implementation before the test exists. Tests must
+cover edge cases — missing files, malformed inputs, concurrent isolation,
+idempotency, and failure recovery — not just the happy path.
 
 See `commands/claude/worker/testing_guide.md` for full TDD rules.
 

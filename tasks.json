@@ -889,6 +889,52 @@
     {
       "task_id": "T-224",
       "status": "complete"
+    },
+    {
+      "task_id": "T-225",
+      "title": "Add structured error logging to shell exception handlers \u2014 replace silent except:pass with _log_audit entries",
+      "status": "pending",
+      "estimated_lines": 80,
+      "depends_on": [],
+      "owns": [
+        "agentflow/shell/threshold_sync.py",
+        "agentflow/shell/session_audit.py",
+        "agentflow/shell/process_manager.py",
+        "agentflow/shell/output_handler.py",
+        "agentflow/shell/handoff_handler.py",
+        "agentflow/shell/session_manager_handlers.py"
+      ]
+    },
+    {
+      "task_id": "T-226",
+      "title": "Add structured error logging to hook exception handlers \u2014 replace silent except:pass with stderr JSON entries",
+      "status": "pending",
+      "estimated_lines": 100,
+      "depends_on": [],
+      "owns": [
+        "agentflow/hooks/user_prompt_submit.py",
+        "agentflow/hooks/post_tool_use.py",
+        "agentflow/hooks/post_tool_use_agent.py",
+        "agentflow/hooks/pre_tool_use_agent.py",
+        "agentflow/hooks/verbosity_reminder.py",
+        "agentflow/hooks/size_check.py",
+        "agentflow/hooks/write_indexer.py",
+        "agentflow/hooks/read_check.py",
+        "agentflow/hooks/stop_context_capture.py"
+      ]
+    },
+    {
+      "task_id": "T-227",
+      "title": "Make session_type determination fully deterministic \u2014 remove root-level fallback when SID present, TDD all edge cases",
+      "status": "pending",
+      "estimated_lines": 80,
+      "depends_on": [
+        "T-225"
+      ],
+      "owns": [
+        "agentflow/shell/threshold_sync.py",
+        "tests/shell/test_threshold_sync.py"
+      ]
     }
   ]
 }

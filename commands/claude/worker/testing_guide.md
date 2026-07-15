@@ -113,3 +113,16 @@ Examples:
 
 Multiple scenarios for a single function are encouraged — use the suffix to
 distinguish them.
+
+## 8. Edge Cases Are Mandatory
+
+Happy-path tests alone are insufficient. For every function, identify and test:
+
+- **Missing inputs**: absent files, empty strings, None values, missing keys
+- **Malformed inputs**: invalid JSON, wrong types, truncated data
+- **Boundary conditions**: empty collections, single-element collections, max values
+- **Concurrent / isolation**: two instances running simultaneously must not cross-contaminate
+- **Failure recovery**: what happens after a prior step failed (e.g. file never written)
+- **Idempotency**: running twice produces the same result as running once
+
+If a function silently swallows an exception, the test must assert the audit log entry is written — silence is not acceptable as a test outcome.
