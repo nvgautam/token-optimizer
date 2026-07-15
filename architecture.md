@@ -237,6 +237,36 @@ PTY watches stdin for the first skill invocation after session start:
 - Sees `/orchestrate` → `session_type = "orchestrator"`
 - No skill seen → `session_type = None` → handoff triggered but no auto-restart
 
+### Hook-driven task lifecycle (T-223)
+
+All task lifecycle signals are driven by Claude Code hooks — zero LLM involvement.
+
+**task_start** — PreToolUse Agent hook (`pre_tool_use_agent.py`):
+- Fires before every Agent spawn
+- Extracts task_id from prompt: `re.search(r'^## Addendum: (T-\d+)', prompt, re.MULTILINE)`
+- Calls `pty_signal.py task_start T-NNN` → appends to `sessions/<SID>/tasks_in_flight.json` (LOCK_EX)
+- PTY drain check blocked while tasks_in_flight non-empty
+
+**task_done — primary path** — PostToolUse Bash hook (`post_tool_use_agent.py`) on `gh pr merge N`:
+- `re.search(r'gh pr merge (\d+)', cmd)` extracts PR number
+- `gh pr view N --json url,title,state` — single-PR endpoint, no list-API race
+- task_id from PR title (`feat(T-NNN): ...` — conventional commit enforced by worker); singleton fallback
+- If state == MERGED: `_mark_task_complete` → `cleanup_tasks.py` → `pty_signal.py task_done T-NNN`
+- If state == OPEN (auto-merge scheduled): registers URL in `task_prs.json`; UserPromptSubmit picks up on next prompt
+
+**task_done — secondary path** — UserPromptSubmit hook (`user_prompt_submit.py`) on any user prompt:
+- `_cleanup_merged_in_flight` reads `sessions/<SID>/tasks_in_flight.json`
+- Per task: URL lookup in `task_prs.json` → `_check_pr_state(url)`, else title-match via `gh pr list --state merged` (no race — user typed after merging)
+- For each merged task: `_mark_task_complete` → `cleanup_tasks.py` → `pty_signal.py task_done T-NNN`
+- Handles: PR merged in GitHub UI, CLI outside session, or auto-merge that completed since last prompt
+
+**Signal file** — `sessions/<SID>/task_complete.json`:
+- Written by `pty_signal.py task_done` when `tasks_in_flight` drains to `[]`
+- Polled by PTY `poll_session` (TASK_RUNNING, ~1s) → TASK_COMPLETE → HANDOFF_PENDING → RESTARTING
+- **SID-scoped**: prevents cross-session contamination between concurrent oracle/orchestrator sessions
+
+**Path invariant**: all hooks read/write `sessions/<SID>/tasks_in_flight.json` via `session_file(agentflow_dir, "tasks_in_flight.json", os.environ.get("AGENTFLOW_SESSION_ID", ""))` — same path as `pty_signal.py` and PTY's `_tasks_in_flight_path`.
+
 ### Handoff flow
 
 ```
@@ -479,15 +509,29 @@ All savings figures are modelled, not measured. **Combined effect: with all stra
 
 ## Task state machine (live)
 
-Two-state model, tracked directly by the orchestrate skill via file I/O — no enforcing Python module:
+Two-state model for task DAG (`tasks.json`), independent two-state model for PTY session lifecycle (`tasks_in_flight.json`).
 
+**Task DAG state** — owned by hooks, not LLM:
 - `tasks.json` — each entry: `{"task_id", "status"}`, `status ∈ {pending, complete}`
 - `execution_plan.md` — per-milestone task rows carry `MERGED` once the skill confirms the PR merged
-- `.agentflow/state.json` — session-resume bookmark the skill reads/writes directly (`Check .agentflow/state.json` in orchestrate.md); not produced by any Python module
+- `.agentflow/state.json` — session-resume bookmark the skill reads/writes directly; not produced by any Python module
+- Written by `_mark_task_complete` in PostToolUse/UserPromptSubmit hooks at merge detection
 
-Human PR review remains an enforced gate in practice: the skill does not mark a task `complete` / `MERGED` until the human has approved and merged the PR on GitHub.
+**PTY session lifecycle state** — fully hook-driven, zero LLM calls (T-223):
+- `sessions/<SID>/tasks_in_flight.json` — `["T-NNN", ...]` while tasks running; `[]` tombstone when drained; absent if round not started
+- `sessions/<SID>/task_complete.json` — written by `pty_signal.py task_done` when tasks_in_flight reaches `[]`; PTY polls this file to trigger restart
+- Both files SID-scoped to prevent cross-session contamination
 
-A richer 9-state machine (`PENDING → SPAWNED → IMPLEMENTING → PR_OPEN → REVIEW_IN_PROGRESS → REVIEW_PASSED/REWORK_NEEDED → HUMAN_APPROVED → MERGED`) with automated LLM review gating was built as part of the deferred headless pipeline — see below. It is not the state machine in force today.
+**Lifecycle transitions (all deterministic):**
+```
+PreToolUse(Agent)  →  task_start  →  tasks_in_flight = ["T-NNN"]
+gh pr merge N      →  task_done   →  tasks_in_flight = []  →  task_complete.json written
+PTY poll (~1s)     →  task_complete.json exists  →  TASK_RUNNING → TASK_COMPLETE → restart
+```
+
+Human PR review is an enforced gate — hooks only call `task_done` after detecting `state == "MERGED"` via `gh pr view N` or title-match. The LLM never writes lifecycle signals.
+
+A richer 9-state machine with automated LLM review gating was built as part of the deferred headless pipeline — see below. It is not the state machine in force today.
 
 ---
 
