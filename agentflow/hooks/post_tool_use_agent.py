@@ -11,7 +11,6 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-
 from agentflow.shell.session_paths import session_file
 
 
@@ -124,9 +123,7 @@ def _detect_pr_create(hook_data: dict, agentflow_dir: Path) -> None:
 
     if not task_id:
         try:
-            sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
-            tif_path = session_file(agentflow_dir, "tasks_in_flight.json", sid)
-            with open(tif_path) as f:
+            with open(session_file(agentflow_dir, "tasks_in_flight.json", os.environ.get("AGENTFLOW_SESSION_ID", ""))) as f:
                 in_flight = json.load(f)
             if len(in_flight) == 1:
                 task_id = in_flight[0]
@@ -159,8 +156,7 @@ def main() -> None:
     if tool_name == "Bash" and not _is_pr_merge_bash(hook_data):
         sys.exit(0)
 
-    sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
-    in_flight_file = session_file(agentflow_dir, "tasks_in_flight.json", sid)
+    in_flight_file = session_file(agentflow_dir, "tasks_in_flight.json", os.environ.get("AGENTFLOW_SESSION_ID", ""))
     if not in_flight_file.exists():
         _log(agentflow_dir, {"event": "early_exit", "reason": "no_tasks_in_flight_file"})
         sys.exit(0)
@@ -193,7 +189,6 @@ def main() -> None:
             task_pr_urls = json.loads(prs_file.read_text())
     except Exception:
         pass
-
     merged_titles = _fetch_merged_pr_titles()
     _log(agentflow_dir, {"event": "merge_check_start", "in_flight": in_flight,
                           "task_pr_urls_keys": list(task_pr_urls.keys()), "merged_title_count": len(merged_titles)})
@@ -216,7 +211,6 @@ def main() -> None:
                 _run_cleanup(root)
 
     _log(agentflow_dir, {"event": "merge_check_done", "pr_states": pr_states, "mark_results": mark_results})
-
     try:
         tasks_data = json.loads(tasks_file.read_text())
     except Exception:
