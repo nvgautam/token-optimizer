@@ -16,7 +16,7 @@ except ImportError:
 
 from agentflow.shell.countdown import countdown  # noqa: F401
 from agentflow.shell.state_machine import StateMachine, States
-from agentflow.shell.session_paths import session_file
+from agentflow.shell.session_paths import session_file, cleanup_stale_sessions
 
 _DEFAULTS = {
     "handoff_primary_tokens": 80000,  # T-151: only threshold that triggers auto-handoff
@@ -72,6 +72,7 @@ class SessionManager:
         pty_wrapper._on_output = self._handle_output
         pty_wrapper._on_exit = self._on_session_exit
         self._run_stale_index_guard()
+        cleanup_stale_sessions(self._project_root / ".agentflow")
         self._sync_session_type()
 
         # T-194: Only enter TASK_RUNNING for orchestrator sessions with active round
