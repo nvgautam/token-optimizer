@@ -1,14 +1,15 @@
 {
-  "last_round": "session-iso-2d (T-218)",
-  "last_merged_tasks": [
-    "T-218"
+  "last_round": "session-iso-2g",
+  "tasks_merged": [
+    "T-223"
   ],
   "prs": [
-    "https://github.com/nvgautam/token-optimizer/pull/130"
+    136
   ],
-  "merged_at": "2026-07-15T04:12:38Z",
-  "next_round": "session-iso-2e",
+  "next_round": "session-iso-3",
   "next_tasks": [
-    "T-217"
+    "T-202",
+    "T-204",
+    "T-207"
   ]
 }

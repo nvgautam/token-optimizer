@@ -443,6 +443,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | session-iso-2e | T-217 — MERGED PR #131 2026-07-15 | SID-scope tasks_in_flight.json — all hook writers + drain reader + session_manager property (depends T-218 — shared handoff_handler.py) |
 | session-iso-2f — MERGED PR #135 2026-07-15 | T-219 | Fix context_fill.json reset in _clear_signal_files (SID path) + staleness check in check_drain_restart (depends T-217 — shared handoff_handler.py) |
 | session-iso-misc — MERGED PR #132,#133,#134 2026-07-15 | T-220 ‖ T-221 ‖ T-222 | Fix handoff.md doc drift + compress.py _is_mid_round() SID callsite + split test_post_tool_use_agent.py |
+| session-iso-2g — MERGED (PR #136 2026-07-15) | T-223 | Hook-driven task_start via PreToolUse Agent + fix drain paths (gh pr view race, SID path, outside-CLI merge) |
 | session-iso-3 | T-202 ‖ T-204 ‖ T-207 (parallel) | Migrate reads, threshold_sync, stale cleanup (depends session-iso-2f, T-200, T-201, T-203) |
 | Later | T-063, T-099, T-162, T-167, T-168, T-178, T-210, T-211 | Multi-provider + Gemini oracle + oracle polish + hook audit + test cleanup + Gemini lifecycle spike |
 
@@ -844,3 +845,31 @@ tif = session_file(project_root / ".agentflow", "tasks_in_flight.json", os.envir
 
 **Owns:** `agentflow/proxy/compress.py`
 **estimated_lines:** 5
+
+---
+
+## Addendum: T-223 — Fix drain: extract PR number from gh pr merge, use gh pr view for URL+task_id+state (filed 2026-07-15)
+
+**Status:** PENDING
+
+**Root cause:** Three compounding bugs caused T-217 orchestrate session to fail to restart after PR #131 was merged:
+1. PR URL never registered — worker creates PR inside Agent call; `_detect_pr_create` only fires for orchestrator direct Bash `gh pr create`, so task_prs.json never populated for T-217.
+2. Title-match race — `_fetch_merged_pr_titles()` uses GitHub list API (eventual consistency); PR merged 1 second before hook fired, list API returned stale state → no title match.
+3. SID path mismatch — hooks hardcode flat `agentflow_dir / "tasks_in_flight.json"` while `pty_signal.py` writes SID-scoped `sessions/<SID>/tasks_in_flight.json`; hooks read wrong file when agy is running.
+4. Plus: `task_start` LLM-dependent (orchestrate.md line 77 — can be missed or mis-timed).
+5. Plus: `_cleanup_merged_in_flight` in `user_prompt_submit.py` never calls `pty_signal.py task_done` — outside-Claude merges never write `task_complete.json`.
+
+**Fix (6 changes):**
+1. NEW `agentflow/hooks/pre_tool_use_agent.py` — PreToolUse Agent hook; extracts `^## Addendum: (T-\d+)` from prompt; calls `pty_signal.py task_start <task_id>`. Deterministic replacement for orchestrate.md line 77.
+2. MODIFY `.claude/settings.json` — register `pre_tool_use_agent.py` under PreToolUse matcher for Agent tool.
+3. MODIFY `agentflow/hooks/post_tool_use_agent.py` — fix SID path (`session_file(..., sid)`); at merge trigger, extract PR number from `gh pr merge N` command, call `gh pr view N --json title,state,url`, extract task_id via `re.search(r'\b(T-\d+)\b', title)`, drain on MERGED, register URL on OPEN (auto-merge scheduled). Remove `_detect_pr_create` dead code.
+4. MODIFY `agentflow/hooks/user_prompt_submit.py` — fix SID path; add `pty_signal.py task_done <task_id>` call per completed task in `_cleanup_merged_in_flight`.
+5. MODIFY `commands/claude/orchestrate.md` — remove `pty_signal.py task_start` from worker-spawn step; remove `pty_signal.py task_done` from post-worker step; keep stdout `AGENTFLOW_TASK_COMPLETE:<task_id>` signal.
+6. Tests — new `tests/test_pre_tool_use_agent.py`; update `tests/test_post_tool_use_agent.py` and `tests/test_user_prompt_submit.py`.
+
+**Two deterministic drain paths post-fix:**
+- Primary: orchestrator runs `gh pr merge N` as Bash → PostToolUse → `gh pr view N` → MERGED → `task_done`
+- Secondary: any user prompt → UserPromptSubmit → title-match (no race, user merged before typing) → `task_done`
+
+**Owns:** `agentflow/hooks/pre_tool_use_agent.py` (new), `agentflow/hooks/post_tool_use_agent.py`, `agentflow/hooks/user_prompt_submit.py`, `commands/claude/orchestrate.md`, `.claude/settings.json`
+**estimated_lines:** 120
