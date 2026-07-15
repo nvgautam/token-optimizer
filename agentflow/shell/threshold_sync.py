@@ -3,6 +3,8 @@ from __future__ import annotations
 import json
 import os
 
+from agentflow.shell.session_paths import session_file
+
 
 def apply_session_threshold(manager) -> None:
     if manager.session_type == "oracle":
@@ -17,10 +19,29 @@ def apply_session_threshold(manager) -> None:
 
 def sync_session_type(manager) -> None:
     sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
-    filenames = ([f"session_state_{sid}.json"] if sid else []) + ["session_state.json", "session_type"]
-    for fname in filenames:
+    agentflow_dir = manager._project_root / ".agentflow"
+
+    # Try per-SID session_state.json first (new path: sessions/<SID>/session_state.json)
+    if sid:
+        sid_fp = session_file(agentflow_dir, "session_state.json", sid)
         try:
-            fp = manager._project_root / ".agentflow" / fname
+            if sid_fp.exists():
+                data = json.loads(sid_fp.read_text("utf-8"))
+                st = data.get("session_type", "") if isinstance(data, dict) else ""
+                if st in ("oracle", "orchestrator"):
+                    if manager.session_type != st:
+                        manager.session_type = st
+                        from agentflow.shell.session_audit import update_session_file
+                        update_session_file(manager)
+                    apply_session_threshold(manager)
+                    return
+        except Exception:
+            pass
+
+    # Fallback: root-level session_state.json, then session_type file
+    for fname in ["session_state.json", "session_type"]:
+        try:
+            fp = agentflow_dir / fname
             if not fp.exists():
                 continue
             if fname == "session_type":
