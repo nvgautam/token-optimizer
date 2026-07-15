@@ -289,6 +289,28 @@ def test_clear_text_in_message_does_not_write_signal(monkeypatch, tmp_path):
     assert not (agentflow_dir / "clear_signal").exists()
 
 
+def test_read_session_state_uses_sid_scoped_path(monkeypatch, tmp_path, capsys):
+    """T-224: session_type read uses sessions/<sid>/session_state.json, not flat+keyed path."""
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+    test_sid = "read-test-sid"
+    # Write session_state.json to the SID-scoped path (matches write path)
+    sid_dir = agentflow_dir / "sessions" / test_sid
+    sid_dir.mkdir(parents=True)
+    (sid_dir / "session_state.json").write_text(json.dumps({"session_type": "orchestrator"}))
+
+    monkeypatch.setenv("AGENTFLOW_PROJECT_ROOT", str(tmp_path))
+    monkeypatch.setenv("AGENTFLOW_SESSION_ID", test_sid)
+    monkeypatch.setattr("sys.stdin", __import__("io").StringIO(json.dumps({"prompt": "regular message"})))
+    monkeypatch.setattr("sys.stdin.isatty", lambda: False)
+
+    with pytest.raises(SystemExit):
+        main()
+
+    captured = capsys.readouterr()
+    assert "[SESSION: orchestrator]" in captured.out
+
+
 def test_reset_accumulator_not_written(monkeypatch, tmp_path):
     """T-209: reset_file.touch() removed — reset_accumulator is never written."""
     result_dir = _run_with_stdin("/orchestrate", monkeypatch, tmp_path)

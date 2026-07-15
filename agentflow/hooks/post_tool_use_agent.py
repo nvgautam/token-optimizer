@@ -11,6 +11,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from agentflow.shell.session_paths import session_file
 
 
@@ -244,7 +245,6 @@ def main() -> None:
 
     _log(agentflow_dir, {"event": "drain_done", "completed": completed, "signal_results": signal_results, "still_in_flight": still_in_flight})
     sys.exit(0)
-
 
 if __name__ == "__main__":
     main()
