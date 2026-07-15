@@ -1,4 +1,5 @@
 """Test structured error logging in hook exception handlers."""
+import hashlib
 import io
 import json
 import subprocess
@@ -160,27 +161,68 @@ class TestWriteIndexerErrorLogging:
 
 
 class TestReadCheckErrorLogging:
-    """Test read_check.py error logging is in place."""
+    """Test read_check.py logs errors to stderr behaviorally."""
 
-    def test_parse_line_error_logging_present(self):
-        """Verify parse_line_error logging code is present."""
+    def test_parse_line_range_error_logs_to_stderr(self, tmp_path):
+        """Pass unparseable StartLine/EndLine, assert JSON error written to stderr."""
         sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-        import inspect
-        from agentflow.hooks import read_check
+        from agentflow.hooks.read_check import main
 
-        source = inspect.getsource(read_check.main)
-        # Verify error logging for parse errors is present
-        assert "parse_line_range_error" in source or "parse_start_line_error" in source
+        hook_data = {
+            "tool_input": {
+                "file_path": str(tmp_path / "somefile.py"),
+                "StartLine": "not_a_number",
+                "EndLine": "also_not_a_number",
+            }
+        }
 
-    def test_file_read_error_logging_present(self):
-        """Verify file_read_error logging code is present."""
+        stderr_capture = io.StringIO()
+        with mock.patch("json.load", return_value=hook_data):
+            with mock.patch("os.getcwd", return_value=str(tmp_path)):
+                with mock.patch("sys.stderr", stderr_capture):
+                    try:
+                        main()
+                    except SystemExit:
+                        pass
+
+        output = stderr_capture.getvalue().strip()
+        assert output, "Expected JSON on stderr"
+        logged = json.loads(output)
+        assert logged["event"] == "parse_line_range_error"
+        assert logged["hook"] == "read_check.py"
+
+    def test_count_file_lines_error_logs_to_stderr(self, tmp_path):
+        """Patch file open to fail while idx exists, assert JSON error written to stderr."""
         sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-        import inspect
-        from agentflow.hooks import read_check
+        from agentflow.hooks.read_check import main
 
-        source = inspect.getsource(read_check.main)
-        # Verify error logging for file read errors is present
-        assert "count_file_lines_error" in source
+        hook_data = {
+            "tool_input": {
+                "file_path": str(tmp_path / "somefile.py"),
+                "offset": 0,
+                "limit": 10,
+            }
+        }
+
+        stderr_capture = io.StringIO()
+        with mock.patch("json.load", return_value=hook_data):
+            with mock.patch("os.getcwd", return_value=str(tmp_path)):
+                # Make idx map_path exist and contain content
+                with mock.patch.object(Path, "exists", return_value=True):
+                    with mock.patch.object(Path, "read_text", return_value="main:1-50"):
+                        # Make the file open for line-counting fail
+                        with mock.patch("builtins.open", side_effect=OSError("read failure")):
+                            with mock.patch("sys.stderr", stderr_capture):
+                                try:
+                                    main()
+                                except SystemExit:
+                                    pass
+
+        output = stderr_capture.getvalue().strip()
+        assert output, "Expected JSON on stderr"
+        logged = json.loads(output)
+        assert logged["event"] == "count_file_lines_error"
+        assert logged["hook"] == "read_check.py"
 
 
 class TestStopContextCaptureErrorLogging:

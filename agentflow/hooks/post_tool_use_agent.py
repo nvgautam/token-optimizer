@@ -158,7 +158,6 @@ def main() -> None:
     tool_name = hook_data.get("tool_name", "")
     root = _find_workspace_root()
     agentflow_dir = root / ".agentflow"
-
     is_merge_trigger = tool_name == "Agent" or _is_pr_merge_bash(hook_data)
     _log(agentflow_dir, {"event": "hook_fired", "tool": tool_name, "is_merge_trigger": is_merge_trigger, "cmd": hook_data.get("tool_input", {}).get("command", "")[:80]})
 
@@ -174,24 +173,19 @@ def main() -> None:
     except Exception as e:
         _log(agentflow_dir, {"event": "load_in_flight_error", "error": str(e)})
         sys.exit(0)
-
     if not in_flight:
         sys.exit(0)
-
     tasks_file = root / "tasks.json"
     if not tasks_file.exists():
         sys.exit(0)
-
     try:
         json.loads(tasks_file.read_text())
     except Exception as e:
         _log(agentflow_dir, {"event": "load_tasks_file_error", "error": str(e)})
         sys.exit(0)
-
     if tool_name == "Bash":
         cmd = hook_data.get("tool_input", {}).get("command", "")
         _handle_pr_merge(cmd, in_flight, agentflow_dir, root, tasks_file)
-
     task_pr_urls = {}
     try:
         prs_file = agentflow_dir / "task_prs.json"
