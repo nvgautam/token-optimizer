@@ -8,7 +8,13 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-from agentflow.hooks.post_tool_use_agent import _fetch_merged_pr_titles, _mark_task_complete, _run_cleanup, main
+from agentflow.hooks.post_tool_use_agent import (
+    _fetch_merged_pr_titles,
+    _handle_pr_merge,
+    _mark_task_complete,
+    _run_cleanup,
+    main,
+)
 
 
 def _run_hook(tmp_path, stdin_data=None, in_flight=None, tasks=None):
@@ -229,3 +235,94 @@ class TestRobustness:
                 main()
 
         assert exc.value.code == 0
+
+
+class TestHandlePrMerge:
+    def _make_workspace(self, tmp_path):
+        agentflow_dir = tmp_path / ".agentflow"
+        agentflow_dir.mkdir()
+        tasks_file = tmp_path / "tasks.json"
+        tasks_file.write_text(json.dumps({"tasks": [{"task_id": "T-99", "status": "pending"}]}))
+        pty = tmp_path / "agentflow" / "shell" / "pty_signal.py"
+        pty.parent.mkdir(parents=True)
+        pty.write_text("")
+        cleanup = tmp_path / "agentflow" / "tools" / "cleanup_tasks.py"
+        cleanup.parent.mkdir(parents=True, exist_ok=True)
+        cleanup.write_text("")
+        return agentflow_dir, tasks_file
+
+    def test_gh_pr_merge_extracts_pr_number_and_calls_gh_pr_view(self, tmp_path):
+        agentflow_dir, tasks_file = self._make_workspace(tmp_path)
+        in_flight = ["T-99"]
+        cmd = "gh pr merge 42 --merge"
+        gh_view_result = MagicMock()
+        gh_view_result.returncode = 0
+        gh_view_result.stdout = json.dumps(
+            {"url": "https://github.com/o/r/pull/42", "title": "feat(T-99): something", "state": "OPEN"}
+        )
+
+        with patch("subprocess.run", return_value=gh_view_result) as mock_run:
+            _handle_pr_merge(cmd, in_flight, agentflow_dir, tmp_path, tasks_file)
+
+        calls = [str(c) for c in mock_run.call_args_list]
+        assert any("gh" in c and "pr" in c and "view" in c and "42" in c for c in calls)
+
+    def test_merged_state_triggers_mark_complete_and_task_done(self, tmp_path):
+        agentflow_dir, tasks_file = self._make_workspace(tmp_path)
+        in_flight = ["T-99"]
+        cmd = "gh pr merge 42"
+        gh_view_result = MagicMock()
+        gh_view_result.returncode = 0
+        gh_view_result.stdout = json.dumps(
+            {"url": "https://github.com/o/r/pull/42", "title": "feat(T-99): add things", "state": "MERGED"}
+        )
+
+        with patch("subprocess.run", return_value=gh_view_result) as mock_run:
+            _handle_pr_merge(cmd, in_flight, agentflow_dir, tmp_path, tasks_file)
+
+        data = json.loads(tasks_file.read_text())
+        assert data["tasks"][0]["status"] == "complete"
+        task_done_calls = [c for c in mock_run.call_args_list if "task_done" in str(c)]
+        assert len(task_done_calls) >= 1
+        assert "T-99" in str(task_done_calls[0])
+
+    def test_open_state_registers_pr_url(self, tmp_path):
+        agentflow_dir, tasks_file = self._make_workspace(tmp_path)
+        in_flight = ["T-99"]
+        cmd = "gh pr merge 42 --auto"
+        pr_url = "https://github.com/o/r/pull/42"
+        gh_view_result = MagicMock()
+        gh_view_result.returncode = 0
+        gh_view_result.stdout = json.dumps(
+            {"url": pr_url, "title": "feat(T-99): auto-merge", "state": "OPEN"}
+        )
+
+        with patch("subprocess.run", return_value=gh_view_result):
+            _handle_pr_merge(cmd, in_flight, agentflow_dir, tmp_path, tasks_file)
+
+        prs_file = agentflow_dir / "task_prs.json"
+        assert prs_file.exists()
+        prs = json.loads(prs_file.read_text())
+        assert prs.get("T-99") == pr_url
+
+    def test_no_pr_number_in_cmd_does_nothing(self, tmp_path):
+        agentflow_dir, tasks_file = self._make_workspace(tmp_path)
+        with patch("subprocess.run") as mock_run:
+            _handle_pr_merge("some other command", [], agentflow_dir, tmp_path, tasks_file)
+        mock_run.assert_not_called()
+
+    def test_singleton_in_flight_fallback_when_title_has_no_task_id(self, tmp_path):
+        agentflow_dir, tasks_file = self._make_workspace(tmp_path)
+        in_flight = ["T-99"]
+        cmd = "gh pr merge 7"
+        gh_view_result = MagicMock()
+        gh_view_result.returncode = 0
+        gh_view_result.stdout = json.dumps(
+            {"url": "https://github.com/o/r/pull/7", "title": "some title no task id", "state": "MERGED"}
+        )
+
+        with patch("subprocess.run", return_value=gh_view_result):
+            _handle_pr_merge(cmd, in_flight, agentflow_dir, tmp_path, tasks_file)
+
+        data = json.loads(tasks_file.read_text())
+        assert data["tasks"][0]["status"] == "complete"

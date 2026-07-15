@@ -33,6 +33,15 @@
         ]
       },
       {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/agentflow/hooks/pre_tool_use_agent.py\""
+          }
+        ]
+      },
+      {
         "matcher": ".*",
         "hooks": [
           {
