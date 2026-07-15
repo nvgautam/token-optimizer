@@ -7,6 +7,7 @@ import datetime
 import json
 import pathlib
 from agentflow.hooks.stop_context_capture import FILL_STALE_SECONDS
+from agentflow.shell.session_paths import session_file
 
 _ANSI_ESCAPE_RE = re.compile(r"\x1b\[[0-9;]*[mGKHFABCDhJlsu]")
 _READ_PATH_RE = re.compile(
@@ -25,8 +26,10 @@ def detect_read_path(text: str) -> str | None:
 
 def _read_fill_tokens(project_root: pathlib.Path) -> int | None:
     """Return fill_tokens from context_fill.json if fresh (< FILL_STALE_SECONDS old)."""
-    fill_path = project_root / ".agentflow" / "context_fill.json"
     try:
+        agentflow_dir = project_root / ".agentflow"
+        sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+        fill_path = session_file(agentflow_dir, "context_fill.json", sid)
         data = json.loads(fill_path.read_text("utf-8"))
         if time.time() - data["ts"] < FILL_STALE_SECONDS:
             return int(data["fill_tokens"])
