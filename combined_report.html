@@ -130,17 +130,17 @@
         <div class="grid">
             <div class="card">
                 <div class="stat-label">Total Tokens Saved</div>
-                <div class="stat-value">615,376,942</div>
+                <div class="stat-value">616,157,678</div>
                 <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Cumulative optimization savings</div>
             </div>
             <div class="card">
                 <div class="stat-label">Real Tokens Used</div>
-                <div class="stat-value">526,387,633</div>
+                <div class="stat-value">526,642,992</div>
                 <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Actual tokens consumed</div>
             </div>
             <div class="card">
                 <div class="stat-label">Shadow Mode Tokens</div>
-                <div class="stat-value">1,141,764,575</div>
+                <div class="stat-value">1,142,800,670</div>
                 <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Baseline unoptimized tokens</div>
             </div>
             <div class="card">
@@ -155,17 +155,17 @@
             </div>
             <div class="card">
                 <div class="stat-label">Compression Savings (not blended)</div>
-                <div class="stat-value">30,067,544 tokens</div>
+                <div class="stat-value">30,719,343 tokens</div>
                 <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Headroom compression; windowed to shadow-reads scope — included in combined %</div>
             </div>
             <div class="card">
                 <div class="stat-label">Shadow Cost Avoided</div>
-                <div class="stat-value">2,556,067</div>
+                <div class="stat-value">2,650,759</div>
                 <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Avoided file I/O waste</div>
             </div>
             <div class="card">
                 <div class="stat-label">Compression Savings</div>
-                <div class="stat-value">30,067,544</div>
+                <div class="stat-value">30,719,343</div>
                 <div class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Headroom context reduction</div>
             </div>
             
@@ -193,7 +193,7 @@
             </div>
             <div class="strategy-row">
                 <span>Indexing Gap Avoidance (indexing-gap)</span>
-                <strong>13,853 tokens</strong>
+                <strong>14,228 tokens</strong>
             </div>
         </div>
 
@@ -202,25 +202,25 @@
             <div class="strategy-row">
                 <span>Targeted Reads — Savings Realized (idx)</span>
                 <span class="strategy-pct">0.6% of total</span>
-                <strong>3,481,546 tokens</strong>
+                <strong>3,579,267 tokens</strong>
             </div>
             <div class="strategy-row">
                 <span>Compact State Documents — read volume, not savings (state-docs)</span>
-                <strong>2,542,214 tokens</strong>
+                <strong>2,636,531 tokens</strong>
             </div>
             <div class="strategy-row">
                 <span>Output Verbosity Control (verbosity)</span>
                 <span class="strategy-pct">14.9% of total</span>
-                <strong>91,532,606 [measured baseline=4791tok, n=2365, 95% CI [2221, 7361]] tokens</strong>
+                <strong>91,562,225 [measured baseline=4791tok, n=2365, 95% CI [2221, 7361]] tokens</strong>
             </div>
             <div class="strategy-row">
                 <span>Headroom Compression (compression)</span>
-                <span class="strategy-pct">4.9% of total</span>
-                <strong>30,067,544 tokens</strong>
+                <span class="strategy-pct">5.0% of total</span>
+                <strong>30,719,343 tokens</strong>
             </div>
             <div class="strategy-row">
                 <span>Session Recycling — measured from agentflow_ledger.json (handoff)</span>
-                <span class="strategy-pct">79.7% of total</span>
+                <span class="strategy-pct">79.6% of total</span>
                 <strong>489,976,707 [windowed N=83 sessions since WINDOW_START] tokens</strong>
             </div>
             <div class="strategy-row">
@@ -235,23 +235,23 @@
             </div>
             <div class="strategy-row">
                 <span>Total Real Savings (total_saved)</span>
-                <strong>615,376,942 tokens</strong>
+                <strong>616,157,678 tokens</strong>
             </div>
         </div>
 
         <div class="details-section">
             <h2>Daily Savings Trend <span class="section-caption">(last 14 days)</span></h2>
-            <div style="display:flex;align-items:center;gap:1rem;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.05);"><span style="min-width:160px;font-size:0.9rem;">Symbol Index (idx)</span><svg width="120" height="30" viewBox="0 0 120 30"><polyline points="2.0,25.1 14.9,8.5 27.8,15.9 40.7,17.3 53.6,4.7 66.4,2.0 79.3,6.3 92.2,22.9 105.1,28.0 118.0,22.0" fill="none" stroke="#4f46e5" stroke-width="1.5"/></svg></div>
-<div style="display:flex;align-items:center;gap:1rem;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.05);"><span style="min-width:160px;font-size:0.9rem;">Compression</span><svg width="120" height="30" viewBox="0 0 120 30"><polyline points="2.0,28.0 14.9,27.7 27.8,25.2 40.7,15.4 53.6,17.5 66.4,2.0 79.3,15.9 92.2,22.3 105.1,28.0 118.0,17.0" fill="none" stroke="#10b981" stroke-width="1.5"/></svg></div>
+            <div style="display:flex;align-items:center;gap:1rem;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.05);"><span style="min-width:160px;font-size:0.9rem;">Symbol Index (idx)</span><svg width="120" height="30" viewBox="0 0 120 30"><polyline points="2.0,25.1 14.9,8.5 27.8,15.9 40.7,17.3 53.6,4.7 66.4,2.0 79.3,6.3 92.2,22.9 105.1,28.0 118.0,18.5" fill="none" stroke="#4f46e5" stroke-width="1.5"/></svg></div>
+<div style="display:flex;align-items:center;gap:1rem;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.05);"><span style="min-width:160px;font-size:0.9rem;">Compression</span><svg width="120" height="30" viewBox="0 0 120 30"><polyline points="2.0,28.0 14.9,27.7 27.8,25.2 40.7,15.4 53.6,17.5 66.4,2.0 79.3,15.9 92.2,22.3 105.1,28.0 118.0,15.3" fill="none" stroke="#10b981" stroke-width="1.5"/></svg></div>
 <div style="display:flex;align-items:center;gap:1rem;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.05);"><span style="min-width:160px;font-size:0.9rem;">Verbosity</span><svg width="120" height="30" viewBox="0 0 120 30"><polyline points="2.0,28.0 14.9,2.0 27.8,10.2 40.7,28.0 53.6,27.9 66.4,27.9 79.3,27.9 92.2,28.0 105.1,28.0 118.0,27.9" fill="none" stroke="#f59e0b" stroke-width="1.5"/></svg></div>
 <div style="display:flex;align-items:center;gap:1rem;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.05);"><span style="min-width:160px;font-size:0.9rem;">Code Size (splits)</span><svg width="120" height="30" viewBox="0 0 120 30"><polyline points="2.0,28.0 14.9,28.0 27.8,28.0 40.7,28.0 53.6,28.0 66.4,28.0 79.3,28.0 92.2,28.0 105.1,28.0 118.0,28.0" fill="none" stroke="#e11d48" stroke-width="1.5"/></svg></div>
         </div>
 
         <div class="details-section">
             <h2>30-Day Projection <span class="section-caption">(7-day rolling avg × 30)</span></h2>
-            <table style="width:100%;border-collapse:collapse;font-size:0.9rem;"><thead><tr style="color:#9ca3af;"><th style="text-align:left;padding:0.4rem 0;">Strategy</th><th style="text-align:right;padding:0.4rem 0;">7-day avg/day</th><th style="text-align:right;padding:0.4rem 0;">30-day Base</th><th style="text-align:right;padding:0.4rem 0;">30-day Optimistic</th></tr></thead><tbody><tr><td>Symbol Index (idx)</td><td style="text-align:right">362,568.3</td><td style="text-align:right">10,877,048</td><td style="text-align:right">21,754,097</td></tr>
-<tr><td>Compression</td><td style="text-align:right">4,131,117.4</td><td style="text-align:right">123,933,522</td><td style="text-align:right">123,933,522</td></tr>
-<tr><td>Verbosity</td><td style="text-align:right">86,115.7</td><td style="text-align:right">2,583,471</td><td style="text-align:right">2,583,471</td></tr>
+            <table style="width:100%;border-collapse:collapse;font-size:0.9rem;"><thead><tr style="color:#9ca3af;"><th style="text-align:left;padding:0.4rem 0;">Strategy</th><th style="text-align:right;padding:0.4rem 0;">7-day avg/day</th><th style="text-align:right;padding:0.4rem 0;">30-day Base</th><th style="text-align:right;padding:0.4rem 0;">30-day Optimistic</th></tr></thead><tbody><tr><td>Symbol Index (idx)</td><td style="text-align:right">376,528.4</td><td style="text-align:right">11,295,852</td><td style="text-align:right">22,591,705</td></tr>
+<tr><td>Compression</td><td style="text-align:right">4,224,231.6</td><td style="text-align:right">126,726,947</td><td style="text-align:right">126,726,947</td></tr>
+<tr><td>Verbosity</td><td style="text-align:right">90,347.0</td><td style="text-align:right">2,710,410</td><td style="text-align:right">2,710,410</td></tr>
 <tr><td>Code Size (splits)</td><td style="text-align:right">0.0</td><td style="text-align:right">0</td><td style="text-align:right">0</td></tr>
 </tbody></table>
         </div>
@@ -262,7 +262,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Headroom Report - 2026-07-14 15:35:26</title>
+    <title>Headroom Report - 2026-07-14 17:40:00</title>
     <style>
         * {
             box-sizing: border-box;
@@ -425,7 +425,7 @@
     <div class="container">
         <header>
             <h1>Headroom Context Analysis Report</h1>
-            <p>Generated: 2026-07-14 15:35:26 | Period: All time</p>
+            <p>Generated: 2026-07-14 17:40:00 | Period: All time</p>
         </header>
 
         <div class="stats-grid">

@@ -7,6 +7,7 @@ import sys
 import tempfile
 import time
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent.parent))
 from agentflow.shell.session_paths import session_file
 
 MODEL_CONTEXT_WINDOW = 200_000  # claude-sonnet-4-6 / claude-opus-4

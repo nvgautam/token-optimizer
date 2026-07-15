@@ -434,11 +434,16 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | t196-spawn-ctx — MERGED (PR #119 2026-07-12) | T-196 | Pre-resolve task context into orchestrate initialPrompt — eliminates worker startup re-derivation (depends T-195, already merged) |
 | restart-deterministic — MERGED (PR #121 2026-07-14) | T-209 | Orchestrate drain restart — direct RESTARTING path, no output parsing |
 | session-iso-1 — MERGED (PR #122 2026-07-14) | T-200 | Add _session_file() path helper (foundation for T-201–T-207) |
-| gemini-quality | T-213 (MERGED) ‖ T-214 (parallel) | Fix AGENTS.md dead paths + flatten Gemini model to gemini-2.5-flash — unblocks reliable Gemini orchestrate — **PRIORITY** |
-| session-iso-2 | T-201 ‖ T-203 (parallel) | Migrate context_fill + session_state writes to per-SID paths (depends T-200) |
-| session-iso-3 | T-202 ‖ T-204 ‖ T-207 (parallel) | Migrate reads, threshold_sync, stale cleanup (depends T-200, T-201, T-203) |
-| session-iso-4 | T-205 | Update handoff skill for per-SID handoff docs (depends T-200) |
-| Later | T-063, T-099, T-162, T-167, T-168, T-178, T-210, T-211 | Multi-provider + Gemini oracle + oracle polish + hook audit + test cleanup + Gemini lifecycle spike |
+| gemini-quality | T-213 (MERGED) ‖ T-214 (MERGED) | Fix AGENTS.md dead paths + flatten Gemini model to gemini-2.5-flash — unblocks reliable Gemini orchestrate |
+| session-iso-2 — MERGED (PR #128 2026-07-14) | T-201 ‖ T-203 (parallel) | Migrate context_fill + session_state writes to per-SID paths (depends T-200) |
+| session-iso-4 — MERGED (PR #128 2026-07-14) | T-205 | Update handoff skill for per-SID handoff docs (depends T-200) |
+| spike-restart-det — MERGED (PR #128 2026-07-14) | T-215 | Audit restart signal chain — catalogue every stdout/LLM-call dependency before session-iso-3 ships |
+| session-iso-2c — MERGED (PR #129 2026-07-14) | T-216 | SID-scope task_complete.json — PTY path property + pty_signal writer + poll_session reader |
+| session-iso-2d | T-218 — **NEXT** | SID-scope current_round.json mtime guard via SID content validation (depends T-216 — shared session_manager.py) |
+| session-iso-2e | T-217 | SID-scope tasks_in_flight.json — all hook writers + drain reader + session_manager property (depends T-218 — shared handoff_handler.py) |
+| session-iso-2f | T-219 | Fix context_fill.json reset in _clear_signal_files (SID path) + staleness check in check_drain_restart (depends T-217 — shared handoff_handler.py) |
+| session-iso-3 | T-202 ‖ T-204 ‖ T-207 (parallel) | Migrate reads, threshold_sync, stale cleanup (depends session-iso-2f, T-200, T-201, T-203) |
+| Later | T-063, T-099, T-162, T-167, T-168, T-178, T-210, T-211, T-220 | Multi-provider + Gemini oracle + oracle polish + hook audit + test cleanup + Gemini lifecycle spike + handoff.md doc fix |
 
 Priority rationale (2026-07-10): Demo goal is orchestrate seamlessly looping — picks tasks that fit in one session, processes, recycles PTY, repeats. Demo-1 closes the gap where task selection is unbounded (T-068 estimates cost, T-064 checks headroom before claiming). Demo-2 wires scheduling to respect the budget. Demo-3 adds savings proof. Cross-provider (T-063, T-099) deferred; Claude-only for demo. Old rounds E/F dissolved into Demo-1–3.
 
@@ -661,6 +666,28 @@ Pre-compute round state on PTY startup to skip startup commands. See commit 9245
 
 ---
 
+## Addendum: T-215 — Audit session-restart conditions for determinism (filed 2026-07-14)
+
+**Status:** PENDING
+
+**Goal:** Eliminate all LLM-output and PTY-stdout dependencies from the session-restart decision path.
+
+**Scope:** Investigate only — no code changes. Requires oracle approval before any implementation.
+
+**Files to audit:**
+- `agentflow/shell/output_handler.py` — scans LLM stdout for `AGENTFLOW_TASK_COMPLETE:<id>` and `AGENTFLOW_TASK_START:<id>` regexes; drives turn counting + token accounting; confirm whether any restart decision is gated on these patterns
+- `agentflow/shell/handoff_handler.py` — `poll_session`, `check_drain_restart`, `trigger_handoff`; audit what conditions feed `trigger_handoff` and whether any depend on LLM stdout or orchestrate calling `pty_signal.py task_done` explicitly
+- `agentflow/shell/session_manager_handlers.py` — `handle_session_exit` gate (lines 150–153): checks `handoff_complete_path.exists()` AND `session_type == "orchestrator"`; confirm both are file-based, not stdout-derived
+- `agentflow/shell/threshold_sync.py` — `session_type` detection; confirm it reads a file-based signal (not stdout heuristic) after T-191
+- `agentflow/shell/pty_signal.py` — `task_done` / `handoff_complete` writers; audit whether orchestrate's failure to call these can block restart indefinitely
+- `agentflow/hooks/post_tool_use.py` — audit which tool events hooks can intercept deterministically to cover gaps left by LLM omissions
+
+**Specific failure to reproduce:** Session didn't restart after T-203/204/205 merge because orchestrate didn't emit task-done signal. Map the exact signal chain that failed and propose hook-based backstops for each gap.
+
+**Output:** `.agentflow/spike_T215_restart_determinism.md` — catalogue every restart condition with: signal type (file / stdout / LLM-call), deterministic? (yes/no), proposed fix if no.
+
+**estimated_lines:** 0
+
 ## Deferred
 - AgentFlow user-facing CLI (subcommands for config management, T-002): backlog.json
 - Headless automation layer: confirmed dead 2026-07-01 — oracle/orchestrator/worker/reviewer/tools API-mode subtree (includes M7/T-030's context builder) never wired into cli.py or any skill; see architecture.md "Deferred (v2)" section for the full file list. Not v1 scope; do not resume from this snapshot if ever revived.
@@ -714,3 +741,86 @@ Pre-compute round state on PTY startup to skip startup commands. See commit 9245
 **Estimated lines:** 60
 **Depends:** none
 **Status:** MERGED (PR #124, 2026-07-14)
+
+## Addendum: T-216 — Scope task_complete.json to SID (filed 2026-07-14)
+
+**Status:** PENDING
+
+**Depends on:** T-215 (MERGED), T-200 (MERGED)
+
+**Problem:** `.agentflow/task_complete.json` is flat. With concurrent orchestrator sessions, session A's task completing transitions session B out of TASK_RUNNING. (T-215 Flag 2)
+
+**Fix:**
+- `agentflow/shell/session_manager.py` — `_task_complete_path` property: return `task_complete_{sid}.json` when SID set, using `session_paths.session_file()`
+- `agentflow/shell/pty_signal.py` — `task_done()`: accept SID argument (default from `AGENTFLOW_SESSION_ID` env); write SID-keyed path
+- `agentflow/shell/handoff_handler.py` — `poll_session()` task_complete check: already reads via `manager._task_complete_path` (property change is sufficient)
+
+**estimated_lines:** 25
+
+---
+
+## Addendum: T-218 — Scope current_round.json mtime guard to SID via content validation (filed 2026-07-14)
+
+**Status:** PENDING
+
+**Depends on:** T-216 (shared session_manager.py)
+
+**Problem:** IDLE → TASK_RUNNING fires on any `current_round.json` mtime change (flat file). All concurrent sessions wake when any orchestrator writes a new round. (T-215 Flag 5)
+
+**Fix:** Embed SID in `current_round.json` content (orchestrate skill writes this file; verify field exists). On mtime change, read file and validate `session_id` field matches `AGENTFLOW_SESSION_ID` before transitioning. Do NOT rename file — content validation is cheaper and avoids renaming session_manager path property.
+- `agentflow/shell/handoff_handler.py` — `poll_session()` mtime guard: after mtime change detected, read JSON and check `session_id`; skip transition if mismatch
+- `agentflow/shell/session_manager.py` — verify `_current_round_path` init is correct (no change expected)
+- `agentflow/shell/process_manager.py` — `spawn_new_child()` TASK_CTX read: add assertion that SID field is present
+
+**estimated_lines:** 20
+
+---
+
+## Addendum: T-217 — Scope tasks_in_flight.json to SID (filed 2026-07-14)
+
+**Status:** PENDING
+
+**Depends on:** T-218 (shared handoff_handler.py)
+
+**Problem:** `tasks_in_flight.json` drain tombstone (`[]`) is flat. Session A's drain triggers `check_drain_restart` in session B even if B still has tasks running. (T-215 Flag 3)
+
+**Fix:** Scope to SID-keyed path via `session_paths.session_file()`. Add `_tasks_in_flight_path` property to `session_manager.py`.
+- `agentflow/shell/pty_signal.py` — `task_start()`, `task_done()`: write SID-keyed path (SID from env)
+- `agentflow/hooks/post_tool_use.py` — `sync_tasks_in_flight()`: use SID-keyed path
+- `agentflow/hooks/post_tool_use_agent.py` — tasks_in_flight updates: use SID-keyed path
+- `agentflow/hooks/user_prompt_submit.py` — tasks_in_flight init: use SID-keyed path
+- `agentflow/shell/handoff_handler.py` — `check_drain_restart()`: read via `manager._tasks_in_flight_path`
+
+**Note:** `session_paths.session_file()` is available in hooks from T-200. pty_signal.py reads SID from `AGENTFLOW_SESSION_ID` env (already set by PTY at launch).
+
+**estimated_lines:** 60
+
+---
+
+## Addendum: T-219 — Fix context_fill.json reset path + staleness check in check_drain_restart (filed 2026-07-14)
+
+**Status:** PENDING
+
+**Depends on:** T-217 (shared handoff_handler.py)
+
+**Problem (write side):** `_clear_signal_files()` in `session_manager_handlers.py` resets context_fill using a hardcoded flat path (line 57). Both `post_tool_use.py` and `stop_context_capture.py` already write SID-keyed paths (fixed in T-201/T-203). The reset on restart clears the wrong file. (T-215 Flag 4 partial)
+
+**Problem (staleness):** `check_drain_restart()` reads context_fill without checking `ts` freshness. `_read_fill_tokens()` checks `FILL_STALE_SECONDS = 60`; `check_drain_restart` omits this, allowing stale values to trigger spurious restarts. (T-215 Flag 4 sub-issue)
+
+**Fix:**
+- `agentflow/shell/session_manager_handlers.py` — `clear_signal_files()`: use `session_file(agentflow_dir, "context_fill.json", sid)` for reset write; read SID from `session_manager` or env
+- `agentflow/shell/handoff_handler.py` — `check_drain_restart()`: after reading context_fill JSON, check `ts` field; skip if `time.time() - ts > 60`
+
+**estimated_lines:** 20
+
+---
+
+## Addendum: T-220 — Fix handoff.md doc drift: PTY polls file, does not scan stdout for HANDOFF_COMPLETE (filed 2026-07-14)
+
+**Status:** PENDING
+
+**Problem:** `commands/claude/handoff.md` Step 8 states the PTY "scans stdout for `HANDOFF_COMPLETE`." The code polls `handoff_complete_{sid}.json` (file-based). The skill printing `HANDOFF_COMPLETE: ...` is for human-readable feedback only; it has no effect on PTY state. Identified in T-215 Section 1.4.
+
+**Fix:** Remove or correct the stdout-scanning claim in Step 8. State that the PTY polls for `handoff_complete_{sid}.json`.
+
+**estimated_lines:** 3
