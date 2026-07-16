@@ -12,6 +12,7 @@ build/
 .venv/
 .claude/*
 !.claude/settings.json
+.agentflow/current_round.json
 .agentflow/shadow_reads.jsonl
 .headroom/
 .agentflow/proxy_log.jsonl
