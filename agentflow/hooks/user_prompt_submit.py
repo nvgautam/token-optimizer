@@ -76,8 +76,8 @@ def _run_cleanup(root: Path) -> None:
 def _locked_write_tasks(tasks_file: Path, agentflow_dir: Path, task_id: str) -> bool:
     """Mark task complete while holding lock on .agentflow/tasks.json.lock.
 
-    Acquires lock before reading tasks.json, updates task status, writes back,
-    and calls cleanup_tasks.py while holding the lock to prevent races.
+    Acquires lock before reading tasks.json, updates task status, and writes back.
+    Lock is released before calling cleanup_tasks.py subprocess to prevent deadlock.
 
     Args:
         tasks_file: Path to tasks.json
@@ -88,6 +88,7 @@ def _locked_write_tasks(tasks_file: Path, agentflow_dir: Path, task_id: str) -> 
         True if task was marked complete, False if task not found or error occurred
     """
     lock_path = agentflow_dir / "tasks.json.lock"
+    found = False
 
     try:
         with file_lock(lock_path):
@@ -102,7 +103,6 @@ def _locked_write_tasks(tasks_file: Path, agentflow_dir: Path, task_id: str) -> 
                 return False
 
             # Find and mark task complete
-            found = False
             for t in data.get("tasks", []):
                 if t.get("task_id") == task_id and t.get("status") == "pending":
                     t["status"] = "complete"
@@ -118,12 +118,12 @@ def _locked_write_tasks(tasks_file: Path, agentflow_dir: Path, task_id: str) -> 
                     json.dump(data, f, indent=2)
             except (OSError, ValueError):
                 return False
+        # Lock released here — cleanup subprocess can acquire its own lock
 
-            # Call cleanup while lock is held
-            root = tasks_file.parent
-            _run_cleanup(root)
+        root = tasks_file.parent
+        _run_cleanup(root)
 
-            return True
+        return True
     except Exception as e:
         _log_drain(agentflow_dir, {"event": "locked_write_tasks_error", "error": str(e), "task_id": task_id})
         return False
