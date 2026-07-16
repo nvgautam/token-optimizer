@@ -25,6 +25,8 @@ Execute the `commands/claude/orchestrator/startup.md` steps in order. Check desi
 - Stub every `owns` path (`raise NotImplementedError`)
 - `.gitignore` absent → generate for project tech stack
 - Generate `.idx` for each `reads` file ≥50 lines (skip if `.idx` newer than source). For Python files, use `ast` to parse classes, functions, and methods. For Markdown files, grep for H2/H3 headers.
+- Pre-create each task branch: `git worktree add .claude/worktrees/<branch> -b <branch> main` — do this BEFORE spawning the worker.
+- **Never** run `git checkout` in the project root — inspect branches via `git show <branch>:path` or `gh pr diff`.
 
 
 **Build each agent prompt:**
@@ -52,7 +54,7 @@ Close every prompt: `"End your final message with TOKENS: input=N output=N — n
 
 **Per-round scheduling:** Per task, run `python3 -c "from agentflow.shadow.task_estimator import estimate; print(estimate(<estimated_lines>, <file_count>))"` (fallback 2500 if absent). Cap: `floor(threshold/pct_cost)`. Disjoint owns: if tasks share an `owns` path — OWNS CONFLICT, move overlap to next sub-round.
 
-Spawn one agent per group, `isolation: "worktree"`, with the selected `model`. Parallel only if no cross-dependencies and rate supports. Save `.agentflow/state.json` after each.
+Spawn one agent per group with the selected `model`; pass the worktree path in the context bundle (worker calls `EnterWorktree(path=.claude/worktrees/<branch>)` as its first step — do **not** use `isolation: "worktree"`, the worktree is pre-created). Parallel only if no cross-dependencies and rate supports. Save `.agentflow/state.json` after each.
 
 ### Round Lifecycle & PTY Signals
 At the start of each round, write `.agentflow/current_round.json` with the following schema:
@@ -62,20 +64,12 @@ At the start of each round, write `.agentflow/current_round.json` with the follo
   "task_ids": ["string"],
   "estimated_lines_per_task": {"task_id": "int"},
   "file_counts_per_task": {"task_id": "int"},
-  "timestamp": "ISO8601",
-  "task_ctx": {
-    "task_id": "string",
-    "title": "string",
-    "deps": ["string"],
-    "estimated_lines": "int"
-  }
+  "timestamp": "ISO8601"
 }
 ```
-The `task_ctx` field (optional) contains the first task's metadata for fast-path initialization in the worker startup (T-196). Populate with task_id, title, dependencies list, and estimated line count.
-
 During the round execution, orchestrate the worker lifecycles with deterministic stdout print signals:
-- Before spawning each worker: print `AGENTFLOW_TASK_START:<task_id>`
-- After each worker completes: print `AGENTFLOW_TASK_COMPLETE:<task_id>`
+- Before spawning each worker: run `python agentflow/shell/pty_signal.py task_start <task_id>` and print `AGENTFLOW_TASK_START:<task_id>`
+- After each worker completes: print `AGENTFLOW_TASK_COMPLETE:<task_id>` and run `python agentflow/shell/pty_signal.py task_done <task_id>`
 - After all round tasks complete: print `AGENTFLOW_ROUND_COMPLETE`
 
 
