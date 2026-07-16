@@ -1,19 +1,12 @@
 {
-  "last_round": "B",
+  "last_round": "C3a",
   "tasks_merged": [
-    "T-229",
-    "T-232"
+    "T-247",
+    "T-244"
   ],
-  "prs": [
-    149,
-    148
-  ],
-  "next_round": "C",
+  "next_round": "C3b-pilot",
   "next_tasks": [
-    "T-162",
-    "T-210",
     "T-233",
-    "T-234",
-    "T-235"
+    "T-238"
   ]
 }

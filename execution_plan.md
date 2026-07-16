@@ -449,12 +449,17 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | observability-2 — MERGED (PR #144 2026-07-16) | T-227 (depends T-225) | session_type determination — remove root-level fallback when SID present, TDD all edge cases |
 | A — MERGED (PR #147/#146 2026-07-16) | T-228 ‖ T-230 (parallel) | Atomic merge sync + orchestrator worktree lifecycle — closes two orthogonal orchestrate reliability gaps |
 | B — MERGED (PR #149/#148 2026-07-16) | T-229 ‖ T-232 (parallel) | Flock on shared files + PostToolUse merge-detection hook — deterministic state sync on PR merge |
-| C | T-162 ‖ T-210 ‖ T-233 ‖ T-234 ‖ T-235 ‖ T-236 ‖ T-237 (parallel) | oracle.md size split + test cache leak + verbosity rule + context bundle temp file + enforce worker-always rule + remove OWNS gate + post-merge conflict resolution + restart new-SID + re-derive |
-| D | T-178 ‖ T-211 ‖ T-231 ‖ T-238 (parallel) | Hook audit log spike + Gemini lifecycle spike + SQLite spike + /debug skill spec |
+| C1 — MERGED (PR #150/#152 2026-07-16) | T-237 ‖ T-242 (parallel) | Session restart reliability: new-SID re-derive on restart + multi-PR drain fix (re.findall) + replace 30s poll log with drain_start/complete/timeout events |
+| C2 — MERGED (PR #153 2026-07-16) | T-231 | SQLite migration: replace tasks.json with WAL-mode SQLite; atomic writes; eliminate oracle/hook write collisions; drop flock — TOP PRIORITY |
+| C2b — HIGHEST PRIORITY | T-247 | Fix drain bugs: session_type mismatch in post_tool_use.py (`"orchestrate"` → `"orchestrator"`, T-232 regression) + title-match regex in user_prompt_submit.py + post_tool_use_agent.py (`feat(T-N):` format fails). Must land before C3 — all parallel tasks depend on drain working correctly. |
+| C3a — drain test — MERGED | T-244 (solo) | Remove EnterWorktree dependency from worker skill — verifies T-247 drain fix end-to-end; enough context to cross 80K restart threshold |
+| C3b-pilot — parallel drain test | T-233 ‖ T-238 (parallel) | Verbosity rule (never narrate internal mechanics) + /debug skill — two independent tasks to validate parallel drain/restart |
+| C3b | T-162 ‖ T-210 ‖ T-234 ‖ T-235 ‖ T-236 ‖ T-239 ‖ T-241 ‖ T-243 (parallel) | Maintenance: oracle.md split + test cache leak + context bundle temp file + worker-always rule + conflict resolution + user_prompt_submit.py split + orchestrate.md split + auto-mode default |
+| D | T-178 ‖ T-211 ‖ T-245 (parallel) | Hook audit log spike + Gemini lifecycle spike + model routing pipeline (Haiku→Sonnet review→verify) |
 | E | T-167 ‖ T-168 (parallel) | Oracle Phase 3 plan-mode preview + product judgment layer |
 | F | T-063 → T-064 → T-099 (sequential) | Multi-provider chain (enterprise) |
 
-Priority rationale (2026-07-16): Rounds A/B close orchestrate reliability gaps (split-brain + write races) before resuming feature work. Round C is maintenance that unblocks clean edits. Rounds D–E are spikes and oracle enhancements. Round F is multi-provider / enterprise, deferred until Claude-only loop is solid.
+Priority rationale (2026-07-16): C2 = SQLite migration (top priority — confirmed write collision incidents). C3 = maintenance/cleanup. Rounds D–E are spikes and oracle enhancements. Round F is multi-provider / enterprise, deferred until Claude-only loop is solid.
 
 ---
 
