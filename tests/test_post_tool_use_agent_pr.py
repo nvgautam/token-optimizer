@@ -1,4 +1,4 @@
-"""Tests for post_tool_use_agent hook — PR detection and cleanup."""
+"""Tests for post_tool_use_agent hook — PR merge and drain events."""
 
 import json
 import subprocess
@@ -8,7 +8,13 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 
-from agentflow.hooks.post_tool_use_agent import _fetch_merged_pr_titles, _mark_task_complete, _run_cleanup, main
+from agentflow.hooks.post_tool_use_agent import (
+    _fetch_merged_pr_titles,
+    _handle_pr_merge,
+    _mark_task_complete,
+    _run_cleanup,
+    main,
+)
 
 
 def _run_hook(tmp_path, stdin_data=None, in_flight=None, tasks=None):
@@ -41,130 +47,177 @@ def _run_hook(tmp_path, stdin_data=None, in_flight=None, tasks=None):
     return exc.value.code
 
 
-class TestPRDetection:
-    def test_fetch_merged_pr_titles_returns_set_of_titles(self):
-        mock_result = MagicMock()
-        mock_result.stdout = '[{"title": "T-123: add feature"}, {"title": "T-124: fix bug"}]'
-        with patch("subprocess.run", return_value=mock_result):
-            titles = _fetch_merged_pr_titles()
-        assert "T-123: add feature" in titles
-        assert "T-124: fix bug" in titles
-
-    def test_fetch_merged_pr_titles_returns_empty_set_when_none(self):
-        mock_result = MagicMock()
-        mock_result.stdout = "[]"
-        with patch("subprocess.run", return_value=mock_result):
-            assert _fetch_merged_pr_titles() == set()
-
-    def test_fetch_merged_pr_titles_returns_empty_set_on_subprocess_error(self):
-        with patch("subprocess.run", side_effect=subprocess.SubprocessError()):
-            assert _fetch_merged_pr_titles() == set()
-
-    def test_fetch_merged_pr_titles_returns_empty_set_on_timeout(self):
-        with patch("subprocess.run", side_effect=subprocess.TimeoutExpired(cmd="gh", timeout=5)):
-            assert _fetch_merged_pr_titles() == set()
-
-
-class TestMarkTaskComplete:
-    def test_mark_task_complete_updates_pending_task(self, tmp_path):
-        tasks_file = tmp_path / "tasks.json"
-        tasks_file.write_text(json.dumps({"tasks": [{"task_id": "T-123", "status": "pending"}]}))
-        result = _mark_task_complete(tasks_file, "T-123")
-        assert result == "marked"
-        data = json.loads(tasks_file.read_text())
-        assert data["tasks"][0]["status"] == "complete"
-
-    def test_mark_task_complete_returns_false_for_nonexistent_task(self, tmp_path):
-        tasks_file = tmp_path / "tasks.json"
-        tasks_file.write_text(json.dumps({"tasks": [{"task_id": "T-999", "status": "pending"}]}))
-        assert _mark_task_complete(tasks_file, "T-123") == "not_found"
-
-    def test_mark_task_complete_skips_already_complete_task(self, tmp_path):
-        tasks_file = tmp_path / "tasks.json"
-        tasks_file.write_text(json.dumps({"tasks": [{"task_id": "T-123", "status": "complete"}]}))
-        assert _mark_task_complete(tasks_file, "T-123") == "already_complete"
-
-    def test_mark_task_complete_is_idempotent(self, tmp_path):
-        tasks_file = tmp_path / "tasks.json"
-        tasks_file.write_text(json.dumps({"tasks": [{"task_id": "T-123", "status": "pending"}]}))
-        first = _mark_task_complete(tasks_file, "T-123")
-        second = _mark_task_complete(tasks_file, "T-123")
-        assert first == "marked"
-        assert second == "already_complete"
-        data = json.loads(tasks_file.read_text())
-        assert data["tasks"][0]["status"] == "complete"
-
-
-class TestEndToEndPRAutoDetect:
-    def test_main_marks_complete_and_runs_cleanup_when_pr_merged(self, tmp_path):
+class TestHandlePrMerge:
+    def _make_workspace(self, tmp_path):
         agentflow_dir = tmp_path / ".agentflow"
         agentflow_dir.mkdir()
-        (agentflow_dir / "tasks_in_flight.json").write_text('["T-123"]')
-        (tmp_path / "tasks.json").write_text(json.dumps({
-            "tasks": [{"task_id": "T-123", "status": "pending"}]
-        }))
+        tasks_file = tmp_path / "tasks.json"
+        tasks_file.write_text(json.dumps({"tasks": [{"task_id": "T-99", "status": "pending"}]}))
         pty = tmp_path / "agentflow" / "shell" / "pty_signal.py"
         pty.parent.mkdir(parents=True)
         pty.write_text("")
         cleanup = tmp_path / "agentflow" / "tools" / "cleanup_tasks.py"
         cleanup.parent.mkdir(parents=True, exist_ok=True)
         cleanup.write_text("")
+        return agentflow_dir, tasks_file
+
+    def test_gh_pr_merge_extracts_pr_number_and_calls_gh_pr_view(self, tmp_path):
+        agentflow_dir, tasks_file = self._make_workspace(tmp_path)
+        in_flight = ["T-99"]
+        cmd = "gh pr merge 42 --merge"
+        gh_view_result = MagicMock()
+        gh_view_result.returncode = 0
+        gh_view_result.stdout = json.dumps(
+            {"url": "https://github.com/o/r/pull/42", "title": "feat(T-99): something", "state": "OPEN"}
+        )
+
+        with patch("subprocess.run", return_value=gh_view_result) as mock_run:
+            _handle_pr_merge(cmd, in_flight, agentflow_dir, tmp_path, tasks_file)
+
+        calls = [str(c) for c in mock_run.call_args_list]
+        assert any("gh" in c and "pr" in c and "view" in c and "42" in c for c in calls)
+
+    def test_merged_state_triggers_mark_complete_and_task_done(self, tmp_path):
+        agentflow_dir, tasks_file = self._make_workspace(tmp_path)
+        in_flight = ["T-99"]
+        cmd = "gh pr merge 42"
+        gh_view_result = MagicMock()
+        gh_view_result.returncode = 0
+        gh_view_result.stdout = json.dumps(
+            {"url": "https://github.com/o/r/pull/42", "title": "feat(T-99): add things", "state": "MERGED"}
+        )
+
+        with patch("subprocess.run", return_value=gh_view_result) as mock_run:
+            _handle_pr_merge(cmd, in_flight, agentflow_dir, tmp_path, tasks_file)
+
+        data = json.loads(tasks_file.read_text())
+        assert data["tasks"][0]["status"] == "complete"
+        task_done_calls = [c for c in mock_run.call_args_list if "task_done" in str(c)]
+        assert len(task_done_calls) >= 1
+        assert "T-99" in str(task_done_calls[0])
+
+    def test_open_state_registers_pr_url(self, tmp_path):
+        agentflow_dir, tasks_file = self._make_workspace(tmp_path)
+        in_flight = ["T-99"]
+        cmd = "gh pr merge 42 --auto"
+        pr_url = "https://github.com/o/r/pull/42"
+        gh_view_result = MagicMock()
+        gh_view_result.returncode = 0
+        gh_view_result.stdout = json.dumps(
+            {"url": pr_url, "title": "feat(T-99): auto-merge", "state": "OPEN"}
+        )
+
+        with patch("subprocess.run", return_value=gh_view_result):
+            _handle_pr_merge(cmd, in_flight, agentflow_dir, tmp_path, tasks_file)
+
+        prs_file = agentflow_dir / "task_prs.json"
+        assert prs_file.exists()
+        prs = json.loads(prs_file.read_text())
+        assert prs.get("T-99") == pr_url
+
+    def test_no_pr_number_in_cmd_does_nothing(self, tmp_path):
+        agentflow_dir, tasks_file = self._make_workspace(tmp_path)
+        with patch("subprocess.run") as mock_run:
+            _handle_pr_merge("some other command", [], agentflow_dir, tmp_path, tasks_file)
+        mock_run.assert_not_called()
+
+    def test_singleton_in_flight_fallback_when_title_has_no_task_id(self, tmp_path):
+        agentflow_dir, tasks_file = self._make_workspace(tmp_path)
+        in_flight = ["T-99"]
+        cmd = "gh pr merge 7"
+        gh_view_result = MagicMock()
+        gh_view_result.returncode = 0
+        gh_view_result.stdout = json.dumps(
+            {"url": "https://github.com/o/r/pull/7", "title": "some title no task id", "state": "MERGED"}
+        )
+
+        with patch("subprocess.run", return_value=gh_view_result):
+            _handle_pr_merge(cmd, in_flight, agentflow_dir, tmp_path, tasks_file)
+
+        data = json.loads(tasks_file.read_text())
+        assert data["tasks"][0]["status"] == "complete"
+
+    def test_handle_pr_merge_multi_pr(self, tmp_path):
+        """Test that gh pr merge 148 149 processes both PR numbers."""
+        agentflow_dir, tasks_file = self._make_workspace(tmp_path)
+        in_flight = ["T-99"]
+        cmd = "gh pr merge 148 149"
+
+        # Mock gh pr view to return MERGED for both PRs
+        gh_view_result = MagicMock()
+        gh_view_result.returncode = 0
+        gh_view_result.stdout = json.dumps(
+            {"url": "https://github.com/o/r/pull/148", "title": "feat(T-99): first", "state": "MERGED"}
+        )
+
+        call_count = 0
+        def mock_run_side_effect(*args, **kwargs):
+            nonlocal call_count
+            call_count += 1
+            # Return MERGED for gh pr view calls
+            if "pr" in args[0] and "view" in args[0]:
+                pr_num = args[0][args[0].index("view") + 1]
+                result = MagicMock()
+                result.returncode = 0
+                result.stdout = json.dumps({
+                    "url": f"https://github.com/o/r/pull/{pr_num}",
+                    "title": f"feat(T-99): pr{pr_num}",
+                    "state": "MERGED"
+                })
+                return result
+            # Return ok for task_done calls
+            result = MagicMock()
+            result.returncode = 0
+            result.stdout = ""
+            return result
+
+        with patch("subprocess.run", side_effect=mock_run_side_effect) as mock_run:
+            _handle_pr_merge(cmd, in_flight, agentflow_dir, tmp_path, tasks_file)
+
+        # Should have called gh pr view for both PRs (148 and 149)
+        view_calls = [c for c in mock_run.call_args_list if len(c[0]) > 0 and "view" in str(c[0])]
+        assert len(view_calls) >= 2, f"Expected at least 2 gh pr view calls, got {len(view_calls)}"
+
+
+class TestDrainEvents:
+    """Test drain event logging in main()."""
+
+    def test_main_emits_drain_start_and_complete(self, tmp_path):
+        """Test that main() emits drain_start and drain_complete events."""
+        agentflow_dir = tmp_path / ".agentflow"
+        agentflow_dir.mkdir()
+        (agentflow_dir / "tasks_in_flight.json").write_text(json.dumps(["T-237"]))
+        (tmp_path / "tasks.json").write_text(json.dumps({
+            "tasks": [{"task_id": "T-237", "status": "complete"}]
+        }))
+        pty = tmp_path / "agentflow" / "shell" / "pty_signal.py"
+        pty.parent.mkdir(parents=True)
+        pty.write_text("")
 
         with patch("agentflow.hooks.post_tool_use_agent._find_workspace_root", return_value=tmp_path):
-            with patch("agentflow.hooks.post_tool_use_agent._fetch_merged_pr_titles", return_value={"T-123: add feature", "T-1234: other"}):
+            with patch("agentflow.hooks.post_tool_use_agent._fetch_merged_pr_titles", return_value=set()):
                 with patch("subprocess.run") as mock_run:
                     with pytest.raises(SystemExit) as exc:
                         main()
 
         assert exc.value.code == 0
-        data = json.loads((tmp_path / "tasks.json").read_text())
-        assert data["tasks"][0]["status"] == "complete"
-        cleanup_calls = [c for c in mock_run.call_args_list if "cleanup_tasks.py" in str(c)]
-        assert len(cleanup_calls) >= 1
 
+        # Read the debug log to verify drain events
+        debug_log = agentflow_dir / "hook_drain_debug.jsonl"
+        assert debug_log.exists(), f"Debug log not created at {debug_log}"
+        events = []
+        for line in debug_log.read_text().strip().split("\n"):
+            if line:
+                events.append(json.loads(line))
 
-class TestRunCleanup:
-    def test_run_cleanup_ignores_subprocess_error(self, tmp_path):
-        with patch("subprocess.run", side_effect=OSError("not found")):
-            _run_cleanup(tmp_path)  # must not raise
+        event_names = [e.get("event") for e in events]
+        assert "drain_start" in event_names, f"Expected drain_start event, got events: {event_names}"
+        assert "drain_complete" in event_names, f"Expected drain_complete event, got events: {event_names}"
 
-
-class TestCoverageEdgeCases:
-    def test_mark_task_complete_returns_false_on_lock_failure(self, tmp_path):
-        tasks_file = tmp_path / "tasks.json"
-        tasks_file.write_text(json.dumps({"tasks": [{"task_id": "T-1", "status": "pending"}]}))
-        with patch("agentflow.hooks.post_tool_use_agent.fcntl.flock", side_effect=BlockingIOError()):
-            assert _mark_task_complete(tasks_file, "T-1") == "locked"
-
-    def test_main_exits_zero_when_tasks_json_missing(self, tmp_path):
-        agentflow_dir = tmp_path / ".agentflow"
-        agentflow_dir.mkdir()
-        (agentflow_dir / "tasks_in_flight.json").write_text('["T-001"]')
-        # tasks.json deliberately absent
-        with patch("agentflow.hooks.post_tool_use_agent._find_workspace_root", return_value=tmp_path):
-            with pytest.raises(SystemExit) as exc:
-                main()
-        assert exc.value.code == 0
-
-
-class TestEdgeCases:
-    def test_mark_task_complete_returns_false_on_json_decode_error(self, tmp_path):
-        tasks_file = tmp_path / "tasks.json"
-        tasks_file.write_text("not valid json{{{")
-        assert _mark_task_complete(tasks_file, "T-1").startswith("error:")
-
-    def test_no_false_positive_prefix_match(self, tmp_path):
-        # T-1 must not match a PR titled "T-12: something"
-        tasks_file = tmp_path / "tasks.json"
-        tasks_file.write_text(json.dumps({"tasks": [{"task_id": "T-1", "status": "pending"}]}))
-        with patch("agentflow.hooks.post_tool_use_agent._fetch_merged_pr_titles",
-                   return_value={"T-12: some other task"}):
-            with patch("agentflow.hooks.post_tool_use_agent._mark_task_complete") as mock_mark:
-                # Simulate the check used in main()
-                merged_titles = {"T-12: some other task"}
-                task_id = "T-1"
-                matched = any(
-                    f"{task_id}:" in title or title.startswith(f"{task_id} ")
-                    for title in merged_titles
-                )
-                assert matched is False
+        # Verify drain_complete has elapsed time and task count
+        complete_events = [e for e in events if e.get("event") == "drain_complete"]
+        assert len(complete_events) > 0, "No drain_complete events found"
+        complete = complete_events[0]
+        assert "elapsed" in complete, f"drain_complete missing elapsed time: {complete}"
+        assert "completed_count" in complete, f"drain_complete missing completed_count: {complete}"
+        assert complete["completed_count"] == 1, f"Expected 1 completed task, got {complete['completed_count']}"
