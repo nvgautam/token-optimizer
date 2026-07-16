@@ -26,7 +26,7 @@ Execute the `commands/claude/orchestrator/startup.md` steps in order. Check desi
 - `.gitignore` absent → generate for project tech stack
 - Generate `.idx` for each `reads` file ≥50 lines (skip if `.idx` newer than source). For Python files, use `ast` to parse classes, functions, and methods. For Markdown files, grep for H2/H3 headers.
 - Pre-create each task branch: `git worktree add .claude/worktrees/<branch> -b <branch> main` — do this BEFORE spawning the worker.
-- Capture the canonical worktree path: `git worktree list --porcelain | grep <branch>` to get the absolute path (CWD-independent). Store this as `worktree_abs_path` for the context bundle.
+- Capture the canonical worktree path: `git worktree list | grep <branch> | awk '{print $1}'` — column 1 is the absolute path. Store as `worktree_abs_path` for the context bundle.
 - **Never** run `git checkout` in the project root — inspect branches via `git show <branch>:path` or `gh pr diff`.
 
 

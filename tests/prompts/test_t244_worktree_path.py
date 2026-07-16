@@ -37,13 +37,13 @@ class TestWorkerSystemMd:
             "system.md must reference context bundle when discussing worktree_abs_path"
 
 
-class TestOrchestrrateMd:
+class TestOrchestrateMd:
     """orchestrate.md must capture worktree path and pass it to workers."""
 
     def test_captures_worktree_path(self, orchestrate_md):
-        """orchestrate.md must run 'git worktree list --porcelain' after git worktree add."""
-        assert "git worktree list --porcelain" in orchestrate_md, \
-            "orchestrate.md must include 'git worktree list --porcelain' to capture path"
+        """orchestrate.md must run 'git worktree list | grep <branch> | awk' to capture path."""
+        assert "git worktree list" in orchestrate_md and "awk" in orchestrate_md, \
+            "orchestrate.md must include 'git worktree list | grep <branch> | awk' to capture path"
 
     def test_no_old_enterworktree_instruction(self, orchestrate_md):
         """orchestrate.md must NOT contain the old instruction about worker calling EnterWorktree."""

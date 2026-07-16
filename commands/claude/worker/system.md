@@ -98,6 +98,9 @@ This eliminates the EnterWorktree error and ensures your changes land on the cor
 
 ## Workflow
 
+**Preflight:** All file paths must be rooted at `worktree_abs_path` from your context bundle.
+Construct paths as `{worktree_abs_path}/{relative_path}` for every Read, Edit, and Write tool call.
+
 1. Read your task definition (already in this prompt — do not re-fetch it).
 2. Write the test file first (`tests/test_[module].py`). Run it — expect red.
 3. Implement the owned file(s) to make the test pass.
