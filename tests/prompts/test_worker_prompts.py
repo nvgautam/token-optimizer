@@ -54,3 +54,16 @@ def test_no_hardcoded_secrets_in_worker_prompts():
     for f in ["system.md", "context_bundle.md", "testing_guide.md"]:
         content = (WORKER_DIR / f).read_text(encoding="utf-8")
         assert not secret_pattern.search(content), f"Possible hardcoded secret in {f}"
+
+def test_orchestrate_md_merge_section_contains_tasks_json_sync():
+    orchestrate_path = Path("commands/claude/orchestrate.md")
+    content = orchestrate_path.read_text(encoding="utf-8")
+    merge_section = content[content.find("## Merge"):] if "## Merge" in content else ""
+    assert "tasks.json" in merge_section or "cleanup_tasks.py" in merge_section, \
+        "Merge section must mention tasks.json or cleanup_tasks.py for atomic sync"
+
+def test_worker_system_md_workflow_contains_tasks_json_write():
+    content = (WORKER_DIR / "system.md").read_text(encoding="utf-8")
+    workflow_section = content[content.find("## Workflow"):] if "## Workflow" in content else ""
+    assert "tasks.json" in workflow_section and ("MERGED" in workflow_section or "merged" in workflow_section), \
+        "Workflow must instruct workers to write tasks.json when marking MERGED"

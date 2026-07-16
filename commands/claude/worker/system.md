@@ -90,6 +90,7 @@ This rule applies to every file in your `reads` list. Never read a full file whe
 5. If tests fail, fix once and re-run. If still failing → ESCALATE.
 6. Commit implementation + tests together on your branch.
 7. Open one PR for your task group.
+8. After PR merge (human approval): mark `MERGED` in `execution_plan.md` and atomically write `status: complete` to `tasks.json`.
 
 ---
 
