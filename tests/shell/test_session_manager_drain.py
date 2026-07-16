@@ -23,7 +23,7 @@ class TestDrainRestart:
         agentflow_dir.mkdir()
         (agentflow_dir / "current_round.json").write_text('{"task":"T-001"}')
         (agentflow_dir / "context_fill.json").write_text(json.dumps({"fill_tokens": 90000, "ts": "2026-07-10T00:00:00"}))
-        (agentflow_dir / "tasks_in_flight.json").write_text("[]")  # [] tombstone = drained
+        (agentflow_dir / "tasks_in_flight.json").write_text("[]")  # [] triggers drain; _write_merged_and_clear deletes file after drain (T-256)
 
         with patch.object(sm, "trigger_handoff") as mock_trigger, \
              patch.object(sm._state_machine, "on_enter_restarting"):
@@ -206,7 +206,7 @@ class TestSessionLifecycleDelegation:
         agentflow_dir.mkdir()
         (agentflow_dir / "current_round.json").write_text('{"task":"T-001"}')
         (agentflow_dir / "context_fill.json").write_text(json.dumps({"fill_tokens": 90000, "ts": "2026-07-10T00:00:00"}))
-        (agentflow_dir / "tasks_in_flight.json").write_text("[]")  # [] tombstone = drained
+        (agentflow_dir / "tasks_in_flight.json").write_text("[]")  # [] triggers drain; _write_merged_and_clear deletes file after drain (T-256)
 
         with patch.object(sm, "trigger_handoff") as mock_trigger, \
              patch.object(sm._state_machine, "on_enter_restarting"):
