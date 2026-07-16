@@ -273,3 +273,57 @@ def test_check_drain_restart_re_derives_from_tasks_json(tmp_path, monkeypatch):
         # Should have re-derived the pending tasks, not carried over old SID's data
         assert "T-999" not in tif_data  # Old SID's data should not be present
         assert "T-237" in tif_data or "T-238" in tif_data or len(tif_data) >= 0  # Pending tasks should be present if re-derived
+
+
+def test_poll_session_logs_sid_mismatch(tmp_path, monkeypatch):
+    """poll_session should log audit event when session_id is absent or mismatches."""
+    monkeypatch.setenv("AGENTFLOW_SESSION_ID", "env-sid")
+
+    mgr = _StubManager(tmp_path, States.IDLE, fill_tokens=50000)
+    agentflow_dir = tmp_path / ".agentflow"
+
+    # Test case 1: session_id absent from file
+    current_round_path = agentflow_dir / "current_round.json"
+    current_round_path.write_text(
+        json.dumps({
+            "round_id": "C1",
+            "task_ids": ["T-237"],
+            "timestamp": "2026-07-16T00:00:00Z"
+        })
+    )
+    mgr._last_current_round_mtime = 0.0
+
+    from agentflow.shell.handoff_handler import poll_session
+    poll_session(mgr)
+
+    # Should have logged the mismatch
+    audit_events = [call["event"] for call in mgr._audit_calls]
+    assert "poll_session_sid_mismatch" in audit_events
+
+    # Verify the logged values (file_sid should be None, env_sid should be "env-sid")
+    mismatch_call = next(call for call in mgr._audit_calls if call["event"] == "poll_session_sid_mismatch")
+    assert mismatch_call["file_sid"] is None
+    assert mismatch_call["env_sid"] == "env-sid"
+
+    # Test case 2: session_id mismatches
+    mgr._audit_calls.clear()
+    current_round_path.write_text(
+        json.dumps({
+            "round_id": "C2",
+            "task_ids": ["T-237"],
+            "session_id": "old-sid",
+            "timestamp": "2026-07-16T00:00:00Z"
+        })
+    )
+    mgr._last_current_round_mtime = 0.0
+
+    poll_session(mgr)
+
+    # Should have logged the mismatch
+    audit_events = [call["event"] for call in mgr._audit_calls]
+    assert "poll_session_sid_mismatch" in audit_events
+
+    # Verify the logged values (file_sid should be "old-sid", env_sid should be "env-sid")
+    mismatch_call = next(call for call in mgr._audit_calls if call["event"] == "poll_session_sid_mismatch")
+    assert mismatch_call["file_sid"] == "old-sid"
+    assert mismatch_call["env_sid"] == "env-sid"

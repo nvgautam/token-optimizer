@@ -139,6 +139,11 @@ def poll_session(manager) -> None:
                         env_sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
                         # Skip transition if session_id is missing or doesn't match env var
                         if not file_sid or file_sid != env_sid:
+                            manager._log_audit({
+                                "event": "poll_session_sid_mismatch",
+                                "file_sid": file_sid,
+                                "env_sid": env_sid,
+                            })
                             return
                     except Exception as e:
                         manager._log_audit({"event": "poll_session_current_round_read_error", "error": str(e)})
