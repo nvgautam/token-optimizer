@@ -117,7 +117,11 @@ def poll_session(manager) -> None:
                         file_sid = data.get("session_id")
                         env_sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
                         if not file_sid or file_sid != env_sid:
-                            manager._log_audit({"event": "poll_session_sid_mismatch", "file_sid": file_sid, "env_sid": env_sid})
+                            key = "_skip_last_poll_session_sid_mismatch"
+                            now = time.monotonic()
+                            if now - getattr(manager, key, 0.0) >= 300.0:
+                                setattr(manager, key, now)
+                                manager._log_audit({"event": "poll_session_sid_mismatch", "file_sid": file_sid, "env_sid": env_sid})
                             return
                     except Exception as e:
                         manager._log_audit({"event": "poll_session_current_round_read_error", "error": str(e)})
