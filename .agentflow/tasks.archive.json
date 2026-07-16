@@ -1941,5 +1941,29 @@
     ],
     "estimated_lines": 35,
     "status": "complete"
+  },
+  {
+    "task_id": "T-227",
+    "title": "Make session_type determination fully deterministic \u2014 remove root-level fallback when SID present, TDD all edge cases",
+    "status": "complete",
+    "estimated_lines": 80,
+    "depends_on": [
+      "T-225"
+    ],
+    "owns": [
+      "agentflow/shell/threshold_sync.py",
+      "tests/shell/test_threshold_sync.py"
+    ]
+  },
+  {
+    "task_id": "T-228",
+    "title": "Atomic tasks.json sync on merge \u2014 close execution_plan/tasks.json split-brain gap",
+    "status": "complete",
+    "estimated_lines": 40,
+    "depends_on": [],
+    "owns": [
+      "commands/claude/orchestrate.md",
+      "commands/claude/worker/system.md"
+    ]
   }
 ]
