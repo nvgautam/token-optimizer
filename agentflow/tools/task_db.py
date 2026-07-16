@@ -54,6 +54,12 @@ class TaskDB:
                     definition TEXT
                 )"""
             )
+            conn.execute(
+                """CREATE TABLE IF NOT EXISTS rounds (
+                    key   TEXT PRIMARY KEY,
+                    value TEXT NOT NULL
+                )"""
+            )
             conn.commit()
 
     def _bootstrap_from_json(self) -> None:
@@ -192,3 +198,39 @@ class TaskDB:
             os.replace(tmp_path, self.tasks_json_path)
         except Exception:
             pass
+
+    # ------------------------------------------------------------------
+    # Rounds tracking
+    # ------------------------------------------------------------------
+
+    def set_active_round(self, round_id: str, task_ids: list[str]) -> None:
+        """Persist the active round atomically (INSERT OR REPLACE)."""
+        value = json.dumps({"round_id": round_id, "task_ids": task_ids})
+        with self._connect() as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute(
+                "INSERT OR REPLACE INTO rounds (key, value) VALUES ('active_round', ?)",
+                (value,),
+            )
+            conn.commit()
+
+    def get_active_round(self) -> "tuple[str, list[str]] | None":
+        """Return (round_id, task_ids) or None if no active round is stored."""
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT value FROM rounds WHERE key = 'active_round'"
+            ).fetchone()
+        if row is None:
+            return None
+        try:
+            data = json.loads(row[0])
+            return data["round_id"], data["task_ids"]
+        except Exception:
+            return None
+
+    def clear_active_round(self) -> None:
+        """Remove the active_round entry from the rounds table."""
+        with self._connect() as conn:
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("DELETE FROM rounds WHERE key = 'active_round'")
+            conn.commit()
