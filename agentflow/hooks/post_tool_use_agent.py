@@ -2,7 +2,6 @@
 """PostToolUse hook (Agent + Bash): task_done signal + tasks_in_flight drain.
 Debug log: .agentflow/hook_drain_debug.jsonl — one JSON line per hook firing.
 """
-
 import fcntl
 import json
 import os
@@ -13,8 +12,6 @@ import time
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from agentflow.shell.session_paths import session_file
-
-
 def _find_workspace_root() -> Path:
     cwd = Path.cwd()
     for parent in [cwd, *cwd.parents]:
@@ -28,8 +25,6 @@ def _log(agentflow_dir: Path, entry: dict) -> None:
             f.write(json.dumps({"ts": time.time(), **entry}) + "\n")
     except Exception:
         pass
-
-
 def _fetch_merged_pr_titles(limit: int = 20) -> set[str]:
     try:
         r = subprocess.run(["gh", "pr", "list", "--state", "merged", "--json", "title", "--limit", str(limit)],
@@ -105,47 +100,49 @@ def _check_pr_state(pr_url: str) -> str | None:
 
 
 def _handle_pr_merge(cmd: str, in_flight: list[str], agentflow_dir: Path, root: Path, tasks_file: Path) -> None:
-    """Direct path: extract PR number from gh pr merge N, call gh pr view, handle MERGED/OPEN."""
-    m = re.search(r'gh pr merge (\d+)', cmd)
+    """Direct path: extract all PR numbers from gh pr merge N [M...], call gh pr view for each, handle MERGED/OPEN."""
+    m = re.search(r'gh pr merge\s+(.*)', cmd)
     if not m:
         return
-    pr_num = m.group(1)
-    try:
-        r = subprocess.run(
-            ["gh", "pr", "view", pr_num, "--json", "url,title,state"],
-            capture_output=True, text=True, timeout=5, check=False,
-        )
-        if r.returncode != 0:
-            return
-        data = json.loads(r.stdout)
-    except Exception as e:
-        print(json.dumps({"hook": "post_tool_use_agent.py", "event": "handle_pr_merge_view_error", "error": str(e), "pr_num": pr_num, "ts": time.time()}), file=sys.stderr)
-        return
+    pr_nums = re.findall(r'\d+', m.group(1))
 
-    url = data.get("url", "")
-    title = data.get("title", "")
-    state = data.get("state", "")
-
-    tm = re.search(r'\b(T-\d+)\b', title)
-    task_id = tm.group(1) if tm else (in_flight[0] if len(in_flight) == 1 else None)
-    if not task_id:
-        return
-    _log(agentflow_dir, {"event": "pr_merge_direct", "pr_num": pr_num, "task_id": task_id, "state": state})
-
-    if state == "MERGED":
-        result = _mark_task_complete(tasks_file, task_id)
-        if result in ("marked", "already_complete"):
-            _run_cleanup(root)
+    for pr_num in pr_nums:
         try:
-            signal_script = root / "agentflow" / "shell" / "pty_signal.py"
-            subprocess.run(
-                [sys.executable, str(signal_script), "task_done", task_id],
-                check=False, capture_output=True,
+            r = subprocess.run(
+                ["gh", "pr", "view", pr_num, "--json", "url,title,state"],
+                capture_output=True, text=True, timeout=5, check=False,
             )
+            if r.returncode != 0:
+                continue
+            data = json.loads(r.stdout)
         except Exception as e:
-            _log(agentflow_dir, {"event": "handle_pr_merge_signal_error", "error": str(e), "task_id": task_id})
-    elif state == "OPEN":
-        _register_pr_url(agentflow_dir, task_id, url)
+            print(json.dumps({"hook": "post_tool_use_agent.py", "event": "handle_pr_merge_view_error", "error": str(e), "pr_num": pr_num, "ts": time.time()}), file=sys.stderr)
+            continue
+
+        url = data.get("url", "")
+        title = data.get("title", "")
+        state = data.get("state", "")
+
+        tm = re.search(r'\b(T-\d+)\b', title)
+        task_id = tm.group(1) if tm else (in_flight[0] if len(in_flight) == 1 else None)
+        if not task_id:
+            continue
+        _log(agentflow_dir, {"event": "pr_merge_direct", "pr_num": pr_num, "task_id": task_id, "state": state})
+
+        if state == "MERGED":
+            result = _mark_task_complete(tasks_file, task_id)
+            if result in ("marked", "already_complete"):
+                _run_cleanup(root)
+            try:
+                signal_script = root / "agentflow" / "shell" / "pty_signal.py"
+                subprocess.run(
+                    [sys.executable, str(signal_script), "task_done", task_id],
+                    check=False, capture_output=True,
+                )
+            except Exception as e:
+                _log(agentflow_dir, {"event": "handle_pr_merge_signal_error", "error": str(e), "task_id": task_id})
+        elif state == "OPEN":
+            _register_pr_url(agentflow_dir, task_id, url)
 
 
 def main() -> None:
@@ -194,7 +191,8 @@ def main() -> None:
     except Exception as e:
         _log(agentflow_dir, {"event": "load_task_prs_error", "error": str(e)})
     merged_titles = _fetch_merged_pr_titles()
-    _log(agentflow_dir, {"event": "merge_check_start", "in_flight": in_flight, "task_pr_urls_keys": list(task_pr_urls.keys()), "merged_title_count": len(merged_titles)})
+    drain_start_time = time.time()
+    _log(agentflow_dir, {"event": "drain_start", "in_flight_count": len(in_flight), "in_flight": in_flight})
 
     pr_states: dict[str, str | None] = {}
     mark_results: dict[str, str] = {}
@@ -212,8 +210,6 @@ def main() -> None:
             mark_results[task_id] = result
             if result in ("marked", "already_complete"):
                 _run_cleanup(root)
-
-    _log(agentflow_dir, {"event": "merge_check_done", "pr_states": pr_states, "mark_results": mark_results})
     try:
         tasks_data = json.loads(tasks_file.read_text())
     except Exception as e:
@@ -243,7 +239,11 @@ def main() -> None:
         except Exception as e:
             _log(agentflow_dir, {"event": "drain_write_in_flight_error", "error": str(e)})
 
-    _log(agentflow_dir, {"event": "drain_done", "completed": completed, "signal_results": signal_results, "still_in_flight": still_in_flight})
+    drain_elapsed = time.time() - drain_start_time
+    _log(agentflow_dir, {"event": "drain_complete", "completed_count": len(completed), "elapsed": drain_elapsed, "total_tasks": len(in_flight)})
+    if still_in_flight:
+        _log(agentflow_dir, {"event": "drain_partial", "still_in_flight": still_in_flight, "completed_count": len(completed)})
+
     sys.exit(0)
 
 if __name__ == "__main__":
