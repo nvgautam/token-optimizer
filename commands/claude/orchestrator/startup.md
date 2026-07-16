@@ -47,7 +47,7 @@ Then `Read(offset=<start>, limit=<end-start+1>)`.
 
 `tasks.json` — extract pending entries only, never read full file:
 ```bash
-python3 -c "import sqlite3,json; conn=sqlite3.connect('.agentflow/tasks.db'); conn.row_factory=sqlite3.Row; [print(json.dumps({k:v for k,v in dict(r).items() if k not in ('definition','description')})) for r in conn.execute(\"SELECT task_id,status FROM tasks WHERE status='pending'\")]"
+python3 -c "import json; d=json.load(open('tasks.json')); [print(json.dumps({k:v for k,v in t.items() if k != 'description'})) for t in d['tasks'] if t['status']=='pending']"
 ```
 
 Check `.agentflow/state.json`. Present → report resumed state and ask "Continue?". Absent → identify first incomplete milestone. `/orchestrate debug` → reveal grouping plan and ask "Proceed?".
