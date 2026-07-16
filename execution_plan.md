@@ -446,10 +446,15 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | session-iso-2g — MERGED (PR #136 2026-07-15) | T-223 | Hook-driven task_start via PreToolUse Agent + fix drain paths (gh pr view race, SID path, outside-CLI merge) |
 | session-iso-3 — MERGED (PR #137/#138/#139 2026-07-15) | T-202 ‖ T-204 ‖ T-207 (parallel) | Migrate reads, threshold_sync, stale cleanup (depends session-iso-2f, T-200, T-201, T-203) |
 | observability-1 — MERGED (PR #142/#143 2026-07-16) | T-225 ‖ T-226 (parallel) | Shell + hook exception handlers — replace silent except:pass with structured audit log / stderr JSON entries |
-| observability-2 | T-227 (depends T-225) | session_type determination — remove root-level fallback when SID present, TDD all edge cases |
-| Later | T-063, T-099, T-162, T-167, T-168, T-178, T-210, T-211 | Multi-provider + Gemini oracle + oracle polish + hook audit + test cleanup + Gemini lifecycle spike |
+| observability-2 — MERGED (PR #144 2026-07-16) | T-227 (depends T-225) | session_type determination — remove root-level fallback when SID present, TDD all edge cases |
+| A (next) | T-228 ‖ T-230 (parallel) | Atomic merge sync + orchestrator worktree lifecycle — closes two orthogonal orchestrate reliability gaps |
+| B | T-229 | Flock on tasks.json/state.json/execution_plan.md — closes runtime write-write races |
+| C | T-162 ‖ T-210 (parallel) | oracle.md size split + test cache leak fix — maintenance unblocking clean forward work |
+| D | T-178 ‖ T-211 ‖ T-231 (parallel) | Hook audit log spike + Gemini lifecycle spike + SQLite spike |
+| E | T-167 ‖ T-168 (parallel) | Oracle Phase 3 plan-mode preview + product judgment layer |
+| F | T-063 → T-064 → T-099 (sequential) | Multi-provider chain (enterprise) |
 
-Priority rationale (2026-07-10): Demo goal is orchestrate seamlessly looping — picks tasks that fit in one session, processes, recycles PTY, repeats. Demo-1 closes the gap where task selection is unbounded (T-068 estimates cost, T-064 checks headroom before claiming). Demo-2 wires scheduling to respect the budget. Demo-3 adds savings proof. Cross-provider (T-063, T-099) deferred; Claude-only for demo. Old rounds E/F dissolved into Demo-1–3.
+Priority rationale (2026-07-16): Rounds A/B close orchestrate reliability gaps (split-brain + write races) before resuming feature work. Round C is maintenance that unblocks clean edits. Rounds D–E are spikes and oracle enhancements. Round F is multi-provider / enterprise, deferred until Claude-only loop is solid.
 
 ---
 
@@ -893,3 +898,30 @@ tif = session_file(project_root / ".agentflow", "tasks_in_flight.json", os.envir
 
 **Owns:** `agentflow/hooks/user_prompt_submit.py`, `agentflow/hooks/verbosity_reminder.py`, all other hook files for sys.path fix
 **estimated_lines:** 35
+
+## Addendum: T-228
+
+**Title:** Atomic tasks.json sync on merge — close execution_plan/tasks.json split-brain gap
+
+When a worker marks a task MERGED in execution_plan.md, it must atomically write `status=complete` to tasks.json in the same step. Currently execution_plan.md is updated by the worker but tasks.json update is expected from the orchestrator — if the session exits or restarts between those two writes, tasks.json is left stale (pending) while execution_plan.md shows MERGED. Fix: (1) update orchestrate.md post-merge step to write tasks.json immediately after confirming merge; (2) update worker/system.md post-merge checklist to include tasks.json write as a required atomic step alongside execution_plan.md; (3) confirm the startup reconciliation guard auto-repairs by writing `complete` when MERGED detected. Tests: assert worker post-merge checklist contains tasks.json write step.
+
+**Owns:** `commands/claude/orchestrate.md`, `commands/claude/worker/system.md`
+**estimated_lines:** 40
+
+## Addendum: T-229
+
+**Title:** Extend flock to tasks.json, state.json, execution_plan.md — close write-write and stale-read races
+
+Three shared files have no write locking and are written concurrently by oracle, orchestrate, and hooks: (1) tasks.json — oracle files tasks, orchestrate marks complete, both do raw json.dump with no lock; (2) execution_plan.md — oracle updates round table, orchestrate reads/writes on startup; (3) state.json — orchestrate writes next_round/next_tasks, oracle can overwrite with stale value. Fix: extend the existing flock pattern (already on tasks_in_flight.json) to all three files using `.agentflow/<file>.lock` files. All writers — oracle edits, orchestrate skill steps, hook cleanup paths — must acquire the lock before writing. Tests: concurrent write test asserting no torn JSON and no lost updates.
+
+**Owns:** `agentflow/hooks/user_prompt_submit.py`, `agentflow/shell/handoff_handler.py`, `agentflow/shell/session_manager.py`, `commands/claude/oracle.md`, `commands/claude/orchestrate.md`
+**estimated_lines:** 60
+
+## Addendum: T-230
+
+**Title:** Orchestrator creates worktree before spawning worker + ban git checkout in project root
+
+Root cause of oracle/orchestrate branch contamination: orchestrate session runs `git checkout <branch>` in the main project directory, leaving it on a feature branch when oracle sessions start. Fix: (1) update orchestrate.md — orchestrator must run `git worktree add .claude/worktrees/<name> -b <branch>` BEFORE spawning the worker, then pass the worktree path in the context bundle; (2) add explicit constraint to orchestrate.md: never run `git checkout` in the project root — use `git show <branch>:path` or `gh pr diff` for branch inspection; (3) worker receives a pre-created worktree path and calls EnterWorktree with that path rather than creating the branch itself. Keeps main project directory always on main, preventing stash contamination of parallel sessions.
+
+**Owns:** `commands/claude/orchestrate.md`
+**estimated_lines:** 30

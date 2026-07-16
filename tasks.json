@@ -901,7 +901,7 @@
     {
       "task_id": "T-227",
       "title": "Make session_type determination fully deterministic \u2014 remove root-level fallback when SID present, TDD all edge cases",
-      "status": "pending",
+      "status": "complete",
       "estimated_lines": 80,
       "depends_on": [
         "T-225"
@@ -920,8 +920,41 @@
       "owns": [
         "commands/claude/orchestrate.md",
         "commands/claude/worker/system.md"
+      ]
+    },
+    {
+      "task_id": "T-229",
+      "title": "Extend flock to tasks.json, state.json, execution_plan.md \u2014 close write-write and stale-read races between parallel sessions",
+      "status": "pending",
+      "estimated_lines": 60,
+      "depends_on": [],
+      "owns": [
+        "agentflow/hooks/user_prompt_submit.py",
+        "agentflow/shell/handoff_handler.py",
+        "agentflow/shell/session_manager.py",
+        "commands/claude/oracle.md",
+        "commands/claude/orchestrate.md"
+      ]
+    },
+    {
+      "task_id": "T-230",
+      "title": "Orchestrator creates worktree before spawning worker + ban git checkout in project root",
+      "status": "pending",
+      "estimated_lines": 30,
+      "depends_on": [],
+      "owns": [
+        "commands/claude/orchestrate.md"
+      ]
+    },
+    {
+      "task_id": "T-231",
+      "title": "Spike: SQLite for shared state files \u2014 replace flock with ACID writes",
+      "status": "pending",
+      "estimated_lines": 0,
+      "depends_on": [
+        "T-229"
       ],
-      "description": "When a worker marks a task MERGED in execution_plan.md, it must atomically write status=complete to tasks.json in the same step. Currently execution_plan.md is updated by the worker but tasks.json is expected to be updated by the orchestrator \u2014 if the orchestrator session exits or restarts between those two writes, tasks.json is left stale (pending) while execution_plan.md shows MERGED. Fix: (1) update orchestrate.md post-merge step to write tasks.json immediately after confirming merge; (2) update worker/system.md post-merge checklist to include tasks.json write as a required atomic step alongside execution_plan.md; (3) add startup reconciliation guard (already exists as the detection message) \u2014 confirm it auto-repairs by writing complete when MERGED detected. Tests: assert that the worker post-merge checklist in system.md contains tasks.json write step."
+      "owns": []
     }
   ]
 }
