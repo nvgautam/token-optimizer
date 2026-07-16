@@ -1,8 +1,4 @@
 {
-  "project": "agentflow",
-  "version": "2.0.0",
-  "repo": ".",
-  "description": "Provider-agnostic multi-agent project management: skills for Claude and Gemini + PTY overlay shell",
   "tasks": [
     {
       "task_id": "T-182",
@@ -916,13 +912,7 @@
     },
     {
       "task_id": "T-231",
-      "title": "Spike: SQLite for shared state files \u2014 replace flock with ACID writes",
-      "status": "pending",
-      "estimated_lines": 0,
-      "depends_on": [
-        "T-229"
-      ],
-      "owns": []
+      "status": "complete"
     },
     {
       "task_id": "T-232",
@@ -930,13 +920,7 @@
     },
     {
       "task_id": "T-233",
-      "title": "Verbosity rule: never narrate internal mechanics in orchestrator/worker output",
-      "status": "pending",
-      "estimated_lines": 15,
-      "depends_on": [],
-      "owns": [
-        "commands/claude/orchestrator/verbosity.md"
-      ]
+      "status": "complete"
     },
     {
       "task_id": "T-234",
@@ -974,24 +958,11 @@
     },
     {
       "task_id": "T-237",
-      "title": "Fix T-218 gap: orchestrate restart uses new SID + re-derive state from tasks.json",
-      "status": "pending",
-      "estimated_lines": 40,
-      "owns": [
-        "commands/claude/orchestrate.md",
-        "agentflow/shell/handoff_handler.py"
-      ],
-      "description": "On PTY restart the orchestrator currently falls back to spawn_new_child_no_session_id because orchestrate.md skill never writes session_id to current_round.json. Fix: (1) Accept new SID on each restart rather than attempting same-SID continuity \u2014 each restart gets a clean per-SID state folder. (2) On restart, re-derive in-flight task state from tasks.json (ground truth) rather than reading stale per-SID volatile files from the previous SID. (3) Remove or gate the spawn_new_child_no_session_id fallback path \u2014 it should not fire when SID is available from the new spawn. Tests: assert handoff_handler.py does not read old-SID tasks_in_flight on restart; assert re-derived in-flight list matches tasks.json pending state."
+      "status": "complete"
     },
     {
       "task_id": "T-238",
-      "title": "Spec and implement /debug skill for AgentFlow troubleshooting",
-      "status": "pending",
-      "estimated_lines": 80,
-      "owns": [
-        "commands/claude/debug.md"
-      ],
-      "description": "Create a /debug skill (commands/claude/debug.md) that provides a structured, low-token diagnostic protocol for AgentFlow failures. Protocol: (1) Read audit log (most recent N entries); (2) Diff SID folders chronologically \u2014 identify which run wrote what; (3) Inspect current_round.json + tasks_in_flight.json for state inconsistencies; (4) Check tasks.json vs in-flight state for split-brain; (5) Surface root cause with a fix recommendation. Skill should lazy-load only the files needed for the reported symptom. No sub-skill within oracle \u2014 separate invocation: /debug. Tests: assert debug.md is <= 150 lines; assert protocol covers at least PTY-restart, drain-stuck, and split-brain symptom classes."
+      "status": "complete"
     },
     {
       "task_id": "T-239",
@@ -1006,14 +977,7 @@
     },
     {
       "task_id": "T-240",
-      "title": "Split .claude/worktrees/t229-flock-shared-files/commands/claude/oracle.md \u2014 size violation",
-      "description": "Split .claude/worktrees/t229-flock-shared-files/commands/claude/oracle.md (151 lines, limit 150). Violation timestamp: 2026-07-16T07:35:30.480835. Choose the split boundary by phase/section responsibility, not line count. Extract a cohesive section into a sub-file; replace with 'Lazy load: Read <subfile>.md now.' Verify each output file is \u2264 150 lines after splitting.",
-      "owns": [
-        ".claude/worktrees/t229-flock-shared-files/commands/claude/oracle.md"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-241",
@@ -1025,6 +989,94 @@
       "reads": [],
       "depends_on": [],
       "status": "pending"
+    },
+    {
+      "task_id": "T-242",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-243",
+      "title": "Configure Claude / Claude2 worker sessions to start with auto-mode enabled by default",
+      "description": "When AgentFlow spawns Claude or Claude2 worker sessions (via orchestrate.md skill), ensure auto-mode is active from session start so workers do not stop to request permission on each action. Investigate correct mechanism (--yes flag, settings.json autoApprove, or env var) and wire it into the worker launch path. Must not affect oracle/interactive sessions.",
+      "owns": [],
+      "reads": [
+        "commands/claude/orchestrate.md",
+        "agentflow/config/models.py"
+      ],
+      "depends_on": [],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-245",
+      "title": "Split .claude/worktrees/t237-restart-sid/commands/claude/orchestrate.md \u2014 size violation",
+      "description": "Split .claude/worktrees/t237-restart-sid/commands/claude/orchestrate.md (162 lines, limit 150). Violation timestamp: 2026-07-16T11:33:09.619306. Choose the split boundary by phase/section responsibility, not line count. Extract a cohesive section into a sub-file; replace with 'Lazy load: Read <subfile>.md now.' Verify each output file is \u2264 150 lines after splitting.",
+      "owns": [
+        ".claude/worktrees/t237-restart-sid/commands/claude/orchestrate.md"
+      ],
+      "reads": [],
+      "depends_on": [],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-244",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-246",
+      "title": "Split tests/test_post_tool_use_agent.py \u2014 size violation",
+      "description": "Split tests/test_post_tool_use_agent.py (413 lines, limit 350). Violation timestamp: 2026-07-16T11:30:51.884312. Choose the split boundary by test class or fixture group, not line count. Verify each output file is \u2264 350 lines after splitting.",
+      "owns": [
+        "tests/test_post_tool_use_agent.py"
+      ],
+      "reads": [],
+      "depends_on": [],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-247",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-248",
+      "title": "Split .claude/worktrees/t231-sqlite-migration/agentflow/hooks/user_prompt_submit.py \u2014 size violation",
+      "description": "Split .claude/worktrees/t231-sqlite-migration/agentflow/hooks/user_prompt_submit.py (257 lines, limit 250). Violation timestamp: 2026-07-16T13:22:53.019574. Read the file first, identify distinct responsibilities, then choose the split boundary by domain. Verify each output file is \u2264 250 lines after splitting.",
+      "owns": [
+        ".claude/worktrees/t231-sqlite-migration/agentflow/hooks/user_prompt_submit.py"
+      ],
+      "reads": [],
+      "depends_on": [],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-249",
+      "title": "Split .claude/worktrees/t244-remove-enterworktree/commands/claude/orchestrate.md \u2014 size violation",
+      "description": "Split .claude/worktrees/t244-remove-enterworktree/commands/claude/orchestrate.md (163 lines, limit 150). Violation timestamp: 2026-07-16T17:09:05.411082. Choose the split boundary by phase/section responsibility, not line count. Extract a cohesive section into a sub-file; replace with 'Lazy load: Read <subfile>.md now.' Verify each output file is \u2264 150 lines after splitting.",
+      "owns": [
+        ".claude/worktrees/t244-remove-enterworktree/commands/claude/orchestrate.md"
+      ],
+      "reads": [],
+      "depends_on": [],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-250",
+      "status": "pending",
+      "title": "Fix debug.md KeyError \u2014 read session_id from current_round.json not state.json"
+    },
+    {
+      "task_id": "T-251",
+      "status": "pending",
+      "title": "SQLite round table + drain cleanup \u2014 migrate execution_plan rounds to SQLite, write MERGED in check_drain_restart, clear active_round/active_tasks on drain"
+    },
+    {
+      "task_id": "T-252",
+      "status": "pending",
+      "title": "Remove dead HANDOFF RECOMMENDED emit from orchestrate.md (line 5 of post-merge cleanup block)"
+    },
+    {
+      "task_id": "T-253",
+      "status": "pending",
+      "title": "Remove file-based round/state cleanup code \u2014 execution_plan.md round tracking, state.json active_round/active_tasks writes, orchestrate.md post-merge LLM steps 1-4 (dead after T-251)"
     }
   ]
 }
