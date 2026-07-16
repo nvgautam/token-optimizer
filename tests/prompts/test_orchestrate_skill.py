@@ -297,3 +297,30 @@ def test_gemini_orchestrate_size_limit():
     """SKILL.md must not exceed 150 lines (CLAUDE.md prompts constraint)"""
     lines = GEMINI_ORCHESTRATE.read_text(encoding="utf-8").splitlines()
     assert len(lines) <= 150, f"Gemini SKILL.md is {len(lines)} lines (limit 150)"
+
+
+# T-230: Worktree lifecycle — orchestrator pre-creates, worker enters
+
+def test_orchestrate_pre_creates_worktree():
+    """T-230: orchestrate.md must instruct orchestrator to pre-create worktree before spawning."""
+    content = CLAUDE_ORCHESTRATE.read_text(encoding="utf-8")
+    assert "git worktree add" in content, \
+        "orchestrate.md must instruct orchestrator to run `git worktree add` before spawning"
+    assert ".claude/worktrees/" in content, \
+        "orchestrate.md must specify .claude/worktrees/ as the worktree location"
+
+
+def test_orchestrate_bans_git_checkout_in_root():
+    """T-230: orchestrate.md must explicitly ban `git checkout` in the project root."""
+    content = CLAUDE_ORCHESTRATE.read_text(encoding="utf-8")
+    assert "Never" in content and "git checkout" in content, \
+        "orchestrate.md must explicitly ban `git checkout` in the project root"
+    assert "git show" in content or "gh pr diff" in content, \
+        "orchestrate.md must provide branch-safe inspection alternatives"
+
+
+def test_orchestrate_worker_enters_existing_worktree():
+    """T-230: orchestrate.md must instruct worker to call EnterWorktree with pre-created path."""
+    content = CLAUDE_ORCHESTRATE.read_text(encoding="utf-8")
+    assert "EnterWorktree" in content, \
+        "orchestrate.md must reference EnterWorktree for workers to enter pre-created worktrees"
