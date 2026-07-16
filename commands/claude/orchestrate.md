@@ -57,13 +57,14 @@ Close every prompt: `"End your final message with TOKENS: input=N output=N — n
 Spawn one agent per group with the selected `model`; pass the worktree path in the context bundle (worker calls `EnterWorktree(path=.claude/worktrees/<branch>)` as its first step — do **not** use `isolation: "worktree"`, the worktree is pre-created). Parallel only if no cross-dependencies and rate supports. Save `.agentflow/state.json` after each.
 
 ### Round Lifecycle & PTY Signals
-At the start of each round, write `.agentflow/current_round.json` with the following schema:
+At the start of each round, write `.agentflow/current_round.json` with the following schema (T-237: include session_id):
 ```json
 {
   "round_id": "string",
   "task_ids": ["string"],
   "estimated_lines_per_task": {"task_id": "int"},
   "file_counts_per_task": {"task_id": "int"},
+  "session_id": "$AGENTFLOW_SESSION_ID",
   "timestamp": "ISO8601"
 }
 ```

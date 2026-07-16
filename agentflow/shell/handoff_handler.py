@@ -131,13 +131,14 @@ def poll_session(manager) -> None:
             try:
                 mtime = manager._current_round_path.stat().st_mtime
                 if mtime > manager._last_current_round_mtime:
-                    # T-218: Validate session_id field before transitioning
+                    # T-237: Validate session_id field before transitioning
+                    # Require session_id to be present and match env var to prevent stale files
                     try:
                         data = json.loads(manager._current_round_path.read_text(encoding="utf-8"))
                         file_sid = data.get("session_id")
                         env_sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
-                        # Skip transition if file has session_id AND it doesn't match env var
-                        if file_sid and file_sid != env_sid:
+                        # Skip transition if session_id is missing or doesn't match env var
+                        if not file_sid or file_sid != env_sid:
                             return
                     except Exception as e:
                         manager._log_audit({"event": "poll_session_current_round_read_error", "error": str(e)})
