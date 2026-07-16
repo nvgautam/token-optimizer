@@ -448,8 +448,8 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | observability-1 — MERGED (PR #142/#143 2026-07-16) | T-225 ‖ T-226 (parallel) | Shell + hook exception handlers — replace silent except:pass with structured audit log / stderr JSON entries |
 | observability-2 — MERGED (PR #144 2026-07-16) | T-227 (depends T-225) | session_type determination — remove root-level fallback when SID present, TDD all edge cases |
 | A (next) | T-228 ‖ T-230 (parallel) | Atomic merge sync + orchestrator worktree lifecycle — closes two orthogonal orchestrate reliability gaps |
-| B | T-229 | Flock on tasks.json/state.json/execution_plan.md — closes runtime write-write races |
-| C | T-162 ‖ T-210 (parallel) | oracle.md size split + test cache leak fix — maintenance unblocking clean forward work |
+| B | T-229 ‖ T-232 (parallel) | Flock on shared files + PostToolUse merge-detection hook — deterministic state sync on PR merge |
+| C | T-162 ‖ T-210 ‖ T-233 ‖ T-234 (parallel) | oracle.md size split + test cache leak + verbosity rule + context bundle temp file |
 | D | T-178 ‖ T-211 ‖ T-231 (parallel) | Hook audit log spike + Gemini lifecycle spike + SQLite spike |
 | E | T-167 ‖ T-168 (parallel) | Oracle Phase 3 plan-mode preview + product judgment layer |
 | F | T-063 → T-064 → T-099 (sequential) | Multi-provider chain (enterprise) |
@@ -925,3 +925,30 @@ Root cause of oracle/orchestrate branch contamination: orchestrate session runs 
 
 **Owns:** `commands/claude/orchestrate.md`
 **estimated_lines:** 30
+
+## Addendum: T-232
+
+**Title:** PostToolUse hook: detect PR merge event and atomically update tasks.json + execution_plan.md
+
+When `session_type == "orchestrate"` and a Bash tool output contains `✓ Merged pull request`, parse the task_id from the PR title (format `fix(T-NNN):` / `feat(T-NNN):`), then atomically: (1) write `status: complete` to tasks.json with flock; (2) write `MERGED` marker to the corresponding Addendum section in execution_plan.md. Zero LLM calls, stdlib-only. Guard: only fires when `session_type == "orchestrate"` — oracle/other sessions skip entirely. Tests: mock Bash output with merged PR, assert both files updated atomically; assert oracle session_type skips the hook.
+
+**Owns:** `agentflow/hooks/post_tool_use.py`
+**estimated_lines:** 50
+
+## Addendum: T-233
+
+**Title:** Verbosity rule: never narrate internal mechanics in orchestrator/worker output
+
+Add rule to `commands/claude/orchestrator/verbosity.md`: "Never narrate compliance with hooks or internal mechanics — idx reads, flock, sys.path bootstrap, hook reminders, skill file names, cache paths. Comply silently. Never surface agentflow implementation details in user-facing output." This prevents IP leakage in demos and eliminates token-wasting narration (e.g. "The hook requires me to use indexed reads...").
+
+**Owns:** `commands/claude/orchestrator/verbosity.md`
+**estimated_lines:** 15
+
+## Addendum: T-234
+
+**Title:** Context bundle delivery via temp file — remove context bundle from Agent prompt arg
+
+Orchestrator writes context bundle to `.agentflow/ctx-<session-id>.json` before spawning a worker; passes only the file path in the Agent `prompt` arg. Worker reads and deletes the file on startup. UI shows a path reference, not bundle content; disk-based jailbreak vector eliminated once file is deleted. Guard: worker must handle missing file gracefully (fall back to error, not silent skip). Tests: assert Agent prompt arg contains only a path; assert file deleted after worker reads it.
+
+**Owns:** `commands/claude/orchestrate.md`
+**estimated_lines:** 40

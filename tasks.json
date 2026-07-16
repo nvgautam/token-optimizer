@@ -900,27 +900,11 @@
     },
     {
       "task_id": "T-227",
-      "title": "Make session_type determination fully deterministic \u2014 remove root-level fallback when SID present, TDD all edge cases",
-      "status": "complete",
-      "estimated_lines": 80,
-      "depends_on": [
-        "T-225"
-      ],
-      "owns": [
-        "agentflow/shell/threshold_sync.py",
-        "tests/shell/test_threshold_sync.py"
-      ]
+      "status": "complete"
     },
     {
       "task_id": "T-228",
-      "title": "Atomic tasks.json sync on merge \u2014 close execution_plan/tasks.json split-brain gap",
-      "status": "pending",
-      "estimated_lines": 40,
-      "depends_on": [],
-      "owns": [
-        "commands/claude/orchestrate.md",
-        "commands/claude/worker/system.md"
-      ]
+      "status": "complete"
     },
     {
       "task_id": "T-229",
@@ -955,6 +939,38 @@
         "T-229"
       ],
       "owns": []
+    },
+    {
+      "task_id": "T-232",
+      "title": "PostToolUse hook: detect PR merge event and atomically update tasks.json + execution_plan.md",
+      "status": "pending",
+      "estimated_lines": 50,
+      "depends_on": [
+        "T-228"
+      ],
+      "owns": [
+        "agentflow/hooks/post_tool_use.py"
+      ]
+    },
+    {
+      "task_id": "T-233",
+      "title": "Verbosity rule: never narrate internal mechanics in orchestrator/worker output",
+      "status": "pending",
+      "estimated_lines": 15,
+      "depends_on": [],
+      "owns": [
+        "commands/claude/orchestrator/verbosity.md"
+      ]
+    },
+    {
+      "task_id": "T-234",
+      "title": "Context bundle delivery via temp file \u2014 remove context bundle from Agent prompt arg",
+      "status": "pending",
+      "estimated_lines": 40,
+      "depends_on": [],
+      "owns": [
+        "commands/claude/orchestrate.md"
+      ]
     }
   ]
 }
