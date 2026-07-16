@@ -178,7 +178,10 @@ def _write_merged_and_clear(manager) -> None:
             db.clear_active_round()
     except Exception:
         pass
-    manager._log_audit({"event": "drain_merged_written", "round_id": rid, "task_ids": tids})
+    try:
+        manager._log_audit({"event": "drain_merged_written", "round_id": rid, "task_ids": tids})
+    except Exception:
+        pass
 
 
 def check_drain_restart(manager) -> None:
@@ -238,5 +241,8 @@ def check_drain_restart(manager) -> None:
         _skip("fill_tokens_below_threshold", fill_tokens=fill_tokens, threshold=threshold)
         return
     manager._log_audit({"event": "drain_restart_triggered", "fill_tokens": fill_tokens, "threshold": threshold})
-    _write_merged_and_clear(manager)
+    try:
+        _write_merged_and_clear(manager)
+    except Exception as e:
+        manager._log_audit({"event": "drain_merged_write_error", "error": str(e)})
     manager._state_machine.transition("restart_session")
