@@ -1076,6 +1076,17 @@
       "task_id": "T-253",
       "status": "pending",
       "title": "Remove file-based round/state cleanup code \u2014 execution_plan.md round tracking, state.json active_round/active_tasks writes, orchestrate.md post-merge LLM steps 1-4 (dead after T-251)"
+    },
+    {
+      "task_id": "T-254",
+      "title": "Split .claude/worktrees/t253-remove-file-based-cleanup/commands/claude/orchestrate.md \u2014 size violation",
+      "description": "Split .claude/worktrees/t253-remove-file-based-cleanup/commands/claude/orchestrate.md (161 lines, limit 150). Violation timestamp: 2026-07-16T22:53:12.640820. Choose the split boundary by phase/section responsibility, not line count. Extract a cohesive section into a sub-file; replace with 'Lazy load: Read <subfile>.md now.' Verify each output file is \u2264 150 lines after splitting.",
+      "owns": [
+        ".claude/worktrees/t253-remove-file-based-cleanup/commands/claude/orchestrate.md"
+      ],
+      "reads": [],
+      "depends_on": [],
+      "status": "pending"
     }
   ]
 }
