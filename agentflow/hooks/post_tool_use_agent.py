@@ -2,7 +2,6 @@
 """PostToolUse hook (Agent + Bash): task_done signal + tasks_in_flight drain.
 Debug log: .agentflow/hook_drain_debug.jsonl — one JSON line per hook firing.
 """
-import fcntl
 import json
 import os
 import re
@@ -12,6 +11,7 @@ import time
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from agentflow.shell.session_paths import session_file
+from agentflow.tools.task_db import TaskDB
 def _find_workspace_root() -> Path:
     cwd = Path.cwd()
     for parent in [cwd, *cwd.parents]:
@@ -36,25 +36,11 @@ def _fetch_merged_pr_titles(limit: int = 20) -> set[str]:
 
 
 def _mark_task_complete(tasks_file: Path, task_id: str) -> str:
-    """Mark task_id complete. Returns: 'marked'|'already_complete'|'not_found'|'locked'|'error'."""
+    """Mark task_id complete using SQLite. Returns: 'marked'|'already_complete'|'not_found'|'error'."""
     try:
-        with open(tasks_file, "r+") as f:
-            try:
-                fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except BlockingIOError:
-                return "locked"
-            try:
-                data = json.load(f)
-                for t in data.get("tasks", []):
-                    if t.get("task_id") == task_id:
-                        if t.get("status") != "pending":
-                            return "already_complete"
-                        t["status"] = "complete"
-                        f.seek(0); json.dump(data, f); f.truncate()
-                        return "marked"
-                return "not_found"
-            finally:
-                fcntl.flock(f, fcntl.LOCK_UN)
+        agentflow_dir = tasks_file.parent / ".agentflow"
+        db = TaskDB(agentflow_dir / "tasks.db", tasks_json_path=tasks_file)
+        return db.mark_complete(task_id)
     except Exception as e:
         return f"error:{e}"
 
@@ -73,17 +59,24 @@ def _is_pr_merge_bash(hook_data: dict) -> bool:
 
 
 def _register_pr_url(agentflow_dir: Path, task_id: str, pr_url: str) -> bool:
+    """Record PR URL for task_id in .agentflow/task_prs.json (atomic write)."""
+    import tempfile
     prs_file = agentflow_dir / "task_prs.json"
     try:
-        mode = "r+" if prs_file.exists() else "w+"
-        with open(prs_file, mode) as f:
-            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        data: dict = {}
+        if prs_file.exists():
             try:
-                data = json.load(f) if mode == "r+" else {}
-                data[task_id] = pr_url
-                f.seek(0); json.dump(data, f); f.truncate(); return True
-            finally:
-                fcntl.flock(f, fcntl.LOCK_UN)
+                data = json.loads(prs_file.read_text())
+            except Exception:
+                data = {}
+        data[task_id] = pr_url
+        with tempfile.NamedTemporaryFile(
+            mode="w", dir=agentflow_dir, delete=False, suffix=".tmp", encoding="utf-8"
+        ) as tmp:
+            json.dump(data, tmp)
+            tmp_path = Path(tmp.name)
+        os.replace(tmp_path, prs_file)
+        return True
     except (OSError, ValueError, json.JSONDecodeError):
         return False
 

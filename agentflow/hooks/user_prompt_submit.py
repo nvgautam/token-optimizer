@@ -2,7 +2,6 @@
 """UserPromptSubmit hook: clear signal files on /orchestrate and /handoff."""
 
 import contextlib
-import fcntl
 import json
 import os
 import subprocess
@@ -13,7 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from agentflow.shell.session_paths import session_file
-from agentflow.shell.pty_signal import file_lock
+from agentflow.tools.task_db import TaskDB
 
 
 def _check_pr_state(pr_url: str) -> str | None:
@@ -45,23 +44,12 @@ def _fetch_merged_pr_titles(limit: int = 20) -> set[str]:
 
 
 def _mark_task_complete(tasks_file: Path, task_id: str) -> bool:
-    """Mark task_id as complete using fcntl lock."""
+    """Mark task_id as complete using SQLite. Returns True if marked or already complete."""
     try:
-        with open(tasks_file, "r+") as f:
-            fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            try:
-                data = json.load(f)
-                for t in data.get("tasks", []):
-                    if t.get("task_id") == task_id and t.get("status") == "pending":
-                        t["status"] = "complete"
-                        f.seek(0)
-                        json.dump(data, f)
-                        f.truncate()
-                        return True
-                return False
-            finally:
-                fcntl.flock(f, fcntl.LOCK_UN)
-    except (OSError, ValueError):
+        agentflow_dir = tasks_file.parent / ".agentflow"
+        db = TaskDB(agentflow_dir / "tasks.db", tasks_json_path=tasks_file)
+        return db.mark_complete(task_id) in ("marked", "already_complete")
+    except Exception:
         return False
 
 
@@ -74,10 +62,7 @@ def _run_cleanup(root: Path) -> None:
 
 
 def _locked_write_tasks(tasks_file: Path, agentflow_dir: Path, task_id: str) -> bool:
-    """Mark task complete while holding lock on .agentflow/tasks.json.lock.
-
-    Acquires lock before reading tasks.json, updates task status, and writes back.
-    Lock is released before calling cleanup_tasks.py subprocess to prevent deadlock.
+    """Mark task complete using SQLite atomic transaction and run cleanup.
 
     Args:
         tasks_file: Path to tasks.json
@@ -85,44 +70,15 @@ def _locked_write_tasks(tasks_file: Path, agentflow_dir: Path, task_id: str) -> 
         task_id: Task ID to mark complete
 
     Returns:
-        True if task was marked complete, False if task not found or error occurred
+        True if task was marked complete or already complete, False on error
     """
-    lock_path = agentflow_dir / "tasks.json.lock"
-    found = False
-
     try:
-        with file_lock(lock_path):
-            # Read tasks.json
-            if not tasks_file.exists():
-                return False
-
-            try:
-                with open(tasks_file, "r") as f:
-                    data = json.load(f)
-            except (OSError, ValueError):
-                return False
-
-            # Find and mark task complete
-            for t in data.get("tasks", []):
-                if t.get("task_id") == task_id and t.get("status") == "pending":
-                    t["status"] = "complete"
-                    found = True
-                    break
-
-            if not found:
-                return False
-
-            # Write tasks.json back while holding lock
-            try:
-                with open(tasks_file, "w") as f:
-                    json.dump(data, f, indent=2)
-            except (OSError, ValueError):
-                return False
-        # Lock released here — cleanup subprocess can acquire its own lock
-
+        db = TaskDB(agentflow_dir / "tasks.db", tasks_json_path=tasks_file)
+        result = db.mark_complete(task_id)
+        if result not in ("marked", "already_complete"):
+            return False
         root = tasks_file.parent
         _run_cleanup(root)
-
         return True
     except Exception as e:
         _log_drain(agentflow_dir, {"event": "locked_write_tasks_error", "error": str(e), "task_id": task_id})
