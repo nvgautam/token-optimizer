@@ -96,6 +96,18 @@ No match → proceed without architecture context for that topic.
 
 **After each decision resolves, immediately append `| Topic | RESOLVED | Decision summary |` to `design_status.md` — no batching (PTY may restart mid-phase).**
 
+**Shared file locking (T-229):** Before writing `tasks.json`, `execution_plan.md`, or `state.json`, acquire the corresponding lockfile via Python:
+```python
+import fcntl, pathlib
+lock_path = pathlib.Path('.agentflow/tasks.json.lock')  # or .md or state.json
+lock_path.parent.mkdir(parents=True, exist_ok=True)
+with open(lock_path, 'a+') as f:
+    fcntl.flock(f, fcntl.LOCK_EX)  # blocks until lock acquired
+    # write the file here
+    fcntl.flock(f, fcntl.LOCK_UN)
+```
+Locks are advisory — all writers must cooperate.
+
 ### Batch HANDOFF signals
 
 | Batch | Signal |
