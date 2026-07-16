@@ -1,13 +1,14 @@
 {
-  "last_round": "C3b-pilot",
+  "last_round": "C3b-fix",
   "tasks_merged": [
     "T-247",
     "T-244",
     "T-233",
-    "T-238"
-  ],
-  "next_round": "C3b-fix",
-  "next_tasks": [
+    "T-238",
     "T-251"
+  ],
+  "next_round": "C3b-cleanup",
+  "next_tasks": [
+    "T-253"
   ]
 }

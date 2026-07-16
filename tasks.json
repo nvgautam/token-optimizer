@@ -1065,8 +1065,7 @@
     },
     {
       "task_id": "T-251",
-      "status": "pending",
-      "title": "SQLite round table + drain cleanup \u2014 migrate execution_plan rounds to SQLite, write MERGED in check_drain_restart, clear active_round/active_tasks on drain"
+      "status": "complete"
     },
     {
       "task_id": "T-252",
