@@ -1,9 +1,11 @@
 """Handoff logic extracted from session_manager."""
 from __future__ import annotations
+import fcntl
 import json
 import os
-import pathlib
+import re
 import signal
+import tempfile
 import time
 from agentflow.shell.state_machine import States
 from agentflow.shell.session_paths import session_file
@@ -17,15 +19,10 @@ _DEADLINES: dict[States, float] = {
 
 
 def handle_enter_handoff_pending(manager) -> None:
-    # Clear any stale handoff_complete so the poll loop cannot
-    # immediately re-trigger a restart from a previous session's file.
     stale = manager._handoff_complete_path
     if stale.exists():
         stale.unlink()
     if manager.session_type == "orchestrator":
-        # Orchestrate sessions manage their own context lifecycle — skip the /handoff LLM
-        # skill and write handoff_complete.json directly so the poll loop transitions to
-        # RESTARTING without burning extra tokens.
         hc_path = manager._handoff_complete_path
         try:
             hc_path.parent.mkdir(parents=True, exist_ok=True)
@@ -47,7 +44,6 @@ def trigger_handoff(manager, trigger: str = "auto") -> None:
         manager._log_audit({"event": "handoff_aborted", "trigger": trigger, "tokens": manager._last_accumulated_tokens, "session_type": manager.session_type})
         manager._state_machine.transition("pty_eof")
         return
-
     if not manager._manual_handoff:
         manager._manual_handoff = True
         manager._log_audit({"event": "manual_handoff_set", "source": "trigger_handoff"})
@@ -59,22 +55,18 @@ def trigger_handoff(manager, trigger: str = "auto") -> None:
 
 
 def _reap_child(pid: int, timeout: float = 2.0) -> None:
-    """Non-blocking waitpid loop — avoids hanging if SIGKILL is delayed."""
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         try:
             p, _ = os.waitpid(pid, os.WNOHANG)
             if p == pid:
                 return
-        except ChildProcessError:
-            return
-        except OSError:
+        except (ChildProcessError, OSError):
             return
         time.sleep(0.05)
 
 
 def _kill_child(manager) -> None:
-    """SIGKILL child process; swallow all OS errors."""
     pid = getattr(manager._pty, "child_pid", None)
     manager._log_audit({"event": "kill_child", "pid": pid, "signal": "SIGKILL", "caller": "deadline_expired"})
     if pid:
@@ -86,12 +78,10 @@ def _kill_child(manager) -> None:
 
 
 def _check_deadline(manager, state: States) -> bool:
-    """Return True and force IDLE if deadline for *state* has elapsed."""
     deadline = _DEADLINES.get(state)
     if deadline is None:
         return False
     now = time.monotonic()
-    # Track when we entered this state
     if getattr(manager, "_deadline_state", None) != state:
         manager._deadline_state = state
         manager._deadline_entered_at = now
@@ -108,85 +98,91 @@ def _check_deadline(manager, state: States) -> bool:
 
 def poll_session(manager) -> None:
     state = manager._state_machine.state
-
-    # Check handoff completion BEFORE exit — child may exit the instant it
-    # writes handoff_complete.json (oracle flow). _on_session_exit handles the
-    # primary path; this poll branch is a defensive fallback.
     if state == States.HANDOFF_PENDING and manager._handoff_complete_path.exists():
         manager._state_machine.transition("handoff_complete_written")
         return
-
-    # Any state -> DEAD_CHILD on PTY master fd EOF or process exit
     if getattr(manager._pty, "_exited", False):
         manager._state_machine.transition("pty_eof")
         return
-
-    # Reset deadline tracking when state changes
     if getattr(manager, "_deadline_state", None) != state and state not in _DEADLINES:
         manager._deadline_state = None
         manager._deadline_entered_at = 0.0
-
     if state == States.IDLE:
         if manager.session_type == "orchestrator" and manager._current_round_path.exists():
             try:
                 mtime = manager._current_round_path.stat().st_mtime
                 if mtime > manager._last_current_round_mtime:
-                    # T-237: Validate session_id field before transitioning
-                    # Require session_id to be present and match env var to prevent stale files
                     try:
                         data = json.loads(manager._current_round_path.read_text(encoding="utf-8"))
                         file_sid = data.get("session_id")
                         env_sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
-                        # Skip transition if session_id is missing or doesn't match env var
                         if not file_sid or file_sid != env_sid:
-                            manager._log_audit({
-                                "event": "poll_session_sid_mismatch",
-                                "file_sid": file_sid,
-                                "env_sid": env_sid,
-                            })
+                            manager._log_audit({"event": "poll_session_sid_mismatch", "file_sid": file_sid, "env_sid": env_sid})
                             return
                     except Exception as e:
                         manager._log_audit({"event": "poll_session_current_round_read_error", "error": str(e)})
                     manager._state_machine.transition("current_round_written")
             except Exception as e:
                 manager._log_audit({"event": "poll_session_stat_error", "error": str(e)})
-        # T-151: safety and ceiling threshold triggers removed from poll loop.
-        # Handoff is only triggered via output_handler (primary: 80K + task_just_completed)
-        # or explicit /handoff signal — not by polling token counts here.
-
-
     elif state == States.TASK_RUNNING:
         if manager._task_complete_path.exists():
             manager._state_machine.transition("task_complete_written")
-        # No deadline for TASK_RUNNING — liveness via waitpid(WNOHANG)
-
     elif state == States.TASK_COMPLETE:
         if _check_deadline(manager, state):
             return
         manager._state_machine.transition("check_tokens", tokens=manager._last_accumulated_tokens)
-
     elif state == States.HANDOFF_PENDING:
         _check_deadline(manager, state)
-
     elif state == States.RESTARTING:
         _check_deadline(manager, state)
-
     elif state == States.DEAD_CHILD:
         _check_deadline(manager, state)
 
 
-def check_drain_restart(manager) -> None:
-    """Trigger restart when tasks_in_flight drains to empty and context fill >= 80K.
+def _write_merged_and_clear(manager) -> None:
+    try:
+        cr = json.loads(manager._current_round_path.read_text("utf-8"))
+        rid, tids = cr.get("round_id", ""), cr.get("task_ids", [])
+    except Exception:
+        return
+    db = None
+    try:
+        from agentflow.tools.task_db import TaskDB
+        db = TaskDB(manager._project_root / ".agentflow" / "tasks.db")
+    except Exception:
+        pass
+    ep = manager._project_root / "execution_plan.md"
+    lock = manager._project_root / "execution_plan.md.lock"
+    try:
+        with open(lock, "w", encoding="utf-8") as lf:
+            fcntl.flock(lf.fileno(), fcntl.LOCK_EX)
+            lines = ep.read_text("utf-8").splitlines(keepends=True)
+            changed = False
+            for i, ln in enumerate(lines):
+                for tid in tids:
+                    if re.match(rf"^## Addendum:\s+{re.escape(tid)}", ln) and "(MERGED)" not in ln:
+                        lines[i] = ln.rstrip("\n") + " (MERGED)\n"
+                        changed = True
+                if rid and f"| {rid} |" in ln and "MERGED" not in ln:
+                    lines[i] = ln.rstrip("\n").rstrip() + " — MERGED\n"
+                    changed = True
+            if changed:
+                with tempfile.NamedTemporaryFile(mode="w", dir=ep.parent, delete=False, suffix=".tmp", encoding="utf-8") as t:
+                    t.write("".join(lines))
+                    tmp = t.name
+                os.replace(tmp, ep)
+    except Exception:
+        pass
+    try:
+        if db:
+            db.clear_active_round()
+    except Exception:
+        pass
+    manager._log_audit({"event": "drain_merged_written", "round_id": rid, "task_ids": tids})
 
-    All conditions must be true:
-    1. session_type == "orchestrator"
-    2. state is IDLE or TASK_RUNNING (not HANDOFF_PENDING/RESTARTING)
-    3. handoff not in progress and not disabled
-    4. tasks_in_flight.json absent or empty
-    5. current_round.json exists (prevents spurious startup trigger)
-    6. context_fill.json fill_tokens >= handoff_primary_tokens
-    """
-    import json as _json
+
+def check_drain_restart(manager) -> None:
+    """Trigger restart when tasks_in_flight drains and context fill >= 80K."""
     def _skip(reason: str, **extra) -> None:
         key = f"_skip_last_{reason}"
         now = time.monotonic()
@@ -213,11 +209,10 @@ def check_drain_restart(manager) -> None:
         return
     tif = manager._tasks_in_flight_path
     if not tif.exists():
-        # absent = round not initialized; [] tombstone = drained; non-empty = tasks running
         _skip("no_tasks_in_flight_file")
         return
     try:
-        tif_content = _json.loads(tif.read_text("utf-8"))
+        tif_content = json.loads(tif.read_text("utf-8"))
         if tif_content:
             _skip("tasks_in_flight_nonempty", tasks=tif_content)
             return
@@ -231,9 +226,8 @@ def check_drain_restart(manager) -> None:
         sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
         cf = session_file(agentflow_dir, "context_fill.json", sid)
         if cf.exists():
-            data = _json.loads(cf.read_text("utf-8"))
+            data = json.loads(cf.read_text("utf-8"))
             fill_tokens = data.get("fill_tokens", 0)
-            # T-219: Check staleness of context_fill.json data
             ts = data.get("ts")
             if ts is not None and time.time() - ts > 60:
                 _skip("fill_stale", ts_age=round(time.time() - ts, 1))
@@ -244,5 +238,5 @@ def check_drain_restart(manager) -> None:
         _skip("fill_tokens_below_threshold", fill_tokens=fill_tokens, threshold=threshold)
         return
     manager._log_audit({"event": "drain_restart_triggered", "fill_tokens": fill_tokens, "threshold": threshold})
-    # T-209: bypass HANDOFF_PENDING for orchestrate — transition directly to RESTARTING
+    _write_merged_and_clear(manager)
     manager._state_machine.transition("restart_session")
