@@ -176,6 +176,7 @@ def _write_merged_and_clear(manager) -> None:
     try:
         if db:
             db.clear_active_round()
+        manager._tasks_in_flight_path.unlink(missing_ok=True)
     except Exception:
         pass
     try:
