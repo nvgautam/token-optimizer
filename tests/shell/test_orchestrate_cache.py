@@ -63,18 +63,6 @@ def _make_design_status(path: Path, unresolved: int = 0) -> Path:
     return p
 
 
-def _make_state_json(agentflow_dir: Path, next_round: str = "DP-5") -> Path:
-    state = {
-        "next_round": next_round,
-        "tasks_completed": [],
-        "in_flight": [],
-    }
-    agentflow_dir.mkdir(exist_ok=True)
-    p = agentflow_dir / "state.json"
-    p.write_text(json.dumps(state))
-    return p
-
-
 def _make_calibration(home_dir: Path, ewma_mean: float = 58969.0,
                        ewma_cv: float = 0.0, sample_count: int = 1) -> Path:
     cal_dir = home_dir / ".agentflow"
@@ -102,7 +90,6 @@ def _setup_project(tmp_path: Path, monkeypatch) -> tuple[Path, Path]:
     _make_tasks_json(project_root)
     _make_execution_plan(project_root)
     _make_design_status(project_root, unresolved=2)
-    _make_state_json(project_root / ".agentflow")
     _make_calibration(fake_home)
 
     return project_root, fake_home
@@ -122,7 +109,6 @@ def test_build_cache_correct_schema(tmp_path, monkeypatch):
         cache = json.load(f)
 
     required_keys = {
-        "current_round",
         "pending_tasks",
         "all_pending_count",
         "unresolved_design_count",
@@ -134,8 +120,6 @@ def test_build_cache_correct_schema(tmp_path, monkeypatch):
     assert required_keys <= set(cache.keys()), (
         f"Missing keys: {required_keys - set(cache.keys())}"
     )
-
-    assert cache["current_round"] == "DP-5"
     assert cache["all_pending_count"] == 2
     assert cache["unresolved_design_count"] == 2
     assert cache["ewma_mean_tokens"] == 58969.0
@@ -289,4 +273,3 @@ def test_build_cache_defaults_when_no_calibration(tmp_path, monkeypatch):
     assert cache["ewma_mean_tokens"] == 2500
     assert cache["ewma_cv"] == 0.0
     assert cache["sample_count"] == 0
-    assert cache["current_round"] == "unknown"

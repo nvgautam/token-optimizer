@@ -28,7 +28,6 @@ def _source_paths(project_root: Path) -> dict[str, Path]:
         "tasks.json": project_root / "tasks.json",
         "execution_plan.md": project_root / "execution_plan.md",
         "design_status.md": project_root / "design_status.md",
-        "state.json": project_root / ".agentflow" / "state.json",
         "rate_calibration_claude.json": _home_calibration(),
     }
 
@@ -37,22 +36,7 @@ def _cache_path(project_root: Path) -> Path:
     return project_root / ".agentflow" / "orchestrate_cache.json"
 
 
-def _load_state(project_root: Path) -> dict:
-    state_path = project_root / ".agentflow" / "state.json"
-    if not state_path.exists():
-        return {}
-    try:
-        with open(state_path) as f:
-            return json.load(f)
-    except (json.JSONDecodeError, OSError):
-        return {}
-
-
-def _get_current_round(state_data: dict) -> str:
-    return state_data.get("next_round", "unknown")
-
-
-def _load_pending_tasks(project_root: Path, state_data: dict) -> tuple[list[dict], int]:
+def _load_pending_tasks(project_root: Path) -> tuple[list[dict], int]:
     """Return (slim_pending_list, all_pending_count).
 
     Slim list contains only {task_id, title, depends_on}.
@@ -69,15 +53,7 @@ def _load_pending_tasks(project_root: Path, state_data: dict) -> tuple[list[dict
     pending_all = [t for t in all_tasks if t.get("status") == "pending"]
     all_pending_count = len(pending_all)
 
-    # Filter by round membership when available
-    round_task_ids: set[str] | None = None
-    if state_data and "task_ids_in_round" in state_data:
-        round_task_ids = set(state_data["task_ids_in_round"])
-
-    if round_task_ids:
-        pending = [t for t in pending_all if t["task_id"] in round_task_ids]
-    else:
-        pending = pending_all
+    pending = pending_all
 
     slim = [
         {
@@ -160,23 +136,20 @@ def _collect_mtimes(project_root: Path) -> dict[str, float]:
 def build_cache(project_root: Path) -> Path:
     """Build and write .agentflow/orchestrate_cache.json.
 
-    Reads tasks.json, execution_plan.md, design_status.md, .agentflow/state.json
-    (optional), and ~/.agentflow/rate_calibration_claude.json. Idempotent: calling
+    Reads tasks.json, execution_plan.md, design_status.md, and
+    ~/.agentflow/rate_calibration_claude.json. Idempotent: calling
     twice with unchanged sources produces identical output.
 
     Returns the cache file path.
     """
     project_root = Path(project_root)
 
-    state_data = _load_state(project_root)
-    current_round = _get_current_round(state_data)
-    pending_tasks, all_pending_count = _load_pending_tasks(project_root, state_data)
+    pending_tasks, all_pending_count = _load_pending_tasks(project_root)
     unresolved_design_count = _count_unresolved(project_root)
     cal = _load_calibration()
     source_mtimes = _collect_mtimes(project_root)
 
     cache = {
-        "current_round": current_round,
         "pending_tasks": pending_tasks,
         "all_pending_count": all_pending_count,
         "unresolved_design_count": unresolved_design_count,

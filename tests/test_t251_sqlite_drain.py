@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import pathlib
+import sqlite3
 import tempfile
 import types
 from unittest.mock import MagicMock, patch
@@ -90,41 +91,6 @@ def _make_manager(tmp_path: pathlib.Path, fill_tokens: int = 90000):
 
 
 # ---------------------------------------------------------------------------
-# TaskDB: rounds table tests
-# ---------------------------------------------------------------------------
-
-class TestTaskDBRounds:
-    def test_set_and_get_active_round(self, tmp_path):
-        db = _make_db(tmp_path)
-        db.set_active_round("R-42", ["T-1", "T-2", "T-3"])
-        result = db.get_active_round()
-        assert result is not None
-        round_id, task_ids = result
-        assert round_id == "R-42"
-        assert task_ids == ["T-1", "T-2", "T-3"]
-
-    def test_clear_active_round_returns_none(self, tmp_path):
-        db = _make_db(tmp_path)
-        db.set_active_round("R-99", ["T-5"])
-        db.clear_active_round()
-        assert db.get_active_round() is None
-
-    def test_get_active_round_returns_none_when_never_set(self, tmp_path):
-        db = _make_db(tmp_path)
-        assert db.get_active_round() is None
-
-    def test_set_active_round_idempotent(self, tmp_path):
-        db = _make_db(tmp_path)
-        db.set_active_round("R-1", ["T-10", "T-11"])
-        db.set_active_round("R-1", ["T-10", "T-12"])  # overwrite
-        result = db.get_active_round()
-        assert result is not None
-        round_id, task_ids = result
-        assert round_id == "R-1"
-        assert task_ids == ["T-10", "T-12"]
-
-
-# ---------------------------------------------------------------------------
 # check_drain_restart integration tests
 # ---------------------------------------------------------------------------
 
@@ -145,6 +111,8 @@ class TestDrainMergedWrite:
     def test_drain_writes_merged_idempotent(self, tmp_path):
         manager, audit_events, ep, agentflow_dir, sid = _make_manager(tmp_path)
         _run_drain(manager)
+        # First drain deletes TIF; recreate so second drain can fire
+        manager._tasks_in_flight_path.write_text("[]", encoding="utf-8")
         _run_drain(manager)  # second run
 
         content = ep.read_text(encoding="utf-8")
@@ -165,17 +133,25 @@ class TestDrainMergedWrite:
     def test_drain_clears_active_round_after_merge(self, tmp_path):
         manager, audit_events, ep, agentflow_dir, sid = _make_manager(tmp_path)
 
-        # Pre-populate the db so we can verify clear
+        # Pre-populate the db via raw SQL so we can verify clear
         db_path = tmp_path / ".agentflow" / "tasks.db"
-        db = TaskDB(db_path)
-        db.set_active_round("R-1", ["T-100", "T-101"])
-        assert db.get_active_round() is not None
+        with sqlite3.connect(str(db_path)) as conn:
+            conn.execute("CREATE TABLE IF NOT EXISTS rounds (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
+            conn.execute("INSERT OR REPLACE INTO rounds (key, value) VALUES ('active_round', ?)",
+                         (json.dumps({"round_id": "R-1", "task_ids": ["T-100", "T-101"]}),))
+            conn.commit()
+
+        # Verify setup
+        with sqlite3.connect(str(db_path)) as conn:
+            row = conn.execute("SELECT value FROM rounds WHERE key = 'active_round'").fetchone()
+            assert row is not None
 
         _run_drain(manager)
 
         # After drain, active round should be cleared
-        db2 = TaskDB(db_path)
-        assert db2.get_active_round() is None
+        with sqlite3.connect(str(db_path)) as conn:
+            row = conn.execute("SELECT value FROM rounds WHERE key = 'active_round'").fetchone()
+            assert row is None
 
     def test_drain_logs_drain_merged_written_event(self, tmp_path):
         manager, audit_events, ep, agentflow_dir, sid = _make_manager(tmp_path)

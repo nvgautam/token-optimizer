@@ -147,10 +147,8 @@ The cleanup script runs under the tasks.json lock acquired by user_prompt_submit
 
 Then:
 1. (**Already handled by cleanup**) tasks.json: each completed task trimmed to `{"task_id": "T-NNN", "status": "complete"}`; full definition archived to `.agentflow/tasks.archive.json` (flat list — no nested batches).
-2. Mark `MERGED` in `execution_plan.md`
-3. Milestone complete → mark `COMPLETE`, decompose next milestone lazily
-4. Save `.agentflow/state.json`
-5. Emit: `HANDOFF RECOMMENDED: [task_id] merged — state saved, good stopping point before next round`
+2. Milestone complete → mark `COMPLETE`, decompose next milestone lazily
+3. Emit: `HANDOFF RECOMMENDED: [task_id] merged — state saved, good stopping point before next round`
 
 **Do not manually edit task stubs or archive — always run the cleanup script.**
 

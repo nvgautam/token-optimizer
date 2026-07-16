@@ -1,22 +1,13 @@
 {
-  "round_id": "A",
+  "round_id": "C3b-cleanup",
   "task_ids": [
-    "T-228",
-    "T-230"
+    "T-253"
   ],
   "estimated_lines_per_task": {
-    "T-228": 40,
-    "T-230": 30
+    "T-253": 40
   },
   "file_counts_per_task": {
-    "T-228": 3,
-    "T-230": 1
+    "T-253": 4
   },
-  "timestamp": "2026-07-16T00:48:36.853359Z",
-  "task_ctx": {
-    "task_id": "T-228",
-    "title": "Atomic tasks.json sync on merge",
-    "deps": [],
-    "estimated_lines": 40
-  }
+  "timestamp": "2026-07-16T17:12:12.122683Z"
 }
