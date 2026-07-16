@@ -202,7 +202,7 @@ def main() -> None:
             pr_states[task_id] = state
             is_merged = state == "MERGED"
         else:
-            is_merged = any(f"{task_id}:" in t or t.startswith(f"{task_id} ") for t in merged_titles)
+            is_merged = any(re.search(r'(?:feat|fix|chore|refactor)\(' + re.escape(task_id) + r'\)', t) for t in merged_titles)
             pr_states[task_id] = "title_match" if is_merged else "no_url_no_title_match"
 
         if is_merged:
