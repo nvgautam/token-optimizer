@@ -457,9 +457,10 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | C3b-fix — MERGED (PR #158 2026-07-16) | T-251 (solo) | SQLite round table migration + write MERGED in check_drain_restart + clear active_round/active_tasks on drain — fixes PTY-kills-before-cleanup gap |
 | C3b-hotfix — MERGED (PR #159 2026-07-16) | T-256 (solo) | Delete tasks_in_flight.json in _write_merged_and_clear after drain — fixes restart loop caused by stale [] tombstone |
 | C3b-cleanup — MERGED (PR #160 2026-07-17) | T-253 (solo) | Remove file-based round/state cleanup dead code — depends T-251 verified |
-| C3b-1 | T-162 ‖ T-210 ‖ T-243 ‖ T-250 ‖ T-252 (parallel) | oracle.md split + test cache leak + auto-mode default + fix debug.md KeyError + remove dead HANDOFF RECOMMENDED emit |
-| C3b-2 | T-234 ‖ T-235 ‖ T-236 ‖ T-239 ‖ T-241 (parallel) | Context bundle temp file + worker-always rule + conflict resolution + user_prompt_submit.py split + orchestrate.md split |
-| D | T-178 ‖ T-211 ‖ T-245 (parallel) | Hook audit log spike + Gemini lifecycle spike + model routing pipeline (Haiku→Sonnet review→verify) |
+| C3b-restart-test | T-246 ‖ T-252 (parallel) | Restart validation run: test_post_tool_use_agent.py split + remove dead HANDOFF RECOMMENDED emit — verifies drain→restart chain end-to-end |
+| C3b-1 | T-162 ‖ T-210 ‖ T-243 ‖ T-250 (parallel) | oracle.md split + test cache leak + auto-mode default + fix debug.md KeyError |
+| C3b-2 | T-234 ‖ T-235 ‖ T-236 (parallel) | Context bundle temp file + worker-always rule + conflict resolution |
+| D | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
 | E | T-167 ‖ T-168 (parallel) | Oracle Phase 3 plan-mode preview + product judgment layer |
 | F | T-063 → T-064 → T-099 (sequential) | Multi-provider chain (enterprise) |
 

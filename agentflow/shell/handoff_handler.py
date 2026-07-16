@@ -171,14 +171,14 @@ def _write_merged_and_clear(manager) -> None:
                     t.write("".join(lines))
                     tmp = t.name
                 os.replace(tmp, ep)
-    except Exception:
-        pass
+    except Exception as e:
+        manager._log_audit({"event": "drain_execution_plan_write_error", "round_id": rid, "error": str(e)})
     try:
         if db:
             db.clear_active_round()
         manager._tasks_in_flight_path.unlink(missing_ok=True)
-    except Exception:
-        pass
+    except Exception as e:
+        manager._log_audit({"event": "drain_clear_error", "round_id": rid, "error": str(e)})
     try:
         manager._log_audit({"event": "drain_merged_written", "round_id": rid, "task_ids": tids})
     except Exception:
@@ -246,4 +246,5 @@ def check_drain_restart(manager) -> None:
         _write_merged_and_clear(manager)
     except Exception as e:
         manager._log_audit({"event": "drain_merged_write_error", "error": str(e)})
+    manager._log_audit({"event": "session_restart", "session_id": os.environ.get("AGENTFLOW_SESSION_ID")})
     manager._state_machine.transition("restart_session")

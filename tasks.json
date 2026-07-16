@@ -973,7 +973,7 @@
       ],
       "reads": [],
       "depends_on": [],
-      "status": "pending"
+      "status": "cancelled"
     },
     {
       "task_id": "T-240",
@@ -988,7 +988,7 @@
       ],
       "reads": [],
       "depends_on": [],
-      "status": "pending"
+      "status": "cancelled"
     },
     {
       "task_id": "T-242",
@@ -1015,7 +1015,7 @@
       ],
       "reads": [],
       "depends_on": [],
-      "status": "pending"
+      "status": "cancelled"
     },
     {
       "task_id": "T-244",
@@ -1045,7 +1045,7 @@
       ],
       "reads": [],
       "depends_on": [],
-      "status": "pending"
+      "status": "cancelled"
     },
     {
       "task_id": "T-249",
@@ -1056,7 +1056,7 @@
       ],
       "reads": [],
       "depends_on": [],
-      "status": "pending"
+      "status": "cancelled"
     },
     {
       "task_id": "T-250",
@@ -1074,7 +1074,7 @@
     },
     {
       "task_id": "T-253",
-      "status": "pending",
+      "status": "complete",
       "title": "Remove file-based round/state cleanup code \u2014 execution_plan.md round tracking, state.json active_round/active_tasks writes, orchestrate.md post-merge LLM steps 1-4 (dead after T-251)"
     },
     {
@@ -1086,7 +1086,7 @@
       ],
       "reads": [],
       "depends_on": [],
-      "status": "pending"
+      "status": "cancelled"
     }
   ]
 }
