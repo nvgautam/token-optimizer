@@ -197,14 +197,13 @@ def sync_tasks_in_flight(tool_name: str, tool_input: dict, agentflow_dir: pathli
 
 def main() -> None:
     """Entry point — always exits 0 to avoid blocking Claude."""
+    project_root = pathlib.Path(
+        os.environ.get("CLAUDE_PROJECT_DIR", os.getcwd())
+    )
+    agentflow_dir = project_root / ".agentflow"
     try:
-        payload = json.loads(sys.stdin.read())
-
-        project_root = pathlib.Path(
-            os.environ.get("CLAUDE_PROJECT_DIR", os.getcwd())
-        )
-        agentflow_dir = project_root / ".agentflow"
         agentflow_dir.mkdir(parents=True, exist_ok=True)
+        payload = json.loads(sys.stdin.read())
 
         sync_tasks_in_flight(
             payload.get("tool_name", ""),
