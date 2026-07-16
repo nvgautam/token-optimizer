@@ -4,6 +4,7 @@
 import contextlib
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -158,7 +159,7 @@ def _cleanup_merged_in_flight(agentflow_dir: Path, sid: str = "") -> None:
         else:
             if merged_titles is None:
                 merged_titles = _fetch_merged_pr_titles()
-            is_merged = any(f"{task_id}:" in t or t.startswith(f"{task_id} ") for t in merged_titles)
+            is_merged = any(re.search(r'(?:feat|fix|chore|refactor)\(' + re.escape(task_id) + r'\)', t) for t in merged_titles)
         if is_merged:
             _locked_write_tasks(tasks_file, agentflow_dir, task_id)
             try:

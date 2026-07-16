@@ -121,11 +121,11 @@ def detect_pr_merge(
     except Exception:
         pass
 
-    if session_type != "orchestrate":
+    if session_type != "orchestrator":
         return
 
     # Extract task_id from PR title: match conventional commit with task ID
-    match = re.search(r'\((?:feat|fix|chore|refactor)\((T-\d+)\)', output)
+    match = re.search(r'(?:feat|fix|chore|refactor)\((T-\d+)\)', output)
     if not match:
         return
 
