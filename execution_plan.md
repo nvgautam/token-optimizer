@@ -449,7 +449,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | observability-2 — MERGED (PR #144 2026-07-16) | T-227 (depends T-225) | session_type determination — remove root-level fallback when SID present, TDD all edge cases |
 | A (next) | T-228 ‖ T-230 (parallel) | Atomic merge sync + orchestrator worktree lifecycle — closes two orthogonal orchestrate reliability gaps |
 | B | T-229 ‖ T-232 (parallel) | Flock on shared files + PostToolUse merge-detection hook — deterministic state sync on PR merge |
-| C | T-162 ‖ T-210 ‖ T-233 ‖ T-234 (parallel) | oracle.md size split + test cache leak + verbosity rule + context bundle temp file |
+| C | T-162 ‖ T-210 ‖ T-233 ‖ T-234 ‖ T-235 (parallel) | oracle.md size split + test cache leak + verbosity rule + context bundle temp file + enforce worker-always rule |
 | D | T-178 ‖ T-211 ‖ T-231 (parallel) | Hook audit log spike + Gemini lifecycle spike + SQLite spike |
 | E | T-167 ‖ T-168 (parallel) | Oracle Phase 3 plan-mode preview + product judgment layer |
 | F | T-063 → T-064 → T-099 (sequential) | Multi-provider chain (enterprise) |

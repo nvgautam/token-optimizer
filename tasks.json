@@ -971,6 +971,19 @@
       "owns": [
         "commands/claude/orchestrate.md"
       ]
+    },
+    {
+      "task_id": "T-235",
+      "title": "Enforce: orchestrator always spawns a worker \u2014 no direct implementation exceptions",
+      "status": "pending",
+      "estimated_lines": 10,
+      "depends_on": [
+        "T-230"
+      ],
+      "owns": [
+        "commands/claude/orchestrate.md",
+        "commands/claude/orchestrator/startup.md"
+      ]
     }
   ]
 }
