@@ -26,12 +26,13 @@ Execute the `commands/claude/orchestrator/startup.md` steps in order. Check desi
 - `.gitignore` absent → generate for project tech stack
 - Generate `.idx` for each `reads` file ≥50 lines (skip if `.idx` newer than source). For Python files, use `ast` to parse classes, functions, and methods. For Markdown files, grep for H2/H3 headers.
 - Pre-create each task branch: `git worktree add .claude/worktrees/<branch> -b <branch> main` — do this BEFORE spawning the worker.
+- Capture the canonical worktree path: `git worktree list --porcelain | grep <branch>` to get the absolute path (CWD-independent). Store this as `worktree_abs_path` for the context bundle.
 - **Never** run `git checkout` in the project root — inspect branches via `git show <branch>:path` or `gh pr diff`.
 
 
 **Build each agent prompt:**
 1. `commands/claude/worker/system.md`
-2. `commands/claude/worker/context_bundle.md`
+2. `commands/claude/worker/context_bundle.md` (include `worktree_abs_path` from the git worktree list step above)
 3. `commands/claude/worker/testing_guide.md`
 4. Full task definitions for this group — for each task_id, grep `^## Addendum: <task_id>` in `~/.agentflow/cache/<HASH>/index/execution_plan.md.idx` → `name:start-end` → `Read(execution_plan.md, offset=start, limit=end-start+1)`. If idx absent, grep `^## Addendum: <task_id>` in execution_plan.md directly and read that section.
 5. Milestone architecture anchor section
@@ -54,7 +55,7 @@ Close every prompt: `"End your final message with TOKENS: input=N output=N — n
 
 **Per-round scheduling:** Per task, run `python3 -c "from agentflow.shadow.task_estimator import estimate; print(estimate(<estimated_lines>, <file_count>))"` (fallback 2500 if absent). Cap: `floor(threshold/pct_cost)`. Disjoint owns: if tasks share an `owns` path — OWNS CONFLICT, move overlap to next sub-round.
 
-Spawn one agent per group with the selected `model`; pass the worktree path in the context bundle (worker calls `EnterWorktree(path=.claude/worktrees/<branch>)` as its first step — do **not** use `isolation: "worktree"`, the worktree is pre-created). Parallel only if no cross-dependencies and rate supports. Save `.agentflow/state.json` after each.
+Spawn one agent per group with the selected `model`; include `worktree_abs_path` in the context bundle passed to the worker. The worker uses this path directly for all file operations (Edit/Write tool calls) — **do not call `EnterWorktree`**, as this fails outside an existing worktree session. Do **not** use `isolation: "worktree"`, the worktree is pre-created. Parallel only if no cross-dependencies and rate supports. Save `.agentflow/state.json` after each.
 
 ### Round Lifecycle & PTY Signals
 At the start of each round, write `.agentflow/current_round.json` with the following schema (T-237: include session_id):

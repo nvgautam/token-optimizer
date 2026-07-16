@@ -79,6 +79,21 @@ Before reading any file in your `reads` list, check for a `.idx` symbol index in
 
 This rule applies to every file in your `reads` list. Never read a full file when a targeted read suffices.
 
+### 8. Worktree Path Usage (No EnterWorktree)
+
+**Do NOT call `EnterWorktree`** — this tool is restricted to sessions already inside a worktree.
+Worker sessions start at repo root; using EnterWorktree will fail.
+
+Instead, use the `worktree_abs_path` field from the context bundle passed to you. This is a
+canonical absolute path (CWD-independent) to your task branch worktree.
+
+**All file writes and edits must target paths within `worktree_abs_path`.** Construct paths
+like: `{worktree_abs_path}/{relative_file_path}`. Example:
+- `{worktree_abs_path}/commands/claude/worker/system.md`
+- `{worktree_abs_path}/tests/prompts/test_module.py`
+
+This eliminates the EnterWorktree error and ensures your changes land on the correct branch.
+
 ---
 
 ## Workflow
