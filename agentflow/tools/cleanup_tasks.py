@@ -3,25 +3,15 @@ import subprocess
 import sys
 from pathlib import Path
 
-# Add project root to path for imports
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from agentflow.shell.pty_signal import file_lock
-
 
 def _load_json(path: Path):
     with path.open() as f:
         return json.load(f)
 
 
-def _write_json(path: Path, data, lock_path: Path = None):
-    """Write JSON to file, optionally acquiring lock first."""
-    if lock_path:
-        with file_lock(lock_path):
-            with path.open("w") as f:
-                json.dump(data, f, indent=2)
-    else:
-        with path.open("w") as f:
-            json.dump(data, f, indent=2)
+def _write_json(path: Path, data):
+    with path.open("w") as f:
+        json.dump(data, f, indent=2)
     print(f"  wrote {path}")
 
 
@@ -92,7 +82,7 @@ def _split_description(filename: str, current_lines: int, limit: int, ts: str) -
     return base + " Read the file first, identify distinct responsibilities, then choose the split boundary by domain. Verify each output file is ≤ 250 lines after splitting."
 
 
-def auto_file_size_violations(project_root: Path, lock_path: Path = None) -> None:
+def auto_file_size_violations(project_root: Path) -> None:
     violations_path = project_root / ".agentflow" / "size_violations.jsonl"
     if not violations_path.exists():
         return
@@ -179,17 +169,15 @@ def auto_file_size_violations(project_root: Path, lock_path: Path = None) -> Non
 
     if new_tasks:
         tasks_data["tasks"].extend(new_tasks)
-        _write_json(tasks_path, tasks_data, lock_path=lock_path)
+        _write_json(tasks_path, tasks_data)
         print(f"  auto-filed {len(new_tasks)} size violation split task(s)")
 
 
 def cleanup(project_root: Path) -> None:
-    tasks_path = project_root / "tasks.json"
-    agentflow_dir = project_root / ".agentflow"
-    lock_path = agentflow_dir / "tasks.json.lock"
+    auto_file_size_violations(project_root)
 
-    auto_file_size_violations(project_root, lock_path=lock_path)
-    archive_path = agentflow_dir / "tasks.archive.json"
+    tasks_path = project_root / "tasks.json"
+    archive_path = project_root / ".agentflow" / "tasks.archive.json"
 
     # --- tasks.json: trim completed tasks to stubs ---
     tasks_data = _load_json(tasks_path)
@@ -220,7 +208,7 @@ def cleanup(project_root: Path) -> None:
             new_tasks.append(t)
 
     tasks_data["tasks"] = new_tasks
-    _write_json(tasks_path, tasks_data, lock_path=lock_path)
+    _write_json(tasks_path, tasks_data)
     print(f"  trimmed {trimmed} completed task(s) to stubs")
 
     # --- tasks.archive.json: flatten nested batches ---
