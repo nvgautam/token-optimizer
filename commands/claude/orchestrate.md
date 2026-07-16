@@ -131,6 +131,18 @@ python agentflow/tools/cleanup_tasks.py .
 ```
 This is the ONLY permitted way to update tasks.json at merge time. Never set `status: complete` manually or edit task entries by hand — the cleanup script owns the trim + archive atomically.
 
+**Shared file locking (T-229):** Before writing `tasks.json`, `state.json`, or `execution_plan.md`, acquire the corresponding lockfile via Python:
+```python
+import fcntl, pathlib
+lock_path = pathlib.Path('.agentflow/tasks.json.lock')  # or state.json.lock or execution_plan.md.lock
+lock_path.parent.mkdir(parents=True, exist_ok=True)
+with open(lock_path, 'a+') as f:
+    fcntl.flock(f, fcntl.LOCK_EX)  # blocks until lock acquired
+    # write the file here
+    fcntl.flock(f, fcntl.LOCK_UN)
+```
+The cleanup script runs under the tasks.json lock acquired by user_prompt_submit hooks.
+
 Then:
 1. (**Already handled by cleanup**) tasks.json: each completed task trimmed to `{"task_id": "T-NNN", "status": "complete"}`; full definition archived to `.agentflow/tasks.archive.json` (flat list — no nested batches).
 2. Mark `MERGED` in `execution_plan.md`

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """UserPromptSubmit hook: clear signal files on /orchestrate and /handoff."""
 
+import contextlib
 import fcntl
 import json
 import os
@@ -12,6 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from agentflow.shell.session_paths import session_file
+from agentflow.shell.pty_signal import file_lock
 
 
 def _check_pr_state(pr_url: str) -> str | None:
@@ -69,6 +71,62 @@ def _run_cleanup(root: Path) -> None:
         subprocess.run([sys.executable, str(root / "agentflow" / "tools" / "cleanup_tasks.py"), str(root)], check=False, capture_output=True)
     except Exception as e:
         print(json.dumps({"hook": "user_prompt_submit.py", "event": "run_cleanup_error", "error": str(e), "ts": time.time()}), file=sys.stderr)
+
+
+def _locked_write_tasks(tasks_file: Path, agentflow_dir: Path, task_id: str) -> bool:
+    """Mark task complete while holding lock on .agentflow/tasks.json.lock.
+
+    Acquires lock before reading tasks.json, updates task status, and writes back.
+    Lock is released before calling cleanup_tasks.py subprocess to prevent deadlock.
+
+    Args:
+        tasks_file: Path to tasks.json
+        agentflow_dir: Path to .agentflow directory
+        task_id: Task ID to mark complete
+
+    Returns:
+        True if task was marked complete, False if task not found or error occurred
+    """
+    lock_path = agentflow_dir / "tasks.json.lock"
+    found = False
+
+    try:
+        with file_lock(lock_path):
+            # Read tasks.json
+            if not tasks_file.exists():
+                return False
+
+            try:
+                with open(tasks_file, "r") as f:
+                    data = json.load(f)
+            except (OSError, ValueError):
+                return False
+
+            # Find and mark task complete
+            for t in data.get("tasks", []):
+                if t.get("task_id") == task_id and t.get("status") == "pending":
+                    t["status"] = "complete"
+                    found = True
+                    break
+
+            if not found:
+                return False
+
+            # Write tasks.json back while holding lock
+            try:
+                with open(tasks_file, "w") as f:
+                    json.dump(data, f, indent=2)
+            except (OSError, ValueError):
+                return False
+        # Lock released here — cleanup subprocess can acquire its own lock
+
+        root = tasks_file.parent
+        _run_cleanup(root)
+
+        return True
+    except Exception as e:
+        _log_drain(agentflow_dir, {"event": "locked_write_tasks_error", "error": str(e), "task_id": task_id})
+        return False
 
 
 def _write_session_state_atomic(agentflow_dir: Path, session_type: str, sid: str = "") -> None:
@@ -146,8 +204,7 @@ def _cleanup_merged_in_flight(agentflow_dir: Path, sid: str = "") -> None:
                 merged_titles = _fetch_merged_pr_titles()
             is_merged = any(f"{task_id}:" in t or t.startswith(f"{task_id} ") for t in merged_titles)
         if is_merged:
-            if _mark_task_complete(tasks_file, task_id):
-                _run_cleanup(root)
+            _locked_write_tasks(tasks_file, agentflow_dir, task_id)
             try:
                 signal_script = root / "agentflow" / "shell" / "pty_signal.py"
                 subprocess.run(
