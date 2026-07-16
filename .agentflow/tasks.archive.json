@@ -1965,5 +1965,41 @@
       "commands/claude/orchestrate.md",
       "commands/claude/worker/system.md"
     ]
+  },
+  {
+    "task_id": "T-230",
+    "title": "Orchestrator creates worktree before spawning worker + ban git checkout in project root",
+    "status": "complete",
+    "estimated_lines": 30,
+    "depends_on": [],
+    "owns": [
+      "commands/claude/orchestrate.md"
+    ]
+  },
+  {
+    "task_id": "T-232",
+    "title": "PostToolUse hook: detect PR merge event and atomically update tasks.json + execution_plan.md",
+    "status": "complete",
+    "estimated_lines": 50,
+    "depends_on": [
+      "T-228"
+    ],
+    "owns": [
+      "agentflow/hooks/post_tool_use.py"
+    ]
+  },
+  {
+    "task_id": "T-229",
+    "title": "Extend flock to tasks.json, state.json, execution_plan.md \u2014 close write-write and stale-read races between parallel sessions",
+    "status": "complete",
+    "estimated_lines": 60,
+    "depends_on": [],
+    "owns": [
+      "agentflow/hooks/user_prompt_submit.py",
+      "agentflow/shell/handoff_handler.py",
+      "agentflow/shell/session_manager.py",
+      "commands/claude/oracle.md",
+      "commands/claude/orchestrate.md"
+    ]
   }
 ]
