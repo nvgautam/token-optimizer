@@ -117,6 +117,7 @@ def poll_session(manager) -> None:
                         file_sid = data.get("session_id")
                         env_sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
                         if not file_sid or file_sid != env_sid:
+                            manager._last_current_round_mtime = mtime
                             key = "_skip_last_poll_session_sid_mismatch"
                             now = time.monotonic()
                             if now - getattr(manager, key, 0.0) >= 300.0:
