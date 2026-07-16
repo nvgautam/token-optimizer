@@ -447,8 +447,8 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | session-iso-3 — MERGED (PR #137/#138/#139 2026-07-15) | T-202 ‖ T-204 ‖ T-207 (parallel) | Migrate reads, threshold_sync, stale cleanup (depends session-iso-2f, T-200, T-201, T-203) |
 | observability-1 — MERGED (PR #142/#143 2026-07-16) | T-225 ‖ T-226 (parallel) | Shell + hook exception handlers — replace silent except:pass with structured audit log / stderr JSON entries |
 | observability-2 — MERGED (PR #144 2026-07-16) | T-227 (depends T-225) | session_type determination — remove root-level fallback when SID present, TDD all edge cases |
-| A (next) | T-228 ‖ T-230 (parallel) | Atomic merge sync + orchestrator worktree lifecycle — closes two orthogonal orchestrate reliability gaps |
-| B | T-229 ‖ T-232 (parallel) | Flock on shared files + PostToolUse merge-detection hook — deterministic state sync on PR merge |
+| A — MERGED (PR #147/#146 2026-07-16) | T-228 ‖ T-230 (parallel) | Atomic merge sync + orchestrator worktree lifecycle — closes two orthogonal orchestrate reliability gaps |
+| B (next) | T-229 ‖ T-232 (parallel) | Flock on shared files + PostToolUse merge-detection hook — deterministic state sync on PR merge |
 | C | T-162 ‖ T-210 ‖ T-233 ‖ T-234 ‖ T-235 (parallel) | oracle.md size split + test cache leak + verbosity rule + context bundle temp file + enforce worker-always rule |
 | D | T-178 ‖ T-211 ‖ T-231 (parallel) | Hook audit log spike + Gemini lifecycle spike + SQLite spike |
 | E | T-167 ‖ T-168 (parallel) | Oracle Phase 3 plan-mode preview + product judgment layer |

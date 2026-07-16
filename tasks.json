@@ -922,13 +922,7 @@
     },
     {
       "task_id": "T-230",
-      "title": "Orchestrator creates worktree before spawning worker + ban git checkout in project root",
-      "status": "pending",
-      "estimated_lines": 30,
-      "depends_on": [],
-      "owns": [
-        "commands/claude/orchestrate.md"
-      ]
+      "status": "complete"
     },
     {
       "task_id": "T-231",
