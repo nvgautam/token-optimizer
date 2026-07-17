@@ -1,5 +1,4 @@
 import json
-import sys
 from io import StringIO
 from unittest.mock import patch
 
@@ -24,16 +23,20 @@ def test_orchestrate_creates_reset_and_removes_signal_files(monkeypatch, tmp_pat
     agentflow_dir.mkdir()
     test_sid = "test-session-abc"
     monkeypatch.setenv("AGENTFLOW_SESSION_ID", test_sid)
-    hc_file = agentflow_dir / f"handoff_complete_{test_sid}.json"
+    
+    sid_dir = agentflow_dir / "sessions" / test_sid
+    sid_dir.mkdir(parents=True, exist_ok=True)
+    hc_file = sid_dir / "handoff_complete.json"
     hc_file.write_text("{}")
-    (agentflow_dir / "task_complete.json").write_text("{}")
+    tc_file = sid_dir / "task_complete.json"
+    tc_file.write_text("{}")
 
     result_dir = _run_with_stdin("/orchestrate", monkeypatch, tmp_path)
 
     # T-209: reset_accumulator no longer written (dead artifact)
     assert not (result_dir / "reset_accumulator").exists()
     assert not hc_file.exists()
-    assert not (result_dir / "task_complete.json").exists()
+    assert not tc_file.exists()
 
 
 def test_handoff_creates_reset_and_removes_signal_files(monkeypatch, tmp_path):
@@ -41,7 +44,10 @@ def test_handoff_creates_reset_and_removes_signal_files(monkeypatch, tmp_path):
     agentflow_dir.mkdir()
     test_sid = "test-session-abc"
     monkeypatch.setenv("AGENTFLOW_SESSION_ID", test_sid)
-    hc_file = agentflow_dir / f"handoff_complete_{test_sid}.json"
+    
+    sid_dir = agentflow_dir / "sessions" / test_sid
+    sid_dir.mkdir(parents=True, exist_ok=True)
+    hc_file = sid_dir / "handoff_complete.json"
     hc_file.write_text("{}")
 
     result_dir = _run_with_stdin("/handoff", monkeypatch, tmp_path)
@@ -51,18 +57,38 @@ def test_handoff_creates_reset_and_removes_signal_files(monkeypatch, tmp_path):
     assert not hc_file.exists()
 
 
+def test_orchestrate_removes_signal_files_no_sid(monkeypatch, tmp_path):
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+    monkeypatch.delenv("AGENTFLOW_SESSION_ID", raising=False)
+    hc_file = agentflow_dir / "handoff_complete.json"
+    hc_file.write_text("{}")
+    tc_file = agentflow_dir / "task_complete.json"
+    tc_file.write_text("{}")
+
+    _run_with_stdin("/orchestrate", monkeypatch, tmp_path)
+
+    assert not hc_file.exists()
+    assert not tc_file.exists()
+
+
+
 def test_non_matching_prompt_does_nothing(monkeypatch, tmp_path):
     agentflow_dir = tmp_path / ".agentflow"
     agentflow_dir.mkdir()
     test_sid = "test-session-abc"
     monkeypatch.setenv("AGENTFLOW_SESSION_ID", test_sid)
-    hc_file = agentflow_dir / f"handoff_complete_{test_sid}.json"
+    
+    sid_dir = agentflow_dir / "sessions" / test_sid
+    sid_dir.mkdir(parents=True, exist_ok=True)
+    hc_file = sid_dir / "handoff_complete.json"
     hc_file.write_text("{}")
 
     result_dir = _run_with_stdin("regular user message", monkeypatch, tmp_path)
 
     assert not (result_dir / "reset_accumulator").exists()
     assert hc_file.exists()
+
 
 
 def test_signal_files_absent_is_graceful(monkeypatch, tmp_path):

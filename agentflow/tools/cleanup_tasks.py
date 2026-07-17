@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import sys
 import time
@@ -8,6 +9,7 @@ from agentflow.tools.cleanup_violations import (
     append_to_archive,
     auto_file_size_violations,
 )
+from agentflow.shell.session_paths import session_file
 
 def _load_json(path: Path):
     with path.open() as f:
@@ -30,7 +32,9 @@ def _write_json(path: Path, data):
 
 def _detect_merged_prs(project_root: Path, tasks_data: dict) -> bool:
     task_prs_path = project_root / ".agentflow" / "task_prs.json"
-    in_flight_path = project_root / ".agentflow" / "tasks_in_flight.json"
+    agentflow_dir = project_root / ".agentflow"
+    sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+    in_flight_path = session_file(agentflow_dir, "tasks_in_flight.json", sid)
 
     if not task_prs_path.exists():
         return False
@@ -114,7 +118,9 @@ def cleanup(project_root: Path) -> None:
         print(f"  flattened archive to {len(flat)} entries")
 
     # --- tasks_in_flight.json: remove completed tasks ---
-    in_flight_path = project_root / ".agentflow" / "tasks_in_flight.json"
+    agentflow_dir = project_root / ".agentflow"
+    sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+    in_flight_path = session_file(agentflow_dir, "tasks_in_flight.json", sid)
     if in_flight_path.exists():
         try:
             complete_ids = {t["task_id"] for t in new_tasks if t.get("status") == "complete"}

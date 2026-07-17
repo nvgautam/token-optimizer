@@ -118,13 +118,16 @@ def task_done(task_id: str, workspace_root: Path = None, sid: str = ""):
             _write_atomic(in_flight_file, sorted(list(in_flight_set)))
             _log(agentflow_dir, {"event": "tif_written", "caller": "task_done", "task_id": task_id, "in_flight": sorted(list(in_flight_set))})
 
-def handoff_complete(workspace_root: Path = None):
+def handoff_complete(workspace_root: Path = None, sid: str = ""):
     if not workspace_root:
         workspace_root = find_workspace_root()
+    if not sid:
+        sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
     agentflow_dir = workspace_root / ".agentflow"
-    handoff_file = agentflow_dir / "handoff_complete.json"
+    handoff_file = session_file(agentflow_dir, "handoff_complete.json", sid)
     _write_atomic(handoff_file, {"status": "complete"})
     _log(agentflow_dir, {"event": "handoff_complete_written"})
+
 
 def main():
     args = sys.argv[1:]
