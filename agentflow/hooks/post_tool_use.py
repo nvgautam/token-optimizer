@@ -168,6 +168,29 @@ def detect_pr_merge(
         pass
 
 
+def _sync_tif_from_disk_if_absent(agentflow_dir: pathlib.Path) -> None:
+    """Self-healing fallback: populate tif from current_round.json on disk when tif is absent.
+
+    Handles the case where orchestrate writes current_round.json via Bash (not the Write tool),
+    so the Write-tool path in sync_tasks_in_flight never fires.
+    """
+    sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+    tif_path = session_file(agentflow_dir, "tasks_in_flight.json", sid)
+    if tif_path.exists():
+        return
+    cr_path = agentflow_dir / "current_round.json"
+    if not cr_path.exists():
+        return
+    try:
+        task_ids = json.loads(cr_path.read_text()).get("task_ids", [])
+        if not isinstance(task_ids, list) or not task_ids:
+            return
+        _atomic_write(tif_path, json.dumps(task_ids))
+        _log(agentflow_dir, {"event": "sync_tif_fallback_written", "task_ids": task_ids})
+    except Exception as e:
+        _log(agentflow_dir, {"event": "sync_tif_fallback_error", "err": str(e)})
+
+
 def sync_tasks_in_flight(tool_name: str, tool_input: dict, agentflow_dir: pathlib.Path) -> None:
     """When current_round.json is written, populate tasks_in_flight.json from task_ids.
 
@@ -179,6 +202,7 @@ def sync_tasks_in_flight(tool_name: str, tool_input: dict, agentflow_dir: pathli
     if tool_name != "Write":
         if file_path.endswith("/.agentflow/current_round.json"):
             _log(agentflow_dir, {"event": "sync_tif_skip", "reason": "not_write_tool", "tool": tool_name})
+        _sync_tif_from_disk_if_absent(agentflow_dir)
         return
     if not file_path.endswith("/.agentflow/current_round.json"):
         return
