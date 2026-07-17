@@ -18,17 +18,17 @@ def test_state_machine_transitions():
     sm.transition("task_complete_written")
     assert sm.state == States.TASK_COMPLETE
 
-    # TASK_COMPLETE -> HANDOFF_PENDING (guarded by tokens >= 80K)
-    # If tokens < 80K, does it go to IDLE?
+    # TASK_COMPLETE -> IDLE (no token guard)
     sm.state = States.TASK_COMPLETE
-    sm.transition("check_tokens", tokens=50000)
+    sm.transition("task_round_complete")
     assert sm.state == States.IDLE
 
     sm.state = States.TASK_COMPLETE
-    sm.transition("check_tokens", tokens=85000)
-    assert sm.state == States.HANDOFF_PENDING
+    sm.transition("task_round_complete")
+    assert sm.state == States.IDLE
 
     # HANDOFF_PENDING -> RESTARTING
+    sm.state = States.HANDOFF_PENDING
     sm.transition("handoff_complete_written")
     assert sm.state == States.RESTARTING
 

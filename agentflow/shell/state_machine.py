@@ -56,10 +56,7 @@ class StateMachine:
                 return States.TASK_COMPLETE
 
         elif state == States.TASK_COMPLETE:
-            if event == "check_tokens":
-                tokens = kwargs.get("tokens", 0)
-                if self.guard_tokens_threshold(tokens):
-                    return States.HANDOFF_PENDING
+            if event == "task_round_complete":
                 return States.IDLE
 
         elif state == States.HANDOFF_PENDING:
@@ -76,10 +73,6 @@ class StateMachine:
                 return States.IDLE
 
         return state
-
-    def guard_tokens_threshold(self, tokens: int) -> bool:
-        """Guard function checking if accumulated tokens meet or exceed the threshold."""
-        return tokens >= self.threshold_tokens
 
     def _trigger_hook(self, state: States) -> None:
         """Dynamically calls the on_enter_<state_name> hook if it exists."""
