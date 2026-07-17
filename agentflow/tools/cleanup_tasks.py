@@ -183,7 +183,7 @@ def cleanup(project_root: Path) -> None:
     tasks_data = _load_json(tasks_path)
 
     # Detect newly-merged PRs before trimming so they get archived in this run
-    _detect_merged_prs(project_root, tasks_data)
+    merged_any = _detect_merged_prs(project_root, tasks_data)
 
     tasks = tasks_data["tasks"]
 
@@ -231,6 +231,11 @@ def cleanup(project_root: Path) -> None:
                 print(f"  removed {len(in_flight) - len(still_pending)} completed task(s) from tasks_in_flight")
         except (OSError, ValueError, json.JSONDecodeError):
             pass
+
+    # --- current_round.json: delete after merge ---
+    if merged_any:
+        current_round_path = project_root / ".agentflow" / "current_round.json"
+        current_round_path.unlink(missing_ok=True)
 
 
 def append_to_archive(archive_path: Path, task: dict) -> None:

@@ -342,3 +342,57 @@ def test_cleanup_drains_tasks_in_flight(tmp_path):
     remaining = json.loads(in_flight_path.read_text())
     assert remaining == [], f"Expected empty tasks_in_flight, got {remaining}"
 
+
+def test_cleanup_deletes_current_round_after_merge(tmp_path):
+    """After cleanup processes merged round, current_round.json is deleted."""
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+
+    (tmp_path / "tasks.json").write_text(json.dumps({
+        "tasks": [{"task_id": "T-001", "title": "Test task", "status": "pending"}]
+    }))
+    (agentflow_dir / "task_prs.json").write_text(json.dumps(
+        {"T-001": "https://github.com/example/repo/pull/1"}
+    ))
+    (agentflow_dir / "tasks_in_flight.json").write_text(json.dumps(["T-001"]))
+
+    # Create current_round.json
+    current_round_path = agentflow_dir / "current_round.json"
+    current_round_path.write_text(json.dumps({"round_id": "R-001", "task_ids": ["T-001"]}))
+
+    mock_result = Mock()
+    mock_result.stdout = "MERGED\n"
+    mock_result.returncode = 0
+
+    with patch("subprocess.run", return_value=mock_result):
+        cleanup(tmp_path)
+
+    # Verify current_round.json was deleted
+    assert not current_round_path.exists(), "current_round.json should be deleted after cleanup"
+
+
+def test_cleanup_idempotent_when_current_round_absent(tmp_path):
+    """cleanup is idempotent: no error when current_round.json is absent."""
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+
+    (tmp_path / "tasks.json").write_text(json.dumps({
+        "tasks": [{"task_id": "T-001", "title": "Test task", "status": "pending"}]
+    }))
+    (agentflow_dir / "task_prs.json").write_text(json.dumps(
+        {"T-001": "https://github.com/example/repo/pull/1"}
+    ))
+    (agentflow_dir / "tasks_in_flight.json").write_text(json.dumps(["T-001"]))
+
+    # Do NOT create current_round.json
+
+    mock_result = Mock()
+    mock_result.stdout = "MERGED\n"
+    mock_result.returncode = 0
+
+    with patch("subprocess.run", return_value=mock_result):
+        cleanup(tmp_path)
+
+    # Should complete without error
+    assert not (agentflow_dir / "current_round.json").exists()
+
