@@ -1081,32 +1081,11 @@
     },
     {
       "task_id": "T-257",
-      "title": "Repro: tasks_in_flight.json not populated when orchestrate writes current_round.json via Bash",
-      "description": "Write a failing integration test that simulates the PostToolUse hook receiving a Bash tool call that writes current_round.json (as orchestrate does in practice) and asserts tasks_in_flight.json is populated. Expected: populated. Actual: empty (sync_tasks_in_flight bails on tool_name != Write). Do NOT fix the bug \u2014 just land the failing test that pins the regression.",
-      "owns": [
-        "tests/test_post_tool_use.py"
-      ],
-      "reads": [
-        "agentflow/hooks/post_tool_use.py",
-        "agentflow/shell/session_paths.py"
-      ],
-      "depends_on": [],
       "status": "complete"
     },
     {
       "task_id": "T-258",
-      "description": "Fix sync_tasks_in_flight: add fallback path \u2014 when tool_name is not Write, read current_round.json from disk (agentflow_dir/current_round.json); if it exists and has non-empty task_ids and tasks_in_flight.json is absent, populate tasks_in_flight.json. This self-heals when orchestrate writes current_round.json via Bash. Update test_sync_tasks_in_flight_bash_write_populates (T-257) to pass.",
-      "owns": [
-        "agentflow/hooks/post_tool_use.py",
-        "tests/test_post_tool_use.py"
-      ],
-      "reads": [
-        "agentflow/shell/session_paths.py"
-      ],
-      "depends_on": [
-        "T-257"
-      ],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-259",
@@ -1146,6 +1125,28 @@
       "reads": [],
       "depends_on": [],
       "status": "pending"
+    },
+    {
+      "task_id": "T-262",
+      "title": "Split agentflow/shell/handoff_handler.py \u2014 size violation",
+      "description": "Split agentflow/shell/handoff_handler.py (255 lines, limit 250). Violation timestamp: 2026-07-17T05:21:53.581038. Read the file first, identify distinct responsibilities, then choose the split boundary by domain. Verify each output file is \u2264 250 lines after splitting.",
+      "owns": [
+        "agentflow/shell/handoff_handler.py"
+      ],
+      "reads": [],
+      "depends_on": [],
+      "status": "complete"
+    },
+    {
+      "task_id": "T-263",
+      "title": "Split agentflow/hooks/post_tool_use.py \u2014 size violation",
+      "description": "Split .claude/worktrees/t258-tif-self-healing/agentflow/hooks/post_tool_use.py (261 lines, limit 250). Violation timestamp: 2026-07-17T06:29:04.366341. Read the file first, identify distinct responsibilities, then choose the split boundary by domain. Verify each output file is \u2264 250 lines after splitting.",
+      "owns": [
+        "agentflow/hooks/post_tool_use.py"
+      ],
+      "reads": [],
+      "depends_on": [],
+      "status": "complete"
     }
   ]
 }
