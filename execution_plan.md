@@ -469,7 +469,9 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round C-P0 (solo) — MERGED (PR #173 2026-07-17) | T-274 | Fix check_drain_restart: accept TIF=[] tombstone as equivalent to current_round.json — T-269 regression blocks all drain restarts |
 | Round C-P1 (solo) — MERGED (PR #174 2026-07-18) | T-273 | Fix SID path bugs: pty_signal handoff_complete, shell/cleanup_tasks task_complete, user_prompt_submit delete, tools/cleanup_tasks TIF — all use flat paths instead of session_file()/SID-in-filename |
 | Round C-P2 (solo) | T-275 | Integration test: full drain-restart file-state sequence — write_merged_and_clear → check_drain_restart → assert trigger_handoff; catches T-274-class regressions |
-| Round C | T-162 ‖ T-210 ‖ T-243 ‖ T-250 ‖ T-266 ‖ T-268 (parallel) | oracle.md split + test cache fix + auto-mode default + debug.md KeyError + debug.md 5-phase rewrite + oracle duplicate-check |
+| Round C-1 (solo) | T-266 | debug.md 5-phase forensic rewrite — largest task, triggers restart; folds T-250 (debug.md KeyError fix) |
+| Round C-2 (parallel) | T-162 ‖ T-268 | oracle.md split + oracle duplicate-check (both touch oracle.md) |
+| Round C-3 (parallel) | T-210 ‖ T-243 | write_indexer test cache fix + auto-mode default |
 | Round C | T-259 → T-260 ‖ T-234 ‖ T-236 (T-259 first, then parallel) | CLI spike → round-start CLI + context bundle temp file + conflict resolution |
 | Round D | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
 | Round E | T-167 ‖ T-168 (parallel) | Oracle Phase 3 plan-mode preview + product judgment layer |
