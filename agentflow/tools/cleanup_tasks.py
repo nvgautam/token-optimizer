@@ -3,7 +3,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 def _load_json(path: Path):
     with path.open() as f:
         return json.load(f)
@@ -70,7 +69,6 @@ def _detect_merged_prs(project_root: Path, tasks_data: dict) -> bool:
             continue  # skip this task, continue with others
 
     return marked_any
-
 
 def _split_description(filename: str, current_lines: int, limit: int, ts: str) -> str:
     parts = filename.replace("\\", "/").split("/")
@@ -175,18 +173,11 @@ def auto_file_size_violations(project_root: Path) -> None:
 
 def cleanup(project_root: Path) -> None:
     auto_file_size_violations(project_root)
-
     tasks_path = project_root / "tasks.json"
     archive_path = project_root / ".agentflow" / "tasks.archive.json"
-
-    # --- tasks.json: trim completed tasks to stubs ---
     tasks_data = _load_json(tasks_path)
-
-    # Detect newly-merged PRs before trimming so they get archived in this run
-    merged_any = _detect_merged_prs(project_root, tasks_data)
-
+    _detect_merged_prs(project_root, tasks_data)
     tasks = tasks_data["tasks"]
-
     archived_ids = set()
     if archive_path.exists():
         for entry in flatten_archive(archive_path):
@@ -231,11 +222,15 @@ def cleanup(project_root: Path) -> None:
                 print(f"  removed {len(in_flight) - len(still_pending)} completed task(s) from tasks_in_flight")
         except (OSError, ValueError, json.JSONDecodeError):
             pass
-
-    # --- current_round.json: delete after merge ---
-    if merged_any:
-        current_round_path = project_root / ".agentflow" / "current_round.json"
-        current_round_path.unlink(missing_ok=True)
+    try:
+        cr_path = project_root / ".agentflow" / "current_round.json"
+        if cr_path.exists():
+            cr_data = json.loads(cr_path.read_text())
+            rtasks = set(cr_data.get("task_ids", []))
+            if rtasks and rtasks.issubset({t["task_id"] for t in new_tasks if t.get("status") in ("complete", "MERGED")}):
+                cr_path.unlink(missing_ok=True)
+    except (OSError, ValueError, json.JSONDecodeError):
+        pass
 
 
 def append_to_archive(archive_path: Path, task: dict) -> None:
@@ -246,8 +241,6 @@ def append_to_archive(archive_path: Path, task: dict) -> None:
     existing.append(task)
     with archive_path.open("w") as f:
         json.dump(existing, f, indent=2)
-
-
 if __name__ == "__main__":
     root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.cwd()
     print(f"Cleaning up tasks in: {root}")
