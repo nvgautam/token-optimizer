@@ -171,6 +171,21 @@ def test_sync_tasks_in_flight_noop_for_empty_task_ids(tmp_path):
     assert not (af / "tasks_in_flight.json").exists()
 
 
+def test_sync_tasks_in_flight_bash_write_populates(tmp_path, monkeypatch):
+    # Orchestrate writes current_round.json via Bash, not the Write tool.
+    # The hook must still populate tasks_in_flight.json by reading the file from disk.
+    from agentflow.hooks.post_tool_use import sync_tasks_in_flight
+    af = tmp_path / ".agentflow"
+    af.mkdir()
+    monkeypatch.delenv("AGENTFLOW_SESSION_ID", raising=False)
+    cr = af / "current_round.json"
+    cr.write_text(json.dumps({"round_id": "A", "task_ids": ["T-001", "T-002"]}))
+    sync_tasks_in_flight("Bash", {"command": "python3 -c \"json.dump(...)\""}, af)
+    tif = af / "tasks_in_flight.json"
+    assert tif.exists(), "tasks_in_flight.json not populated after Bash write to current_round.json"
+    assert json.loads(tif.read_text()) == ["T-001", "T-002"]
+
+
 def test_main_write_is_atomic(tmp_path):
     """context_fill.json should not appear as a partial file mid-write."""
     transcript = _make_transcript(tmp_path, [

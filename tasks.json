@@ -1023,14 +1023,7 @@
     },
     {
       "task_id": "T-246",
-      "title": "Split tests/test_post_tool_use_agent.py \u2014 size violation",
-      "description": "Split tests/test_post_tool_use_agent.py (413 lines, limit 350). Violation timestamp: 2026-07-16T11:30:51.884312. Choose the split boundary by test class or fixture group, not line count. Verify each output file is \u2264 350 lines after splitting.",
-      "owns": [
-        "tests/test_post_tool_use_agent.py"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-247",
@@ -1069,13 +1062,11 @@
     },
     {
       "task_id": "T-252",
-      "status": "pending",
-      "title": "Remove dead HANDOFF RECOMMENDED emit from orchestrate.md (line 5 of post-merge cleanup block)"
+      "status": "complete"
     },
     {
       "task_id": "T-253",
-      "status": "complete",
-      "title": "Remove file-based round/state cleanup code \u2014 execution_plan.md round tracking, state.json active_round/active_tasks writes, orchestrate.md post-merge LLM steps 1-4 (dead after T-251)"
+      "status": "complete"
     },
     {
       "task_id": "T-254",
@@ -1087,6 +1078,31 @@
       "reads": [],
       "depends_on": [],
       "status": "cancelled"
+    },
+    {
+      "task_id": "T-255",
+      "title": "Split .claude/worktrees/t252-remove-handoff-emit/commands/claude/orchestrate.md \u2014 size violation",
+      "description": "Split .claude/worktrees/t252-remove-handoff-emit/commands/claude/orchestrate.md (160 lines, limit 150). Violation timestamp: 2026-07-17T05:00:57.481871. Choose the split boundary by phase/section responsibility, not line count. Extract a cohesive section into a sub-file; replace with 'Lazy load: Read <subfile>.md now.' Verify each output file is \u2264 150 lines after splitting.",
+      "owns": [
+        ".claude/worktrees/t252-remove-handoff-emit/commands/claude/orchestrate.md"
+      ],
+      "reads": [],
+      "depends_on": [],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-257",
+      "title": "Repro: tasks_in_flight.json not populated when orchestrate writes current_round.json via Bash",
+      "description": "Write a failing integration test that simulates the PostToolUse hook receiving a Bash tool call that writes current_round.json (as orchestrate does in practice) and asserts tasks_in_flight.json is populated. Expected: populated. Actual: empty (sync_tasks_in_flight bails on tool_name != Write). Do NOT fix the bug \u2014 just land the failing test that pins the regression.",
+      "owns": [
+        "tests/test_post_tool_use.py"
+      ],
+      "reads": [
+        "agentflow/hooks/post_tool_use.py",
+        "agentflow/shell/session_paths.py"
+      ],
+      "depends_on": [],
+      "status": "pending"
     }
   ]
 }

@@ -126,3 +126,13 @@ Happy-path tests alone are insufficient. For every function, identify and test:
 - **Idempotency**: running twice produces the same result as running once
 
 If a function silently swallows an exception, the test must assert the audit log entry is written — silence is not acceptable as a test outcome.
+
+## 9. Hook–Skill Contract Tests
+
+Any hook that conditions behavior on `tool_name` must be tested with **every tool the calling skill plausibly uses**, not just the intended happy-path tool.
+
+- Identify the tool the hook expects (e.g. `Write`) and test it passes.
+- Identify every other tool the skill *could* realistically use for the same operation (e.g. `Bash`, `Edit`) and test each one explicitly — assert the correct outcome, not just that the hook skips silently.
+- The contract "skill X must use tool Y for operation Z" is implicit and will be violated. The test is the only enforcement.
+
+Example failure mode: a hook fires on `Write` to detect a file change; the skill writes via `Bash` instead; the hook silently skips; the system silently breaks. Without a test exercising the `Bash` path, this goes undetected.
