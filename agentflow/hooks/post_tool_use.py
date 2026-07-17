@@ -188,36 +188,50 @@ def sync_tasks_in_flight(tool_name: str, tool_input: dict, agentflow_dir: pathli
         _log(agentflow_dir, {"event": "sync_tif_error", "err": str(e)})
 
 
+def audit_orchestrator_direct_write(tool_name: str, tool_input: dict, agentflow_dir: pathlib.Path) -> None:
+    """Emit contract_violation if orchestrator writes a non-state file without current_round.json."""
+    if tool_name not in ("Write", "Edit"):
+        return
+    sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+    if not sid:
+        return
+    try:
+        ss = session_file(agentflow_dir, "session_state.json", sid)
+        if not ss.exists() or json.loads(ss.read_text()).get("session_type") != "orchestrator":
+            return
+        fp = tool_input.get("file_path", "")
+        if not fp:
+            return
+        p = pathlib.Path(fp)
+        try:
+            p.relative_to(agentflow_dir)
+            return
+        except ValueError:
+            pass
+        if p.name in {"tasks.json", "execution_plan.md"} or ".claude" in p.parts:
+            return
+        if not (agentflow_dir / "current_round.json").exists():
+            _log(agentflow_dir, {"event": "contract_violation", "rule": "orchestrator_direct_write", "tool": tool_name, "file": fp})
+    except Exception:
+        pass
+
+
 def main() -> None:
-    """Entry point — always exits 0 to avoid blocking Claude."""
-    project_root = pathlib.Path(
-        os.environ.get("CLAUDE_PROJECT_DIR", os.getcwd())
-    )
+    project_root = pathlib.Path(os.environ.get("CLAUDE_PROJECT_DIR", os.getcwd()))
     agentflow_dir = project_root / ".agentflow"
     try:
         agentflow_dir.mkdir(parents=True, exist_ok=True)
         payload = json.loads(sys.stdin.read())
-
-        sync_tasks_in_flight(
-            payload.get("tool_name", ""),
-            payload.get("tool_input", {}),
-            agentflow_dir,
-        )
-
-        detect_pr_merge(
-            payload.get("tool_name", ""),
-            payload.get("tool_input", {}),
-            payload.get("tool_response", {}),
-            agentflow_dir,
-            project_root,
-        )
+        tn, ti = payload.get("tool_name", ""), payload.get("tool_input", {})
+        sync_tasks_in_flight(tn, ti, agentflow_dir)
+        audit_orchestrator_direct_write(tn, ti, agentflow_dir)
+        detect_pr_merge(tn, ti, payload.get("tool_response", {}), agentflow_dir, project_root)
 
         transcript_path = payload.get("transcript_path", "")
         fill_tokens = extract_fill_from_transcript(transcript_path)
         if fill_tokens is None:
             sys.exit(0)
 
-        # Read AGENTFLOW_SESSION_ID from env (default to empty string for backward compat)
         sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
         fill_path = session_file(agentflow_dir, "context_fill.json", sid if sid else None)
         _atomic_write(fill_path, json.dumps({"fill_tokens": fill_tokens, "ts": time.time()}))

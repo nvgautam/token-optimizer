@@ -19,6 +19,8 @@ Execute the `commands/claude/orchestrator/startup.md` steps in order. Check desi
 
 ## Agent spawn
 
+> **HARD RULE — NO EXCEPTIONS:** Orchestrate MUST NEVER implement tasks directly. It MUST always dispatch a worker agent. Before spawning any worker, orchestrate MUST write `.agentflow/current_round.json` first. Implementing code, writing feature files, or editing owned source paths directly is a contract violation — always delegate to a worker.
+
 **Pre-spawn (once before first agent):**
 - Branch `main`, working tree clean — stop if not
 - No GitHub remote → `gh repo create --source=. --remote=origin --push`
