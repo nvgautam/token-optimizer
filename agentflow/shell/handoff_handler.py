@@ -132,7 +132,7 @@ def poll_session(manager) -> None:
     elif state == States.TASK_COMPLETE:
         if _check_deadline(manager, state):
             return
-        manager._state_machine.transition("check_tokens", tokens=manager._last_accumulated_tokens)
+        manager._state_machine.transition("task_round_complete")
     elif state == States.HANDOFF_PENDING:
         _check_deadline(manager, state)
     elif state == States.RESTARTING:
