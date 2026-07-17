@@ -463,7 +463,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | C3b-splits — MERGED (PR #164/#165 2026-07-17) | T-262 ‖ T-263 (parallel) | Size-violation splits: handoff_handler.py (T-262) + post_tool_use.py / fill_utils.py (T-263) |
 | C3b-restart-paths | T-264 ‖ T-265 (parallel) | Simplify restart paths: Path 1 never restarts (rename check_tokens→task_round_complete, always→IDLE, remove guard_tokens_threshold) + remove dead _handoff_in_progress setter (Path 3) |
 | C3b-worker-guard — MERGED | T-261 (solo) | Hard guard: orchestrate must always dispatch a worker — never implement directly; runtime audit check + test |
-| Round A | T-269 ‖ T-264 (parallel) | Fix premature drain restart (clear current_round.json after merge) + simplify Path 1 restart — unblocks stable orchestrate startup |
+| Round A — MERGED (PR #167/#168 2026-07-17) | T-269 ‖ T-264 (parallel) | Fix premature drain restart (clear current_round.json after merge) + simplify Path 1 restart — unblocks stable orchestrate startup |
 | Round B | T-265 ‖ T-267 (parallel) | Remove dead _handoff_in_progress setter (Path 3) + oracle.md opinionated-expert note |
 | Round C | T-162 ‖ T-210 ‖ T-243 ‖ T-250 ‖ T-266 ‖ T-268 (parallel) | oracle.md split + test cache fix + auto-mode default + debug.md KeyError + debug.md 5-phase rewrite + oracle duplicate-check |
 | Round C | T-259 → T-260 ‖ T-234 ‖ T-236 (T-259 first, then parallel) | CLI spike → round-start CLI + context bundle temp file + conflict resolution |

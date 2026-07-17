@@ -1,11 +1,20 @@
 import json
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 def _load_json(path: Path):
     with path.open() as f:
         return json.load(f)
+
+
+def _log_event(project_root: Path, entry: dict) -> None:
+    try:
+        with open(project_root / ".agentflow" / "hook_drain_debug.jsonl", "a") as f:
+            f.write(json.dumps({"source": "cleanup_tasks", "ts": time.time(), **entry}) + "\n")
+    except Exception:
+        pass
 
 
 def _write_json(path: Path, data):
@@ -200,6 +209,8 @@ def cleanup(project_root: Path) -> None:
 
     tasks_data["tasks"] = new_tasks
     _write_json(tasks_path, tasks_data)
+    completed_ids = [t["task_id"] for t in new_tasks if t.get("status") == "complete"]
+    _log_event(project_root, {"event": "tasks_json_written", "trimmed": trimmed, "completed_ids": completed_ids})
     print(f"  trimmed {trimmed} completed task(s) to stubs")
 
     # --- tasks.archive.json: flatten nested batches ---
@@ -219,6 +230,7 @@ def cleanup(project_root: Path) -> None:
             if len(still_pending) != len(in_flight):
                 with open(in_flight_path, "w") as f:
                     json.dump(still_pending, f)
+                _log_event(project_root, {"event": "tif_written", "still_in_flight": still_pending})
                 print(f"  removed {len(in_flight) - len(still_pending)} completed task(s) from tasks_in_flight")
         except (OSError, ValueError, json.JSONDecodeError):
             pass

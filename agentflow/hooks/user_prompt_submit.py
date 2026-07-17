@@ -104,6 +104,7 @@ def _write_session_state_atomic(agentflow_dir: Path, session_type: str, sid: str
             tmp_path = Path(tmp.name)
         # Atomic replace
         os.replace(tmp_path, session_state_file)
+        _log_drain(agentflow_dir, {"event": "session_state_written", "session_type": session_type, "sid": sid})
     except Exception as e:
         _log_drain(agentflow_dir, {"event": "write_session_state_error", "error": str(e)})
 
@@ -179,6 +180,7 @@ def _cleanup_merged_in_flight(agentflow_dir: Path, sid: str = "") -> None:
         try:
             with open(in_flight_file, "w") as f:
                 json.dump(still_pending, f)
+            _log_drain(agentflow_dir, {"event": "tif_written", "still_in_flight": still_pending})
         except Exception as e:
             _log_drain(agentflow_dir, {"event": "cleanup_tif_write_error", "error": str(e)})
 

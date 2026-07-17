@@ -1129,7 +1129,7 @@
         "tests/shell/test_state_machine.py"
       ],
       "depends_on": [],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-265",
@@ -1189,7 +1189,7 @@
     },
     {
       "task_id": "T-269",
-      "status": "pending",
+      "status": "complete",
       "title": "Fix premature drain restart: clear current_round.json after merge",
       "description": "cleanup_tasks.py must delete .agentflow/current_round.json after a round merges. Also update _write_merged_and_clear in drain_restart.py to unlink current_round.json. Prevents drain restart firing on stale round data when orchestrate starts a new session.",
       "estimated_lines": 15,

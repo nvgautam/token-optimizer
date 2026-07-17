@@ -2046,5 +2046,29 @@
       "T-257"
     ],
     "status": "complete"
+  },
+  {
+    "task_id": "T-261",
+    "description": "Add hard guard to orchestrate.md: orchestrate must NEVER implement tasks directly \u2014 always dispatch a worker and write current_round.json. Add a runtime audit check: if orchestrate calls Write/Edit on a non-state file without having written current_round.json first in the same turn, emit contract_violation audit event. Also add test asserting current_round.json is written before any task implementation begins.",
+    "owns": [
+      "commands/claude/orchestrate.md",
+      "agentflow/hooks/post_tool_use.py"
+    ],
+    "reads": [],
+    "depends_on": [],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-235",
+    "title": "Enforce: orchestrator always spawns a worker \u2014 no direct implementation exceptions",
+    "status": "complete",
+    "estimated_lines": 10,
+    "depends_on": [
+      "T-230"
+    ],
+    "owns": [
+      "commands/claude/orchestrate.md",
+      "commands/claude/orchestrator/startup.md"
+    ]
   }
 ]

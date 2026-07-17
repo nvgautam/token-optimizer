@@ -32,6 +32,12 @@ def main() -> None:
             os.unlink(temp_path)
         raise e
     print("Atomic task_complete.json written.")
+    try:
+        with open(agentflow_dir / "hook_drain_debug.jsonl", "a") as _lf:
+            import time as _t
+            _lf.write(json.dumps({"event": "task_complete_written", "status": "complete", "ts": _t.time()}) + "\n")
+    except Exception:
+        pass
 
 if __name__ == "__main__":
     main()
