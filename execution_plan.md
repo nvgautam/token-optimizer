@@ -460,6 +460,8 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | C3b-restart-test — MERGED (PR #161/#162 2026-07-17) | T-246 ‖ T-252 (parallel) | Restart validation run: test_post_tool_use_agent.py split + remove dead HANDOFF RECOMMENDED emit — verifies drain→restart chain end-to-end |
 | C3b-tif-repro — MERGED (18fd947b1 2026-07-17) | T-257 (solo) | Failing test: Bash-written current_round.json does not populate tasks_in_flight.json — pins the regression before fix |
 | C3b-tif-fix — MERGED (PR #163 2026-07-17) | T-258 (solo) | Self-healing fallback in sync_tasks_in_flight: read current_round.json from disk when tif absent after Bash call |
+| C3b-splits — MERGED (PR #164/#165 2026-07-17) | T-262 ‖ T-263 (parallel) | Size-violation splits: handoff_handler.py (T-262) + post_tool_use.py / fill_utils.py (T-263) |
+| C3b-restart-paths | T-264 ‖ T-265 (parallel) | Simplify restart paths: Path 1 never restarts (rename check_tokens→task_round_complete, always→IDLE, remove guard_tokens_threshold) + remove dead _handoff_in_progress setter (Path 3) |
 | C3b-worker-guard | T-261 (solo) | Hard guard: orchestrate must always dispatch a worker — never implement directly; runtime audit check + test |
 | C3b-round-cli | T-260 (solo) | agentflow round start CLI command: atomic current_round.json + tif write; update orchestrate.md to use it — removes hook/tool_name dependency |
 | C3b-cli-spike | T-259 (solo) | Spike: agentflow db CLI layer + CLI-as-interface strategy — all state mutations via CLI commands; positions for SQLite backend swap |
