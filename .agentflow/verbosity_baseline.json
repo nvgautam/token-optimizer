@@ -1,28 +1,28 @@
 {
-  "computed_at": "2026-07-17T07:38:56.889367",
-  "baseline_tokens": 8361,
-  "sample_size": 2373,
-  "ci95_low": 4104.1519195653855,
-  "ci95_high": 12617.913820004778,
+  "computed_at": "2026-07-17T21:38:12.765719",
+  "baseline_tokens": 8901,
+  "sample_size": 2380,
+  "ci95_low": 4520.052794779801,
+  "ci95_high": 13281.358969926081,
   "measured": true,
   "arms": {
     "on": {
-      "n": 4281,
-      "mean": 2633.7126839523476,
+      "n": 4284,
+      "mean": 3219.1916433239962,
       "p90": 585,
-      "ci95_low": 841.2620400609328,
-      "ci95_high": 4426.163327843762
+      "ci95_low": 1232.5094169044173,
+      "ci95_high": 5205.873869743575
     },
     "off": {
-      "n": 2373,
-      "mean": 8361.032869785082,
-      "p90": 1447,
-      "ci95_low": 4104.1519195653855,
-      "ci95_high": 12617.913820004778
+      "n": 2380,
+      "mean": 8900.70588235294,
+      "p90": 1478,
+      "ci95_low": 4520.052794779801,
+      "ci95_high": 13281.358969926081
     }
   },
   "stopping_met": false,
-  "stopping_status": "STILL COLLECTING \u2014 n_on=4281 / 20, n_off=2373 / 20",
-  "verbosity_savings_per_turn": 5727.3,
-  "verbosity_pct_saved": 68.5
+  "stopping_status": "STILL COLLECTING \u2014 n_on=4284 / 20, n_off=2380 / 20",
+  "verbosity_savings_per_turn": 5681.5,
+  "verbosity_pct_saved": 63.8
 }

@@ -23,3 +23,8 @@ build/
 .agentflow/size_violations.jsonl
 .agentflow/telemetry.jsonl
 .agentflow/verbosity_ab_log.jsonl
+.agentflow/headroom_ab_log.jsonl
+.agentflow/payload_inspect.jsonl
+.agentflow/state.json
+.agentflow/task_prs.json
+
