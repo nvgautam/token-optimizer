@@ -76,6 +76,7 @@ def main() -> None:
             with os.fdopen(fd, "w", encoding="utf-8") as f:
                 f.write(data_str)
             os.replace(tmp_path, str(fill_path))
+            print(json.dumps({"hook": "stop_context_capture.py", "event": "context_fill_written", "fill_tokens": fill_tokens, "sid": sid, "ts": time.time()}), file=sys.stderr)
         except Exception as e:
             print(json.dumps({"hook": "stop_context_capture.py", "event": "atomic_write_error", "error": str(e), "ts": time.time()}), file=sys.stderr)
             if tmp_path is not None:

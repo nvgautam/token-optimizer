@@ -42,6 +42,7 @@ def _write_session_state_atomic(agentflow_dir: Path, session_type: str, sid: str
             json.dump({"session_type": session_type}, tmp)
             tmp_path = Path(tmp.name)
         os.replace(tmp_path, session_state_file)
+        print(json.dumps({"hook": "verbosity_reminder.py", "event": "session_state_written", "session_type": session_type, "sid": sid, "ts": time.time()}), file=sys.stderr)
     except Exception as e:
         print(json.dumps({"hook": "verbosity_reminder.py", "event": "write_session_state_error", "error": str(e), "ts": time.time()}), file=sys.stderr)
 

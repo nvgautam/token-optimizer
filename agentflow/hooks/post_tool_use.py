@@ -112,6 +112,7 @@ def detect_pr_merge(
                     if task.get("task_id") == task_id:
                         task["status"] = "complete"
                 _atomic_write(tasks_path, json.dumps(tasks_data, indent=2))
+                _log(agentflow_dir, {"event": "tasks_json_written", "task_id": task_id, "status": "complete"})
     except Exception:
         pass
 
@@ -235,6 +236,7 @@ def main() -> None:
         sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
         fill_path = session_file(agentflow_dir, "context_fill.json", sid if sid else None)
         _atomic_write(fill_path, json.dumps({"fill_tokens": fill_tokens, "ts": time.time()}))
+        _log(agentflow_dir, {"event": "context_fill_written", "fill_tokens": fill_tokens, "sid": sid})
     except Exception as e:
         _log(agentflow_dir, {"event": "context_fill_write_error", "error": str(e)})
     sys.exit(0)

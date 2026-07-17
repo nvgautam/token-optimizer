@@ -80,6 +80,9 @@ def _make_manager(tmp_path: pathlib.Path, fill_tokens: int = 90000):
     manager._last_accumulated_tokens = fill_tokens
     manager._config = {"handoff_primary_tokens": 80000}
     manager._auto_handoff_disabled = MagicMock(return_value=False)
+    # Configure MagicMock to return 0.0 for any _skip_last_* attribute access
+    for key in ["_skip_last_handoff_in_progress_or_disabled", "_skip_last_no_current_round", "_skip_last_no_tasks_in_flight_file"]:
+        setattr(manager, key, 0.0)
 
     def _log_audit(event: dict) -> None:
         audit_events.append(event)

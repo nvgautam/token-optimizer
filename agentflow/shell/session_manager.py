@@ -124,12 +124,6 @@ class SessionManager:
 
     @property
     def _handoff_in_progress(self) -> bool: return self._state_machine.state in (States.HANDOFF_PENDING, States.RESTARTING)
-    @_handoff_in_progress.setter
-    def _handoff_in_progress(self, val: bool) -> None:
-        if val:
-            if self._state_machine.state != States.HANDOFF_PENDING: self.trigger_handoff(trigger="manual")
-        else:
-            if self._state_machine.state in (States.HANDOFF_PENDING, States.RESTARTING): self._state_machine.transition("handoff_aborted")
 
     def _read_arm_file(self) -> str | None:
         try: return (pathlib.Path.cwd() / ".agentflow" / "verbosity_ab_arm.txt").read_text("utf-8").strip() or None

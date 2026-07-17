@@ -76,8 +76,10 @@ def _register_pr_url(agentflow_dir: Path, task_id: str, pr_url: str) -> bool:
             json.dump(data, tmp)
             tmp_path = Path(tmp.name)
         os.replace(tmp_path, prs_file)
+        _log(agentflow_dir, {"event": "task_prs_written", "task_id": task_id, "pr_url": pr_url})
         return True
-    except (OSError, ValueError, json.JSONDecodeError):
+    except (OSError, ValueError, json.JSONDecodeError) as e:
+        _log(agentflow_dir, {"event": "task_prs_write_error", "task_id": task_id, "error": str(e)})
         return False
 
 
@@ -229,6 +231,7 @@ def main() -> None:
         try:
             with open(in_flight_file, "w") as f:
                 json.dump(still_in_flight, f)
+            _log(agentflow_dir, {"event": "tif_written", "still_in_flight": still_in_flight})
         except Exception as e:
             _log(agentflow_dir, {"event": "drain_write_in_flight_error", "error": str(e)})
 

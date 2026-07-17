@@ -42,12 +42,15 @@ def _write_merged_and_clear(manager) -> None:
 					t.write("".join(lines))
 					tmp = t.name
 				os.replace(tmp, ep)
+				manager._log_audit({"event": "execution_plan_written", "round_id": rid, "task_ids": tids})
 	except Exception as e:
 		manager._log_audit({"event": "drain_execution_plan_write_error", "round_id": rid, "error": str(e)})
 	try:
 		if db:
 			db.clear_active_round()
+		tif_existed = manager._tasks_in_flight_path.exists()
 		manager._tasks_in_flight_path.unlink(missing_ok=True)
+		manager._log_audit({"event": "tif_unlinked", "round_id": rid, "existed": tif_existed})
 		manager._current_round_path.unlink(missing_ok=True)
 	except Exception as e:
 		manager._log_audit({"event": "drain_clear_error", "round_id": rid, "error": str(e)})
