@@ -467,7 +467,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round B — MERGED (PR #169/#170 2026-07-17) | T-265 ‖ T-267 (parallel) | Remove dead _handoff_in_progress setter (Path 3) + oracle.md opinionated-expert note |
 | Round C-splits — MERGED (PR #171/#172 2026-07-17) | T-271 ‖ T-270 (parallel) | Size-violation splits: cleanup_tasks.py → cleanup_violations.py + user_prompt_submit.py → ups_task_sync.py |
 | Round C-P0 (solo) — MERGED (PR #173 2026-07-17) | T-274 | Fix check_drain_restart: accept TIF=[] tombstone as equivalent to current_round.json — T-269 regression blocks all drain restarts |
-| Round C-P1 (solo) | T-273 | Fix SID path bugs: pty_signal handoff_complete, shell/cleanup_tasks task_complete, user_prompt_submit delete, tools/cleanup_tasks TIF — all use flat paths instead of session_file()/SID-in-filename |
+| Round C-P1 (solo) — MERGED (PR #174 2026-07-18) | T-273 | Fix SID path bugs: pty_signal handoff_complete, shell/cleanup_tasks task_complete, user_prompt_submit delete, tools/cleanup_tasks TIF — all use flat paths instead of session_file()/SID-in-filename |
 | Round C | T-162 ‖ T-210 ‖ T-243 ‖ T-250 ‖ T-266 ‖ T-268 (parallel) | oracle.md split + test cache fix + auto-mode default + debug.md KeyError + debug.md 5-phase rewrite + oracle duplicate-check |
 | Round C | T-259 → T-260 ‖ T-234 ‖ T-236 (T-259 first, then parallel) | CLI spike → round-start CLI + context bundle temp file + conflict resolution |
 | Round D | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |

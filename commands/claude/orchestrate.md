@@ -17,12 +17,12 @@ For details, see `commands/claude/orchestrator/startup.md`.
 **Pre-spawn (once before first agent):**
 - Branch `main`, working tree clean. No GitHub remote → `gh repo create --source=. --remote=origin --push`.
 - Stub every `owns` path (`raise NotImplementedError`). `.gitignore` absent → generate.
-- Generate `.idx` for reads files ≥50 lines. Pre-create branch: `git worktree add .claude/worktrees/<branch> -b <branch> main`.
+- Generate `.idx` in ~/.agentflow/cache/ for reads files ≥50 lines (using ast for Python files, grep H2/H3 for Markdown files). Pre-create branch: `git worktree add .claude/worktrees/<branch> -b <branch> main`.
 - Capture worktree path: `git worktree list | grep <branch> | awk '{print $1}'` as `worktree_abs_path`.
 - **Never** run `git checkout` in root — inspect via `git show` or `gh pr diff`.
 **Build each agent prompt:**
 1. `commands/claude/worker/system.md`
-2. `commands/claude/worker/context_bundle.md` (include `worktree_abs_path`)
+2. `commands/claude/worker/context_bundle.md` (include `worktree_abs_path` in the context bundle)
 3. `commands/claude/worker/testing_guide.md`
 4. Full task definitions (grep `^## Addendum: <task_id>` in execution_plan.md or idx)
 5. Milestone architecture anchor section
