@@ -25,7 +25,14 @@ Read core state files for the matched symptom class.
 
 **All classes — derive SID:**
 ```bash
-SID=$(python3 -c "import json; print(json.load(open('.agentflow/current_round.json'))['session_id'])")
+SID=$(python3 -c "
+import json, sys
+try:
+    print(json.load(open('.agentflow/current_round.json'))['session_id'])
+except Exception as e:
+    print(f'ERROR: {e} — no active round; find SID manually: ls .agentflow/sessions/', file=sys.stderr)
+    sys.exit(1)
+")
 ```
 
 **Class A & C — in-flight state for the active session:**
