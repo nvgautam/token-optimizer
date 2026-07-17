@@ -83,21 +83,26 @@ def check_drain_restart(manager) -> None:
 	if manager._handoff_in_progress or manager._auto_handoff_disabled():
 		_skip("handoff_in_progress_or_disabled", in_progress=manager._handoff_in_progress)
 		return
-	if not manager._current_round_path.exists():
-		_skip("no_current_round")
-		return
 	tif = manager._tasks_in_flight_path
 	if not tif.exists():
 		_skip("no_tasks_in_flight_file")
 		return
 	try:
 		tif_content = json.loads(tif.read_text("utf-8"))
-		if tif_content:
-			_skip("tasks_in_flight_nonempty", tasks=tif_content)
-			return
 	except Exception as e:
 		_skip("tif_read_error", error=str(e))
 		return
+
+	tif_is_tombstone = (not tif_content)
+	round_exists = manager._current_round_path.exists()
+	if not (round_exists or tif_is_tombstone):
+		_skip("no_current_round")
+		return
+
+	if not tif_is_tombstone:
+		_skip("tasks_in_flight_nonempty", tasks=tif_content)
+		return
+
 	threshold = manager._config.get("handoff_primary_tokens", 80000)
 	fill_tokens = 0
 	try:
