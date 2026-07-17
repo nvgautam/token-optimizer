@@ -141,7 +141,6 @@ class TestWriteMergedAndClearDeletesTif:
 
         sm._config = {"handoff_primary_tokens": 80000}
         sm._log_audit = MagicMock()
-        sm._handoff_in_progress = False
 
         def mock_auto_handoff_disabled():
             return False
@@ -182,7 +181,6 @@ class TestWriteMergedAndClearDeletesTif:
 
         sm._config = {"handoff_primary_tokens": 80000}
         sm._log_audit = MagicMock()
-        sm._handoff_in_progress = False
 
         def mock_auto_handoff_disabled():
             return False

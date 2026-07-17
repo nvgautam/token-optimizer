@@ -167,7 +167,6 @@ class TestHandoffHandlerTasksInFlight:
         manager._state_machine = Mock()
         manager._state_machine.state = Mock()
         manager._state_machine.state.value = "IDLE"
-        manager._handoff_in_progress = False
         manager._log_audit = Mock()
         manager._last_restart_ts = 0.0
         manager._config = {"handoff_primary_tokens": 80000}
