@@ -133,3 +133,35 @@ def test_drain_skipped_when_fill_below_threshold(tmp_path):
 
     events = _audit_tags(mgr)
     assert "fill_tokens_below_threshold" in events
+
+
+def test_write_merged_and_clear_deletes_current_round(tmp_path):
+    """_write_merged_and_clear deletes current_round.json after merge."""
+    mgr, af = _make_manager(tmp_path, States.TASK_RUNNING)
+
+    # Ensure current_round.json exists
+    current_round_path = af / "current_round.json"
+    assert current_round_path.exists()
+
+    from agentflow.shell.drain_restart import _write_merged_and_clear
+    _write_merged_and_clear(mgr)
+
+    # Verify current_round.json was deleted
+    assert not current_round_path.exists(), "current_round.json should be deleted after _write_merged_and_clear"
+
+
+def test_write_merged_and_clear_idempotent_when_current_round_absent(tmp_path):
+    """_write_merged_and_clear is idempotent when current_round.json is absent."""
+    mgr, af = _make_manager(tmp_path, States.TASK_RUNNING)
+
+    # Delete current_round.json
+    current_round_path = af / "current_round.json"
+    current_round_path.unlink()
+    assert not current_round_path.exists()
+
+    from agentflow.shell.drain_restart import _write_merged_and_clear
+    # Should not raise an error
+    _write_merged_and_clear(mgr)
+
+    # Verify it still doesn't exist
+    assert not current_round_path.exists()
