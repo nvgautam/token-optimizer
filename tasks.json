@@ -906,16 +906,7 @@
     },
     {
       "task_id": "T-235",
-      "title": "Enforce: orchestrator always spawns a worker \u2014 no direct implementation exceptions",
-      "status": "complete",
-      "estimated_lines": 10,
-      "depends_on": [
-        "T-230"
-      ],
-      "owns": [
-        "commands/claude/orchestrate.md",
-        "commands/claude/orchestrator/startup.md"
-      ]
+      "status": "complete"
     },
     {
       "task_id": "T-236",
@@ -1057,8 +1048,7 @@
     },
     {
       "task_id": "T-258",
-      "status": "complete",
-      "title": "Self-healing fallback in sync_tasks_in_flight for Bash-written current_round.json"
+      "status": "complete"
     },
     {
       "task_id": "T-259",
@@ -1092,15 +1082,7 @@
     },
     {
       "task_id": "T-261",
-      "description": "Add hard guard to orchestrate.md: orchestrate must NEVER implement tasks directly \u2014 always dispatch a worker and write current_round.json. Add a runtime audit check: if orchestrate calls Write/Edit on a non-state file without having written current_round.json first in the same turn, emit contract_violation audit event. Also add test asserting current_round.json is written before any task implementation begins.",
-      "owns": [
-        "commands/claude/orchestrate.md",
-        "agentflow/hooks/post_tool_use.py"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "status": "complete",
-      "title": "Hard guard: orchestrate must always dispatch a worker, never implement directly"
+      "status": "complete"
     },
     {
       "task_id": "T-262",
@@ -1108,39 +1090,15 @@
     },
     {
       "task_id": "T-263",
-      "title": "Split agentflow/shell/handoff_handler.py \u2014 size violation",
-      "description": "Split agentflow/shell/handoff_handler.py (255 lines, limit 250). Violation timestamp: 2026-07-17T05:24:27.647522. Read the file first, identify distinct responsibilities, then choose the split boundary by domain. Verify each output file is \u2264 250 lines after splitting.",
-      "owns": [
-        "agentflow/shell/handoff_handler.py"
-      ],
-      "reads": [],
-      "depends_on": [],
       "status": "complete"
     },
     {
       "task_id": "T-264",
-      "title": "Simplify Path 1: rename check_tokens \u2192 task_round_complete, always \u2192 IDLE",
-      "description": "Path 1 (TASK_COMPLETE) must never restart \u2014 restart is exclusively owned by the drain path (Path 2). Changes: (1) rename event check_tokens \u2192 task_round_complete in handoff_handler.py:138 (remove tokens= kwarg) and state_machine.py TASK_COMPLETE branch; (2) state machine TASK_COMPLETE + task_round_complete always returns States.IDLE \u2014 delete guard_tokens_threshold call; (3) delete guard_tokens_threshold method (no other callers confirmed); (4) update tests/shell/test_state_machine.py lines 24/28 to use new event name and assert IDLE in both cases.",
-      "owns": [
-        "agentflow/shell/state_machine.py",
-        "agentflow/shell/handoff_handler.py"
-      ],
-      "reads": [
-        "tests/shell/test_state_machine.py"
-      ],
-      "depends_on": [],
       "status": "complete"
     },
     {
       "task_id": "T-265",
-      "title": "Remove _handoff_in_progress setter (Path 3 dead code)",
-      "description": "The _handoff_in_progress setter in session_manager.py (lines 128-132) is dead \u2014 no callers assign it anywhere in the codebase (confirmed by grep). Delete the setter body. Keep the getter (used as a read guard in Path 2). The _handoff_in_progress property becomes read-only.",
-      "owns": [
-        "agentflow/shell/session_manager.py"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-266",
@@ -1149,8 +1107,7 @@
     },
     {
       "task_id": "T-267",
-      "status": "pending",
-      "title": "Update commands/claude/oracle.md \u2014 opinionated-expert behavior note"
+      "status": "complete"
     },
     {
       "task_id": "T-268",
@@ -1189,16 +1146,50 @@
     },
     {
       "task_id": "T-269",
-      "status": "complete",
-      "title": "Fix premature drain restart: clear current_round.json after merge",
-      "description": "cleanup_tasks.py must delete .agentflow/current_round.json after a round merges. Also update _write_merged_and_clear in drain_restart.py to unlink current_round.json. Prevents drain restart firing on stale round data when orchestrate starts a new session.",
-      "estimated_lines": 15,
-      "file_count": 2,
+      "status": "complete"
+    },
+    {
+      "task_id": "T-270",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-271",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-272",
+      "title": "Split .claude/worktrees/T-271-split-cleanup-tasks/tests/test_cleanup_violations.py \u2014 size violation",
+      "description": "Split .claude/worktrees/T-271-split-cleanup-tasks/tests/test_cleanup_violations.py (469 lines, limit 350). Violation timestamp: 2026-07-17T19:38:38.731551. Choose the split boundary by test class or fixture group, not line count. Verify each output file is \u2264 350 lines after splitting.",
       "owns": [
-        "agentflow/tools/cleanup_tasks.py",
+        ".claude/worktrees/T-271-split-cleanup-tasks/tests/test_cleanup_violations.py"
+      ],
+      "reads": [],
+      "depends_on": [],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-273",
+      "title": "Fix session-scoped file paths bypassing SID in pty_signal, shell/cleanup_tasks, user_prompt_submit, tools/cleanup_tasks",
+      "status": "pending",
+      "description": "Four files access session-scoped files without SID, causing signals to be written/read/deleted at wrong paths: (1) pty_signal.py handoff_complete() writes flat handoff_complete.json but PTY polls handoff_complete_{sid}.json \u2014 signal never seen. (2) shell/cleanup_tasks.py writes flat task_complete.json but PTY polls sessions/<sid>/task_complete.json \u2014 signal never seen. (3) user_prompt_submit.py:225 deletes flat task_complete.json \u2014 deletion is no-op (real file is sessions/<sid>/\u2026). (4) tools/cleanup_tasks.py:39,223 reads/writes flat tasks_in_flight.json \u2014 reads stale/wrong data. Fix: use session_file() for task_complete and tasks_in_flight paths; use f\"handoff_complete_{sid}.json\" pattern (matching session_manager) for handoff_complete in pty_signal.",
+      "estimated_lines": 30,
+      "owns": [
+        "agentflow/shell/pty_signal.py",
+        "agentflow/shell/cleanup_tasks.py",
+        "agentflow/hooks/user_prompt_submit.py",
+        "agentflow/tools/cleanup_tasks.py"
+      ]
+    },
+    {
+      "task_id": "T-274",
+      "title": "Fix check_drain_restart: no_current_round blocks restart after merge detection (T-269 regression)",
+      "status": "pending",
+      "description": "check_drain_restart gates on current_round.json existing as its first check. T-269 made _write_merged_and_clear delete current_round.json after PR merge detection (to prevent premature restart). These two interact: once _write_merged_and_clear fires (20:00:15), all subsequent drain checks skip on no_current_round \u2014 even with TIF=[](tombstone) and 132K context. Fix: in check_drain_restart, treat TIF existing as [] (tombstone) as equivalent to current_round.json present \u2014 a [] tombstone proves a round ran and drained. Condition: (current_round.json exists OR TIF==[]) AND tif exists AND context>=80K AND state==IDLE.",
+      "estimated_lines": 20,
+      "owns": [
         "agentflow/shell/drain_restart.py"
       ],
-      "reads": []
+      "priority": "P0"
     }
   ]
 }

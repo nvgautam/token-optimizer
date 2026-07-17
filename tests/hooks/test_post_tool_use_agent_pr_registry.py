@@ -9,7 +9,6 @@ import pytest
 
 from agentflow.hooks.post_tool_use_agent import (
     _register_pr_url,
-    _detect_pr_create,
     _check_pr_state,
 )
 
@@ -58,31 +57,7 @@ class TestCheckPrState:
         assert "view" in call_args[0][0]
 
 
-class TestDetectPrCreate:
-    """Test PR creation detection and registration."""
 
-    @mock.patch("agentflow.hooks.post_tool_use_agent._register_pr_url")
-    def test_detect_pr_create_extracts_url_and_task_id(self, mock_register):
-        """Test that _detect_pr_create extracts PR URL and task_id from Bash output."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            agentflow_dir = Path(tmpdir) / ".agentflow"
-            agentflow_dir.mkdir(exist_ok=True)
-
-            hook_data = {
-                "tool_name": "Bash",
-                "tool_input": {
-                    "command": "gh pr create --title 'feat(T-180): PR registry' --body 'description'"
-                },
-                "tool_response": {
-                    "output": "some output\nhttps://github.com/org/repo/pull/42\n"
-                },
-            }
-
-            _detect_pr_create(hook_data, agentflow_dir)
-
-            # Should have called _register_pr_url if URL and task_id detected
-            # Accept either call or silent return (if detection fails gracefully)
-            # We'll verify this in integration test
 
 
 class TestMainIntegration:

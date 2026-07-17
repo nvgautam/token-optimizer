@@ -2070,5 +2070,81 @@
       "commands/claude/orchestrate.md",
       "commands/claude/orchestrator/startup.md"
     ]
+  },
+  {
+    "task_id": "T-263",
+    "title": "Split agentflow/shell/handoff_handler.py \u2014 size violation",
+    "description": "Split agentflow/shell/handoff_handler.py (255 lines, limit 250). Violation timestamp: 2026-07-17T05:24:27.647522. Read the file first, identify distinct responsibilities, then choose the split boundary by domain. Verify each output file is \u2264 250 lines after splitting.",
+    "owns": [
+      "agentflow/shell/handoff_handler.py"
+    ],
+    "reads": [],
+    "depends_on": [],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-264",
+    "title": "Simplify Path 1: rename check_tokens \u2192 task_round_complete, always \u2192 IDLE",
+    "description": "Path 1 (TASK_COMPLETE) must never restart \u2014 restart is exclusively owned by the drain path (Path 2). Changes: (1) rename event check_tokens \u2192 task_round_complete in handoff_handler.py:138 (remove tokens= kwarg) and state_machine.py TASK_COMPLETE branch; (2) state machine TASK_COMPLETE + task_round_complete always returns States.IDLE \u2014 delete guard_tokens_threshold call; (3) delete guard_tokens_threshold method (no other callers confirmed); (4) update tests/shell/test_state_machine.py lines 24/28 to use new event name and assert IDLE in both cases.",
+    "owns": [
+      "agentflow/shell/state_machine.py",
+      "agentflow/shell/handoff_handler.py"
+    ],
+    "reads": [
+      "tests/shell/test_state_machine.py"
+    ],
+    "depends_on": [],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-269",
+    "status": "complete",
+    "title": "Fix premature drain restart: clear current_round.json after merge",
+    "description": "cleanup_tasks.py must delete .agentflow/current_round.json after a round merges. Also update _write_merged_and_clear in drain_restart.py to unlink current_round.json. Prevents drain restart firing on stale round data when orchestrate starts a new session.",
+    "estimated_lines": 15,
+    "file_count": 2,
+    "owns": [
+      "agentflow/tools/cleanup_tasks.py",
+      "agentflow/shell/drain_restart.py"
+    ],
+    "reads": []
+  },
+  {
+    "task_id": "T-265",
+    "title": "Remove _handoff_in_progress setter (Path 3 dead code)",
+    "description": "The _handoff_in_progress setter in session_manager.py (lines 128-132) is dead \u2014 no callers assign it anywhere in the codebase (confirmed by grep). Delete the setter body. Keep the getter (used as a read guard in Path 2). The _handoff_in_progress property becomes read-only.",
+    "owns": [
+      "agentflow/shell/session_manager.py"
+    ],
+    "reads": [],
+    "depends_on": [],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-267",
+    "status": "complete",
+    "title": "Update commands/claude/oracle.md \u2014 opinionated-expert behavior note"
+  },
+  {
+    "task_id": "T-270",
+    "title": "Split agentflow/hooks/user_prompt_submit.py \u2014 size violation",
+    "description": "Split agentflow/hooks/user_prompt_submit.py (260 lines, limit 250). Violation timestamp: 2026-07-17T11:24:25.540868. Read the file first, identify distinct responsibilities, then choose the split boundary by domain. Verify each output file is \u2264 250 lines after splitting.",
+    "owns": [
+      "agentflow/hooks/user_prompt_submit.py"
+    ],
+    "reads": [],
+    "depends_on": [],
+    "status": "complete"
+  },
+  {
+    "task_id": "T-271",
+    "title": "Split agentflow/tools/cleanup_tasks.py \u2014 size violation",
+    "description": "Split agentflow/tools/cleanup_tasks.py (260 lines, limit 250). Violation timestamp: 2026-07-17T11:25:18.695194. Read the file first, identify distinct responsibilities, then choose the split boundary by domain. Verify each output file is \u2264 250 lines after splitting.",
+    "owns": [
+      "agentflow/tools/cleanup_tasks.py"
+    ],
+    "reads": [],
+    "depends_on": [],
+    "status": "complete"
   }
 ]
