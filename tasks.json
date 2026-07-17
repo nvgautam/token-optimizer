@@ -1102,8 +1102,7 @@
     },
     {
       "task_id": "T-266",
-      "status": "pending",
-      "title": "Rewrite commands/claude/debug.md \u2014 5-phase forensic protocol"
+      "status": "complete"
     },
     {
       "task_id": "T-267",
@@ -1173,10 +1172,6 @@
     },
     {
       "task_id": "T-274",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-275",
       "status": "complete"
     }
   ]

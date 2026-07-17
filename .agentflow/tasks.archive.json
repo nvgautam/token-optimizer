@@ -2183,5 +2183,10 @@
     ],
     "depends_on": [],
     "status": "complete"
+  },
+  {
+    "task_id": "T-266",
+    "status": "complete",
+    "title": "Rewrite commands/claude/debug.md \u2014 5-phase forensic protocol"
   }
 ]
