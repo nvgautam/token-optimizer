@@ -2157,5 +2157,18 @@
       "agentflow/shell/drain_restart.py"
     ],
     "priority": "P0"
+  },
+  {
+    "task_id": "T-273",
+    "title": "Fix session-scoped file paths bypassing SID in pty_signal, shell/cleanup_tasks, user_prompt_submit, tools/cleanup_tasks",
+    "status": "complete",
+    "description": "Four files access session-scoped files without SID, causing signals to be written/read/deleted at wrong paths: (1) pty_signal.py handoff_complete() writes flat handoff_complete.json but PTY polls handoff_complete_{sid}.json \u2014 signal never seen. (2) shell/cleanup_tasks.py writes flat task_complete.json but PTY polls sessions/<sid>/task_complete.json \u2014 signal never seen. (3) user_prompt_submit.py:225 deletes flat task_complete.json \u2014 deletion is no-op (real file is sessions/<sid>/\u2026). (4) tools/cleanup_tasks.py:39,223 reads/writes flat tasks_in_flight.json \u2014 reads stale/wrong data. Fix: use session_file() for task_complete and tasks_in_flight paths; use f\"handoff_complete_{sid}.json\" pattern (matching session_manager) for handoff_complete in pty_signal.",
+    "estimated_lines": 30,
+    "owns": [
+      "agentflow/shell/pty_signal.py",
+      "agentflow/shell/cleanup_tasks.py",
+      "agentflow/hooks/user_prompt_submit.py",
+      "agentflow/tools/cleanup_tasks.py"
+    ]
   }
 ]
