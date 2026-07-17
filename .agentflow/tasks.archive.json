@@ -2170,5 +2170,18 @@
       "agentflow/hooks/user_prompt_submit.py",
       "agentflow/tools/cleanup_tasks.py"
     ]
+  },
+  {
+    "task_id": "T-275",
+    "title": "Integration test: full drain-restart file-state sequence",
+    "description": "Add tests/shell/test_drain_restart_integration.py \u2014 one integration test that walks the complete file-state sequence: (1) write current_round.json + tasks_in_flight.json with tasks + context_fill.json above threshold; (2) call _write_merged_and_clear (simulates PR merge cleanup); (3) assert current_round.json deleted and tasks_in_flight.json is [] tombstone; (4) call check_drain_restart; (5) assert trigger_handoff is called. Crosses hook->shell boundary. Target: ~60 lines. Catches the class of regression T-274 fixed (interaction between _write_merged_and_clear deleting current_round.json and check_drain_restart gating on it).",
+    "owns": [
+      "tests/shell/test_drain_restart_integration.py"
+    ],
+    "reads": [
+      "agentflow/shell/handoff_handler.py"
+    ],
+    "depends_on": [],
+    "status": "complete"
   }
 ]

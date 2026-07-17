@@ -468,7 +468,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round C-splits — MERGED (PR #171/#172 2026-07-17) | T-271 ‖ T-270 (parallel) | Size-violation splits: cleanup_tasks.py → cleanup_violations.py + user_prompt_submit.py → ups_task_sync.py |
 | Round C-P0 (solo) — MERGED (PR #173 2026-07-17) | T-274 | Fix check_drain_restart: accept TIF=[] tombstone as equivalent to current_round.json — T-269 regression blocks all drain restarts |
 | Round C-P1 (solo) — MERGED (PR #174 2026-07-18) | T-273 | Fix SID path bugs: pty_signal handoff_complete, shell/cleanup_tasks task_complete, user_prompt_submit delete, tools/cleanup_tasks TIF — all use flat paths instead of session_file()/SID-in-filename |
-| Round C-P2 (solo) | T-275 | Integration test: full drain-restart file-state sequence — write_merged_and_clear → check_drain_restart → assert trigger_handoff; catches T-274-class regressions |
+| Round C-P2 (solo) — MERGED (PR #175 2026-07-18) | T-275 | Integration test: full drain-restart file-state sequence — write_merged_and_clear → check_drain_restart → assert trigger_handoff; catches T-274-class regressions |
 | Round C-1 (solo) | T-266 | debug.md 5-phase forensic rewrite — largest task, triggers restart; folds T-250 (debug.md KeyError fix) |
 | Round C-2 (parallel) | T-162 ‖ T-268 | oracle.md split + oracle duplicate-check (both touch oracle.md) |
 | Round C-3 (parallel) | T-210 ‖ T-243 | write_indexer test cache fix + auto-mode default |
