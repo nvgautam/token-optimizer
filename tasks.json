@@ -1080,17 +1080,6 @@
       "status": "cancelled"
     },
     {
-      "task_id": "T-255",
-      "title": "Split .claude/worktrees/t252-remove-handoff-emit/commands/claude/orchestrate.md \u2014 size violation",
-      "description": "Split .claude/worktrees/t252-remove-handoff-emit/commands/claude/orchestrate.md (160 lines, limit 150). Violation timestamp: 2026-07-17T05:00:57.481871. Choose the split boundary by phase/section responsibility, not line count. Extract a cohesive section into a sub-file; replace with 'Lazy load: Read <subfile>.md now.' Verify each output file is \u2264 150 lines after splitting.",
-      "owns": [
-        ".claude/worktrees/t252-remove-handoff-emit/commands/claude/orchestrate.md"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "status": "pending"
-    },
-    {
       "task_id": "T-257",
       "title": "Repro: tasks_in_flight.json not populated when orchestrate writes current_round.json via Bash",
       "description": "Write a failing integration test that simulates the PostToolUse hook receiving a Bash tool call that writes current_round.json (as orchestrate does in practice) and asserts tasks_in_flight.json is populated. Expected: populated. Actual: empty (sync_tasks_in_flight bails on tool_name != Write). Do NOT fix the bug \u2014 just land the failing test that pins the regression.",
@@ -1128,6 +1117,33 @@
         "agentflow/shell/pty_signal.py",
         "agentflow/shell/session_manager.py"
       ],
+      "depends_on": [],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-260",
+      "description": "Implement agentflow round start --task-ids T-001 T-002 CLI command that atomically writes current_round.json + tasks_in_flight.json in one code path. Update orchestrate.md to call this command instead of writing current_round.json directly. Add unit tests. This removes the hook-tool_name dependency entirely.",
+      "owns": [
+        "agentflow/cli.py",
+        "commands/claude/orchestrate.md"
+      ],
+      "reads": [
+        "agentflow/hooks/post_tool_use.py",
+        "agentflow/shell/session_paths.py"
+      ],
+      "depends_on": [
+        "T-258"
+      ],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-261",
+      "description": "Add hard guard to orchestrate.md: orchestrate must NEVER implement tasks directly \u2014 always dispatch a worker and write current_round.json. Add a runtime audit check: if orchestrate calls Write/Edit on a non-state file without having written current_round.json first in the same turn, emit contract_violation audit event. Also add test asserting current_round.json is written before any task implementation begins.",
+      "owns": [
+        "commands/claude/orchestrate.md",
+        "agentflow/hooks/post_tool_use.py"
+      ],
+      "reads": [],
       "depends_on": [],
       "status": "pending"
     }

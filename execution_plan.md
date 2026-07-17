@@ -460,6 +460,8 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | C3b-restart-test — MERGED (PR #161/#162 2026-07-17) | T-246 ‖ T-252 (parallel) | Restart validation run: test_post_tool_use_agent.py split + remove dead HANDOFF RECOMMENDED emit — verifies drain→restart chain end-to-end |
 | C3b-tif-repro — MERGED (18fd947b1 2026-07-17) | T-257 (solo) | Failing test: Bash-written current_round.json does not populate tasks_in_flight.json — pins the regression before fix |
 | C3b-tif-fix | T-258 (solo) | Self-healing fallback in sync_tasks_in_flight: read current_round.json from disk when tif absent after Bash call |
+| C3b-worker-guard | T-261 (solo) | Hard guard: orchestrate must always dispatch a worker — never implement directly; runtime audit check + test |
+| C3b-round-cli | T-260 (solo) | agentflow round start CLI command: atomic current_round.json + tif write; update orchestrate.md to use it — removes hook/tool_name dependency |
 | C3b-cli-spike | T-259 (solo) | Spike: agentflow db CLI layer + CLI-as-interface strategy — all state mutations via CLI commands; positions for SQLite backend swap |
 | C3b-1 | T-162 ‖ T-210 ‖ T-243 ‖ T-250 (parallel) | oracle.md split + test cache leak + auto-mode default + fix debug.md KeyError |
 | C3b-2 | T-234 ‖ T-235 ‖ T-236 (parallel) | Context bundle temp file + worker-always rule + conflict resolution |
