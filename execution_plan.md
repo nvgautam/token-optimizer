@@ -469,6 +469,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round C-P0 (solo) — MERGED (PR #173 2026-07-17) | T-274 | Fix check_drain_restart: accept TIF=[] tombstone as equivalent to current_round.json — T-269 regression blocks all drain restarts |
 | Round C-P1 (solo) — MERGED (PR #174 2026-07-18) | T-273 | Fix SID path bugs: pty_signal handoff_complete, shell/cleanup_tasks task_complete, user_prompt_submit delete, tools/cleanup_tasks TIF — all use flat paths instead of session_file()/SID-in-filename |
 | Round C-P2 (solo) — MERGED (PR #175 2026-07-18) | T-275 | Integration test: full drain-restart file-state sequence — write_merged_and_clear → check_drain_restart → assert trigger_handoff; catches T-274-class regressions |
+| Round C-P3 (solo) | T-276 | Signal-file audit log coverage — plug all silent write/delete/unlink gaps so logs give a complete picture at all times |
 | Round C-1 (solo) | T-266 | debug.md 5-phase forensic rewrite — largest task, triggers restart; folds T-250 (debug.md KeyError fix) |
 | Round C-2 (parallel) | T-162 ‖ T-268 | oracle.md split + oracle duplicate-check (both touch oracle.md) |
 | Round C-3 (parallel) | T-210 ‖ T-243 | write_indexer test cache fix + auto-mode default |
@@ -477,7 +478,27 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round E | T-167 ‖ T-168 (parallel) | Oracle Phase 3 plan-mode preview + product judgment layer |
 | Round F | T-063 → T-064 → T-099 (sequential) | Multi-provider chain (enterprise) |
 
-Priority rationale (2026-07-17): T-274 (P0) + T-273 (P1) prepend Round C — both block reliable orchestrate restart loop. Restart-path hardening (A/B) before skill rewrites — loop reliability prerequisite. CLI spike (T-259) gates T-260. Rounds D–E are spikes/oracle enhancements. Round F deferred until Claude-only loop is solid.
+Priority rationale (2026-07-17): T-274 (P0) + T-273 (P1) prepend Round C — both block reliable orchestrate restart loop. Restart-path hardening (A/B) before skill rewrites — loop reliability prerequisite. CLI spike (T-259) gates T-260. Rounds D–E are spikes/oracle enhancements. Round F deferred until Claude-only loop is solid. T-276 (C-P3) prepends C-1 — audit log coverage is a prerequisite for diagnosing any further drain/restart bugs.
+
+**T-276:** Signal-file audit log coverage — add log events for every unlogged write, unlink, and failure path across all PTY signal files so that `pty_audit.jsonl` provides a complete, unambiguous picture at all times. Eight specific gaps to close:
+
+1. **`current_round.json` detected** — `handoff_handler.py:poll_session` line 128: add `_log_audit({"event": "current_round_detected", "round_id": ..., "mtime": ...})` on the success path (before `transition("current_round_written")`). Currently logs only error paths.
+
+2. **`current_round.json` unlinked** — `drain_restart.py:_write_merged_and_clear` line 54: add `_log_audit({"event": "current_round_unlinked", "round_id": rid})` immediately after `manager._current_round_path.unlink(missing_ok=True)`. Currently only `tif_unlinked` is logged; the `current_round.json` removal is silent.
+
+3. **`_write_merged_and_clear` early return** — `drain_restart.py` lines 17–18: replace `except Exception: return` with `except Exception as e: manager._log_audit({"event": "drain_no_current_round", "error": str(e)}); return`. This is the root gap that made the C-2 premature-drain bug untraceable.
+
+4. **`task_complete.json` unlinked on enter_idle** — `session_manager_handlers.py:clear_signal_files` line 58: add `_log_audit({"event": "signal_file_unlinked", "file": "task_complete.json"})` inside the `if path.exists()` block, after the successful `path.unlink()`. Currently only the error is logged.
+
+5. **`handoff_complete.json` unlinked on enter_idle** — same `clear_signal_files` block (same `for` loop, same fix as gap 4, include the filename in the event so both files are distinguishable).
+
+6. **`task_complete.json` unlinked by UPS hook** — `user_prompt_submit.py` line 72: add `_log_drain(agentflow_dir, {"event": "signal_file_unlinked", "file": name})` after successful `complete_file.unlink()`. Currently only the error path (`delete_signal_file_error`) is logged.
+
+7. **`handoff_complete.json` unlinked by UPS hook** — same UPS block as gap 6 (same loop, same fix).
+
+8. **`context_fill.json` reset to 0** — `session_manager_handlers.py:clear_signal_files` line 67: add `_log_audit({"event": "context_fill_reset", "sid": sid})` after the successful `cf.write_text(...)`. Currently only `context_fill_reset_error` is logged.
+
+**Acceptance criteria:** After merge, grep `pty_audit.jsonl` and `hook_drain_debug.jsonl` for any orchestrate session and confirm: (a) `current_round_detected` appears when round starts, (b) `current_round_unlinked` appears when drain clears it, (c) if drain fires with no `current_round.json`, `drain_no_current_round` appears, (d) `signal_file_unlinked` appears for `task_complete.json` and `handoff_complete.json` on every `enter_idle`, (e) `context_fill_reset` appears on every `enter_idle`. Add unit tests asserting each event fires for its specific code path. No silent write, unlink, or failure path for any signal file.
 
 ---
 
