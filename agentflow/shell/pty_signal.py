@@ -2,10 +2,19 @@ import sys
 import os
 import json
 import fcntl
+import time
 from pathlib import Path
 import tempfile
 import contextlib
 from agentflow.shell.session_paths import session_file
+
+
+def _log(agentflow_dir: Path, entry: dict) -> None:
+    try:
+        with open(agentflow_dir / "pty_audit.jsonl", "a") as f:
+            f.write(json.dumps({"source": "pty_signal", "ts": time.time(), **entry}) + "\n")
+    except Exception:
+        pass
 
 def find_workspace_root() -> Path:
     p = Path.cwd().resolve()
@@ -74,6 +83,7 @@ def task_start(task_id: str, workspace_root: Path = None):
 
         in_flight_set.add(task_id)
         _write_atomic(in_flight_file, sorted(list(in_flight_set)))
+        _log(agentflow_dir, {"event": "tif_written", "caller": "task_start", "task_id": task_id, "in_flight": sorted(list(in_flight_set))})
 
 def task_done(task_id: str, workspace_root: Path = None, sid: str = ""):
     if not workspace_root:
@@ -101,9 +111,12 @@ def task_done(task_id: str, workspace_root: Path = None, sid: str = ""):
 
         if not in_flight_set:
             _write_atomic(complete_file, {"status": "complete"})
+            _log(agentflow_dir, {"event": "task_complete_written", "task_id": task_id})
             _write_atomic(in_flight_file, [])  # tombstone: [] = drained; absent = never initialized
+            _log(agentflow_dir, {"event": "tif_written", "caller": "task_done", "task_id": task_id, "in_flight": []})
         else:
             _write_atomic(in_flight_file, sorted(list(in_flight_set)))
+            _log(agentflow_dir, {"event": "tif_written", "caller": "task_done", "task_id": task_id, "in_flight": sorted(list(in_flight_set))})
 
 def handoff_complete(workspace_root: Path = None):
     if not workspace_root:
@@ -111,6 +124,7 @@ def handoff_complete(workspace_root: Path = None):
     agentflow_dir = workspace_root / ".agentflow"
     handoff_file = agentflow_dir / "handoff_complete.json"
     _write_atomic(handoff_file, {"status": "complete"})
+    _log(agentflow_dir, {"event": "handoff_complete_written"})
 
 def main():
     args = sys.argv[1:]

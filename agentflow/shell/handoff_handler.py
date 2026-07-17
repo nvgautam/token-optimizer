@@ -19,11 +19,13 @@ def handle_enter_handoff_pending(manager) -> None:
     stale = manager._handoff_complete_path
     if stale.exists():
         stale.unlink()
+        manager._log_audit({"event": "handoff_complete_unlinked"})
     if manager.session_type == "orchestrator":
         hc_path = manager._handoff_complete_path
         try:
             hc_path.parent.mkdir(parents=True, exist_ok=True)
             hc_path.write_text(json.dumps({"status": "complete", "source": "direct"}), encoding="utf-8")
+            manager._log_audit({"event": "handoff_complete_written", "source": "direct"})
         except OSError:
             manager._log_audit({"event": "handoff_aborted", "trigger": manager._current_trigger, "tokens": manager._last_accumulated_tokens})
         return
