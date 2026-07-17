@@ -1182,14 +1182,7 @@
     },
     {
       "task_id": "T-274",
-      "title": "Fix check_drain_restart: no_current_round blocks restart after merge detection (T-269 regression)",
-      "status": "pending",
-      "description": "check_drain_restart gates on current_round.json existing as its first check. T-269 made _write_merged_and_clear delete current_round.json after PR merge detection (to prevent premature restart). These two interact: once _write_merged_and_clear fires (20:00:15), all subsequent drain checks skip on no_current_round \u2014 even with TIF=[](tombstone) and 132K context. Fix: in check_drain_restart, treat TIF existing as [] (tombstone) as equivalent to current_round.json present \u2014 a [] tombstone proves a round ran and drained. Condition: (current_round.json exists OR TIF==[]) AND tif exists AND context>=80K AND state==IDLE.",
-      "estimated_lines": 20,
-      "owns": [
-        "agentflow/shell/drain_restart.py"
-      ],
-      "priority": "P0"
+      "status": "complete"
     }
   ]
 }
