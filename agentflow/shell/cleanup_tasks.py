@@ -9,6 +9,7 @@ import sys
 import tempfile
 from pathlib import Path
 from agentflow.tools.cleanup_tasks import cleanup
+from agentflow.shell.session_paths import session_file
 
 def main() -> None:
     root = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.cwd()
@@ -20,9 +21,10 @@ def main() -> None:
     # Write the task_complete.json signal atomically
     agentflow_dir = root / ".agentflow"
     agentflow_dir.mkdir(parents=True, exist_ok=True)
-    signal_path = agentflow_dir / "task_complete.json"
+    sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+    signal_path = session_file(agentflow_dir, "task_complete.json", sid)
     
-    temp_fd, temp_path = tempfile.mkstemp(dir=str(agentflow_dir), prefix="task_complete_", suffix=".tmp")
+    temp_fd, temp_path = tempfile.mkstemp(dir=str(signal_path.parent), prefix="task_complete_", suffix=".tmp")
     try:
         with os.fdopen(temp_fd, "w", encoding="utf-8") as f:
             json.dump({"status": "complete"}, f)

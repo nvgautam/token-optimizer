@@ -64,16 +64,15 @@ def main() -> None:
     # If the prompt contains "/orchestrate" or "/handoff":
     if prompt and ("/orchestrate" in prompt or "/handoff" in prompt):
         # Delete session-scoped handoff_complete and task_complete if they exist.
-        # handoff_complete is namespaced by session ID to prevent cross-session contamination.
         agentflow_dir.mkdir(parents=True, exist_ok=True)
-        hc_name = f"handoff_complete_{sid}.json" if sid else "handoff_complete.json"
-        for name in (hc_name, "task_complete.json"):
-            complete_file = agentflow_dir / name
+        for name in ("handoff_complete.json", "task_complete.json"):
+            complete_file = session_file(agentflow_dir, name, sid)
             try:
                 if complete_file.exists():
                     complete_file.unlink()
             except Exception as e:
-                _log_drain(agentflow_dir, {"event": "delete_signal_file_error", "error": str(e), "file": name})
+                _log_drain(agentflow_dir, {"event": "delete_signal_file_error", "error": str(e), "file": complete_file.name})
+
 
     # If the prompt is exactly "/clear" (slash command, not prose), write the clear signal file
     if prompt and prompt.strip() == "/clear":

@@ -1,5 +1,4 @@
 import json
-import subprocess
 from unittest.mock import Mock, patch
 from agentflow.tools.cleanup_tasks import cleanup, auto_file_size_violations, _detect_merged_prs
 
@@ -341,4 +340,109 @@ def test_cleanup_drains_tasks_in_flight(tmp_path):
 
     remaining = json.loads(in_flight_path.read_text())
     assert remaining == [], f"Expected empty tasks_in_flight, got {remaining}"
+
+
+def test_shell_cleanup_tasks_with_sid(tmp_path, monkeypatch):
+    from agentflow.shell.cleanup_tasks import main as shell_cleanup_main
+    
+    tasks_path = tmp_path / "tasks.json"
+    tasks_path.write_text(json.dumps({"tasks": []}))
+    
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+    
+    sid = "cleanup-session-999"
+    monkeypatch.setenv("AGENTFLOW_SESSION_ID", sid)
+    monkeypatch.setattr("sys.argv", ["cleanup_tasks.py", str(tmp_path)])
+    
+    shell_cleanup_main()
+    
+    sid_complete = agentflow_dir / "sessions" / sid / "task_complete.json"
+    flat_complete = agentflow_dir / "task_complete.json"
+    
+    assert sid_complete.exists()
+    assert not flat_complete.exists()
+    assert json.loads(sid_complete.read_text()).get("status") == "complete"
+
+def test_shell_cleanup_tasks_without_sid(tmp_path, monkeypatch):
+    from agentflow.shell.cleanup_tasks import main as shell_cleanup_main
+    
+    tasks_path = tmp_path / "tasks.json"
+    tasks_path.write_text(json.dumps({"tasks": []}))
+    
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+    
+    monkeypatch.delenv("AGENTFLOW_SESSION_ID", raising=False)
+    monkeypatch.setattr("sys.argv", ["cleanup_tasks.py", str(tmp_path)])
+    
+    shell_cleanup_main()
+    
+    flat_complete = agentflow_dir / "task_complete.json"
+    assert flat_complete.exists()
+    assert json.loads(flat_complete.read_text()).get("status") == "complete"
+
+
+def test_detect_merged_prs_with_sid(tmp_path, monkeypatch):
+    """Task is marked complete when gh reports MERGED and SID is set."""
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+    sid = "session-prs-123"
+    monkeypatch.setenv("AGENTFLOW_SESSION_ID", sid)
+    
+    # Write to session-scoped paths
+    sid_dir = agentflow_dir / "sessions" / sid
+    sid_dir.mkdir(parents=True, exist_ok=True)
+    
+    # task_prs.json is always flat under .agentflow/
+    (agentflow_dir / "task_prs.json").write_text(json.dumps({"T-001": "https://github.com/example/repo/pull/1"}))
+    # tasks_in_flight.json is session-scoped
+    (sid_dir / "tasks_in_flight.json").write_text(json.dumps(["T-001"]))
+    
+    tasks_data = _make_tasks_data("T-001", "pending")
+
+    mock_result = Mock()
+    mock_result.stdout = "MERGED\n"
+    mock_result.returncode = 0
+
+    with patch("subprocess.run", return_value=mock_result):
+        result = _detect_merged_prs(tmp_path, tasks_data)
+
+    assert result is True
+    t = next(t for t in tasks_data["tasks"] if t["task_id"] == "T-001")
+    assert t["status"] == "complete"
+
+
+def test_cleanup_drains_tasks_in_flight_with_sid(tmp_path, monkeypatch):
+    """With SID set, cleanup drains tasks from the session-scoped tasks_in_flight.json."""
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+    
+    sid = "session-cleanup-456"
+    monkeypatch.setenv("AGENTFLOW_SESSION_ID", sid)
+    
+    sid_dir = agentflow_dir / "sessions" / sid
+    sid_dir.mkdir(parents=True, exist_ok=True)
+
+    (tmp_path / "tasks.json").write_text(json.dumps({
+        "tasks": [{"task_id": "T-001", "title": "Test task", "status": "pending"}]
+    }))
+    (agentflow_dir / "task_prs.json").write_text(json.dumps(
+        {"T-001": "https://github.com/example/repo/pull/1"}
+    ))
+    
+    in_flight_path = sid_dir / "tasks_in_flight.json"
+    in_flight_path.write_text(json.dumps(["T-001"]))
+
+    mock_result = Mock()
+    mock_result.stdout = "MERGED\n"
+    mock_result.returncode = 0
+
+    with patch("subprocess.run", return_value=mock_result):
+        cleanup(tmp_path)
+
+    remaining = json.loads(in_flight_path.read_text())
+    assert remaining == [], f"Expected empty tasks_in_flight, got {remaining}"
+
+
 

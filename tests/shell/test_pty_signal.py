@@ -239,3 +239,25 @@ def test_task_done_writes_task_complete_to_flat_path_without_sid(tmp_path, monke
     with open(flat_complete_file, "r") as f:
         res = json.load(f)
         assert res.get("status") == "complete"
+
+def test_handoff_complete_with_sid(tmp_path, monkeypatch):
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir()
+    
+    # 1. Test passing via argument
+    sid = "arg-session-123"
+    handoff_complete(workspace_root=tmp_path, sid=sid)
+    sid_file = agentflow_dir / "sessions" / sid / "handoff_complete.json"
+    assert sid_file.exists()
+    with open(sid_file, "r") as f:
+        assert json.load(f).get("status") == "complete"
+
+    # 2. Test passing via env
+    sid_env = "env-session-456"
+    monkeypatch.setenv("AGENTFLOW_SESSION_ID", sid_env)
+    handoff_complete(workspace_root=tmp_path)
+    env_file = agentflow_dir / "sessions" / sid_env / "handoff_complete.json"
+    assert env_file.exists()
+    with open(env_file, "r") as f:
+        assert json.load(f).get("status") == "complete"
+
