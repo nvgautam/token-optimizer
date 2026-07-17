@@ -1,31 +1,27 @@
 {
   "tasks": [
     {
-      "task_id": "T-182",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-042",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-043",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-044",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-045",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-046",
-      "status": "complete"
-    },
-    {
       "task_id": "T-001",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-006",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-007",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-008",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-009",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-010",
       "status": "complete"
     },
     {
@@ -41,6 +37,10 @@
       "status": "complete"
     },
     {
+      "task_id": "T-025",
+      "status": "complete"
+    },
+    {
       "task_id": "T-026",
       "status": "complete"
     },
@@ -49,35 +49,11 @@
       "status": "complete"
     },
     {
-      "task_id": "T-025",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-025g",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-027g",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-004g",
+      "task_id": "T-029",
       "status": "complete"
     },
     {
       "task_id": "T-031",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-028a",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-028b",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-029",
       "status": "complete"
     },
     {
@@ -121,6 +97,26 @@
       "status": "complete"
     },
     {
+      "task_id": "T-042",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-043",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-044",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-045",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-046",
+      "status": "complete"
+    },
+    {
       "task_id": "T-047",
       "status": "complete"
     },
@@ -130,26 +126,6 @@
     },
     {
       "task_id": "T-049",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-007",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-006",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-008",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-009",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-010",
       "status": "complete"
     },
     {
@@ -185,15 +161,15 @@
       "status": "complete"
     },
     {
-      "task_id": "T-058g",
-      "status": "complete"
-    },
-    {
       "task_id": "T-058",
       "status": "complete"
     },
     {
       "task_id": "T-059",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-060",
       "status": "complete"
     },
     {
@@ -234,10 +210,6 @@
       "status": "pending"
     },
     {
-      "task_id": "T-060",
-      "status": "complete"
-    },
-    {
       "task_id": "T-065",
       "status": "complete"
     },
@@ -266,6 +238,10 @@
       "status": "complete"
     },
     {
+      "task_id": "T-072",
+      "status": "complete"
+    },
+    {
       "task_id": "T-073",
       "status": "complete"
     },
@@ -279,10 +255,6 @@
     },
     {
       "task_id": "T-076",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-072",
       "status": "complete"
     },
     {
@@ -374,22 +346,6 @@
       "status": "complete"
     },
     {
-      "task_id": "T-103",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-102",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-101",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-100",
-      "status": "complete"
-    },
-    {
       "task_id": "T-099",
       "title": "Gemini Oracle Skill \u2014 create /oracle equivalent skill for Gemini",
       "description": "Implement /oracle skill for Gemini. Create commands/gemini/skills/oracle/SKILL.md (registered as .agents/skills/oracle/SKILL.md) outlining the Gemini Oracle flow. Update test_oracle_skill.py to assert correct structure for both Claude and Gemini.",
@@ -404,11 +360,27 @@
       "status": "pending"
     },
     {
-      "task_id": "T-105",
+      "task_id": "T-100",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-101",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-102",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-103",
       "status": "complete"
     },
     {
       "task_id": "T-104",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-105",
       "status": "complete"
     },
     {
@@ -421,6 +393,22 @@
     },
     {
       "task_id": "T-108",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-109",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-110",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-111",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-112",
       "status": "complete"
     },
     {
@@ -444,22 +432,6 @@
       "status": "complete"
     },
     {
-      "task_id": "T-109",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-110",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-111",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-112",
-      "status": "complete"
-    },
-    {
       "task_id": "T-118",
       "status": "complete"
     },
@@ -473,10 +445,6 @@
     },
     {
       "task_id": "T-121",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-138",
       "status": "complete"
     },
     {
@@ -509,6 +477,10 @@
       ],
       "estimated_lines": 55,
       "status": "cancelled"
+    },
+    {
+      "task_id": "T-138",
+      "status": "complete"
     },
     {
       "task_id": "T-139",
@@ -613,10 +585,6 @@
       "status": "complete"
     },
     {
-      "task_id": "T-160a",
-      "status": "complete"
-    },
-    {
       "task_id": "T-160",
       "status": "complete"
     },
@@ -696,19 +664,19 @@
       "status": "complete"
     },
     {
-      "task_id": "T-178",
-      "title": "Hook audit log + PTY threshold state snapshot \u2014 diagnose handoff stalls",
-      "status": "pending",
-      "milestone": "M-DP",
-      "description": "PostToolUse hook appends to .agentflow/hook_audit.jsonl (task_id, action, tasks_json_write ok|failed, timestamp). output_handler.py _log_audit snapshots _task_start_tokens at every threshold evaluation. Enables replay of exactly what was in-memory when handoff gate checked."
-    },
-    {
       "task_id": "T-176",
       "status": "complete"
     },
     {
       "task_id": "T-177",
       "status": "complete"
+    },
+    {
+      "task_id": "T-178",
+      "title": "Hook audit log + PTY threshold state snapshot \u2014 diagnose handoff stalls",
+      "status": "pending",
+      "milestone": "M-DP",
+      "description": "PostToolUse hook appends to .agentflow/hook_audit.jsonl (task_id, action, tasks_json_write ok|failed, timestamp). output_handler.py _log_audit snapshots _task_start_tokens at every threshold evaluation. Enables replay of exactly what was in-memory when handoff gate checked."
     },
     {
       "task_id": "T-179",
@@ -720,6 +688,10 @@
     },
     {
       "task_id": "T-181",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-182",
       "status": "complete"
     },
     {
@@ -935,7 +907,7 @@
     {
       "task_id": "T-235",
       "title": "Enforce: orchestrator always spawns a worker \u2014 no direct implementation exceptions",
-      "status": "pending",
+      "status": "complete",
       "estimated_lines": 10,
       "depends_on": [
         "T-230"
@@ -1007,6 +979,10 @@
       "status": "pending"
     },
     {
+      "task_id": "T-244",
+      "status": "complete"
+    },
+    {
       "task_id": "T-245",
       "title": "Split .claude/worktrees/t237-restart-sid/commands/claude/orchestrate.md \u2014 size violation",
       "description": "Split .claude/worktrees/t237-restart-sid/commands/claude/orchestrate.md (162 lines, limit 150). Violation timestamp: 2026-07-16T11:33:09.619306. Choose the split boundary by phase/section responsibility, not line count. Extract a cohesive section into a sub-file; replace with 'Lazy load: Read <subfile>.md now.' Verify each output file is \u2264 150 lines after splitting.",
@@ -1016,10 +992,6 @@
       "reads": [],
       "depends_on": [],
       "status": "cancelled"
-    },
-    {
-      "task_id": "T-244",
-      "status": "complete"
     },
     {
       "task_id": "T-246",
@@ -1085,7 +1057,8 @@
     },
     {
       "task_id": "T-258",
-      "status": "complete"
+      "status": "complete",
+      "title": "Self-healing fallback in sync_tasks_in_flight for Bash-written current_round.json"
     },
     {
       "task_id": "T-259",
@@ -1097,7 +1070,8 @@
         "agentflow/shell/session_manager.py"
       ],
       "depends_on": [],
-      "status": "pending"
+      "status": "pending",
+      "title": "Spike: CLI-as-interface for orchestrate round announcements"
     },
     {
       "task_id": "T-260",
@@ -1113,7 +1087,8 @@
       "depends_on": [
         "T-258"
       ],
-      "status": "pending"
+      "status": "pending",
+      "title": "Add round-start CLI announcement to orchestrate skill"
     },
     {
       "task_id": "T-261",
@@ -1124,7 +1099,8 @@
       ],
       "reads": [],
       "depends_on": [],
-      "status": "pending"
+      "status": "complete",
+      "title": "Hard guard: orchestrate must always dispatch a worker, never implement directly"
     },
     {
       "task_id": "T-262",
@@ -1165,6 +1141,64 @@
       "reads": [],
       "depends_on": [],
       "status": "pending"
+    },
+    {
+      "task_id": "T-266",
+      "status": "pending",
+      "title": "Rewrite commands/claude/debug.md \u2014 5-phase forensic protocol"
+    },
+    {
+      "task_id": "T-267",
+      "status": "pending",
+      "title": "Update commands/claude/oracle.md \u2014 opinionated-expert behavior note"
+    },
+    {
+      "task_id": "T-268",
+      "status": "pending",
+      "title": "Oracle task-filing: add pre-creation duplicate check via title-noun grep",
+      "description": "Before creating any task, extract 2-3 key nouns from proposed title and grep tasks.json for them. If any hits, read those task entries and present as candidate duplicates \u2014 require user confirmation the new task is distinct before proceeding. Add to oracle.md task-filing protocol section. Coordinate with T-162 (oracle.md split) to target the correct sub-file.",
+      "estimated_lines": 8
+    },
+    {
+      "task_id": "T-004g",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-025g",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-027g",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-028a",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-028b",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-058g",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-160a",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-269",
+      "status": "pending",
+      "title": "Fix premature drain restart: clear current_round.json after merge",
+      "description": "cleanup_tasks.py must delete .agentflow/current_round.json after a round merges. Also update _write_merged_and_clear in drain_restart.py to unlink current_round.json. Prevents drain restart firing on stale round data when orchestrate starts a new session.",
+      "estimated_lines": 15,
+      "file_count": 2,
+      "owns": [
+        "agentflow/tools/cleanup_tasks.py",
+        "agentflow/shell/drain_restart.py"
+      ],
+      "reads": []
     }
   ]
 }

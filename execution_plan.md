@@ -462,16 +462,16 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | C3b-tif-fix — MERGED (PR #163 2026-07-17) | T-258 (solo) | Self-healing fallback in sync_tasks_in_flight: read current_round.json from disk when tif absent after Bash call |
 | C3b-splits — MERGED (PR #164/#165 2026-07-17) | T-262 ‖ T-263 (parallel) | Size-violation splits: handoff_handler.py (T-262) + post_tool_use.py / fill_utils.py (T-263) |
 | C3b-restart-paths | T-264 ‖ T-265 (parallel) | Simplify restart paths: Path 1 never restarts (rename check_tokens→task_round_complete, always→IDLE, remove guard_tokens_threshold) + remove dead _handoff_in_progress setter (Path 3) |
-| C3b-worker-guard | T-261 (solo) | Hard guard: orchestrate must always dispatch a worker — never implement directly; runtime audit check + test |
-| C3b-round-cli | T-260 (solo) | agentflow round start CLI command: atomic current_round.json + tif write; update orchestrate.md to use it — removes hook/tool_name dependency |
-| C3b-cli-spike | T-259 (solo) | Spike: agentflow db CLI layer + CLI-as-interface strategy — all state mutations via CLI commands; positions for SQLite backend swap |
-| C3b-1 | T-162 ‖ T-210 ‖ T-243 ‖ T-250 (parallel) | oracle.md split + test cache leak + auto-mode default + fix debug.md KeyError |
-| C3b-2 | T-234 ‖ T-235 ‖ T-236 (parallel) | Context bundle temp file + worker-always rule + conflict resolution |
-| D | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
-| E | T-167 ‖ T-168 (parallel) | Oracle Phase 3 plan-mode preview + product judgment layer |
-| F | T-063 → T-064 → T-099 (sequential) | Multi-provider chain (enterprise) |
+| C3b-worker-guard — MERGED | T-261 (solo) | Hard guard: orchestrate must always dispatch a worker — never implement directly; runtime audit check + test |
+| Round A | T-269 ‖ T-264 (parallel) | Fix premature drain restart (clear current_round.json after merge) + simplify Path 1 restart — unblocks stable orchestrate startup |
+| Round B | T-265 ‖ T-267 (parallel) | Remove dead _handoff_in_progress setter (Path 3) + oracle.md opinionated-expert note |
+| Round C | T-162 ‖ T-210 ‖ T-243 ‖ T-250 ‖ T-266 ‖ T-268 (parallel) | oracle.md split + test cache fix + auto-mode default + debug.md KeyError + debug.md 5-phase rewrite + oracle duplicate-check |
+| Round C | T-259 → T-260 ‖ T-234 ‖ T-236 (T-259 first, then parallel) | CLI spike → round-start CLI + context bundle temp file + conflict resolution |
+| Round D | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
+| Round E | T-167 ‖ T-168 (parallel) | Oracle Phase 3 plan-mode preview + product judgment layer |
+| Round F | T-063 → T-064 → T-099 (sequential) | Multi-provider chain (enterprise) |
 
-Priority rationale (2026-07-16): C2 = SQLite migration (top priority — confirmed write collision incidents). C3 = maintenance/cleanup. Rounds D–E are spikes and oracle enhancements. Round F is multi-provider / enterprise, deferred until Claude-only loop is solid.
+Priority rationale (2026-07-17): Restart-path hardening (A) before skill rewrites (B) — loop reliability prerequisite for orchestrate running debug/oracle reliably. CLI spike (T-259) gates T-260. T-235 closed as duplicate of T-261. Rounds D–E are spikes/oracle enhancements. Round F deferred until Claude-only loop is solid.
 
 ---
 
