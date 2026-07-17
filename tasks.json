@@ -1102,6 +1102,33 @@
         "agentflow/shell/session_paths.py"
       ],
       "depends_on": [],
+      "status": "complete"
+    },
+    {
+      "task_id": "T-258",
+      "description": "Fix sync_tasks_in_flight: add fallback path \u2014 when tool_name is not Write, read current_round.json from disk (agentflow_dir/current_round.json); if it exists and has non-empty task_ids and tasks_in_flight.json is absent, populate tasks_in_flight.json. This self-heals when orchestrate writes current_round.json via Bash. Update test_sync_tasks_in_flight_bash_write_populates (T-257) to pass.",
+      "owns": [
+        "agentflow/hooks/post_tool_use.py",
+        "tests/test_post_tool_use.py"
+      ],
+      "reads": [
+        "agentflow/shell/session_paths.py"
+      ],
+      "depends_on": [
+        "T-257"
+      ],
+      "status": "pending"
+    },
+    {
+      "task_id": "T-259",
+      "description": "Spike: agentflow db CLI layer + CLI-as-interface strategy. Design and prototype (a) agentflow round start --task-ids ... command that atomically writes current_round.json + tasks_in_flight.json; (b) agentflow task done <id>; (c) evaluate migrating all skill-facing state mutations to CLI commands so skills never write state files directly \u2014 removes hook dependency on tool_name and positions for SQLite backend swap. Produce design doc + list of state files to migrate. No implementation beyond prototype.",
+      "owns": [],
+      "reads": [
+        "agentflow/hooks/post_tool_use.py",
+        "agentflow/shell/pty_signal.py",
+        "agentflow/shell/session_manager.py"
+      ],
+      "depends_on": [],
       "status": "pending"
     }
   ]

@@ -458,7 +458,9 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | C3b-hotfix — MERGED (PR #159 2026-07-16) | T-256 (solo) | Delete tasks_in_flight.json in _write_merged_and_clear after drain — fixes restart loop caused by stale [] tombstone |
 | C3b-cleanup — MERGED (PR #160 2026-07-17) | T-253 (solo) | Remove file-based round/state cleanup dead code — depends T-251 verified |
 | C3b-restart-test — MERGED (PR #161/#162 2026-07-17) | T-246 ‖ T-252 (parallel) | Restart validation run: test_post_tool_use_agent.py split + remove dead HANDOFF RECOMMENDED emit — verifies drain→restart chain end-to-end |
-| C3b-tif-repro | T-257 (solo) | Failing test: Bash-written current_round.json does not populate tasks_in_flight.json — pins the regression before fix |
+| C3b-tif-repro — MERGED (18fd947b1 2026-07-17) | T-257 (solo) | Failing test: Bash-written current_round.json does not populate tasks_in_flight.json — pins the regression before fix |
+| C3b-tif-fix | T-258 (solo) | Self-healing fallback in sync_tasks_in_flight: read current_round.json from disk when tif absent after Bash call |
+| C3b-cli-spike | T-259 (solo) | Spike: agentflow db CLI layer + CLI-as-interface strategy — all state mutations via CLI commands; positions for SQLite backend swap |
 | C3b-1 | T-162 ‖ T-210 ‖ T-243 ‖ T-250 (parallel) | oracle.md split + test cache leak + auto-mode default + fix debug.md KeyError |
 | C3b-2 | T-234 ‖ T-235 ‖ T-236 (parallel) | Context bundle temp file + worker-always rule + conflict resolution |
 | D | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
