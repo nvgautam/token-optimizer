@@ -148,9 +148,9 @@ def test_cleanup_merged_in_flight_marks_complete_and_removes(monkeypatch, tmp_pa
     monkeypatch.setattr("sys.argv", ["hook"])
 
     # Mock _check_pr_state to return "MERGED"
-    with patch("agentflow.hooks.user_prompt_submit._check_pr_state", return_value="MERGED"):
-        with patch("agentflow.hooks.user_prompt_submit._mark_task_complete", return_value=True):
-            with patch("agentflow.hooks.user_prompt_submit._run_cleanup"):
+    with patch("agentflow.hooks.ups_task_sync._check_pr_state", return_value="MERGED"):
+        with patch("agentflow.hooks.ups_task_sync._mark_task_complete", return_value=True):
+            with patch("agentflow.hooks.ups_task_sync._run_cleanup"):
                 with pytest.raises(SystemExit) as exc:
                     main()
 
@@ -182,9 +182,9 @@ def test_cleanup_merged_in_flight_uses_title_fallback(monkeypatch, tmp_path):
     monkeypatch.setattr("sys.argv", ["hook"])
 
     # Mock _fetch_merged_pr_titles to return a title with task_id: prefix (matching expected format)
-    with patch("agentflow.hooks.user_prompt_submit._fetch_merged_pr_titles", return_value={"T-001: feature description"}):
-        with patch("agentflow.hooks.user_prompt_submit._mark_task_complete", return_value=True):
-            with patch("agentflow.hooks.user_prompt_submit._run_cleanup"):
+    with patch("agentflow.hooks.ups_task_sync._fetch_merged_pr_titles", return_value={"feat(T-001): feature description"}):
+        with patch("agentflow.hooks.ups_task_sync._mark_task_complete", return_value=True):
+            with patch("agentflow.hooks.ups_task_sync._run_cleanup"):
                 with pytest.raises(SystemExit) as exc:
                     main()
 

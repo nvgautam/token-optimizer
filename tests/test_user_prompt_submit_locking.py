@@ -13,7 +13,7 @@ import pytest
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
-from agentflow.hooks.user_prompt_submit import _locked_write_tasks
+from agentflow.hooks.ups_task_sync import _locked_write_tasks, _run_cleanup
 
 
 @pytest.fixture
@@ -65,7 +65,7 @@ def test_locked_write_tasks_marks_complete(temp_tasks_file):
     tasks_file, project_root = temp_tasks_file
 
     # Mock cleanup to do nothing
-    with patch("agentflow.hooks.user_prompt_submit._run_cleanup"):
+    with patch("agentflow.hooks.ups_task_sync._run_cleanup"):
         result = _locked_write_tasks(tasks_file, project_root / ".agentflow", "T-001")
 
     assert result is True
@@ -83,7 +83,7 @@ def test_locked_write_tasks_creates_lockfile(temp_tasks_file):
     tasks_file, project_root = temp_tasks_file
     lock_path = project_root / ".agentflow" / "tasks.json.lock"
 
-    with patch("agentflow.hooks.user_prompt_submit._run_cleanup"):
+    with patch("agentflow.hooks.ups_task_sync._run_cleanup"):
         _locked_write_tasks(tasks_file, project_root / ".agentflow", "T-001")
 
     # Lockfile should exist (it's created by file_lock context manager)
@@ -94,7 +94,7 @@ def test_locked_write_tasks_task_not_found_returns_false(temp_tasks_file):
     """Test that missing task_id returns False."""
     tasks_file, project_root = temp_tasks_file
 
-    with patch("agentflow.hooks.user_prompt_submit._run_cleanup"):
+    with patch("agentflow.hooks.ups_task_sync._run_cleanup"):
         result = _locked_write_tasks(tasks_file, project_root / ".agentflow", "T-999")
 
     assert result is False
@@ -110,7 +110,7 @@ def test_locked_write_tasks_idempotent(temp_tasks_file):
     """Test that calling twice for same task leaves JSON valid."""
     tasks_file, project_root = temp_tasks_file
 
-    with patch("agentflow.hooks.user_prompt_submit._run_cleanup"):
+    with patch("agentflow.hooks.ups_task_sync._run_cleanup"):
         result1 = _locked_write_tasks(tasks_file, project_root / ".agentflow", "T-001")
         result2 = _locked_write_tasks(tasks_file, project_root / ".agentflow", "T-001")
 
@@ -133,7 +133,7 @@ def test_locked_write_tasks_malformed_json_returns_false(temp_tasks_file):
     with open(tasks_file, "w") as f:
         f.write("{invalid json")
 
-    with patch("agentflow.hooks.user_prompt_submit._run_cleanup"):
+    with patch("agentflow.hooks.ups_task_sync._run_cleanup"):
         result = _locked_write_tasks(tasks_file, project_root / ".agentflow", "T-001")
 
     assert result is False
@@ -158,7 +158,7 @@ def test_locked_write_tasks_concurrent_no_torn_json(temp_tasks_file):
 
     def mark_task_complete(task_id):
         try:
-            with patch("agentflow.hooks.user_prompt_submit._run_cleanup"):
+            with patch("agentflow.hooks.ups_task_sync._run_cleanup"):
                 result = _locked_write_tasks(tasks_file, project_root / ".agentflow", task_id)
             results.append((task_id, result))
         except Exception as e:
@@ -216,7 +216,7 @@ def test_locked_write_tasks_json_integrity(temp_tasks_file):
     with open(tasks_file, "w") as f:
         json.dump(data, f)
 
-    with patch("agentflow.hooks.user_prompt_submit._run_cleanup"):
+    with patch("agentflow.hooks.ups_task_sync._run_cleanup"):
         _locked_write_tasks(tasks_file, project_root / ".agentflow", "T-001")
 
     # Verify extra fields are preserved
