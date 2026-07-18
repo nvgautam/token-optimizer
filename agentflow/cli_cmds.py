@@ -174,3 +174,30 @@ def cmd_shell(args: argparse.Namespace) -> int:
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
     sys.exit(wrapper._exit_code or 0)
+
+
+def cmd_cache_prune(args: argparse.Namespace) -> int:
+    """Remove stale cache directories not accessed in N days."""
+    import shutil
+    import time
+
+    cache_root = Path.home() / ".agentflow" / "cache"
+    if not cache_root.exists():
+        print("Nothing to prune — cache dir not found.")
+        return 0
+
+    cutoff = time.time() - args.older_than * 86400
+    removed, freed = 0, 0
+
+    for d in cache_root.iterdir():
+        if d.is_dir() and d.stat().st_mtime < cutoff:
+            freed += sum(f.stat().st_size for f in d.rglob("*") if f.is_file())
+            shutil.rmtree(d)
+            removed += 1
+
+    if removed:
+        print(f"Pruned {removed} dirs ({freed / 1024:.1f} KB freed).")
+    else:
+        print("Nothing to prune.")
+
+    return 0
