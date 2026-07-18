@@ -13,7 +13,7 @@ For details, see `commands/claude/orchestrator/startup.md`.
 **See `commands/claude/orchestrator/decomposition.md` for decomposition details (lazy — stubs only).**
 
 ## Agent spawn
-> **HARD RULE:** Orchestrate MUST NEVER implement tasks directly. Dispatch a worker agent. Write `.agentflow/current_round.json` first (MUST use the Write tool — never Bash).
+> **HARD RULE:** Orchestrate MUST NEVER implement tasks directly. Dispatch a worker agent. Write `.agentflow/current_round.json` BEFORE spawning any worker (MUST use the Write tool — never Bash). Drain watches for this file; if spawn fails before it's written, drain misfires.
 **Pre-spawn (once before first agent):**
 - Branch `main`, working tree clean. No GitHub remote → `gh repo create --source=. --remote=origin --push`.
 - Stub every `owns` path (`raise NotImplementedError`). `.gitignore` absent → generate.
@@ -28,16 +28,15 @@ For details, see `commands/claude/orchestrator/startup.md`.
 5. Milestone architecture anchor section
 6. Reads files: `.idx` exists → embed `### <file> — <name> (lines start-end)` via Read; else embed full file.
 Close prompt: "End your final message with TOKENS: input=N output=N — nothing after that line."
-- **Model selection:** Mechanical (lines ≤ 80 or test/fix/stub/lint/config) → `model: "claude-haiku-4-5-20251001"`; Default → `model: "claude-sonnet-4-6"`.
+- **Model selection:** Mechanical (lines ≤ 80 or test/fix/stub/lint/config) → `model: "haiku"`; Default → `model: "sonnet"`.
 - **Scheduling:** Run `task_estimator` to estimate task cost (fallback 2500). Disjoint owns check: if tasks share an owns path, OWNS CONFLICT, move overlap to next round.
 - **Execution:** Spawn worker with selected model and `worktree_abs_path`. Do not call `EnterWorktree`. Save `.agentflow/state.json`.
 
 ### Round Lifecycle & PTY Signals
-Write `.agentflow/current_round.json` at round start: `{"round_id": "str", "task_ids": ["str"], "estimated_lines_per_task": {}, "file_counts_per_task": {}, "session_id": "$AGENTFLOW_SESSION_ID", "timestamp": "ISO8601"}`.
+Write `.agentflow/current_round.json` BEFORE spawning any Agent (immediately before the Agent spawn call — drain must see it even if spawn fails): `{"round_id": "str", "task_ids": ["str"], "estimated_lines_per_task": {}, "file_counts_per_task": {}, "session_id": "$AGENTFLOW_SESSION_ID", "timestamp": "ISO8601"}`.
 Worker lifecycles stdout signals:
 - Before spawning: run `pty_signal.py task_start <task_id>` and print `AGENTFLOW_TASK_START:<task_id>`
-- After worker completes: print `AGENTFLOW_TASK_COMPLETE:<task_id>` and run `pty_signal.py task_done <task_id>`
-- After all round tasks complete: print `AGENTFLOW_ROUND_COMPLETE`
+- After worker completes: print `AGENTFLOW_TASK_COMPLETE:<task_id>`
 
 ---
 
@@ -66,7 +65,7 @@ Worktree: <absolute path>
 PR: <URL> (always push and show PR/new URL)
 Reply: yes → merge | no [reason] → rework | skip → continue
 ```
-PR creation fallback: always push branch, show direct PR URL on permission failure. Once user replies "yes", print `AGENTFLOW_ROUND_COMPLETE` to stdout. Emit: `HANDOFF RECOMMENDED: PR #N open for [task_ids] — good stopping point before you review`
+PR creation fallback: always push branch, show direct PR URL on permission failure. Once user replies "yes", emit: `HANDOFF RECOMMENDED: PR #N open for [task_ids] — good stopping point before you review`
 Never merge without explicit "yes".
 
 ---

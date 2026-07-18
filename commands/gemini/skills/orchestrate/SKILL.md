@@ -166,8 +166,7 @@ At the start of each round, write `.agentflow/current_round.json` (MUST use the 
 ```
 During the round execution, orchestrate the worker lifecycles with deterministic stdout print signals:
 - Before spawning each worker: run `python agentflow/shell/pty_signal.py task_start <task_id>` and print `AGENTFLOW_TASK_START:<task_id>`
-- After each worker completes: print `AGENTFLOW_TASK_COMPLETE:<task_id>` and run `python agentflow/shell/pty_signal.py task_done <task_id>`
-- After all round tasks complete: print `AGENTFLOW_ROUND_COMPLETE`
+- After each worker completes: print `AGENTFLOW_TASK_COMPLETE:<task_id>`
 
 ---
 
@@ -209,9 +208,7 @@ Reply: yes → merge | no [reason] → rework | skip → continue
 ```
 - **PR creation fallback:** Always push the task branch. If `gh pr create` encounters a sandbox permission failure, the agent must fallback to generating and providing the direct PR creation URL (e.g. `https://github.com/<owner>/<repo>/pull/new/<branch>`) instead of skipping.
 
-Once the user replies "yes" (human gate passed), print `AGENTFLOW_ROUND_COMPLETE` to stdout.
-
-Emit: `HANDOFF RECOMMENDED: PR #N open for [task_ids] — good stopping point before you review`
+Once the user replies "yes" (human gate passed), emit: `HANDOFF RECOMMENDED: PR #N open for [task_ids] — good stopping point before you review`
 
 **Never merge without explicit "yes".**
 
