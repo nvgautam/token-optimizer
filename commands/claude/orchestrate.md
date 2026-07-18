@@ -33,7 +33,7 @@ Close prompt: "End your final message with TOKENS: input=N output=N — nothing 
 - **Execution:** Spawn worker with selected model and `worktree_abs_path`. Do not call `EnterWorktree`. Save `.agentflow/state.json`.
 
 ### Round Lifecycle & PTY Signals
-Write `.agentflow/current_round.json` BEFORE spawning any Agent (immediately before the Agent spawn call — drain must see it even if spawn fails): `{"round_id": "str", "task_ids": ["str"], "estimated_lines_per_task": {}, "file_counts_per_task": {}, "session_id": "$AGENTFLOW_SESSION_ID", "timestamp": "ISO8601"}`.
+First: run `Bash(echo $AGENTFLOW_SESSION_ID)` to capture the session ID into a variable (e.g. `SID`). Then write `.agentflow/current_round.json` BEFORE spawning any Agent (immediately before the Agent spawn call — drain must see it even if spawn fails) using the Write tool (never Bash for the write itself): `{"round_id": "str", "task_ids": ["str"], "estimated_lines_per_task": {}, "file_counts_per_task": {}, "session_id": "<captured SID>", "timestamp": "ISO8601"}`.
 Worker lifecycles stdout signals:
 - Before spawning: run `pty_signal.py task_start <task_id>` and print `AGENTFLOW_TASK_START:<task_id>`
 - After worker completes: print `AGENTFLOW_TASK_COMPLETE:<task_id>`
