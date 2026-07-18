@@ -361,3 +361,40 @@ def test_orchestrate_startup_reconciliation():
         assert "startup_reconciliation_cleaned" in content
 
 
+# T-281: Round table [PENDING] tag format tests
+
+def test_execution_plan_pending_rounds_tagged():
+    """T-281: All pending rounds in execution_plan.md must have [PENDING] tag."""
+    exec_plan = REPO / "execution_plan.md"
+    content = exec_plan.read_text(encoding="utf-8")
+
+    # Find all lines with [PENDING] tag
+    pending_lines = [line for line in content.split('\n') if '[PENDING]' in line]
+    assert len(pending_lines) >= 4, f"Expected at least 4 rows with [PENDING] tag, found {len(pending_lines)}"
+
+    # Spot check: Round C-state3 should have [PENDING]
+    assert any("Round C-state3 [PENDING]" in line for line in pending_lines), \
+        "Round C-state3 must have [PENDING] tag"
+
+    # Spot check: merged rounds should NOT have [PENDING]
+    assert not any("Round A [PENDING]" in line for line in content.split('\n')), \
+        "Merged Round A must not have [PENDING] tag"
+
+
+def test_orchestrate_references_pending_tag_grep():
+    """T-281: orchestrate.md must reference grep -m 1 '\\[PENDING\\]' for selecting next round."""
+    content = CLAUDE_ORCHESTRATE.read_text(encoding="utf-8")
+    assert "grep" in content.lower() and "PENDING" in content, \
+        "orchestrate.md must reference grep with PENDING pattern"
+
+
+def test_oracle_references_pending_tag_grep():
+    """T-281: oracle.md must reference grep '\\[PENDING\\]' for identifying next pending round."""
+    CLAUDE_ORACLE = REPO / "commands" / "claude" / "oracle.md"
+    content = CLAUDE_ORACLE.read_text(encoding="utf-8")
+    assert "[PENDING]" in content or "PENDING" in content, \
+        "oracle.md must reference [PENDING] tag or PENDING pattern"
+    assert "grep" in content.lower() or "execution_plan.md" in content, \
+        "oracle.md must reference grep or execution_plan.md for finding next round"
+
+

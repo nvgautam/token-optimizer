@@ -38,6 +38,8 @@ Run: `awk -F'|' '{gsub(/^[[:space:]]+|[[:space:]]+$/,"",$2); if($2=="UNRESOLVED"
   - User raises a topic → load architecture index (Step 2a), then enter Phase 2 focused on that topic.
   - User has nothing → say: "Run `/orchestrate` to begin implementation."
 
+**Next pending round:** Run `grep -m 1 '\[PENDING\]' execution_plan.md` to identify the current active round for context during prioritization.
+
 ### Step 2a — Architecture index (re-spar only)
 Compute `HASH = sha256(cwd)`. Check `~/.agentflow/cache/<HASH>/index/architecture.md.idx`.
 
