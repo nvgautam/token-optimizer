@@ -43,49 +43,49 @@ def _capture_exec(sm, initial_command: list[str]) -> list[str]:
 
 
 class TestAutoFlag:
-    """T-243: --auto appended for claude/claude2 orchestrator restarts only."""
+    """T-243: --permission-mode auto appended for claude/claude2 orchestrator restarts only."""
 
     def test_orchestrator_claude_gets_auto(self):
-        """orchestrator + claude → --auto in command."""
+        """orchestrator + claude → --permission-mode auto in command."""
         sm, _pty, _tok = make_manager()
         sm._just_restarted = True
         sm.session_type = "orchestrator"
 
         args = _capture_exec(sm, ["claude"])
-        assert "--auto" in args, f"Expected --auto in {args}"
+        assert "--permission-mode" in args and "auto" in args, f"Expected --permission-mode auto in {args}"
 
     def test_orchestrator_claude2_gets_auto(self):
-        """orchestrator + claude2 → --auto in command."""
+        """orchestrator + claude2 → --permission-mode auto in command."""
         sm, _pty, _tok = make_manager()
         sm._just_restarted = True
         sm.session_type = "orchestrator"
 
         args = _capture_exec(sm, ["claude2"])
-        assert "--auto" in args, f"Expected --auto in {args}"
+        assert "--permission-mode" in args and "auto" in args, f"Expected --permission-mode auto in {args}"
 
     def test_orchestrator_agy_no_auto(self):
-        """orchestrator + agy → no --auto."""
+        """orchestrator + agy → no --permission-mode."""
         sm, _pty, _tok = make_manager()
         sm._just_restarted = True
         sm.session_type = "orchestrator"
 
         args = _capture_exec(sm, ["agy"])
-        assert "--auto" not in args, f"Did not expect --auto in {args}"
+        assert "--permission-mode" not in args, f"Did not expect --permission-mode in {args}"
 
     def test_oracle_claude_no_auto(self):
-        """oracle + claude → no --auto."""
+        """oracle + claude → no --permission-mode."""
         sm, _pty, _tok = make_manager()
         sm._just_restarted = True
         sm.session_type = "oracle"
 
         args = _capture_exec(sm, ["claude"])
-        assert "--auto" not in args, f"Did not expect --auto in {args}"
+        assert "--permission-mode" not in args, f"Did not expect --permission-mode in {args}"
 
     def test_first_launch_no_auto(self):
-        """_just_restarted=False → no --auto even for orchestrator+claude."""
+        """_just_restarted=False → no --permission-mode even for orchestrator+claude."""
         sm, _pty, _tok = make_manager()
         sm._just_restarted = False
         sm.session_type = "orchestrator"
 
         args = _capture_exec(sm, ["claude"])
-        assert "--auto" not in args, f"Did not expect --auto in {args}"
+        assert "--permission-mode" not in args, f"Did not expect --permission-mode in {args}"

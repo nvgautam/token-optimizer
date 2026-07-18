@@ -162,8 +162,8 @@ class TestDelayedInject:
                 spawn_new_child(sm)
             except SystemExit:
                 pass
-        # T-243: --auto is now appended for claude orchestrator restarts
-        assert exec_called[0] == ["claude", "/orchestrate", "--auto"]
+        # T-243: --permission-mode auto is now appended for claude orchestrator restarts
+        assert exec_called[0] == ["claude", "/orchestrate", "--permission-mode", "auto"]
 
     def test_delayed_inject_skipped_if_not_just_restarted(self):
         """on_enter_idle should not inject if _just_restarted is False."""
