@@ -307,6 +307,8 @@ def test_poll_session_logs_sid_mismatch(tmp_path, monkeypatch):
 
     # Test case 2: session_id mismatches
     mgr._audit_calls.clear()
+    if hasattr(mgr, "_skip_last_poll_session_sid_mismatch"):
+        delattr(mgr, "_skip_last_poll_session_sid_mismatch")
     current_round_path.write_text(
         json.dumps({
             "round_id": "C2",

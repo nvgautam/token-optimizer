@@ -14,7 +14,8 @@ def _write_merged_and_clear(manager) -> None:
 	try:
 		cr = json.loads(manager._current_round_path.read_text("utf-8"))
 		rid, tids = cr.get("round_id", ""), cr.get("task_ids", [])
-	except Exception:
+	except Exception as e:
+		manager._log_audit({"event": "drain_no_current_round", "error": str(e)})
 		return
 	db = None
 	try:
@@ -52,6 +53,7 @@ def _write_merged_and_clear(manager) -> None:
 		manager._tasks_in_flight_path.unlink(missing_ok=True)
 		manager._log_audit({"event": "tif_unlinked", "round_id": rid, "existed": tif_existed})
 		manager._current_round_path.unlink(missing_ok=True)
+		manager._log_audit({"event": "current_round_unlinked", "round_id": rid})
 	except Exception as e:
 		manager._log_audit({"event": "drain_clear_error", "round_id": rid, "error": str(e)})
 	try:
