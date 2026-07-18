@@ -2250,5 +2250,47 @@
       "tests/prompts/test_orchestrate_skill.py"
     ],
     "depends_on": []
+  },
+  {
+    "task_id": "T-280",
+    "status": "complete",
+    "title": "Orchestrate startup reconciliation \u2014 validate current_round.json against tasks.json on start",
+    "description": "On orchestrate startup: if .agentflow/current_round.json exists, read its task_ids and check each against tasks.json. If any task_id has status 'complete', the file is stale (leftover from a crashed/interrupted session) \u2014 unlink current_round.json and tasks_in_flight.json, log 'startup_reconciliation_cleaned'. If all task_ids are still 'pending', trust the file and continue from that round. This prevents stale signal files from triggering false drain conditions without any API calls or race conditions with active workers. Add to both commands/claude/orchestrate.md and commands/gemini/skills/orchestrate/SKILL.md as a startup step before round selection. Tests: assert startup reconciliation step present in both skill files.",
+    "owns": [
+      "commands/claude/orchestrate.md",
+      "commands/gemini/skills/orchestrate/SKILL.md"
+    ],
+    "reads": [
+      "tasks.json",
+      ".agentflow/current_round.json"
+    ],
+    "depends_on": [
+      "T-278",
+      "T-279"
+    ]
+  },
+  {
+    "task_id": "T-281",
+    "title": "Round table [PENDING] tag format \u2014 migrate rows + update oracle/orchestrate grep",
+    "status": "complete",
+    "milestone": "M5",
+    "estimated_lines": 40,
+    "owns": [
+      "execution_plan.md",
+      "commands/claude/orchestrate.md",
+      "commands/claude/oracle.md"
+    ],
+    "description": "Add [PENDING] tag to all pending round rows in execution_plan.md Master Round Table. Update oracle skill to write [PENDING] on new rounds. Update orchestrate resume to use grep -m 1 \"\\[PENDING\\]\" instead of full table scan. Migrate existing pending rows (C-state2, C-3, etc.)."
+  },
+  {
+    "task_id": "T-272",
+    "title": "Split .claude/worktrees/T-271-split-cleanup-tasks/tests/test_cleanup_violations.py \u2014 size violation",
+    "description": "Split .claude/worktrees/T-271-split-cleanup-tasks/tests/test_cleanup_violations.py (469 lines, limit 350). Violation timestamp: 2026-07-17T19:38:38.731551. Choose the split boundary by test class or fixture group, not line count. Verify each output file is \u2264 350 lines after splitting.",
+    "owns": [
+      ".claude/worktrees/T-271-split-cleanup-tasks/tests/test_cleanup_violations.py"
+    ],
+    "reads": [],
+    "depends_on": [],
+    "status": "complete"
   }
 ]

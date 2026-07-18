@@ -6841,10 +6841,85 @@
         }
       },
       "status": "closed"
+    },
+    {
+      "session_id": "20260718_150637",
+      "agent": "claude",
+      "task_ids": "",
+      "start_time": "2026-07-18T15:06:37.141169",
+      "end_time": "2026-07-18T15:06:37.141182",
+      "context_at_start": 42570,
+      "input_tokens": 2985041,
+      "output_tokens": 24481,
+      "token_detail": {
+        "uncached_input": 57,
+        "cache_creation": 85279,
+        "cache_read": 2899705,
+        "output": 24481,
+        "n_turns": 44,
+        "initial_ctx": 42570,
+        "final_ctx": 87883
+      },
+      "n_turns": 44,
+      "final_ctx": 87883,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 6535870,
+        "shadow_output": 24481,
+        "shadow_extra": 3638712,
+        "compaction": null
+      },
+      "status": "closed"
+    },
+    {
+      "session_id": "20260718_180910",
+      "agent": "claude",
+      "task_ids": "",
+      "start_time": "2026-07-18T18:09:10.509935",
+      "end_time": "2026-07-18T18:09:10.509950",
+      "context_at_start": 43163,
+      "input_tokens": 10191439,
+      "output_tokens": 87132,
+      "token_detail": {
+        "uncached_input": 162,
+        "cache_creation": 217140,
+        "cache_read": 9974137,
+        "output": 87132,
+        "n_turns": 114,
+        "initial_ctx": 43163,
+        "final_ctx": 124615
+      },
+      "n_turns": 114,
+      "final_ctx": 124615,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 25678749,
+        "shadow_output": 160402,
+        "shadow_extra": 14586414,
+        "compaction": {
+          "before": 209343,
+          "after": 73270,
+          "cost_tokens": 73270,
+          "reonboarding_overhead": 816168
+        }
+      },
+      "status": "closed"
     }
   ],
   "shadow_state": {
-    "accumulated_context": 82698,
-    "compaction_events": 129
-  }
+    "accumulated_context": 73270,
+    "compaction_events": 130
+  },
+  "handoffs": [
+    {
+      "event": "handoff",
+      "timestamp": "2026-07-18T12:39:10.360807+00:00",
+      "session_type": "oracle",
+      "agent_tokens_in": 0,
+      "agent_tokens_out": 0,
+      "agents": 0
+    }
+  ]
 }
