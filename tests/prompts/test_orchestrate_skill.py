@@ -342,10 +342,9 @@ def test_orchestrate_resume_derives_next_round_from_execution_plan():
 
 
 def test_orchestrate_enforces_write_tool_for_current_round():
-    """T-279: Enforce Write tool (not Bash) for current_round.json writes in orchestrate skills."""
+    """T-279: Enforce Write tool (not Bash) for current_round.json writes."""
     for f in SKILL_FILES:
         content = f.read_text(encoding="utf-8")
-        assert "Write tool" in content, f"{f.name} must specify using the Write tool"
-        assert "never Bash" in content or "never use Bash" in content.lower(), f"{f.name} must specify never using Bash for current_round.json"
-        assert "current_round.json" in content, f"{f.name} must reference current_round.json"
+        assert "Write tool" in content and "current_round.json" in content
+        assert "never Bash" in content or "never use Bash" in content.lower()
 
