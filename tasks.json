@@ -594,14 +594,7 @@
     },
     {
       "task_id": "T-162",
-      "title": "Split commands/claude/oracle.md \u2014 size violation",
-      "description": "Split commands/claude/oracle.md (160 lines, limit 150) by domain \u2014 NOT by line count. Domain boundary: the startup dispatch (Steps 1\u20132b) stays in oracle.md; Step 2c (Prioritization Spar, ~18 lines) extracts to commands/claude/oracle/prioritization.md, mirroring the existing phase-file pattern (market.md, checklist.md, generation.md, wrapup.md). oracle.md replaces the Step 2c block with: 'Lazy load: Read commands/claude/oracle/prioritization.md now.' No content changes \u2014 pure extraction.",
-      "owns": [
-        "commands/claude/oracle.md"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-163",
@@ -1016,7 +1009,8 @@
     },
     {
       "task_id": "T-250",
-      "status": "complete"
+      "status": "pending",
+      "title": "Fix debug.md KeyError \u2014 read session_id from current_round.json not state.json"
     },
     {
       "task_id": "T-251",
@@ -1109,10 +1103,7 @@
     },
     {
       "task_id": "T-268",
-      "status": "pending",
-      "title": "Oracle task-filing: add pre-creation duplicate check via title-noun grep",
-      "description": "Before creating any task, extract 2-3 key nouns from proposed title and grep tasks.json for them. If any hits, read those task entries and present as candidate duplicates \u2014 require user confirmation the new task is distinct before proceeding. Add to oracle.md task-filing protocol section. Coordinate with T-162 (oracle.md split) to target the correct sub-file.",
-      "estimated_lines": 8
+      "status": "complete"
     },
     {
       "task_id": "T-004g",
@@ -1159,7 +1150,7 @@
       "title": "Split .claude/worktrees/T-271-split-cleanup-tasks/tests/test_cleanup_violations.py \u2014 size violation",
       "description": "Split .claude/worktrees/T-271-split-cleanup-tasks/tests/test_cleanup_violations.py (469 lines, limit 350). Violation timestamp: 2026-07-17T19:38:38.731551. Choose the split boundary by test class or fixture group, not line count. Verify each output file is \u2264 350 lines after splitting.",
       "owns": [
-        "tests/test_cleanup_violations.py"
+        ".claude/worktrees/T-271-split-cleanup-tasks/tests/test_cleanup_violations.py"
       ],
       "reads": [],
       "depends_on": [],
@@ -1184,7 +1175,28 @@
     {
       "task_id": "T-278",
       "status": "pending",
-      "title": "Orchestrate resume: derive next round from execution_plan.md, not state.json"
+      "title": "Orchestrate resume: derive next round from execution_plan.md, not state.json",
+      "description": "state.json next_round goes stale when tasks are prepended to the round table after the last write. Fix: on resume, orchestrate.md must derive the next round by scanning execution_plan.md Master Round Table for the first row whose tasks are all pending (not complete/cancelled), treating state.json as advisory only. state.json may still be read for last_round context but must never be the sole authority for next_round.",
+      "owns": ["commands/claude/orchestrate.md", "commands/gemini/skills/orchestrate/SKILL.md"],
+      "reads": ["execution_plan.md"],
+      "depends_on": []
+    },
+    {
+      "task_id": "T-279",
+      "status": "pending",
+      "title": "Enforce Write tool (not Bash) for current_round.json writes in orchestrate skill",
+      "description": "Add explicit constraint to commands/claude/orchestrate.md and commands/gemini/skills/orchestrate/SKILL.md: when writing .agentflow/current_round.json, MUST use the Write tool — never Bash. The PostToolUse hook (post_tool_use.py) checks tool_name == 'Write' to trigger TIF sync; a Bash write bypasses this, logs sync_tif_skip reason='not_write_tool', and leaves TIF unpopulated, causing the PTY drain check to never fire. Add a test asserting the constraint is present in both skill files.",
+      "owns": ["commands/claude/orchestrate.md", "commands/gemini/skills/orchestrate/SKILL.md", "tests/prompts/test_orchestrate_skill.py"],
+      "depends_on": []
+    },
+    {
+      "task_id": "T-280",
+      "status": "pending",
+      "title": "Orchestrate startup reconciliation — validate current_round.json against tasks.json on start",
+      "description": "On orchestrate startup: if .agentflow/current_round.json exists, read its task_ids and check each against tasks.json. If any task_id has status 'complete', the file is stale (leftover from a crashed/interrupted session) — unlink current_round.json and tasks_in_flight.json, log 'startup_reconciliation_cleaned'. If all task_ids are still 'pending', trust the file and continue from that round. This prevents stale signal files from triggering false drain conditions without any API calls or race conditions with active workers. Add to both commands/claude/orchestrate.md and commands/gemini/skills/orchestrate/SKILL.md as a startup step before round selection. Tests: assert startup reconciliation step present in both skill files.",
+      "owns": ["commands/claude/orchestrate.md", "commands/gemini/skills/orchestrate/SKILL.md"],
+      "reads": ["tasks.json", ".agentflow/current_round.json"],
+      "depends_on": ["T-278", "T-279"]
     }
   ]
 }
