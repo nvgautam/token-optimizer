@@ -107,6 +107,13 @@ def build_parser() -> argparse.ArgumentParser:
     hooks_p = sub.add_parser("hooks", help="Internal hook dispatch (used by hook commands)")
     hooks_p.add_argument("name", help="Hook name to dispatch")
 
+    cache = sub.add_parser("cache", help="Manage the AgentFlow cache")
+    cache_sub = cache.add_subparsers(dest="cache_command", metavar="subcommand")
+    cache_sub.required = True
+    prune_p = cache_sub.add_parser("prune", help="Remove stale cache entries")
+    prune_p.add_argument("--older-than", type=int, default=30, metavar="DAYS",
+                         help="Remove dirs not accessed in this many days (default: 30)")
+
     return parser
 
 
@@ -133,6 +140,9 @@ def main() -> None:
             "merge": cmd_orchestrate_merge,
         }
         rc = orch_handlers[args.orch_command](args)
+    elif args.command == "cache":
+        from agentflow.cli_cmds import cmd_cache_prune
+        rc = cmd_cache_prune(args)
     else:
         rc = handlers[args.command](args)
 
