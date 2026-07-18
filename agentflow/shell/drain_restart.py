@@ -11,12 +11,16 @@ from agentflow.shell.state_machine import States
 
 
 def _write_merged_and_clear(manager) -> None:
+	rid, tids = "", []
 	try:
 		cr = json.loads(manager._current_round_path.read_text("utf-8"))
 		rid, tids = cr.get("round_id", ""), cr.get("task_ids", [])
+	except FileNotFoundError as e:
+		manager._log_audit({"event": "drain_no_current_round", "error": str(e)})
+		# fall through — file genuinely absent, safe to unlink TIF and proceed
 	except Exception as e:
 		manager._log_audit({"event": "drain_no_current_round", "error": str(e)})
-		return
+		return  # corrupt or mid-write race — preserve TIF, retry next 30s poll
 	db = None
 	try:
 		from agentflow.tools.task_db import TaskDB
