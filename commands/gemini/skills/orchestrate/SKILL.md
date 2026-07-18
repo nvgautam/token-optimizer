@@ -59,6 +59,11 @@ python3 -c "import json; d=json.load(open('tasks.json')); [print(json.dumps({k:v
 
 Check `.agentflow/state.json`. It is advisory only. On resume, the next round must be derived by scanning `execution_plan.md` Master Round Table for the first row whose tasks are all pending (not complete/cancelled), and state.json must not be the sole authority for next_round. Present → report resumed state and ask "Continue?". Absent → identify first incomplete milestone. `/orchestrate debug` → reveal grouping plan and ask "Proceed?".
 
+### Step 4a — Startup reconciliation
+If `.agentflow/current_round.json` exists, read its `task_ids` and check each against `tasks.json`.
+- If any `task_id` has status `'complete'`, the file is stale (leftover from a crashed/interrupted session): unlink `current_round.json` and `tasks_in_flight.json`, and log `startup_reconciliation_cleaned`.
+- If all `task_ids` are still `'pending'`, trust the file and continue from that round.
+
 ### Step 4b — Select round
 Using the Master Round Table and pending task list from Step 4, identify the first round that contains PENDING tasks whose dependencies are fully satisfied (i.e. marked as MERGED or complete).
 Announce: `Picking up Round X: T-xxx` (where `X` is the round identifier, e.g., `C`, and `T-xxx` represents the pending task IDs in that round).

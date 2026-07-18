@@ -348,3 +348,16 @@ def test_orchestrate_enforces_write_tool_for_current_round():
         assert "Write tool" in content and "current_round.json" in content
         assert "never Bash" in content or "never use Bash" in content.lower()
 
+
+def test_orchestrate_startup_reconciliation():
+    """T-280: Assert startup reconciliation step is present in both skill files."""
+    for f in [CLAUDE_ORCHESTRATE, GEMINI_ORCHESTRATE]:
+        content = f.read_text(encoding="utf-8")
+        assert "current_round.json" in content
+        assert "tasks.json" in content
+        assert "complete" in content
+        assert "unlink" in content
+        assert "tasks_in_flight.json" in content
+        assert "startup_reconciliation_cleaned" in content
+
+
