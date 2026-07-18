@@ -1,11 +1,8 @@
 """Tests for agentflow/shell/pty_signal.py — task_done tombstone behavior."""
 from __future__ import annotations
 import json
-import sys
-import tempfile
 from pathlib import Path
 
-import pytest
 
 
 def _task_done(task_id: str, workspace: Path) -> None:
@@ -136,3 +133,100 @@ def test_task_done_fallback_flat_path_when_no_sid(tmp_path, monkeypatch):
     # Should still use flat path when no SID
     assert flat_tif.exists()
     assert json.loads(flat_tif.read_text()) == []
+
+
+def test_task_start_audit_contains_sid(tmp_path, monkeypatch):
+    from agentflow.shell.pty_signal import task_start
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir(parents=True)
+    
+    # 1. With explicit SID in environment
+    monkeypatch.setenv("AGENTFLOW_SESSION_ID", "session-start-123")
+    task_start("T-001", workspace_root=tmp_path)
+    
+    audit_file = agentflow_dir / "pty_audit.jsonl"
+    assert audit_file.exists()
+    entries = [json.loads(line) for line in audit_file.read_text().splitlines() if line.strip()]
+    assert len(entries) == 1
+    assert entries[0]["sid"] == "session-start-123"
+
+    # 2. Defaulting when SID is not set
+    monkeypatch.delenv("AGENTFLOW_SESSION_ID", raising=False)
+    task_start("T-002", workspace_root=tmp_path)
+    
+    entries = [json.loads(line) for line in audit_file.read_text().splitlines() if line.strip()]
+    assert len(entries) == 2
+    assert entries[1]["sid"] == ""
+
+
+def test_task_done_audit_contains_sid(tmp_path, monkeypatch):
+    from agentflow.shell.pty_signal import task_start, task_done
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir(parents=True)
+    
+    # Pre-populate tasks in flight
+    monkeypatch.setenv("AGENTFLOW_SESSION_ID", "session-done-123")
+    task_start("T-001", workspace_root=tmp_path)
+    task_start("T-002", workspace_root=tmp_path)
+    
+    # Clear logs to focus on task_done
+    audit_file = agentflow_dir / "pty_audit.jsonl"
+    if audit_file.exists():
+        audit_file.unlink()
+        
+    # 1. Explicit sid parameter
+    task_done("T-001", workspace_root=tmp_path, sid="session-done-123")
+    entries = [json.loads(line) for line in audit_file.read_text().splitlines() if line.strip()]
+    assert len(entries) == 1
+    assert entries[0]["sid"] == "session-done-123"
+    
+    # 2. Defaults to env when sid param not passed
+    task_done("T-002", workspace_root=tmp_path)
+    entries = [json.loads(line) for line in audit_file.read_text().splitlines() if line.strip()]
+    assert len(entries) == 3
+    assert entries[1]["sid"] == "session-done-123"
+    assert entries[2]["sid"] == "session-done-123"
+
+    # 3. Defaulting when sid param not passed and env is empty
+    monkeypatch.delenv("AGENTFLOW_SESSION_ID", raising=False)
+    # Reset file and do task_start/task_done with empty env
+    tif_file = agentflow_dir / "tasks_in_flight.json"
+    if tif_file.exists():
+        tif_file.unlink()
+    if audit_file.exists():
+        audit_file.unlink()
+    
+    task_start("T-003", workspace_root=tmp_path)
+    task_done("T-003", workspace_root=tmp_path)
+    entries = [json.loads(line) for line in audit_file.read_text().splitlines() if line.strip()]
+    assert len(entries) == 3
+    assert entries[0]["sid"] == ""
+    assert entries[1]["sid"] == ""
+    assert entries[2]["sid"] == ""
+
+
+def test_handoff_complete_audit_contains_sid(tmp_path, monkeypatch):
+    from agentflow.shell.pty_signal import handoff_complete
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir(parents=True)
+    
+    # 1. Explicit sid parameter
+    handoff_complete(workspace_root=tmp_path, sid="session-handoff-123")
+    audit_file = agentflow_dir / "pty_audit.jsonl"
+    entries = [json.loads(line) for line in audit_file.read_text().splitlines() if line.strip()]
+    assert len(entries) == 1
+    assert entries[0]["sid"] == "session-handoff-123"
+    
+    # 2. Defaults to env when sid param not passed
+    monkeypatch.setenv("AGENTFLOW_SESSION_ID", "session-handoff-env")
+    handoff_complete(workspace_root=tmp_path)
+    entries = [json.loads(line) for line in audit_file.read_text().splitlines() if line.strip()]
+    assert len(entries) == 2
+    assert entries[1]["sid"] == "session-handoff-env"
+    
+    # 3. Defaulting when sid param not passed and env is empty
+    monkeypatch.delenv("AGENTFLOW_SESSION_ID", raising=False)
+    handoff_complete(workspace_root=tmp_path)
+    entries = [json.loads(line) for line in audit_file.read_text().splitlines() if line.strip()]
+    assert len(entries) == 3
+    assert entries[2]["sid"] == ""
