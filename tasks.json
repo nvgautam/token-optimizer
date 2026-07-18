@@ -1174,17 +1174,7 @@
     },
     {
       "task_id": "T-278",
-      "status": "pending",
-      "title": "Orchestrate resume: derive next round from execution_plan.md, not state.json",
-      "description": "state.json next_round goes stale when tasks are prepended to the round table after the last write. Fix: on resume, orchestrate.md must derive the next round by scanning execution_plan.md Master Round Table for the first row whose tasks are all pending (not complete/cancelled), treating state.json as advisory only. state.json may still be read for last_round context but must never be the sole authority for next_round.",
-      "owns": [
-        "commands/claude/orchestrate.md",
-        "commands/gemini/skills/orchestrate/SKILL.md"
-      ],
-      "reads": [
-        "execution_plan.md"
-      ],
-      "depends_on": []
+      "status": "complete"
     },
     {
       "task_id": "T-279",
