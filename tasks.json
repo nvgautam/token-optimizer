@@ -1196,14 +1196,7 @@
     },
     {
       "task_id": "T-283",
-      "title": "Add sid to pty_signal.py _log calls — task_done, task_start, handoff_complete",
-      "status": "pending",
-      "estimated_lines": 15,
-      "owns": [
-        "agentflow/shell/pty_signal.py",
-        "tests/test_pty_signal.py"
-      ],
-      "description": "pty_signal.py resolves session-scoped file paths using `sid = os.environ.get(\"AGENTFLOW_SESSION_ID\", \"\")` but never includes `sid` in audit log entries written by `_log()`. Fix: pass `\"sid\": sid` into every `_log(...)` call in `task_done`, `task_start`, and `handoff_complete`. After merge, every pty_audit.jsonl entry from pty_signal has a `sid` field, enabling per-session log filtering without guessing."
+      "status": "complete"
     },
     {
       "task_id": "T-284",
@@ -1213,7 +1206,7 @@
       "owns": [
         "commands/claude/orchestrate.md"
       ],
-      "description": "Two vestiges in `commands/claude/orchestrate.md` cause premature drain and dead stdout noise: 1. Line 39: `pty_signal.py task_done <task_id>` — called when worker Agent returns (PR opened), not when PR is merged. This tombstones TIF too early, triggering drain before the human review gate. The hook (`post_tool_use_agent.py`) already calls `task_done` correctly at PR merge. 2. Lines 40 and 69: `print AGENTFLOW_ROUND_COMPLETE` — the PTY shell has no handler for this signal; it is never read or acted upon. Fix: remove the `pty_signal task_done` Bash call from the \"After worker completes\" bullet and remove both `AGENTFLOW_ROUND_COMPLETE` print instructions. `AGENTFLOW_TASK_COMPLETE` and `AGENTFLOW_TASK_START` prints must be retained — they are consumed by `output_handler.py` for EWMA token cost accounting."
+      "description": "Two vestiges in `commands/claude/orchestrate.md` cause premature drain and dead stdout noise: 1. Line 39: `pty_signal.py task_done <task_id>` \u2014 called when worker Agent returns (PR opened), not when PR is merged. This tombstones TIF too early, triggering drain before the human review gate. The hook (`post_tool_use_agent.py`) already calls `task_done` correctly at PR merge. 2. Lines 40 and 69: `print AGENTFLOW_ROUND_COMPLETE` \u2014 the PTY shell has no handler for this signal; it is never read or acted upon. Fix: remove the `pty_signal task_done` Bash call from the \"After worker completes\" bullet and remove both `AGENTFLOW_ROUND_COMPLETE` print instructions. `AGENTFLOW_TASK_COMPLETE` and `AGENTFLOW_TASK_START` prints must be retained \u2014 they are consumed by `output_handler.py` for EWMA token cost accounting."
     }
   ]
 }

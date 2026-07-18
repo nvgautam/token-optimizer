@@ -176,8 +176,8 @@ def test_execution_plan_pending_rounds_tagged():
     content = exec_plan.read_text(encoding="utf-8")
     pending_lines = [line for line in content.split('\n') if '[PENDING]' in line]
     assert len(pending_lines) >= 4, f"Expected at least 4 rows with [PENDING] tag, found {len(pending_lines)}"
-    assert any("Round C-state3 [PENDING]" in line for line in pending_lines), \
-        "Round C-state3 must have [PENDING] tag"
+    assert any("Round C-pty [PENDING]" in line for line in pending_lines), \
+        "Round C-pty must have [PENDING] tag"
     assert not any("Round A [PENDING]" in line for line in content.split('\n')), \
         "Merged Round A must not have [PENDING] tag"
 
