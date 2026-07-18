@@ -469,7 +469,8 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round C-P0 (solo) — MERGED (PR #173 2026-07-17) | T-274 | Fix check_drain_restart: accept TIF=[] tombstone as equivalent to current_round.json — T-269 regression blocks all drain restarts |
 | Round C-P1 (solo) — MERGED (PR #174 2026-07-18) | T-273 | Fix SID path bugs: pty_signal handoff_complete, shell/cleanup_tasks task_complete, user_prompt_submit delete, tools/cleanup_tasks TIF — all use flat paths instead of session_file()/SID-in-filename |
 | Round C-P2 (solo) — MERGED (PR #175 2026-07-18) | T-275 | Integration test: full drain-restart file-state sequence — write_merged_and_clear → check_drain_restart → assert trigger_handoff; catches T-274-class regressions |
-| Round C-P3 (solo) | T-276 | Signal-file audit log coverage — plug all silent write/delete/unlink gaps so logs give a complete picture at all times |
+| Round C-P3 (solo) — MERGED (PR #177 2026-07-18) | T-276 | Signal-file audit log coverage — plug all silent write/delete/unlink gaps so logs give a complete picture at all times |
+| Round C-P4 (solo) | T-277 | Fix _write_merged_and_clear current_round.json exception handling — split FileNotFoundError vs corrupt/mid-write; root cause of C-2 premature drain |
 | Round C-1 (solo) | T-266 | debug.md 5-phase forensic rewrite — largest task, triggers restart; folds T-250 (debug.md KeyError fix) |
 | Round C-2 (parallel) | T-162 ‖ T-268 | oracle.md split + oracle duplicate-check (both touch oracle.md) |
 | Round C-3 (parallel) | T-210 ‖ T-243 | write_indexer test cache fix + auto-mode default |
@@ -478,7 +479,25 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round E | T-167 ‖ T-168 (parallel) | Oracle Phase 3 plan-mode preview + product judgment layer |
 | Round F | T-063 → T-064 → T-099 (sequential) | Multi-provider chain (enterprise) |
 
-Priority rationale (2026-07-17): T-274 (P0) + T-273 (P1) prepend Round C — both block reliable orchestrate restart loop. Restart-path hardening (A/B) before skill rewrites — loop reliability prerequisite. CLI spike (T-259) gates T-260. Rounds D–E are spikes/oracle enhancements. Round F deferred until Claude-only loop is solid. T-276 (C-P3) prepends C-1 — audit log coverage is a prerequisite for diagnosing any further drain/restart bugs.
+Priority rationale (2026-07-17): T-274 (P0) + T-273 (P1) prepend Round C — both block reliable orchestrate restart loop. Restart-path hardening (A/B) before skill rewrites — loop reliability prerequisite. CLI spike (T-259) gates T-260. Rounds D–E are spikes/oracle enhancements. Round F deferred until Claude-only loop is solid. T-276 (C-P3) prepends C-1 — audit log coverage is a prerequisite for diagnosing any further drain/restart bugs. T-277 (C-P4) prepends C-1 — this is the root fix for the C-2 premature-drain bug; was documented in T-276 spec but missed during implementation.
+
+**T-277:** Fix `_write_merged_and_clear` exception handling for `current_round.json` unreadability — root cause of the Round C-2 premature drain bug. File: `agentflow/shell/drain_restart.py`, function `_write_merged_and_clear`, lines 13–18.
+
+Current (broken): `except Exception: return` — single catch, always returns early, never unlinks TIF, completely silent.
+
+Replace with two branches:
+```python
+except FileNotFoundError as e:
+    manager._log_audit({"event": "drain_no_current_round", "error": str(e)})
+    # fall through — file genuinely absent, safe to unlink TIF and proceed
+except Exception as e:
+    manager._log_audit({"event": "drain_no_current_round", "error": str(e)})
+    return  # corrupt or mid-write race — preserve TIF, retry next 30s poll
+```
+
+**Why the split matters:** `current_round.json` has no write lock (`execution_plan.md.lock` exists; no `current_round.json.lock`). A concurrent skill write can produce partial/corrupt JSON → `json.JSONDecodeError`. Falling through on `JSONDecodeError` would permanently destroy both files and lose the MERGED annotation with no recovery. The retry path (return + preserved TIF) allows the next poll cycle to re-read a fully-written file. `FileNotFoundError` is different — file is genuinely gone, no retry will help, TIF must be cleaned up unconditionally.
+
+**Acceptance criteria:** (1) Unit test: mock `current_round_path.read_text` to raise `FileNotFoundError` → assert `drain_no_current_round` logged, TIF unlinked, `current_round.json` unlink attempted. (2) Unit test: mock to raise `json.JSONDecodeError` → assert `drain_no_current_round` logged, TIF NOT unlinked (preserved for retry). (3) Integration: run the full drain sequence from T-275's test with `current_round.json` absent — confirm drain still completes without leaving stale TIF tombstone.
 
 **T-276:** Signal-file audit log coverage — add log events for every unlogged write, unlink, and failure path across all PTY signal files so that `pty_audit.jsonl` provides a complete, unambiguous picture at all times. Eight specific gaps to close:
 
