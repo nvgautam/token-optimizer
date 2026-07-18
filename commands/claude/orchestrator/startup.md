@@ -50,7 +50,7 @@ Then `Read(offset=<start>, limit=<end-start+1>)`.
 python3 -c "import json; d=json.load(open('tasks.json')); [print(json.dumps({k:v for k,v in t.items() if k != 'description'})) for t in d['tasks'] if t['status']=='pending']"
 ```
 
-Check `.agentflow/state.json`. Present → report resumed state and ask "Continue?". Absent → identify first incomplete milestone. `/orchestrate debug` → reveal grouping plan and ask "Proceed?".
+Check `.agentflow/state.json`. It is advisory only. On resume, the next round must be derived by scanning `execution_plan.md` Master Round Table for the first row whose tasks are all pending (not complete/cancelled), and state.json must not be the sole authority for next_round. Present → report resumed state and ask "Continue?". Absent → identify first incomplete milestone. `/orchestrate debug` → reveal grouping plan and ask "Proceed?".
 
 ### Step 4b — Select round
 Read the round table for the active milestone in `execution_plan.md` and check task statuses in `tasks.json`. Identify the first round that contains PENDING tasks whose dependencies are fully satisfied (i.e. marked as MERGED or complete).

@@ -324,3 +324,18 @@ def test_orchestrate_worker_enters_existing_worktree():
     content = CLAUDE_ORCHESTRATE.read_text(encoding="utf-8")
     assert "EnterWorktree" in content, \
         "orchestrate.md must reference EnterWorktree for workers to enter pre-created worktrees"
+
+
+def test_orchestrate_resume_derives_next_round_from_execution_plan():
+    """T-278: Orchestrator must derive next_round from execution_plan.md, treating state.json as advisory."""
+    CLAUDE_STARTUP = REPO / "commands" / "claude" / "orchestrator" / "startup.md"
+    for f in [CLAUDE_ORCHESTRATE, CLAUDE_STARTUP, GEMINI_ORCHESTRATE]:
+        if not f.exists():
+            continue
+        content = f.read_text(encoding="utf-8")
+        assert "execution_plan.md" in content, f"{f.name} must reference execution_plan.md"
+        assert "advisory" in content.lower(), f"{f.name} must state that state.json is advisory only"
+        assert "deriv" in content.lower(), f"{f.name} must state next round is derived from execution_plan.md"
+        assert "master round table" in content.lower(), f"{f.name} must reference Master Round Table"
+        assert "pending" in content.lower(), f"{f.name} must scan for row whose tasks are all pending"
+        assert "sole authority" in content.lower(), f"{f.name} must state state.json is not the sole authority for next_round"
