@@ -51,7 +51,7 @@ Read `~/.agentflow/rate_calibration_claude.json` (if absent and `~/.agentflow/ra
 
 ### Step 2c — Prioritization Spar (pending tasks found)
 
-**See `commands/claude/oracle/prioritization.md` for Prioritization Spar details.**
+**See `commands/claude/oracle/prioritization.md` for Prioritization Spar details.** Current round context: `grep -m 1 '\[PENDING\]' execution_plan.md`.
 
 ### Step 3 — Opening question
 Ask: "Tell me about your project. What are you building?"

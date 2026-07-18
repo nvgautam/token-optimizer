@@ -477,10 +477,10 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round C-state2 [PENDING] (parallel) | T-279 (MERGED PR #182 2026-07-18) ‖ T-280 | Enforce Write tool for current_round.json + startup reconciliation (validate current_round.json task_ids against tasks.json on start, unlink if stale) |
 | Round C-state3 [PENDING] (solo) | T-281 | Round table [PENDING] tag format — migrate rows + update oracle/orchestrate to grep -m 1 '\[PENDING\]' for next round |
 | Round C-3 [PENDING] (parallel) | T-210 ‖ T-243 | write_indexer test cache fix + auto-mode default |
-| Round C | T-259 → T-260 ‖ T-234 ‖ T-236 (T-259 first, then parallel) | CLI spike → round-start CLI + context bundle temp file + conflict resolution |
-| Round D | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
-| Round E | T-167 ‖ T-168 (parallel) | Oracle Phase 3 plan-mode preview + product judgment layer |
-| Round F | T-063 → T-064 → T-099 (sequential) | Multi-provider chain (enterprise) |
+| Round C [PENDING] | T-259 → T-260 ‖ T-234 ‖ T-236 (T-259 first, then parallel) | CLI spike → round-start CLI + context bundle temp file + conflict resolution |
+| Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
+| Round E [PENDING] | T-167 ‖ T-168 (parallel) | Oracle Phase 3 plan-mode preview + product judgment layer |
+| Round F [PENDING] | T-063 → T-064 → T-099 (sequential) | Multi-provider chain (enterprise) |
 
 Priority rationale (2026-07-17): T-274 (P0) + T-273 (P1) prepend Round C — both block reliable orchestrate restart loop. Restart-path hardening (A/B) before skill rewrites — loop reliability prerequisite. CLI spike (T-259) gates T-260. Rounds D–E are spikes/oracle enhancements. Round F deferred until Claude-only loop is solid. T-276 (C-P3) prepends C-1 — audit log coverage is a prerequisite for diagnosing any further drain/restart bugs. T-277 (C-P4) prepends C-1 — this is the root fix for the C-2 premature-drain bug; was documented in T-276 spec but missed during implementation.
 
