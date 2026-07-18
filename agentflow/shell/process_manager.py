@@ -76,12 +76,12 @@ def spawn_new_child(manager) -> None:
         if skill:
             command = list(command) + [f"/{skill}"]
 
-    # T-243: Pass --auto to claude/claude2 orchestrator restarts (not agy)
+    # T-243: Pass --permission-mode auto to claude/claude2 orchestrator restarts (not agy)
     if getattr(manager, "_just_restarted", False):
         _stype = getattr(manager, "session_type", None)
         cmd_name = os.path.basename(str(command[0])) if command else ""
         if _stype == "orchestrator" and cmd_name in ("claude", "claude2"):
-            command = list(command) + ["--auto"]
+            command = list(command) + ["--permission-mode", "auto"]
 
     # T-196: Append pre-resolved task context if available
     try:
