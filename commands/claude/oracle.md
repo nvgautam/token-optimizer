@@ -38,8 +38,6 @@ Run: `awk -F'|' '{gsub(/^[[:space:]]+|[[:space:]]+$/,"",$2); if($2=="UNRESOLVED"
   - User raises a topic → load architecture index (Step 2a), then enter Phase 2 focused on that topic.
   - User has nothing → say: "Run `/orchestrate` to begin implementation."
 
-**Next pending round:** Run `grep -m 1 '\[PENDING\]' execution_plan.md` to identify the current active round for context during prioritization.
-
 ### Step 2a — Architecture index (re-spar only)
 Compute `HASH = sha256(cwd)`. Check `~/.agentflow/cache/<HASH>/index/architecture.md.idx`.
 
@@ -53,7 +51,7 @@ Read `~/.agentflow/rate_calibration_claude.json` (if absent and `~/.agentflow/ra
 
 ### Step 2c — Prioritization Spar (pending tasks found)
 
-**See `commands/claude/oracle/prioritization.md` for Prioritization Spar details.**
+**See `commands/claude/oracle/prioritization.md` for Prioritization Spar details.** Current round context: `grep -m 1 '\[PENDING\]' execution_plan.md`.
 
 ### Step 3 — Opening question
 Ask: "Tell me about your project. What are you building?"
