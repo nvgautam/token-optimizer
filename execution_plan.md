@@ -481,6 +481,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round C-3a — MERGED (PR #188 2026-07-18) | T-210 | write_indexer test cache fix + prune CLI |
 | Round C-3b — MERGED (PR #189 2026-07-18) | T-243 | Pass --auto to claude/claude2 PTY restart (not agy) after handoff |
 | Round C-spawn-guard — MERGED (PR #190 2026-07-18) | T-285 (solo) | orchestrate.md: write current_round.json before Agent spawn — prevents premature drain on spawn failure |
+| Round C-session-id [PENDING] | T-286 (solo) | Fix orchestrate.md: resolve $AGENTFLOW_SESSION_ID via Bash before Write tool call |
 | Round C-cli-spike [PENDING] | T-259 (solo) | CLI spike: agentflow round-start command foundation |
 | Round C [PENDING] | T-260 ‖ T-234 ‖ T-236 (parallel) | round-start CLI + context bundle temp file + conflict resolution |
 | Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
