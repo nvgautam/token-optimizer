@@ -180,19 +180,19 @@ def test_oracle_cv_adjustment_logic_present_without_notification():
         assert not re.search(r"CV=.*high.*sizing tasks more conservatively", phase3_content), \
             f"Phase 3 of {f.name} must NOT emit user-facing CV notification (IP protection)"
 # T-108: Orchestrate skill fixes tests (round complete emission + Step 4b startup)
-def test_orchestrate_skill_emits_round_complete_on_human_gate_yes():
+def test_orchestrate_skill_no_vestigial_round_complete():
     orchestrate_files = [
         Path("commands/claude/orchestrate.md"),
         Path("commands/gemini/skills/orchestrate/SKILL.md"),
     ]
     for f in orchestrate_files:
         content = f.read_text(encoding="utf-8")
-        assert "AGENTFLOW_ROUND_COMPLETE" in content, f"{f.name} must print AGENTFLOW_ROUND_COMPLETE"
+        assert "AGENTFLOW_ROUND_COMPLETE" not in content, f"{f.name} must not print vestigial AGENTFLOW_ROUND_COMPLETE"
         
-        # Check that it instructs to print it on human gate passed/yes response
+        # Check that it instructs to do human gate passed/yes response
         human_gate_section = content.split("## Human gate")[1].split("## Merge")[0]
-        assert "AGENTFLOW_ROUND_COMPLETE" in human_gate_section,             f"{f.name} must print AGENTFLOW_ROUND_COMPLETE in the Human gate section"
-        assert "yes" in human_gate_section,             f"{f.name} must mention 'yes' in the Human gate section"
+        assert "yes" in human_gate_section, \
+            f"{f.name} must mention 'yes' in the Human gate section"
 
 
 def test_orchestrate_skill_has_step_4b_startup():
