@@ -2238,5 +2238,17 @@
       "execution_plan.md"
     ],
     "depends_on": []
+  },
+  {
+    "task_id": "T-279",
+    "status": "complete",
+    "title": "Enforce Write tool (not Bash) for current_round.json writes in orchestrate skill",
+    "description": "Add explicit constraint to commands/claude/orchestrate.md and commands/gemini/skills/orchestrate/SKILL.md: when writing .agentflow/current_round.json, MUST use the Write tool \u2014 never Bash. The PostToolUse hook (post_tool_use.py) checks tool_name == 'Write' to trigger TIF sync; a Bash write bypasses this, logs sync_tif_skip reason='not_write_tool', and leaves TIF unpopulated, causing the PTY drain check to never fire. Add a test asserting the constraint is present in both skill files.",
+    "owns": [
+      "commands/claude/orchestrate.md",
+      "commands/gemini/skills/orchestrate/SKILL.md",
+      "tests/prompts/test_orchestrate_skill.py"
+    ],
+    "depends_on": []
   }
 ]
