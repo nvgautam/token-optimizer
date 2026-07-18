@@ -153,7 +153,7 @@ def test_orchestrate_signals_and_round_json():
         assert "timestamp" in content, f"{f.name} must include timestamp in current_round.json write details"
         assert "AGENTFLOW_TASK_START:" in content, f"{f.name} must print AGENTFLOW_TASK_START:<task_id>"
         assert "AGENTFLOW_TASK_COMPLETE:" in content, f"{f.name} must print AGENTFLOW_TASK_COMPLETE:<task_id>"
-        assert "AGENTFLOW_ROUND_COMPLETE" in content, f"{f.name} must print AGENTFLOW_ROUND_COMPLETE"
+        assert "AGENTFLOW_ROUND_COMPLETE" not in content, f"{f.name} must not print vestigial AGENTFLOW_ROUND_COMPLETE"
 
 
 def test_orchestrate_skills_contain_verbosity_rules():
@@ -170,3 +170,16 @@ def test_orchestrate_skills_contain_cleanup_tasks_merge():
     for f in SKILL_FILES:
         content = f.read_text(encoding="utf-8")
         assert "cleanup_tasks.py" in content, f"{f.name} must specify running cleanup_tasks.py in merge protocol"
+
+
+def test_current_round_written_before_agent_spawn():
+    """T-285: current_round.json must be written BEFORE Agent spawn, not after."""
+    content = CLAUDE_ORCHESTRATE.read_text(encoding="utf-8")
+    assert "BEFORE spawning" in content, \
+        "orchestrate.md must explicitly state current_round.json is written BEFORE spawning"
+    before_pos = content.lower().find("before spawning")
+    spawn_pos = content.lower().find("spawn worker")
+    assert before_pos != -1, "orchestrate.md must contain 'BEFORE spawning' text"
+    assert spawn_pos != -1, "orchestrate.md must contain 'Spawn worker' text"
+    assert before_pos < spawn_pos, \
+        "current_round.json write instruction must appear before 'Spawn worker' in orchestrate.md"
