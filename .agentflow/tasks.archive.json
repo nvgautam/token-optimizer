@@ -2188,5 +2188,41 @@
     "task_id": "T-266",
     "status": "complete",
     "title": "Rewrite commands/claude/debug.md \u2014 5-phase forensic protocol"
+  },
+  {
+    "task_id": "T-276",
+    "title": "Signal-file audit log coverage",
+    "description": "Signal-file audit log coverage \u2014 add log events for every unlogged write, unlink, and failure path across all PTY signal files so that pty_audit.jsonl provides a complete, unambiguous picture at all times.",
+    "owns": [
+      "agentflow/shell/handoff_handler.py",
+      "agentflow/shell/drain_restart.py",
+      "agentflow/shell/session_manager_handlers.py",
+      "agentflow/hooks/user_prompt_submit.py"
+    ],
+    "reads": [
+      "agentflow/shell/session_paths.py"
+    ],
+    "depends_on": [],
+    "contracts": [],
+    "test_requirements": {
+      "unit": [
+        "Assert each audit event fires for its specific code path",
+        "Test FileNotFoundError vs corrupt/mid-write exception paths in _write_merged_and_clear"
+      ],
+      "integration": [
+        "Verify audit events appear in pty_audit.jsonl or hook_drain_debug.jsonl in mock/integration session run"
+      ],
+      "coverage_threshold": 85
+    },
+    "security_constraints": [],
+    "acceptance_criteria": "After merge, grep pty_audit.jsonl and hook_drain_debug.jsonl for any orchestrate session and confirm all 8 signal file log events fire correctly.",
+    "estimated_lines": 60,
+    "context_section": "execution_plan.md#T-276",
+    "status": "complete"
+  },
+  {
+    "task_id": "T-250",
+    "status": "complete",
+    "title": "Fix debug.md KeyError \u2014 read session_id from current_round.json not state.json"
   }
 ]
