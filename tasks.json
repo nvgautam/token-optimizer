@@ -1200,7 +1200,8 @@
       "status": "pending",
       "estimated_lines": 15,
       "owns": [
-        "agentflow/shell/pty_signal.py"
+        "agentflow/shell/pty_signal.py",
+        "tests/test_pty_signal.py"
       ],
       "description": "pty_signal.py resolves session-scoped file paths using `sid = os.environ.get(\"AGENTFLOW_SESSION_ID\", \"\")` but never includes `sid` in audit log entries written by `_log()`. Fix: pass `\"sid\": sid` into every `_log(...)` call in `task_done`, `task_start`, and `handoff_complete`. After merge, every pty_audit.jsonl entry from pty_signal has a `sid` field, enabling per-session log filtering without guessing."
     },
