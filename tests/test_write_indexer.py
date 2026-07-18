@@ -2,7 +2,6 @@
 
 import io
 import json
-import subprocess
 import sys
 from pathlib import Path
 from unittest.mock import call, patch
@@ -81,19 +80,16 @@ def test_skips_non_py_md_files(tmp_path):
         mock_update.assert_not_called()
 
 
-def test_exits_zero_silently(tmp_path):
+def test_exits_zero_silently(tmp_path, capsys):
     p = tmp_path / "sample.py"
     p.write_text(_py_content(60))
-    stdin_data = json.dumps({"tool_name": "Write", "tool_input": {"file_path": str(p)}})
-    result = subprocess.run(
-        [sys.executable, "agentflow/hooks/write_indexer.py"],
-        input=stdin_data,
-        capture_output=True,
-        text=True,
-    )
-    assert result.returncode == 0
-    assert result.stdout == ""
-    assert result.stderr == ""
+    with patch("agentflow.indexer.index_manager.update") as mock_update:
+        code = _run_main(_stdin("Write", str(p)))
+    assert code == 0
+    mock_update.assert_called_once_with(p, _py_content(60))
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
 
 
 def test_exits_zero_on_bad_stdin():
