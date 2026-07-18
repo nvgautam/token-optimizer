@@ -13,7 +13,7 @@ For details, see `commands/claude/orchestrator/startup.md`.
 **See `commands/claude/orchestrator/decomposition.md` for decomposition details (lazy — stubs only).**
 
 ## Agent spawn
-> **HARD RULE:** Orchestrate MUST NEVER implement tasks directly. Dispatch a worker agent. Write `.agentflow/current_round.json` first.
+> **HARD RULE:** Orchestrate MUST NEVER implement tasks directly. Dispatch a worker agent. Write `.agentflow/current_round.json` first (MUST use the Write tool — never Bash).
 **Pre-spawn (once before first agent):**
 - Branch `main`, working tree clean. No GitHub remote → `gh repo create --source=. --remote=origin --push`.
 - Stub every `owns` path (`raise NotImplementedError`). `.gitignore` absent → generate.
