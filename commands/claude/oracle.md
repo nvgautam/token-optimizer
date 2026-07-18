@@ -88,6 +88,9 @@ No match → proceed without architecture context for that topic.
 
 **Trigger: task filed OR goal change (scope, audience, timeline, priority).** Immediately propose rounds (A/B/C, one-line rationale per round, what ships). End with "Does this order work for you?" Spar on disagreements; update `execution_plan.md` on agreement.
 
+### Task-filing duplicate check
+Before filing, grep 2–3 title nouns in tasks.json: `python3 -c "import json; n=['x','y']; [print(t['task_id'],t['title']) for t in json.load(open('tasks.json'))['tasks'] if any(w in t['title'].lower() for w in n)]"`. If hits → present as candidates; require user confirmation the new task is distinct.
+
 ### Incremental Flush
 
 **After each decision resolves, immediately append `| Topic | RESOLVED | Decision summary |` to `design_status.md` — no batching (PTY may restart mid-phase).**
