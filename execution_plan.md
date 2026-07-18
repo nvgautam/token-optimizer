@@ -470,9 +470,11 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round C-P1 (solo) — MERGED (PR #174 2026-07-18) | T-273 | Fix SID path bugs: pty_signal handoff_complete, shell/cleanup_tasks task_complete, user_prompt_submit delete, tools/cleanup_tasks TIF — all use flat paths instead of session_file()/SID-in-filename |
 | Round C-P2 (solo) — MERGED (PR #175 2026-07-18) | T-275 | Integration test: full drain-restart file-state sequence — write_merged_and_clear → check_drain_restart → assert trigger_handoff; catches T-274-class regressions |
 | Round C-P3 (solo) — MERGED (PR #177 2026-07-18) | T-276 | Signal-file audit log coverage — plug all silent write/delete/unlink gaps so logs give a complete picture at all times |
-| Round C-P4 (solo) | T-277 | Fix _write_merged_and_clear current_round.json exception handling — split FileNotFoundError vs corrupt/mid-write; root cause of C-2 premature drain |
-| Round C-1 (solo) | T-266 | debug.md 5-phase forensic rewrite — largest task, triggers restart; folds T-250 (debug.md KeyError fix) |
-| Round C-2 (parallel) | T-162 ‖ T-268 | oracle.md split + oracle duplicate-check (both touch oracle.md) |
+| Round C-P4 (solo) — MERGED (PR #178 2026-07-18) | T-277 | Fix _write_merged_and_clear current_round.json exception handling — split FileNotFoundError vs corrupt/mid-write; root cause of C-2 premature drain |
+| Round C-1 — MERGED | T-266 | debug.md 5-phase forensic rewrite — largest task, triggers restart; folds T-250 (debug.md KeyError fix) |
+| Round C-2 — MERGED (PR #179/#180 2026-07-18) | T-162 ‖ T-268 | oracle.md split + oracle duplicate-check (both touch oracle.md) |
+| Round C-state (solo) | T-278 | Orchestrate resume: derive next round from execution_plan.md Master Round Table, not state.json — state.json is stale when tasks are prepended after last merge |
+| Round C-state2 (parallel) | T-279 ‖ T-280 | Enforce Write tool for current_round.json + startup reconciliation (validate current_round.json task_ids against tasks.json on start, unlink if stale) |
 | Round C-3 (parallel) | T-210 ‖ T-243 | write_indexer test cache fix + auto-mode default |
 | Round C | T-259 → T-260 ‖ T-234 ‖ T-236 (T-259 first, then parallel) | CLI spike → round-start CLI + context bundle temp file + conflict resolution |
 | Round D | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
