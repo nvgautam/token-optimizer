@@ -1187,7 +1187,8 @@
       "description": "On orchestrate startup: if .agentflow/current_round.json exists, read its task_ids and check each against tasks.json. If any task_id has status 'complete', the file is stale (leftover from a crashed/interrupted session) \u2014 unlink current_round.json and tasks_in_flight.json, log 'startup_reconciliation_cleaned'. If all task_ids are still 'pending', trust the file and continue from that round. This prevents stale signal files from triggering false drain conditions without any API calls or race conditions with active workers. Add to both commands/claude/orchestrate.md and commands/gemini/skills/orchestrate/SKILL.md as a startup step before round selection. Tests: assert startup reconciliation step present in both skill files.",
       "owns": [
         "commands/claude/orchestrate.md",
-        "commands/gemini/skills/orchestrate/SKILL.md"
+        "commands/gemini/skills/orchestrate/SKILL.md",
+        "tests/prompts/test_orchestrate_skill.py"
       ],
       "reads": [
         "tasks.json",
