@@ -1029,16 +1029,7 @@
     },
     {
       "task_id": "T-259",
-      "description": "Spike: agentflow db CLI layer + CLI-as-interface strategy. Design and prototype (a) agentflow round start --task-ids ... command that atomically writes current_round.json + tasks_in_flight.json; (b) agentflow task done <id>; (c) evaluate migrating all skill-facing state mutations to CLI commands so skills never write state files directly \u2014 removes hook dependency on tool_name and positions for SQLite backend swap. Produce design doc + list of state files to migrate. No implementation beyond prototype.",
-      "owns": [],
-      "reads": [
-        "agentflow/hooks/post_tool_use.py",
-        "agentflow/shell/pty_signal.py",
-        "agentflow/shell/session_manager.py"
-      ],
-      "depends_on": [],
-      "status": "pending",
-      "title": "Spike: CLI-as-interface for orchestrate round announcements"
+      "status": "complete"
     },
     {
       "task_id": "T-260",
@@ -1179,17 +1170,19 @@
     },
     {
       "task_id": "T-285",
-      "status": "complete",
-      "description": "orchestrate.md: write current_round.json BEFORE spawning worker agents (not after). Currently if Agent spawn fails (e.g. invalid model, permission error), current_round.json is never written, drain sees TIF=[] + no current_round.json and misfires a restart. Fix: move the Write tool call for current_round.json to immediately before the Agent spawn call, so drain always has a signal that work is in progress even if spawn fails. Update both ~/.claude/commands/orchestrate.md and ~/.claude2/commands/orchestrate.md. Add test to test_orchestrate_skill.py asserting current_round.json write precedes Agent spawn in the skill content ordering. Root cause: session dab5396c-14eb-404e-a0cf-1a3d07ae4025 \u2014 workers T-210/T-243 completed, orchestrate tried to spawn next round but got InputValidationError (model ID bug), spent 3m in error recovery without writing current_round.json, fill hit 80K, drain misfired."
+      "status": "complete"
     },
     {
       "task_id": "T-286",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-287",
       "status": "pending",
-      "title": "Fix orchestrate.md: resolve $AGENTFLOW_SESSION_ID via Bash before Write tool",
-      "description": "orchestrate.md instructs agent to write current_round.json session_id as \"$AGENTFLOW_SESSION_ID\" but Write tool cannot expand shell vars. Agent writes literal fallback (\"orchestrator\"). Fix: add explicit step \u2014 run Bash(echo $AGENTFLOW_SESSION_ID) to capture value, then substitute into Write tool call. Also apply same fix to Gemini SKILL.md. Add test asserting session_id is a UUID (not a literal $var or known fallback).",
+      "title": "Fix PTY restart: --auto \u2192 --permission-mode auto",
+      "description": "process_manager.py line 84: replace [\"--auto\"] with [\"--permission-mode\", \"auto\"]. The --auto flag does not exist in the claude CLI; the correct flag is --permission-mode with value auto (one of: acceptEdits, auto, bypassPermissions, manual, dontAsk, plan). Also update any tests in test_t189_restart_hotfix.py or test_session_manager.py that assert --auto is passed. Root cause: T-243 used the wrong flag name.",
       "owns": [
-        "commands/claude/orchestrate.md",
-        "commands/gemini/skills/orchestrate/SKILL.md"
+        "agentflow/shell/process_manager.py"
       ],
       "reads": []
     }
