@@ -116,7 +116,7 @@ Close every prompt: `"End your final message with TOKENS: input=N output=N — n
 Spawn one agent per group, `isolation: "worktree"`. Parallel only if no cross-dependencies and rate supports. Save `.agentflow/state.json` after each.
 
 ### Round Lifecycle & PTY Signals
-At the start of each round, write `.agentflow/current_round.json` with the following schema:
+At the start of each round, write `.agentflow/current_round.json` (MUST use the Write tool — never Bash) with the following schema:
 ```json
 {
   "round_id": "string",

@@ -339,3 +339,12 @@ def test_orchestrate_resume_derives_next_round_from_execution_plan():
         assert "master round table" in content.lower(), f"{f.name} must reference Master Round Table"
         assert "pending" in content.lower(), f"{f.name} must scan for row whose tasks are all pending"
         assert "sole authority" in content.lower(), f"{f.name} must state state.json is not the sole authority for next_round"
+
+
+def test_orchestrate_enforces_write_tool_for_current_round():
+    """T-279: Enforce Write tool (not Bash) for current_round.json writes."""
+    for f in SKILL_FILES:
+        content = f.read_text(encoding="utf-8")
+        assert "Write tool" in content and "current_round.json" in content
+        assert "never Bash" in content or "never use Bash" in content.lower()
+
