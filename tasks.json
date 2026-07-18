@@ -777,15 +777,7 @@
     },
     {
       "task_id": "T-210",
-      "title": "Fix write_indexer tests leaking cache dirs per pytest run",
-      "status": "pending",
-      "description": "Each pytest run of test_write_indexer.py creates 3-4 new ~/.agentflow/cache/<hash>/ directories because tmp_path produces a unique cwd per invocation, and sha256(cwd) generates a fresh cache key. Fix: patch the cache root in write_indexer tests to point at a fixed temp dir (e.g. monkeypatch the CACHE_ROOT constant) instead of relying on tmp_path as cwd. Also add agentflow cache prune --older-than <days> CLI subcommand to evict stale entries. Owned files: tests/test_write_indexer.py, agentflow/cli.py (or cli_cmds.py for prune subcommand).",
-      "model": "haiku",
-      "estimated_lines": 60,
-      "owns": [
-        "tests/test_write_indexer.py"
-      ],
-      "context_section": "Symbol indexer"
+      "status": "complete"
     },
     {
       "task_id": "T-211",
@@ -952,15 +944,7 @@
     },
     {
       "task_id": "T-243",
-      "title": "Configure Claude / Claude2 worker sessions to start with auto-mode enabled by default",
-      "description": "When AgentFlow spawns Claude or Claude2 worker sessions (via orchestrate.md skill), ensure auto-mode is active from session start so workers do not stop to request permission on each action. Investigate correct mechanism (--yes flag, settings.json autoApprove, or env var) and wire it into the worker launch path. Must not affect oracle/interactive sessions.",
-      "owns": [],
-      "reads": [
-        "commands/claude/orchestrate.md",
-        "agentflow/config/models.py"
-      ],
-      "depends_on": [],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-244",
@@ -1179,16 +1163,7 @@
     },
     {
       "task_id": "T-281",
-      "title": "Round table [PENDING] tag format \u2014 migrate rows + update oracle/orchestrate grep",
-      "status": "pending",
-      "milestone": "M5",
-      "estimated_lines": 40,
-      "owns": [
-        "execution_plan.md",
-        "commands/claude/orchestrate.md",
-        "commands/claude/oracle.md"
-      ],
-      "description": "Add [PENDING] tag to all pending round rows in execution_plan.md Master Round Table. Update oracle skill to write [PENDING] on new rounds. Update orchestrate resume to use grep -m 1 \"\\[PENDING\\]\" instead of full table scan. Migrate existing pending rows (C-state2, C-3, etc.)."
+      "status": "complete"
     },
     {
       "task_id": "T-282",
@@ -1200,13 +1175,12 @@
     },
     {
       "task_id": "T-284",
-      "title": "Remove vestigial task_done signal and AGENTFLOW_ROUND_COMPLETE prints from orchestrate.md",
-      "status": "pending",
-      "estimated_lines": 10,
-      "owns": [
-        "commands/claude/orchestrate.md"
-      ],
-      "description": "Two vestiges in `commands/claude/orchestrate.md` cause premature drain and dead stdout noise: 1. Line 39: `pty_signal.py task_done <task_id>` \u2014 called when worker Agent returns (PR opened), not when PR is merged. This tombstones TIF too early, triggering drain before the human review gate. The hook (`post_tool_use_agent.py`) already calls `task_done` correctly at PR merge. 2. Lines 40 and 69: `print AGENTFLOW_ROUND_COMPLETE` \u2014 the PTY shell has no handler for this signal; it is never read or acted upon. Fix: remove the `pty_signal task_done` Bash call from the \"After worker completes\" bullet and remove both `AGENTFLOW_ROUND_COMPLETE` print instructions. `AGENTFLOW_TASK_COMPLETE` and `AGENTFLOW_TASK_START` prints must be retained \u2014 they are consumed by `output_handler.py` for EWMA token cost accounting."
+      "status": "complete"
+    },
+    {
+      "task_id": "T-285",
+      "status": "complete",
+      "description": "orchestrate.md: write current_round.json BEFORE spawning worker agents (not after). Currently if Agent spawn fails (e.g. invalid model, permission error), current_round.json is never written, drain sees TIF=[] + no current_round.json and misfires a restart. Fix: move the Write tool call for current_round.json to immediately before the Agent spawn call, so drain always has a signal that work is in progress even if spawn fails. Update both ~/.claude/commands/orchestrate.md and ~/.claude2/commands/orchestrate.md. Add test to test_orchestrate_skill.py asserting current_round.json write precedes Agent spawn in the skill content ordering. Root cause: session dab5396c-14eb-404e-a0cf-1a3d07ae4025 \u2014 workers T-210/T-243 completed, orchestrate tried to spawn next round but got InputValidationError (model ID bug), spent 3m in error recovery without writing current_round.json, fill hit 80K, drain misfired."
     }
   ]
 }

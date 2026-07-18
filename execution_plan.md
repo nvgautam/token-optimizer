@@ -477,9 +477,12 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round C-state2 — MERGED (PR #182/#183 2026-07-18) | T-279 ‖ T-280 | Enforce Write tool for current_round.json + startup reconciliation (validate current_round.json task_ids against tasks.json on start, unlink if stale) |
 | Round C-state3 — MERGED | T-281 | Round table [PENDING] tag format — migrate rows + update oracle/orchestrate to grep -m 1 '\[PENDING\]' for next round |
 | Round C-splits2 — MERGED (PR #185/#186 2026-07-18) | T-272 ‖ T-282 | Size-violation splits: test_cleanup_violations.py (T-272) + test_orchestrate_skill.py (T-282) |
-| Round C-pty [PENDING] (parallel) | T-283 (MERGED PR #187 2026-07-18) ‖ T-284 | PTY signal cleanup: sid in pty_signal _log (T-283) + remove vestigial task_done/ROUND_COMPLETE from orchestrate.md (T-284) |
-| Round C-3 [PENDING] (parallel) | T-210 ‖ T-243 | write_indexer test cache fix + auto-mode default |
-| Round C [PENDING] | T-259 → T-260 ‖ T-234 ‖ T-236 (T-259 first, then parallel) | CLI spike → round-start CLI + context bundle temp file + conflict resolution |
+| Round C-pty — MERGED (PR #187/#188 2026-07-18) | T-283 ‖ T-284 (parallel) | PTY signal cleanup: sid in pty_signal _log (T-283) + remove vestigial task_done/ROUND_COMPLETE from orchestrate.md (T-284) |
+| Round C-3a — MERGED (PR #188 2026-07-18) | T-210 | write_indexer test cache fix + prune CLI |
+| Round C-3b — MERGED (PR #189 2026-07-18) | T-243 | Pass --auto to claude/claude2 PTY restart (not agy) after handoff |
+| Round C-spawn-guard — MERGED (PR #190 2026-07-18) | T-285 (solo) | orchestrate.md: write current_round.json before Agent spawn — prevents premature drain on spawn failure |
+| Round C-cli-spike [PENDING] | T-259 (solo) | CLI spike: agentflow round-start command foundation |
+| Round C [PENDING] | T-260 ‖ T-234 ‖ T-236 (parallel) | round-start CLI + context bundle temp file + conflict resolution |
 | Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
 | Round E [PENDING] | T-167 ‖ T-168 (parallel) | Oracle Phase 3 plan-mode preview + product judgment layer |
 | Round F [PENDING] | T-063 → T-064 → T-099 (sequential) | Multi-provider chain (enterprise) |
