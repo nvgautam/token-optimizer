@@ -123,6 +123,8 @@ def poll_session(manager) -> None:
                                 setattr(manager, key, now)
                                 manager._log_audit({"event": "poll_session_sid_mismatch", "file_sid": file_sid, "env_sid": env_sid})
                             return
+                        round_id = data.get("round_id")
+                        manager._log_audit({"event": "current_round_detected", "round_id": round_id, "mtime": mtime})
                     except Exception as e:
                         manager._log_audit({"event": "poll_session_current_round_read_error", "error": str(e)})
                     manager._state_machine.transition("current_round_written")

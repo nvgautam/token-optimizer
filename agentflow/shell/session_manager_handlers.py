@@ -56,6 +56,7 @@ def clear_signal_files(session_manager) -> None:
         try:
             if path.exists():
                 path.unlink()
+                session_manager._log_audit({"event": "signal_file_unlinked", "file": path.name})
         except Exception as e:
             session_manager._log_audit({"event": "clear_signal_unlink_error", "error": str(e)})
 
@@ -65,6 +66,7 @@ def clear_signal_files(session_manager) -> None:
     cf = session_file(agentflow_dir, "context_fill.json", sid)
     try:
         cf.write_text('{"fill_tokens": 0}', encoding="utf-8")
+        session_manager._log_audit({"event": "context_fill_reset", "sid": sid})
     except Exception as e:
         session_manager._log_audit({"event": "context_fill_reset_error", "error": str(e)})
 

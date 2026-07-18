@@ -70,6 +70,7 @@ def main() -> None:
             try:
                 if complete_file.exists():
                     complete_file.unlink()
+                    _log_drain(agentflow_dir, {"event": "signal_file_unlinked", "file": name})
             except Exception as e:
                 _log_drain(agentflow_dir, {"event": "delete_signal_file_error", "error": str(e), "file": complete_file.name})
 
