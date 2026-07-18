@@ -1147,14 +1147,7 @@
     },
     {
       "task_id": "T-272",
-      "title": "Split .claude/worktrees/T-271-split-cleanup-tasks/tests/test_cleanup_violations.py \u2014 size violation",
-      "description": "Split .claude/worktrees/T-271-split-cleanup-tasks/tests/test_cleanup_violations.py (469 lines, limit 350). Violation timestamp: 2026-07-17T19:38:38.731551. Choose the split boundary by test class or fixture group, not line count. Verify each output file is \u2264 350 lines after splitting.",
-      "owns": [
-        ".claude/worktrees/T-271-split-cleanup-tasks/tests/test_cleanup_violations.py"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-273",
@@ -1182,22 +1175,7 @@
     },
     {
       "task_id": "T-280",
-      "status": "pending",
-      "title": "Orchestrate startup reconciliation \u2014 validate current_round.json against tasks.json on start",
-      "description": "On orchestrate startup: if .agentflow/current_round.json exists, read its task_ids and check each against tasks.json. If any task_id has status 'complete', the file is stale (leftover from a crashed/interrupted session) \u2014 unlink current_round.json and tasks_in_flight.json, log 'startup_reconciliation_cleaned'. If all task_ids are still 'pending', trust the file and continue from that round. This prevents stale signal files from triggering false drain conditions without any API calls or race conditions with active workers. Add to both commands/claude/orchestrate.md and commands/gemini/skills/orchestrate/SKILL.md as a startup step before round selection. Tests: assert startup reconciliation step present in both skill files.",
-      "owns": [
-        "commands/claude/orchestrate.md",
-        "commands/gemini/skills/orchestrate/SKILL.md",
-        "tests/prompts/test_orchestrate_skill.py"
-      ],
-      "reads": [
-        "tasks.json",
-        ".agentflow/current_round.json"
-      ],
-      "depends_on": [
-        "T-278",
-        "T-279"
-      ]
+      "status": "complete"
     },
     {
       "task_id": "T-281",
@@ -1211,6 +1189,31 @@
         "commands/claude/oracle.md"
       ],
       "description": "Add [PENDING] tag to all pending round rows in execution_plan.md Master Round Table. Update oracle skill to write [PENDING] on new rounds. Update orchestrate resume to use grep -m 1 \"\\[PENDING\\]\" instead of full table scan. Migrate existing pending rows (C-state2, C-3, etc.)."
+    },
+    {
+      "task_id": "T-282",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-283",
+      "title": "Add sid to pty_signal.py _log calls — task_done, task_start, handoff_complete",
+      "status": "pending",
+      "estimated_lines": 15,
+      "owns": [
+        "agentflow/shell/pty_signal.py",
+        "tests/test_pty_signal.py"
+      ],
+      "description": "pty_signal.py resolves session-scoped file paths using `sid = os.environ.get(\"AGENTFLOW_SESSION_ID\", \"\")` but never includes `sid` in audit log entries written by `_log()`. Fix: pass `\"sid\": sid` into every `_log(...)` call in `task_done`, `task_start`, and `handoff_complete`. After merge, every pty_audit.jsonl entry from pty_signal has a `sid` field, enabling per-session log filtering without guessing."
+    },
+    {
+      "task_id": "T-284",
+      "title": "Remove vestigial task_done signal and AGENTFLOW_ROUND_COMPLETE prints from orchestrate.md",
+      "status": "pending",
+      "estimated_lines": 10,
+      "owns": [
+        "commands/claude/orchestrate.md"
+      ],
+      "description": "Two vestiges in `commands/claude/orchestrate.md` cause premature drain and dead stdout noise: 1. Line 39: `pty_signal.py task_done <task_id>` — called when worker Agent returns (PR opened), not when PR is merged. This tombstones TIF too early, triggering drain before the human review gate. The hook (`post_tool_use_agent.py`) already calls `task_done` correctly at PR merge. 2. Lines 40 and 69: `print AGENTFLOW_ROUND_COMPLETE` — the PTY shell has no handler for this signal; it is never read or acted upon. Fix: remove the `pty_signal task_done` Bash call from the \"After worker completes\" bullet and remove both `AGENTFLOW_ROUND_COMPLETE` print instructions. `AGENTFLOW_TASK_COMPLETE` and `AGENTFLOW_TASK_START` prints must be retained — they are consumed by `output_handler.py` for EWMA token cost accounting."
     }
   ]
 }

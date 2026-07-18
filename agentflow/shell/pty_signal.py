@@ -83,7 +83,7 @@ def task_start(task_id: str, workspace_root: Path = None):
 
         in_flight_set.add(task_id)
         _write_atomic(in_flight_file, sorted(list(in_flight_set)))
-        _log(agentflow_dir, {"event": "tif_written", "caller": "task_start", "task_id": task_id, "in_flight": sorted(list(in_flight_set))})
+        _log(agentflow_dir, {"event": "tif_written", "caller": "task_start", "task_id": task_id, "in_flight": sorted(list(in_flight_set)), "sid": sid})
 
 def task_done(task_id: str, workspace_root: Path = None, sid: str = ""):
     if not workspace_root:
@@ -111,12 +111,12 @@ def task_done(task_id: str, workspace_root: Path = None, sid: str = ""):
 
         if not in_flight_set:
             _write_atomic(complete_file, {"status": "complete"})
-            _log(agentflow_dir, {"event": "task_complete_written", "task_id": task_id})
+            _log(agentflow_dir, {"event": "task_complete_written", "task_id": task_id, "sid": sid})
             _write_atomic(in_flight_file, [])  # tombstone: [] = drained; absent = never initialized
-            _log(agentflow_dir, {"event": "tif_written", "caller": "task_done", "task_id": task_id, "in_flight": []})
+            _log(agentflow_dir, {"event": "tif_written", "caller": "task_done", "task_id": task_id, "in_flight": [], "sid": sid})
         else:
             _write_atomic(in_flight_file, sorted(list(in_flight_set)))
-            _log(agentflow_dir, {"event": "tif_written", "caller": "task_done", "task_id": task_id, "in_flight": sorted(list(in_flight_set))})
+            _log(agentflow_dir, {"event": "tif_written", "caller": "task_done", "task_id": task_id, "in_flight": sorted(list(in_flight_set)), "sid": sid})
 
 def handoff_complete(workspace_root: Path = None, sid: str = ""):
     if not workspace_root:
@@ -126,7 +126,7 @@ def handoff_complete(workspace_root: Path = None, sid: str = ""):
     agentflow_dir = workspace_root / ".agentflow"
     handoff_file = session_file(agentflow_dir, "handoff_complete.json", sid)
     _write_atomic(handoff_file, {"status": "complete"})
-    _log(agentflow_dir, {"event": "handoff_complete_written"})
+    _log(agentflow_dir, {"event": "handoff_complete_written", "sid": sid})
 
 
 def main():

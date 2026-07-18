@@ -395,7 +395,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 
 ---
 
-## Master Round Table (updated 2026-07-10)
+## Master Round Table (updated 2026-07-18)
 
 | Round | Tasks | What ships |
 |---|---|---|
@@ -474,8 +474,10 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round C-1 — MERGED | T-266 | debug.md 5-phase forensic rewrite — largest task, triggers restart; folds T-250 (debug.md KeyError fix) |
 | Round C-2 — MERGED (PR #179/#180 2026-07-18) | T-162 ‖ T-268 | oracle.md split + oracle duplicate-check (both touch oracle.md) |
 | Round C-state — MERGED (PR #181 2026-07-18) | T-278 | Orchestrate resume: derive next round from execution_plan.md Master Round Table, not state.json — state.json is stale when tasks are prepended after last merge |
-| Round C-state2 [PENDING] (parallel) | T-279 (MERGED PR #182 2026-07-18) ‖ T-280 | Enforce Write tool for current_round.json + startup reconciliation (validate current_round.json task_ids against tasks.json on start, unlink if stale) |
-| Round C-state3 [PENDING] (solo) | T-281 | Round table [PENDING] tag format — migrate rows + update oracle/orchestrate to grep -m 1 '\[PENDING\]' for next round |
+| Round C-state2 — MERGED (PR #182/#183 2026-07-18) | T-279 ‖ T-280 | Enforce Write tool for current_round.json + startup reconciliation (validate current_round.json task_ids against tasks.json on start, unlink if stale) |
+| Round C-state3 — MERGED | T-281 | Round table [PENDING] tag format — migrate rows + update oracle/orchestrate to grep -m 1 '\[PENDING\]' for next round |
+| Round C-splits2 — MERGED (PR #185/#186 2026-07-18) | T-272 ‖ T-282 | Size-violation splits: test_cleanup_violations.py (T-272) + test_orchestrate_skill.py (T-282) |
+| Round C-pty [PENDING] (parallel) | T-283 ‖ T-284 | PTY signal cleanup: sid in pty_signal _log (T-283) + remove vestigial task_done/ROUND_COMPLETE from orchestrate.md (T-284) |
 | Round C-3 [PENDING] (parallel) | T-210 ‖ T-243 | write_indexer test cache fix + auto-mode default |
 | Round C [PENDING] | T-259 → T-260 ‖ T-234 ‖ T-236 (T-259 first, then parallel) | CLI spike → round-start CLI + context bundle temp file + conflict resolution |
 | Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
@@ -1018,3 +1020,25 @@ Orchestrator writes context bundle to `.agentflow/ctx-<session-id>.json` before 
 
 **Owns:** `commands/claude/orchestrate.md`
 **estimated_lines:** 40
+
+## Addendum: T-283
+
+**Title:** Add sid to pty_signal.py _log calls — task_done, task_start, handoff_complete
+
+pty_signal.py resolves session-scoped file paths using `sid = os.environ.get("AGENTFLOW_SESSION_ID", "")` but never includes `sid` in audit log entries written by `_log()`. Fix: pass `"sid": sid` into every `_log(...)` call in `task_done`, `task_start`, and `handoff_complete`. After merge, every pty_audit.jsonl entry from pty_signal has a `sid` field, enabling per-session log filtering without guessing.
+
+**Owns:** `agentflow/shell/pty_signal.py`
+**estimated_lines:** 15
+
+## Addendum: T-284
+
+**Title:** Remove vestigial task_done signal and AGENTFLOW_ROUND_COMPLETE prints from orchestrate.md
+
+Two vestiges in `commands/claude/orchestrate.md` cause premature drain and dead stdout noise:
+1. Line 39: `pty_signal.py task_done <task_id>` — called when worker Agent returns (PR opened), not when PR is merged. This tombstones TIF too early, triggering drain before the human review gate. The hook (`post_tool_use_agent.py`) already calls `task_done` correctly at PR merge.
+2. Lines 40 and 69: `print AGENTFLOW_ROUND_COMPLETE` — the PTY shell has no handler for this signal; it is never read or acted upon.
+
+Fix: remove the `pty_signal task_done` Bash call from the "After worker completes" bullet and remove both `AGENTFLOW_ROUND_COMPLETE` print instructions. `AGENTFLOW_TASK_COMPLETE` and `AGENTFLOW_TASK_START` prints must be retained — they are consumed by `output_handler.py` for EWMA token cost accounting.
+
+**Owns:** `commands/claude/orchestrate.md`
+**estimated_lines:** 10
