@@ -368,7 +368,8 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round C — MERGED (PR #197 2026-07-19) | T-260 (solo) | round-start CLI announcement |
 | M-F-2 — MERGED (PR #198 2026-07-19) | T-234 (solo) | Context bundle via temp file |
 | Pre-M-F-1a — MERGED (PR #200 2026-07-19) | T-300 (solo) | Reviewer gate hardening — escalate happy-path-only → BLOCKER; mandatory /review before PR |
-| Pre-M-F-1b [PENDING] | T-299 (solo) | tasks.db retirement + tasks.json schema enforcement + addendum lifecycle |
+| Pre-M-F-1b — MERGED (PR #201 2026-07-19) | T-299 (solo) | tasks.db retirement + tasks.json schema enforcement + addendum lifecycle |
+| Pre-M-F-1c [PENDING] | T-303 (solo) | Split post_tool_use_agent.py (271 lines) + size_check hook dedupe guard |
 | M-F-1 [PENDING] | T-298 ‖ T-297 (parallel) | CLI task_done/start impl + pty_signal migration + dead hook removal + hook integration tests |
 | M-F-3 [PENDING] | T-296 (solo) | Verbosity hardening: oracle + orchestrate personas — no strategy leakage |
 | M-F-4 [PENDING] | T-236 (solo) | Post-merge conflict resolution (OWNS gate preserved) |
@@ -661,8 +662,8 @@ Fix: remove the `pty_signal task_done` Bash call from the "After worker complete
 **OWNS:** `scripts/build_dist.sh`, `scripts/install.sh`, `scripts/stubs/`, `Makefile`, `tests/test_dist.sh`
 **estimated_lines:** 150
 
-## Addendum: T-303 — Split agentflow/hooks/post_tool_use_agent.py — size violation
+## Addendum: T-303 — Split post_tool_use_agent.py + size_check dedupe guard
 
-**Goal:** Split agentflow/hooks/post_tool_use_agent.py (271 lines, limit 250). Violation timestamp: 2026-07-16T11:32:25.567650. Read the file first, identify distinct responsibilities, then choose the split boundary by domain. Verify each output file is ≤ 250 lines after splitting.
+**Goal:** (1) Split agentflow/hooks/post_tool_use_agent.py (271 lines, limit 250) — read file, identify distinct responsibilities, split by domain, verify each output ≤ 250 lines. (2) Add dedupe guard to size_check hook to prevent duplicate task auto-filing (root cause: 7 identical T-30x tasks filed in 8 min; guard should check tasks.json for existing task with same file path before filing).
 
-**Owns:** ["agentflow/hooks/post_tool_use_agent.py"]
+**Owns:** ["agentflow/hooks/post_tool_use_agent.py", "agentflow/hooks/size_check.py"]
