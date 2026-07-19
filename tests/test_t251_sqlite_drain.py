@@ -136,25 +136,14 @@ class TestDrainMergedWrite:
     def test_drain_clears_active_round_after_merge(self, tmp_path):
         manager, audit_events, ep, agentflow_dir, sid = _make_manager(tmp_path)
 
-        # Pre-populate the db via raw SQL so we can verify clear
-        db_path = tmp_path / ".agentflow" / "tasks.db"
-        with sqlite3.connect(str(db_path)) as conn:
-            conn.execute("CREATE TABLE IF NOT EXISTS rounds (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
-            conn.execute("INSERT OR REPLACE INTO rounds (key, value) VALUES ('active_round', ?)",
-                         (json.dumps({"round_id": "R-1", "task_ids": ["T-100", "T-101"]}),))
-            conn.commit()
-
-        # Verify setup
-        with sqlite3.connect(str(db_path)) as conn:
-            row = conn.execute("SELECT value FROM rounds WHERE key = 'active_round'").fetchone()
-            assert row is not None
+        assert manager._current_round_path.exists()
+        assert manager._tasks_in_flight_path.exists()
 
         _run_drain(manager)
 
-        # After drain, active round should be cleared
-        with sqlite3.connect(str(db_path)) as conn:
-            row = conn.execute("SELECT value FROM rounds WHERE key = 'active_round'").fetchone()
-            assert row is None
+        # After drain, active round files should be unlinked
+        assert not manager._current_round_path.exists()
+        assert not manager._tasks_in_flight_path.exists()
 
     def test_drain_logs_drain_merged_written_event(self, tmp_path):
         manager, audit_events, ep, agentflow_dir, sid = _make_manager(tmp_path)

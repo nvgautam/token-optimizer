@@ -10,7 +10,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from agentflow.shell.session_paths import session_file
-from agentflow.tools.task_db import TaskDB
 
 
 def _check_pr_state(pr_url: str) -> str | None:
@@ -42,11 +41,10 @@ def _fetch_merged_pr_titles(limit: int = 20) -> set[str]:
 
 
 def _mark_task_complete(tasks_file: Path, task_id: str) -> bool:
-    """Mark task_id as complete using SQLite. Returns True if marked or already complete."""
+    """Mark task_id as complete using tasks.json lock. Returns True if marked or already complete."""
     try:
         agentflow_dir = tasks_file.parent / ".agentflow"
-        db = TaskDB(agentflow_dir / "tasks.db", tasks_json_path=tasks_file)
-        return db.mark_complete(task_id) in ("marked", "already_complete")
+        return _locked_write_tasks(tasks_file, agentflow_dir, task_id)
     except Exception:
         return False
 
@@ -60,17 +58,45 @@ def _run_cleanup(root: Path) -> None:
 
 
 def _locked_write_tasks(tasks_file: Path, agentflow_dir: Path, task_id: str) -> bool:
-    """Mark task complete using SQLite atomic transaction and run cleanup."""
+    """Mark task complete using tasks.json atomic transaction and run cleanup."""
+    import fcntl
+    import tempfile
+    import os
+    lock_path = agentflow_dir / "tasks.json.lock"
     try:
-        db = TaskDB(agentflow_dir / "tasks.db", tasks_json_path=tasks_file)
-        result = db.mark_complete(task_id)
-        if result == "marked":
-            root = tasks_file.parent
-            _run_cleanup(root)
-            return True
-        if result == "already_complete":
-            return False
-        return False
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(lock_path, "a+") as f:
+            fcntl.flock(f, fcntl.LOCK_EX)
+            try:
+                if not tasks_file.exists():
+                    return False
+                data = json.loads(tasks_file.read_text())
+                found = False
+                already = False
+                for task in data.get("tasks", []):
+                    if task.get("task_id") == task_id:
+                        if task.get("status") == "complete":
+                            already = True
+                        else:
+                            task["status"] = "complete"
+                            found = True
+                        break
+                
+                if already:
+                    return False
+                if not found:
+                    return False
+                    
+                fd, tmp = tempfile.mkstemp(dir=str(tasks_file.parent))
+                with os.fdopen(fd, "w", encoding="utf-8") as tmp_f:
+                    json.dump(data, tmp_f, indent=2)
+                os.replace(tmp, str(tasks_file))
+                
+                root = tasks_file.parent
+                _run_cleanup(root)
+                return True
+            finally:
+                fcntl.flock(f, fcntl.LOCK_UN)
     except Exception as e:
         _log_drain(agentflow_dir, {"event": "locked_write_tasks_error", "error": str(e), "task_id": task_id})
         return False

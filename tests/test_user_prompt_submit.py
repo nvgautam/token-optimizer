@@ -46,12 +46,8 @@ class TestCleanupMergedInFlight:
             "agentflow.hooks.ups_task_sync._fetch_merged_pr_titles",
             return_value={"feat(T-50): something"},
         ):
-            with patch("agentflow.hooks.ups_task_sync.TaskDB") as mock_db_class:
-                mock_db = MagicMock()
-                mock_db.mark_complete.return_value = "marked"
-                mock_db_class.return_value = mock_db
-                with patch("agentflow.hooks.ups_task_sync.subprocess.run", return_value=mock_result) as mock_run:
-                    _cleanup_merged_in_flight(agentflow_dir, sid="test-sid")
+            with patch("agentflow.hooks.ups_task_sync.subprocess.run", return_value=mock_result) as mock_run:
+                _cleanup_merged_in_flight(agentflow_dir, sid="test-sid")
 
         task_done_calls = [c for c in mock_run.call_args_list if "task_done" in str(c)]
         assert len(task_done_calls) >= 1
@@ -83,25 +79,12 @@ class TestCleanupMergedInFlight:
         mock_result = MagicMock()
         mock_result.returncode = 0
 
-        def mock_mark_complete(task_id):
-            # Update tasks.json to simulate TaskDB behavior
-            data = json.loads(tasks_file.read_text())
-            for task in data.get("tasks", []):
-                if task["task_id"] == task_id:
-                    task["status"] = "complete"
-            tasks_file.write_text(json.dumps(data, indent=2))
-            return "marked"
-
         with patch(
             "agentflow.hooks.ups_task_sync._fetch_merged_pr_titles",
             return_value={"feat(T-52): new feature"},
         ):
-            with patch("agentflow.hooks.ups_task_sync.TaskDB") as mock_db_class:
-                mock_db = MagicMock()
-                mock_db.mark_complete.side_effect = mock_mark_complete
-                mock_db_class.return_value = mock_db
-                with patch("agentflow.hooks.ups_task_sync.subprocess.run", return_value=mock_result):
-                    _cleanup_merged_in_flight(agentflow_dir, sid="s3")
+            with patch("agentflow.hooks.ups_task_sync.subprocess.run", return_value=mock_result):
+                _cleanup_merged_in_flight(agentflow_dir, sid="s3")
 
         data = json.loads(tasks_file.read_text())
         assert data["tasks"][0]["status"] == "complete"
@@ -124,13 +107,9 @@ class TestCleanupMergedInFlight:
             "agentflow.hooks.ups_task_sync._fetch_merged_pr_titles",
             return_value={"fix(T-53): bug"},
         ):
-            with patch("agentflow.hooks.ups_task_sync.TaskDB") as mock_db_class:
-                mock_db = MagicMock()
-                mock_db.mark_complete.return_value = "marked"
-                mock_db_class.return_value = mock_db
-                with patch("agentflow.hooks.ups_task_sync.subprocess.run", side_effect=side_effect):
-                    # Should not raise
-                    _cleanup_merged_in_flight(agentflow_dir, sid="s4")
+            with patch("agentflow.hooks.ups_task_sync.subprocess.run", side_effect=side_effect):
+                # Should not raise
+                _cleanup_merged_in_flight(agentflow_dir, sid="s4")
 
     def test_cleanup_task_done_called_with_sys_executable(self, tmp_path):
         """Verify pty_signal.py is called with sys.executable (no shell=True)."""
@@ -143,12 +122,8 @@ class TestCleanupMergedInFlight:
             "agentflow.hooks.ups_task_sync._fetch_merged_pr_titles",
             return_value={"chore(T-54): something"},
         ):
-            with patch("agentflow.hooks.ups_task_sync.TaskDB") as mock_db_class:
-                mock_db = MagicMock()
-                mock_db.mark_complete.return_value = "marked"
-                mock_db_class.return_value = mock_db
-                with patch("agentflow.hooks.ups_task_sync.subprocess.run", return_value=mock_result) as mock_run:
-                    _cleanup_merged_in_flight(agentflow_dir, sid="s5")
+            with patch("agentflow.hooks.ups_task_sync.subprocess.run", return_value=mock_result) as mock_run:
+                _cleanup_merged_in_flight(agentflow_dir, sid="s5")
 
         task_done_calls = [c for c in mock_run.call_args_list if "task_done" in str(c)]
         assert len(task_done_calls) >= 1

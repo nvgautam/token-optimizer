@@ -67,7 +67,7 @@ def detect_pr_merge(
     agentflow_dir: pathlib.Path,
     project_root: pathlib.Path,
 ) -> None:
-    """Detect PR merge event and update tasks.json + execution_plan.md."""
+    """Detect PR merge event and update tasks.json + execution_plan.md + addendums_archive.md."""
     if tool_name != "Bash":
         return
 
@@ -90,7 +90,7 @@ def detect_pr_merge(
     except Exception:
         pass
 
-    if session_type != "orchestrator":
+    if not session_type.startswith("orchestrat"):
         return
 
     # Extract task_id from PR title: match conventional commit with task ID
@@ -100,42 +100,113 @@ def detect_pr_merge(
 
     task_id = match.group(1)
 
-    # Update tasks.json with lock
     tasks_path = project_root / "tasks.json"
-    lock_path = agentflow_dir / "tasks.json.lock"
-
-    try:
-        with _file_lock(lock_path):
-            if tasks_path.exists():
-                tasks_data = json.loads(tasks_path.read_text())
-                for task in tasks_data.get("tasks", []):
-                    if task.get("task_id") == task_id:
-                        task["status"] = "complete"
-                _atomic_write(tasks_path, json.dumps(tasks_data, indent=2))
-                _log(agentflow_dir, {"event": "tasks_json_written", "task_id": task_id, "status": "complete"})
-    except Exception:
-        pass
-
-    # Update execution_plan.md with lock
     ep_path = project_root / "execution_plan.md"
+    archive_path = agentflow_dir / "addendums_archive.md"
+
+    lock_tasks = agentflow_dir / "tasks.json.lock"
     lock_ep = agentflow_dir / "execution_plan.md.lock"
+    lock_archive = agentflow_dir / "addendums_archive.md.lock"
+
+    def strict_atomic_write(path: pathlib.Path, data_str: str) -> None:
+        fd, tmp = tempfile.mkstemp(dir=str(path.parent))
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(data_str)
+            os.replace(tmp, str(path))
+        except Exception as e:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+            raise e
 
     try:
-        with _file_lock(lock_ep):
+        with _file_lock(lock_tasks), _file_lock(lock_ep), _file_lock(lock_archive):
+            tasks_data = None
+            tasks_raw = None
+            ep_content = None
+            archive_content = None
+
+            if tasks_path.exists():
+                tasks_raw = tasks_path.read_text(encoding="utf-8")
+                tasks_data = json.loads(tasks_raw)
             if ep_path.exists():
-                lines = ep_path.read_text().split("\n")
-                for i, line in enumerate(lines):
-                    # Check if this line contains the task_id in a table row or addendum
-                    if task_id in line and "MERGED" not in line:
-                        # Check if it's a table row
-                        if "|" in line:
-                            # Append MERGED marker if not already there
-                            if not line.rstrip().endswith("MERGED"):
-                                lines[i] = line.rstrip() + " — MERGED (auto)"
-                        break
-                _atomic_write(ep_path, "\n".join(lines))
-    except Exception:
-        pass
+                ep_content = ep_path.read_text(encoding="utf-8")
+            if archive_path.exists():
+                archive_content = archive_path.read_text(encoding="utf-8")
+
+            if not tasks_data or not ep_content:
+                return
+
+            tasks_modified = False
+            for task in tasks_data.get("tasks", []):
+                if task.get("task_id") == task_id:
+                    task["status"] = "complete"
+                    tasks_modified = True
+
+            if not tasks_modified:
+                return
+
+            ep_lines = ep_content.splitlines(keepends=True)
+            new_ep_lines = []
+            addendum_content = []
+            in_addendum = False
+
+            for line in ep_lines:
+                if line.startswith(f"## Addendum: {task_id}"):
+                    in_addendum = True
+                    addendum_content.append(line)
+                    continue
+
+                if in_addendum:
+                    if line.startswith("## "):
+                        in_addendum = False
+                        new_ep_lines.append(line)
+                    else:
+                        addendum_content.append(line)
+                    continue
+
+                if task_id in line and "MERGED" not in line and "|" in line:
+                    if not line.rstrip("\n").endswith("MERGED"):
+                        line = line.rstrip("\n") + " — MERGED (auto)\n"
+                new_ep_lines.append(line)
+
+            new_ep_content = "".join(new_ep_lines)
+
+            new_archive_content = archive_content or ""
+            if addendum_content:
+                addendum_str = "".join(addendum_content)
+                if addendum_str not in new_archive_content:
+                    if new_archive_content and not new_archive_content.endswith("\n\n"):
+                        new_archive_content += "\n\n"
+                    new_archive_content += addendum_str
+
+            try:
+                strict_atomic_write(tasks_path, json.dumps(tasks_data, indent=2))
+                strict_atomic_write(ep_path, new_ep_content)
+                strict_atomic_write(archive_path, new_archive_content)
+                _log(agentflow_dir, {"event": "tasks_json_written", "task_id": task_id, "status": "complete"})
+            except Exception as e:
+                # Rollback - each step independent, preserve original exception
+                try:
+                    if tasks_raw is not None and tasks_path.exists():
+                        strict_atomic_write(tasks_path, tasks_raw)
+                except Exception as rb_e:
+                    _log(agentflow_dir, {"event": "pr_merge_rollback_error", "step": "tasks", "error": str(rb_e)})
+                try:
+                    if ep_content is not None and ep_path.exists():
+                        strict_atomic_write(ep_path, ep_content)
+                except Exception as rb_e:
+                    _log(agentflow_dir, {"event": "pr_merge_rollback_error", "step": "ep", "error": str(rb_e)})
+                try:
+                    if archive_content is not None and archive_path.exists():
+                        strict_atomic_write(archive_path, archive_content)
+                except Exception as rb_e:
+                    _log(agentflow_dir, {"event": "pr_merge_rollback_error", "step": "archive", "error": str(rb_e)})
+                raise e
+    except Exception as e:
+        _log(agentflow_dir, {"event": "pr_merge_hook_error", "task_id": task_id, "error": str(e)})
 
 
 def _sync_tif_from_disk_if_absent(agentflow_dir: pathlib.Path) -> None:
