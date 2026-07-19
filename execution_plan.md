@@ -504,12 +504,14 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round C-restart-fix — MERGED (PR #195/#196 2026-07-19) | T-291 ‖ T-292 (parallel) | Fix mid-round restart bug + Fix session_type hooks substring → startswith |
 | Round C — MERGED (PR #197 2026-07-19) | T-260 (solo) | round-start CLI announcement |
 | M-F-2 — MERGED (PR #198 2026-07-19) | T-234 (solo) | Context bundle via temp file |
+| Pre-M-F-1a [PENDING] | T-300 (solo) | Reviewer gate hardening — escalate happy-path-only → BLOCKER; mandatory /review before PR |
+| Pre-M-F-1b [PENDING] | T-299 (solo) | tasks.db retirement + tasks.json schema enforcement + addendum lifecycle |
 | M-F-1 [PENDING] | T-298 ‖ T-297 (parallel) | CLI task_done/start impl + pty_signal migration + dead hook removal + hook integration tests |
 | M-F-3 [PENDING] | T-296 (solo) | Verbosity hardening: oracle + orchestrate personas — no strategy leakage |
 | M-F-4 [PENDING] | T-236 (solo) | Post-merge conflict resolution (OWNS gate preserved) |
 | M-F-6 [PENDING] | T-295 (solo) | IP spike: wire key server + encrypt context files at write |
-| M-F-7 [PENDING] | M-F-7 (solo) | Oracle handoff UX — proactive stopping-point prompt |
-| M-F-8 [PENDING] | M-F-8 (solo) | Nuitka compile + obfuscation |
+| M-F-7 [PENDING] | T-301 (solo) | Oracle handoff UX — proactive stopping-point prompt + PTY oracle restart |
+| M-F-8 [PENDING] | T-302 (solo) | Customer distribution: standalone binary + strip .py files + install archive |
 | Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
 | Round E [PENDING] | T-168 ‖ T-290 (parallel) | product judgment layer + debug terminal step |
 | Round E-2 [PENDING] | T-167 (solo) | Oracle Phase 3 plan-mode preview |
@@ -1118,16 +1120,14 @@ Root cause confirmed via pty_audit + hook_drain_debug: the flip at ts=1784398765
 **Files:** `tests/hooks/test_hook_integration.py`, `agentflow/hooks/` (dead hook removal)
 **estimated_lines:** 120
 
-## Addendum: T-299 — SQLite canonical migration (tasks.db replaces tasks.json)
+## Addendum: T-299 — tasks.db retirement + tasks.json schema enforcement + addendum lifecycle
 
-**Goal:** Make `tasks.db` the single source of truth for task state. Retire all `tasks.json` reads/writes from orchestrate.md, skills, and hooks. Add `title` + `description` columns to tasks table. Reconcile all PENDING rows from execution_plan.md into tasks.db on migration.
+**Goal:** Retire `tasks.db` entirely (decision: flock+idx on tasks.json sufficient, SQLite adds no value). Enforce `tasks.json = {task_id, status}` only via CI schema test. Add addendum lifecycle: merge hook atomically moves `## Addendum: T-NNN` from execution_plan.md → `.agentflow/addendums_archive.md` on PR merge. Audit all 14 consumers to retire tasks.db reads.
 
 **Test scenarios (required — not just happy path):**
-- Concurrent writers: two processes insert same task_id → IntegrityError handled, no corruption
-- Corrupt/missing db → auto-recreate schema, re-read execution_plan.md to repopulate
-- Partial migration (JSON exists, db missing rows) → reconcile without duplicates (idempotent)
-- Schema version mismatch (old db missing `title` column) → ALTER TABLE migration guard
-- tasks.json still present after migration → reads ignored, not double-counted
+- tasks.db file present after retirement → not read by any consumer (assert no imports/opens of tasks.db)
+- tasks.json with extra fields (title, description) → test_tasks_json_schema.py fails (CI enforcement)
+- Addendum move: merge hook ran twice on same task → idempotent (archive not duplicated)
 - Round startup with 0 pending tasks → clean "nothing to do" exit, no crash
 
 **Addendum lifecycle (new):**
@@ -1211,3 +1211,40 @@ Root cause confirmed via pty_audit + hook_drain_debug: the flip at ts=1784398765
 **Owns:** `design_status.md`
 **Model:** claude-sonnet-4-6
 **estimated_lines:** 0
+
+## Addendum: T-301 — Oracle handoff UX: proactive stopping-point prompt + PTY restart
+
+**Goal:** When oracle session reaches 90K tokens, PTY injects a user-facing prompt: "For crisp decision making, taking forward the context into a new session is important. Session restart with context carried forward?" If user confirms: (1) oracle.md /handoff runs, (2) PTY restarts oracle session in `--auto` mode. No silent restart — user must consent.
+
+**Files:**
+- `agentflow/shell/session_manager.py` — add oracle session-type check + 90K threshold + prompt injection
+- `commands/claude/oracle.md` — document the handoff trigger behaviour
+- `commands/claude/handoff.md` — ensure /handoff works cleanly from oracle context
+
+**Test scenarios:**
+- Token count hits 90K in oracle session → prompt injected (not silent restart)
+- User declines → session continues, no restart
+- User confirms → /handoff runs, PTY restarts oracle in --auto, handoff file carries context
+- Non-oracle session at 90K → unchanged behaviour (existing threshold applies)
+
+**OWNS:** `agentflow/shell/session_manager.py`, `commands/claude/oracle.md`, `commands/claude/handoff.md`
+**estimated_lines:** 60
+
+## Addendum: T-302 — Customer distribution: standalone binary + strip .py + install archive
+
+**Goal:** Package AgentFlow for friendly customers such that zero readable Python source is distributed. Builds on T-112 (Nuitka standalone compile already working). Adds: (1) post-build strip step removes all .py/.pyc from dist/, (2) bundles binary + encrypted skill files (T-110) + config templates into a versioned `.tar.gz`, (3) `install.sh` script that extracts archive, registers Claude Code hooks pointing at the binary, verifies smoke test passes.
+
+**Files:**
+- `scripts/build_dist.sh` (new) — Nuitka standalone build + strip + bundle
+- `scripts/install.sh` (new) — customer install script
+- `Makefile` — add `dist` target calling build_dist.sh
+- `tests/test_dist.sh` (new) — smoke test: install into temp dir, verify no .py files, run `agentflow --version`
+
+**Test scenarios:**
+- `make dist` produces archive with zero .py/.pyc files
+- install.sh on clean dir → hooks registered, `agentflow --version` succeeds
+- Encrypted skill files present in archive, decryptable at runtime (T-111 path)
+- Idempotent: running install.sh twice produces no duplicate hook entries
+
+**OWNS:** `scripts/build_dist.sh`, `scripts/install.sh`, `Makefile`, `tests/test_dist.sh`
+**estimated_lines:** 120

@@ -27,4 +27,10 @@ build/
 .agentflow/payload_inspect.jsonl
 .agentflow/state.json
 .agentflow/task_prs.json
+.agentflow/sessions/
+.agentflow/*.db
+.agentflow/*.lock
+.agentflow/*.swp
+.agentflow/tasks_in_flight.json
+.agentflow/addendums_archive.md
 
