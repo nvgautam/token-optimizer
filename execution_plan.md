@@ -369,7 +369,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | M-F-2 — MERGED (PR #198 2026-07-19) | T-234 (solo) | Context bundle via temp file |
 | Pre-M-F-1a — MERGED (PR #200 2026-07-19) | T-300 (solo) | Reviewer gate hardening — escalate happy-path-only → BLOCKER; mandatory /review before PR |
 | Pre-M-F-1b — MERGED (PR #201 2026-07-19) | T-299 (solo) | tasks.db retirement + tasks.json schema enforcement + addendum lifecycle |
-| Pre-M-F-1c [PENDING] | T-303 (solo) | Split post_tool_use_agent.py (271 lines) + size_check hook dedupe guard |
+| Pre-M-F-1c — MERGED (PR #202 2026-07-19) | T-303 (solo) | Split post_tool_use_agent.py (271 lines) + size_check hook dedupe guard |
 | M-F-1 [PENDING] | T-298 ‖ T-297 (parallel) | CLI task_done/start impl + pty_signal migration + dead hook removal + hook integration tests |
 | M-F-3 [PENDING] | T-296 (solo) | Verbosity hardening: oracle + orchestrate personas — no strategy leakage |
 | M-F-4 — MERGED | T-236 (solo) | Post-merge conflict resolution (OWNS gate preserved) |
