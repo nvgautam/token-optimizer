@@ -202,3 +202,18 @@ def test_orchestrate_startup_reconciliation_mid_round_restart():
         "orchestrate.md Step 4a must handle all pending case"
     assert "at least one pending task" in content, \
         "orchestrate.md Step 4 must find first row with at least one pending task (not all pending)"
+
+
+def test_context_bundle_delivered_via_temp_file():
+    """T-234: orchestrate.md must instruct writing ctx bundle to temp file, not embedding in prompt."""
+    content = CLAUDE_ORCHESTRATE.read_text(encoding="utf-8")
+    assert ".agentflow/ctx-" in content, \
+        "orchestrate.md must instruct writing context bundle to .agentflow/ctx-<session-id>.json"
+    assert "ctx-" in content and ".json" in content, \
+        "orchestrate.md must reference ctx file path pattern"
+    # Worker reads and deletes the file
+    assert "reads and deletes" in content or ("reads" in content and "deletes" in content), \
+        "orchestrate.md must say worker reads and deletes the temp file"
+    # Guard: missing file must error, not silently skip
+    assert "missing file" in content.lower() or "file missing" in content.lower() or "gracefully" in content.lower(), \
+        "orchestrate.md must document guard for missing ctx file"
