@@ -1130,8 +1130,14 @@ Root cause confirmed via pty_audit + hook_drain_debug: the flip at ts=1784398765
 - tasks.json still present after migration → reads ignored, not double-counted
 - Round startup with 0 pending tasks → clean "nothing to do" exit, no crash
 
-**Files:** `agentflow/tools/migrate_tasks_sqlite.py`, `agentflow/tools/cleanup_tasks.py`, `commands/claude/orchestrate.md`, `commands/claude/orchestrator/startup.md`, `agentflow/hooks/post_tool_use.py`, `tests/tools/test_migrate_tasks_sqlite.py`
-**estimated_lines:** 200
+**Consumer audit — all must be updated to read/write tasks.db, not tasks.json:**
+- Hooks: `agentflow/hooks/post_tool_use.py`, `agentflow/hooks/post_tool_use_agent.py`, `agentflow/hooks/pre_tool_use_agent.py`, `agentflow/hooks/ups_task_sync.py`
+- Shell: `agentflow/shell/cleanup_tasks.py`, `agentflow/shell/pty_signal.py`, `agentflow/shell/orchestrate_cache.py`, `agentflow/shell/session_manager.py`, `agentflow/shell/drain_restart.py`
+- Skills: `commands/claude/orchestrate.md`, `commands/claude/orchestrator/startup.md`, `commands/claude/handoff.md`, `commands/claude/oracle.md`
+- Migration tool: `agentflow/tools/migrate_tasks_sqlite.py`
+- Tests: `tests/tools/test_migrate_tasks_sqlite.py`
+
+**estimated_lines:** 250
 **blocks:** T-297, T-298
 
 ## Addendum: T-300 — Reviewer gate: edge-case enforcement + mandatory review before PR
