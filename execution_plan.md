@@ -1056,6 +1056,19 @@ Fix: remove the `pty_signal task_done` Bash call from the "After worker complete
 **Owns:** `commands/claude/orchestrate.md`
 **estimated_lines:** 10
 
+## Addendum: T-291
+
+**Title:** Fix orchestrate.md startup: mid-round restart skips remaining sequential tasks
+
+Bug: Step 4a "any task_id complete → stale → unlink current_round.json" + Step 4 "first row whose tasks are all pending" combine to skip remaining tasks after a mid-round restart. Example: Round C T-260→T-234→T-236; after T-260 merges and session restarts, T-260 is complete so current_round.json is unlinked; Round C no longer qualifies as "all pending" so orchestrator jumps to Round D, skipping T-234 and T-236.
+
+Fix: (1) Step 4a: if current_round.json exists and SOME task_ids are complete but others are pending, do not unlink — filter to pending subset and continue from there. (2) Step 4: change "all pending" to "has at least one pending task" when identifying the active round.
+
+Tests: assert orchestrate.md startup handles mid-round restart by filtering to pending subset, not unlinking.
+
+**Owns:** `commands/claude/orchestrate.md`
+**estimated_lines:** 20
+
 ## Addendum: T-292
 
 **Title:** Fix session_type detection in UPS + verbosity hooks — use startswith not substring match
