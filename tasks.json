@@ -182,31 +182,10 @@
     },
     {
       "task_id": "T-063",
-      "title": "Cross-provider atomic task claiming \u2014 claimed_by field + claim protocol",
-      "description": "Enable simultaneous Claude + Gemini orchestrators on the same tasks.json without task collision. (1) Add claimed_by field to task schema (null = unclaimed, 'claude'/'gemini' = in use). (2) commands/claude/orchestrate.md: before spawning a worker for a task, read tasks.json, check status=pending AND claimed_by=null, write claimed_by='claude' under a file lock (.agentflow/tasks.lock), then spawn. On task complete/failed, clear claimed_by. (3) commands/gemini/skills/orchestrate/SKILL.md: same protocol with claimed_by='gemini'. (4) Both providers skip tasks where claimed_by is already set. File lock ensures atomic read-modify-write; lock held <100ms. Tests: test_orchestrate_skill.py \u2014 assert claim protocol present in both Claude and Gemini skill content.",
-      "owns": [
-        "commands/claude/orchestrate.md",
-        "commands/gemini/skills/orchestrate/SKILL.md",
-        "tests/prompts/test_orchestrate_skill.py"
-      ],
       "status": "pending"
     },
     {
       "task_id": "T-064",
-      "title": "Cross-provider rate headroom check before task claiming",
-      "description": "Before claiming a task, each provider checks its own rate_calibration_<provider>.json for remaining 5hr window headroom. If remaining headroom < 10% of cap_5hr, skip claiming this round and log 'Rate headroom low \u2014 skipping claim (<provider>)'. This prevents a nearly-rate-limited provider from grabbing tasks it cannot complete before the window resets, allowing the other provider to continue. (1) commands/claude/orchestrate.md: add headroom check step before claim in the task loop; read rate_calibration_claude.json, compute remaining = cap_5hr * (1 - end_pct_5hr/100), skip if remaining < cap_5hr * 0.10. (2) commands/gemini/skills/orchestrate/SKILL.md: same with rate_calibration_gemini.json. Depends on T-063 (claimed_by protocol) and T-060 (provider-keyed files).",
-      "owns": [
-        "commands/claude/orchestrate.md",
-        "commands/gemini/skills/orchestrate/SKILL.md"
-      ],
-      "reads": [
-        "~/.agentflow/rate_calibration_claude.json",
-        "~/.agentflow/rate_calibration_gemini.json"
-      ],
-      "depends_on": [
-        "T-063",
-        "T-060"
-      ],
       "status": "pending"
     },
     {
@@ -347,16 +326,6 @@
     },
     {
       "task_id": "T-099",
-      "title": "Gemini Oracle Skill \u2014 create /oracle equivalent skill for Gemini",
-      "description": "Implement /oracle skill for Gemini. Create commands/gemini/skills/oracle/SKILL.md (registered as .agents/skills/oracle/SKILL.md) outlining the Gemini Oracle flow. Update test_oracle_skill.py to assert correct structure for both Claude and Gemini.",
-      "owns": [
-        "commands/gemini/skills/oracle/SKILL.md",
-        "tests/prompts/test_oracle_skill.py"
-      ],
-      "reads": [
-        "commands/claude/oracle.md"
-      ],
-      "depends_on": [],
       "status": "pending"
     },
     {
@@ -465,17 +434,6 @@
     },
     {
       "task_id": "T-126",
-      "title": "PTY idle wake-up \u2014 inject b\"\\r\" after 60s idle with task in flight",
-      "description": "Add idle wake-up to session_manager.py: if _task_in_flight (tasks_in_flight.json exists) AND no PTY output for 60s AND input field is empty (post-output silence: _last_had_content was True, now no output for > 1s) \u2192 write_input(\"/orchestrate\\r\") to re-enter orchestrate skill. Track idle time via _last_output_ts (float, set to time.monotonic() in _handle_output on every non-empty chunk). Backoff: double interval on each injection with no state change (task still in flight after wake-up response); cap at 300s. Reset backoff when state changes. Guard: only inject when _state_machine.state == States.TASK_RUNNING (task legitimately in flight, not just idle between user turns). Config key: shell.idle_wakeup_seconds (default 60); set to 0 to disable. Tests: test_idle_wakeup_fires_after_threshold, test_idle_wakeup_respects_guard_state, test_idle_wakeup_backoff_doubles. Depends on T-121 (reactor must be stable) and T-125 (pty_signal task_done used to detect in-flight). [CANCELLED: process liveness via waitpid in T-121 is the complete signal; silent-but-alive is indistinguishable from deep inference at PTY layer]",
-      "owns": [
-        "agentflow/shell/session_manager.py",
-        "tests/shell/test_session_manager.py"
-      ],
-      "depends_on": [
-        "T-121",
-        "T-125"
-      ],
-      "estimated_lines": 55,
       "status": "cancelled"
     },
     {
@@ -500,28 +458,10 @@
     },
     {
       "task_id": "T-143",
-      "title": "PTY startup ANSI state reset",
-      "description": "Emit ESC[0m (SGR reset) to stdout immediately after the PTY child is spawned (in cmd_shell / spawn_new_child), so a dirty terminal state from a prior session does not cause escape-code parameters to render as visible text. [CANCELLED: folded into T-121]",
-      "owns": [
-        "agentflow/shell/process_manager.py",
-        "agentflow/cli.py"
-      ],
-      "reads": [],
-      "depends_on": [],
       "status": "cancelled"
     },
     {
       "task_id": "T-144",
-      "title": "PTY stdin gating during oracle/orchestrator startup",
-      "description": "Suppress forwarding of user stdin to the PTY child for a brief window (2-3 s) after agentflow shell starts and after each session restart, so incidental keystrokes (e.g. Enter pressed to dismiss a visual artifact) cannot be forwarded to Claude Code and abort the oracle/orchestrator startup sequence. [CANCELLED: folded into T-121]",
-      "owns": [
-        "agentflow/cli.py",
-        "agentflow/shell/session_manager.py"
-      ],
-      "reads": [],
-      "depends_on": [
-        "T-143"
-      ],
       "status": "cancelled"
     },
     {
@@ -614,19 +554,11 @@
     },
     {
       "task_id": "T-167",
-      "title": "Oracle Phase 3 \u2014 generate artifacts in plan mode for user preview before file writes",
-      "description": "Wrap oracle Phase 3 artifact generation (architecture.md, execution_plan.md, CLAUDE.md, tasks.json, design_status.md) in plan mode: show the full content as a reviewable preview before writing to disk. User approves at milestone/task-breakdown level \u2014 catches mis-sized tasks and wrong architectural decisions before they propagate to the orchestrator. Requires EnterPlanMode/ExitPlanMode gates around the Phase 3 Write calls in oracle.md.",
-      "status": "pending",
-      "depends_on": [],
-      "estimated_lines": 40
+      "status": "pending"
     },
     {
       "task_id": "T-168",
-      "title": "Oracle product judgment layer \u2014 jobs-to-be-done, competitive displacement, pricing constraints, market-gated milestones",
-      "description": "Extend oracle Phase 1 (market) and Phase 2 (design spar) with a product judgment layer: (1) jobs-to-be-done forcing function \u2014 what pain is acute enough to pay for today; (2) competitive displacement probe \u2014 what does the target customer already use, what is the wedge; (3) pricing/packaging as an architectural constraint \u2014 usage-based vs seat-based shapes API design, multi-tenancy, data ownership decisions; (4) milestone sequencing against market validation gates, not just technical dependencies. Update commands/claude/oracle/market.md and commands/claude/oracle/checklist.md. Add corresponding design_status.md rows for each resolved item.",
-      "status": "pending",
-      "depends_on": [],
-      "estimated_lines": 120
+      "status": "pending"
     },
     {
       "task_id": "T-169",
@@ -666,10 +598,7 @@
     },
     {
       "task_id": "T-178",
-      "title": "Hook audit log + PTY threshold state snapshot \u2014 diagnose handoff stalls",
-      "status": "pending",
-      "milestone": "M-DP",
-      "description": "PostToolUse hook appends to .agentflow/hook_audit.jsonl (task_id, action, tasks_json_write ok|failed, timestamp). output_handler.py _log_audit snapshots _task_start_tokens at every threshold evaluation. Enables replay of exactly what was in-memory when handoff gate checked."
+      "status": "pending"
     },
     {
       "task_id": "T-179",
@@ -781,15 +710,7 @@
     },
     {
       "task_id": "T-211",
-      "title": "Spike: agy/Gemini CLI session lifecycle \u2014 restart feasibility",
-      "status": "pending",
-      "description": "Investigate what agy (Gemini CLI) exposes for session lifecycle management, to determine whether a PTY-equivalent restart mechanism is feasible. Key questions: (1) Does agy have a hook system analogous to Claude Code's PostToolUse/UserPromptSubmit hooks? (2) Is there a /clear or session-reset command? (3) Can context fill be measured (token count per turn)? (4) Is there a skill/command injection mechanism equivalent to /orchestrate? (5) What is the process model \u2014 single long-lived process or per-turn subprocess? Output: a design_status.md entry capturing RESOLVED/UNRESOLVED for each question, and a recommendation on whether agy restart parity is achievable in v1 or must be deferred. No implementation \u2014 research + decision only.",
-      "model": "claude-sonnet-4-6",
-      "estimated_lines": 0,
-      "owns": [
-        "design_status.md"
-      ],
-      "context_section": "Multi-provider"
+      "status": "pending"
     },
     {
       "task_id": "T-212",
@@ -901,13 +822,6 @@
     },
     {
       "task_id": "T-239",
-      "title": "Split .claude/worktrees/t229-flock-shared-files/agentflow/hooks/user_prompt_submit.py \u2014 size violation",
-      "description": "Split .claude/worktrees/t229-flock-shared-files/agentflow/hooks/user_prompt_submit.py (301 lines, limit 250). Violation timestamp: 2026-07-16T07:31:45.027650. Read the file first, identify distinct responsibilities, then choose the split boundary by domain. Verify each output file is \u2264 250 lines after splitting.",
-      "owns": [
-        ".claude/worktrees/t229-flock-shared-files/agentflow/hooks/user_prompt_submit.py"
-      ],
-      "reads": [],
-      "depends_on": [],
       "status": "cancelled"
     },
     {
@@ -916,13 +830,6 @@
     },
     {
       "task_id": "T-241",
-      "title": "Split .claude/worktrees/t229-flock-shared-files/commands/claude/orchestrate.md \u2014 size violation",
-      "description": "Split .claude/worktrees/t229-flock-shared-files/commands/claude/orchestrate.md (161 lines, limit 150). Violation timestamp: 2026-07-16T07:35:52.418620. Choose the split boundary by phase/section responsibility, not line count. Extract a cohesive section into a sub-file; replace with 'Lazy load: Read <subfile>.md now.' Verify each output file is \u2264 150 lines after splitting.",
-      "owns": [
-        ".claude/worktrees/t229-flock-shared-files/commands/claude/orchestrate.md"
-      ],
-      "reads": [],
-      "depends_on": [],
       "status": "cancelled"
     },
     {
@@ -939,13 +846,6 @@
     },
     {
       "task_id": "T-245",
-      "title": "Split .claude/worktrees/t237-restart-sid/commands/claude/orchestrate.md \u2014 size violation",
-      "description": "Split .claude/worktrees/t237-restart-sid/commands/claude/orchestrate.md (162 lines, limit 150). Violation timestamp: 2026-07-16T11:33:09.619306. Choose the split boundary by phase/section responsibility, not line count. Extract a cohesive section into a sub-file; replace with 'Lazy load: Read <subfile>.md now.' Verify each output file is \u2264 150 lines after splitting.",
-      "owns": [
-        ".claude/worktrees/t237-restart-sid/commands/claude/orchestrate.md"
-      ],
-      "reads": [],
-      "depends_on": [],
       "status": "cancelled"
     },
     {
@@ -958,24 +858,10 @@
     },
     {
       "task_id": "T-248",
-      "title": "Split .claude/worktrees/t231-sqlite-migration/agentflow/hooks/user_prompt_submit.py \u2014 size violation",
-      "description": "Split .claude/worktrees/t231-sqlite-migration/agentflow/hooks/user_prompt_submit.py (257 lines, limit 250). Violation timestamp: 2026-07-16T13:22:53.019574. Read the file first, identify distinct responsibilities, then choose the split boundary by domain. Verify each output file is \u2264 250 lines after splitting.",
-      "owns": [
-        ".claude/worktrees/t231-sqlite-migration/agentflow/hooks/user_prompt_submit.py"
-      ],
-      "reads": [],
-      "depends_on": [],
       "status": "cancelled"
     },
     {
       "task_id": "T-249",
-      "title": "Split .claude/worktrees/t244-remove-enterworktree/commands/claude/orchestrate.md \u2014 size violation",
-      "description": "Split .claude/worktrees/t244-remove-enterworktree/commands/claude/orchestrate.md (163 lines, limit 150). Violation timestamp: 2026-07-16T17:09:05.411082. Choose the split boundary by phase/section responsibility, not line count. Extract a cohesive section into a sub-file; replace with 'Lazy load: Read <subfile>.md now.' Verify each output file is \u2264 150 lines after splitting.",
-      "owns": [
-        ".claude/worktrees/t244-remove-enterworktree/commands/claude/orchestrate.md"
-      ],
-      "reads": [],
-      "depends_on": [],
       "status": "cancelled"
     },
     {
@@ -996,13 +882,6 @@
     },
     {
       "task_id": "T-254",
-      "title": "Split .claude/worktrees/t253-remove-file-based-cleanup/commands/claude/orchestrate.md \u2014 size violation",
-      "description": "Split .claude/worktrees/t253-remove-file-based-cleanup/commands/claude/orchestrate.md (161 lines, limit 150). Violation timestamp: 2026-07-16T22:53:12.640820. Choose the split boundary by phase/section responsibility, not line count. Extract a cohesive section into a sub-file; replace with 'Lazy load: Read <subfile>.md now.' Verify each output file is \u2264 150 lines after splitting.",
-      "owns": [
-        ".claude/worktrees/t253-remove-file-based-cleanup/commands/claude/orchestrate.md"
-      ],
-      "reads": [],
-      "depends_on": [],
       "status": "cancelled"
     },
     {

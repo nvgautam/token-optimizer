@@ -1130,7 +1130,12 @@ Root cause confirmed via pty_audit + hook_drain_debug: the flip at ts=1784398765
 - tasks.json still present after migration → reads ignored, not double-counted
 - Round startup with 0 pending tasks → clean "nothing to do" exit, no crash
 
-**Consumer audit — all must be updated to read/write tasks.db, not tasks.json:**
+**Schema enforcement (new — added after root cause found in generation.md):**
+- `tests/test_tasks_json_schema.py`: assert every entry in tasks.json has ONLY `task_id` + `status`; any extra field → test fails. Runs in CI. Prevents oracle from re-introducing description fields.
+- `generation.md` updated: tasks.json schema is `{task_id, status}` only; all spec in execution_plan.md addendum.
+- Migration already applied: descriptions stripped from 16 tasks; 6 missing addendums written to execution_plan.md.
+
+**Consumer audit — all must be updated to read tasks.json (id+status only), retire tasks.db reads:**
 - Hooks: `agentflow/hooks/post_tool_use.py`, `agentflow/hooks/post_tool_use_agent.py`, `agentflow/hooks/pre_tool_use_agent.py`, `agentflow/hooks/ups_task_sync.py`
 - Shell: `agentflow/shell/cleanup_tasks.py`, `agentflow/shell/pty_signal.py`, `agentflow/shell/orchestrate_cache.py`, `agentflow/shell/session_manager.py`, `agentflow/shell/drain_restart.py`
 - Skills: `commands/claude/orchestrate.md`, `commands/claude/orchestrator/startup.md`, `commands/claude/handoff.md`, `commands/claude/oracle.md`
@@ -1146,3 +1151,58 @@ Root cause confirmed via pty_audit + hook_drain_debug: the flip at ts=1784398765
 
 **Files:** `commands/claude/reviewer/test_review.md`, `commands/claude/orchestrate.md`
 **estimated_lines:** 25
+
+## Addendum: T-063 — Cross-provider atomic task claiming
+
+**Title:** Cross-provider atomic task claiming — claimed_by field + claim protocol
+
+**Goal:** Enable simultaneous Claude + Gemini orchestrators on the same tasks.json without task collision. Add `claimed_by` field to task schema (null = unclaimed, 'claude'/'gemini' = in use). Both providers check `status=pending AND claimed_by=null`, write `claimed_by='<provider>'` under file lock before spawning; clear on complete/failed. File lock held <100ms.
+
+**Owns:** `commands/claude/orchestrate.md`, `commands/gemini/skills/orchestrate/SKILL.md`, `tests/prompts/test_orchestrate_skill.py`
+
+## Addendum: T-064 — Cross-provider rate headroom check
+
+**Title:** Cross-provider rate headroom check before task claiming
+
+**Goal:** Before claiming a task, each provider checks its own `rate_calibration_<provider>.json` for remaining 5hr window headroom. If remaining < 10% of cap_5hr, skip claiming and log 'Rate headroom low — skipping claim (<provider>)'. Prevents a nearly-rate-limited provider from grabbing tasks it cannot complete.
+
+**Owns:** `commands/claude/orchestrate.md`, `commands/gemini/skills/orchestrate/SKILL.md`
+**Reads:** `~/.agentflow/rate_calibration_claude.json`, `~/.agentflow/rate_calibration_gemini.json`
+**Depends on:** T-063, T-060
+
+## Addendum: T-167 — Oracle Phase 3 plan-mode preview
+
+**Title:** Oracle Phase 3 — generate artifacts in plan mode for user preview before file writes
+
+**Goal:** Wrap oracle Phase 3 artifact generation in plan mode: show full content as reviewable preview before writing to disk. User approves at milestone/task-breakdown level — catches mis-sized tasks and wrong architectural decisions before they propagate to the orchestrator. Requires EnterPlanMode/ExitPlanMode gates around Phase 3 Write calls in oracle.md.
+
+**Owns:** `commands/claude/oracle.md`
+**estimated_lines:** 40
+
+## Addendum: T-168 — Oracle product judgment layer
+
+**Title:** Oracle product judgment layer — jobs-to-be-done, competitive displacement, pricing constraints, market-gated milestones
+
+**Goal:** Extend oracle Phase 1 (market) and Phase 2 (design spar) with: (1) jobs-to-be-done forcing function; (2) competitive displacement probe; (3) pricing/packaging as architectural constraint; (4) milestone sequencing against market validation gates. Update `commands/claude/oracle/market.md` and `commands/claude/oracle/checklist.md`.
+
+**Owns:** `commands/claude/oracle/market.md`, `commands/claude/oracle/checklist.md`
+**estimated_lines:** 120
+
+## Addendum: T-178 — Hook audit log + PTY threshold state snapshot
+
+**Title:** Hook audit log + PTY threshold state snapshot — diagnose handoff stalls
+
+**Goal:** PostToolUse hook appends to `.agentflow/hook_audit.jsonl` (task_id, action, tasks_json_write ok|failed, timestamp). `output_handler.py _log_audit` snapshots `_task_start_tokens` at every threshold evaluation. Enables replay of exactly what was in-memory when handoff gate checked.
+
+**Milestone:** M-DP
+**Owns:** `agentflow/hooks/post_tool_use.py`, `agentflow/shell/output_handler.py`
+
+## Addendum: T-211 — Spike: agy/Gemini CLI session lifecycle
+
+**Title:** Spike: agy/Gemini CLI session lifecycle — restart feasibility
+
+**Goal:** Investigate agy session lifecycle: hook system, /clear command, token count per turn, skill injection, process model. Output: design_status.md entries (RESOLVED/UNRESOLVED) for each question + recommendation on whether agy restart parity is achievable in v1. Research only, no implementation.
+
+**Owns:** `design_status.md`
+**Model:** claude-sonnet-4-6
+**estimated_lines:** 0

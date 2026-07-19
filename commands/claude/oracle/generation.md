@@ -87,27 +87,16 @@ tasks.json        → task lifecycle
 ```json
 {
   "tasks": [
-    {
-      "task_id": "T-001",
-      "description": "one-line description of what to implement",
-      "owns": ["src/module/file.py"],
-      "reads": ["src/other/dependency.py"],
-      "depends_on": [],
-      "estimated_lines": 120,
-      "security_sensitive": false,
-      "status": "pending",
-      "test_scenarios": ["test_happy_path", "test_edge_case"]
-    }
+    {"task_id": "T-001", "status": "pending"}
   ]
 }
 ```
 
 Rules:
-- No two tasks share an `owns` file
-- `estimated_lines` ≤ 250 per owned file
-- `security_sensitive: true` for tasks touching auth, external APIs, user input, data storage, or compliance
+- **`task_id` and `status` ONLY** — no `title`, `description`, `owns`, `reads`, `depends_on`, `estimated_lines`, or any other field
+- All task spec (title, description, owns, test scenarios) goes in `execution_plan.md` addendum ONLY
 - All tasks start with `status: "pending"`
-- Milestone 1: full task definitions; later milestones: slim stubs only
+- Violation enforced by `tests/test_tasks_json_schema.py` — any extra field fails CI
 
 ---
 
