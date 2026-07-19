@@ -63,7 +63,7 @@ wc -l $(cat /tmp/rf.txt) | awk '$1 > 250 {print}'
 grep -nE "(password|secret|api_key|token)\s*=\s*['\"][^'\"]{8,}" $(cat /tmp/rf.txt)
 ```
 CRITICAL: hardcoded secrets, signal injection. WARNING: bare except, size > 250 lines.
-**Pass 2 — LLM Reviewer:** Select opposite tier: Haiku-implemented → Sonnet; Sonnet-implemented → Haiku. Embed `commands/claude/reviewer/code_review.md`, `security_review.md`, `test_review.md`, and diff (max 300 lines). Rework on CRITICAL.
+**Pass 2 — LLM Reviewer:** Select opposite tier: Haiku-implemented → Sonnet; Sonnet-implemented → Haiku. Embed `commands/claude/reviewer/code_review.md`, `security_review.md`, `test_review.md`, and diff (max 300 lines). **MANDATORY**: Invoke `/review` before opening a PR. Reviewer must return zero BLOCKERs. If BLOCKERs found → rework (one retry maximum), then ESCALATE if BLOCKERs persist.
 
 ---
 

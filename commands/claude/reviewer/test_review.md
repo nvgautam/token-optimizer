@@ -12,7 +12,7 @@ function.
 
 - Match scenario descriptions to test names or docstrings
 - A scenario with no corresponding test → flag as WARNING
-- Scenarios partially covered (happy path only, no error case) → flag as WARNING
+- Scenarios partially covered (happy path only, no error case) → flag as BLOCKER
 
 ---
 
@@ -63,7 +63,7 @@ Signs of test-only business logic:
 - A helper inside the test file that duplicates production code
 - A test that cannot fail without also breaking the feature it tests
 
-Flag as CRITICAL if a test re-implements the production feature under test.
+Flag as BLOCKER if a test re-implements the production feature under test.
 
 ---
 
@@ -80,6 +80,7 @@ Flag as WARNING if:
 
 ## Output Format
 
+- `BLOCKER: [finding] — [file:line]` — blocks merge; must be fixed
 - `CRITICAL: [finding] — [file:line]` — blocks merge; must be fixed
 - `WARNING:  [finding] — [file:line]` — surfaces to human at review gate
 - `CLEAN` if no findings in this section
