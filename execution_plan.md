@@ -482,12 +482,20 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round C-3b — MERGED (PR #189 2026-07-18) | T-243 | Pass --auto to claude/claude2 PTY restart (not agy) after handoff |
 | Round C-spawn-guard — MERGED (PR #190 2026-07-18) | T-285 (solo) | orchestrate.md: write current_round.json before Agent spawn — prevents premature drain on spawn failure |
 | Round C-session-id — MERGED (PR #191 2026-07-18) | T-286 (solo) | Fix orchestrate.md: resolve $AGENTFLOW_SESSION_ID via Bash before Write tool call |
-| Round C-permission-mode [PENDING] | T-287 (solo) | Fix PTY restart: --auto → --permission-mode auto in process_manager.py |
-| Round C-cli-spike [PENDING] | T-259 (solo) | CLI spike: agentflow round-start command foundation |
-| Round C [PENDING] | T-260 ‖ T-234 ‖ T-236 (parallel) | round-start CLI + context bundle temp file + conflict resolution |
+| Round C-permission-mode — MERGED (PR #192 2026-07-18) | T-287 (solo) | Fix PTY restart: --auto → --permission-mode auto in process_manager.py |
+| Round C-cli-spike — MERGED (2026-07-18) | T-259 (solo) | CLI spike: agentflow round-start command foundation |
+| Round C-restart-fix [PENDING] | T-291 ‖ T-292 (parallel) | Fix mid-round restart bug + Fix session_type hooks substring → startswith |
+| Round C [PENDING] | T-260 (solo) | round-start CLI announcement |
+| Round C-2 [PENDING] | T-234 (solo) | context bundle delivery via temp file |
+| Round C-3 [PENDING] | T-236 (solo) | post-merge conflict resolution (keep OWNS gate) |
 | Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
-| Round E [PENDING] | T-167 ‖ T-168 (parallel) | Oracle Phase 3 plan-mode preview + product judgment layer |
-| Round F [PENDING] | T-063 → T-064 → T-099 (sequential) | Multi-provider chain (enterprise) |
+| Round E [PENDING] | T-168 ‖ T-290 (parallel) | product judgment layer + debug terminal step |
+| Round E-2 [PENDING] | T-167 (solo) | Oracle Phase 3 plan-mode preview |
+| Round E-3 [PENDING] | T-288 (solo) | Oracle self-check: disjoint OWNS before writing execution_plan.md |
+| Round E-4 [PENDING] | T-289 (solo) | Oracle troubleshoot detection → offer debug skill |
+| Round F [PENDING] | T-063 (solo) | Multi-provider chain step 1 (enterprise) |
+| Round F-2 [PENDING] | T-064 (solo) | Multi-provider chain step 2 |
+| Round F-3 [PENDING] | T-099 (solo) | Multi-provider chain step 3 |
 
 Priority rationale (2026-07-17): T-274 (P0) + T-273 (P1) prepend Round C — both block reliable orchestrate restart loop. Restart-path hardening (A/B) before skill rewrites — loop reliability prerequisite. CLI spike (T-259) gates T-260. Rounds D–E are spikes/oracle enhancements. Round F deferred until Claude-only loop is solid. T-276 (C-P3) prepends C-1 — audit log coverage is a prerequisite for diagnosing any further drain/restart bugs. T-277 (C-P4) prepends C-1 — this is the root fix for the C-2 premature-drain bug; was documented in T-276 spec but missed during implementation.
 
@@ -1047,3 +1055,14 @@ Fix: remove the `pty_signal task_done` Bash call from the "After worker complete
 
 **Owns:** `commands/claude/orchestrate.md`
 **estimated_lines:** 10
+
+## Addendum: T-292
+
+**Title:** Fix session_type detection in UPS + verbosity hooks — use startswith not substring match
+
+Both `agentflow/hooks/user_prompt_submit.py` and `agentflow/hooks/verbosity_reminder.py` detect session type via `"/orchestrate" in prompt` substring check. The oracle skill expansion contains `/orchestrate` references (e.g. "Run `/orchestrate` to begin implementation"), so any `/oracle` invocation whose expanded content passes through the hook writes `session_type: orchestrator`, silently flipping the PTY drain guard and triggering a drain restart.
+
+Root cause confirmed via pty_audit + hook_drain_debug: the flip at ts=1784398765 correlates with a UserPromptSubmit that saw the oracle skill content. Fix: replace substring check with `prompt.lstrip().startswith("/orchestrate")` and `prompt.lstrip().startswith("/oracle")` in both hooks. Also apply the same fix to the `elif "/handoff" in prompt` branch (handoff.md also mentions `/orchestrate`).
+
+**Owns:** `agentflow/hooks/user_prompt_submit.py`, `agentflow/hooks/verbosity_reminder.py`
+**estimated_lines:** 12
