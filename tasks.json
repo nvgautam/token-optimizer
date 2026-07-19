@@ -777,15 +777,7 @@
     },
     {
       "task_id": "T-210",
-      "title": "Fix write_indexer tests leaking cache dirs per pytest run",
-      "status": "pending",
-      "description": "Each pytest run of test_write_indexer.py creates 3-4 new ~/.agentflow/cache/<hash>/ directories because tmp_path produces a unique cwd per invocation, and sha256(cwd) generates a fresh cache key. Fix: patch the cache root in write_indexer tests to point at a fixed temp dir (e.g. monkeypatch the CACHE_ROOT constant) instead of relying on tmp_path as cwd. Also add agentflow cache prune --older-than <days> CLI subcommand to evict stale entries. Owned files: tests/test_write_indexer.py, agentflow/cli.py (or cli_cmds.py for prune subcommand).",
-      "model": "haiku",
-      "estimated_lines": 60,
-      "owns": [
-        "tests/test_write_indexer.py"
-      ],
-      "context_section": "Symbol indexer"
+      "status": "complete"
     },
     {
       "task_id": "T-211",
@@ -897,14 +889,7 @@
     },
     {
       "task_id": "T-236",
-      "title": "Add post-merge conflict resolution to orchestrator",
-      "status": "pending",
-      "estimated_lines": 30,
-      "owns": [
-        "commands/claude/orchestrate.md",
-        "tests/prompts/test_orchestrate_skill.py"
-      ],
-      "description": "Add post-merge conflict resolution step to orchestrate.md human gate flow: after merging each PR, fetch origin/main, merge into the PR branch, auto-resolve conflicts section-by-section (accept both sides for additive changes; spar on same-line conflicts), push, then re-merge. OWNS conflict gate is intentionally preserved \u2014 removing it was descoped (contradicts RESOLVED design decision: owns disjoint check enforced). Tests: assert post-merge conflict resolution step is present in orchestrate.md."
+      "status": "complete"
     },
     {
       "task_id": "T-237",
@@ -946,15 +931,7 @@
     },
     {
       "task_id": "T-243",
-      "title": "Configure Claude / Claude2 worker sessions to start with auto-mode enabled by default",
-      "description": "When AgentFlow spawns Claude or Claude2 worker sessions (via orchestrate.md skill), ensure auto-mode is active from session start so workers do not stop to request permission on each action. Investigate correct mechanism (--yes flag, settings.json autoApprove, or env var) and wire it into the worker launch path. Must not affect oracle/interactive sessions.",
-      "owns": [],
-      "reads": [
-        "commands/claude/orchestrate.md",
-        "agentflow/config/models.py"
-      ],
-      "depends_on": [],
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-244",
@@ -1003,8 +980,7 @@
     },
     {
       "task_id": "T-250",
-      "status": "pending",
-      "title": "Fix debug.md KeyError \u2014 read session_id from current_round.json not state.json"
+      "status": "complete"
     },
     {
       "task_id": "T-251",
@@ -1039,16 +1015,7 @@
     },
     {
       "task_id": "T-259",
-      "description": "Spike: agentflow db CLI layer + CLI-as-interface strategy. Design and prototype (a) agentflow round start --task-ids ... command that atomically writes current_round.json + tasks_in_flight.json; (b) agentflow task done <id>; (c) evaluate migrating all skill-facing state mutations to CLI commands so skills never write state files directly \u2014 removes hook dependency on tool_name and positions for SQLite backend swap. Produce design doc + list of state files to migrate. No implementation beyond prototype.",
-      "owns": [],
-      "reads": [
-        "agentflow/hooks/post_tool_use.py",
-        "agentflow/shell/pty_signal.py",
-        "agentflow/shell/session_manager.py"
-      ],
-      "depends_on": [],
-      "status": "pending",
-      "title": "Spike: CLI-as-interface for orchestrate round announcements"
+      "status": "complete"
     },
     {
       "task_id": "T-260",
@@ -1160,16 +1127,7 @@
     },
     {
       "task_id": "T-281",
-      "title": "Round table [PENDING] tag format \u2014 migrate rows + update oracle/orchestrate grep",
-      "status": "pending",
-      "milestone": "M5",
-      "estimated_lines": 40,
-      "owns": [
-        "execution_plan.md",
-        "commands/claude/orchestrate.md",
-        "commands/claude/oracle.md"
-      ],
-      "description": "Add [PENDING] tag to all pending round rows in execution_plan.md Master Round Table. Update oracle skill to write [PENDING] on new rounds. Update orchestrate resume to use grep -m 1 \"\\[PENDING\\]\" instead of full table scan. Migrate existing pending rows (C-state2, C-3, etc.)."
+      "status": "complete"
     },
     {
       "task_id": "T-291",
