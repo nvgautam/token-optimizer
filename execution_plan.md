@@ -1147,6 +1147,7 @@ Root cause confirmed via pty_audit + hook_drain_debug: the flip at ts=1784398765
 - Migration tool: `agentflow/tools/migrate_tasks_sqlite.py`
 - Tests: `tests/tools/test_migrate_tasks_sqlite.py`
 - Gemini skill: `commands/gemini/skills/orchestrate/SKILL.md` — line "Write full task definitions to tasks.json" must change to "write {task_id, status} to tasks.json; write full definition as addendum to execution_plan.md"
+- Gemini generation: `commands/gemini/oracle/generation.md` — tasks.json schema still includes `description` field; strip to {task_id, status} only, same fix as Claude's generation.md
 
 **estimated_lines:** 250
 **blocks:** T-297, T-298
