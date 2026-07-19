@@ -618,10 +618,7 @@
       "description": "Wrap oracle Phase 3 artifact generation (architecture.md, execution_plan.md, CLAUDE.md, tasks.json, design_status.md) in plan mode: show the full content as a reviewable preview before writing to disk. User approves at milestone/task-breakdown level \u2014 catches mis-sized tasks and wrong architectural decisions before they propagate to the orchestrator. Requires EnterPlanMode/ExitPlanMode gates around the Phase 3 Write calls in oracle.md.",
       "status": "pending",
       "depends_on": [],
-      "estimated_lines": 40,
-      "owns": [
-        "commands/claude/oracle.md"
-      ]
+      "estimated_lines": 40
     },
     {
       "task_id": "T-168",
@@ -629,11 +626,7 @@
       "description": "Extend oracle Phase 1 (market) and Phase 2 (design spar) with a product judgment layer: (1) jobs-to-be-done forcing function \u2014 what pain is acute enough to pay for today; (2) competitive displacement probe \u2014 what does the target customer already use, what is the wedge; (3) pricing/packaging as an architectural constraint \u2014 usage-based vs seat-based shapes API design, multi-tenancy, data ownership decisions; (4) milestone sequencing against market validation gates, not just technical dependencies. Update commands/claude/oracle/market.md and commands/claude/oracle/checklist.md. Add corresponding design_status.md rows for each resolved item.",
       "status": "pending",
       "depends_on": [],
-      "estimated_lines": 120,
-      "owns": [
-        "commands/claude/oracle/market.md",
-        "commands/claude/oracle/checklist.md"
-      ]
+      "estimated_lines": 120
     },
     {
       "task_id": "T-169",
@@ -784,7 +777,15 @@
     },
     {
       "task_id": "T-210",
-      "status": "complete"
+      "title": "Fix write_indexer tests leaking cache dirs per pytest run",
+      "status": "pending",
+      "description": "Each pytest run of test_write_indexer.py creates 3-4 new ~/.agentflow/cache/<hash>/ directories because tmp_path produces a unique cwd per invocation, and sha256(cwd) generates a fresh cache key. Fix: patch the cache root in write_indexer tests to point at a fixed temp dir (e.g. monkeypatch the CACHE_ROOT constant) instead of relying on tmp_path as cwd. Also add agentflow cache prune --older-than <days> CLI subcommand to evict stale entries. Owned files: tests/test_write_indexer.py, agentflow/cli.py (or cli_cmds.py for prune subcommand).",
+      "model": "haiku",
+      "estimated_lines": 60,
+      "owns": [
+        "tests/test_write_indexer.py"
+      ],
+      "context_section": "Symbol indexer"
     },
     {
       "task_id": "T-211",
@@ -888,13 +889,7 @@
     },
     {
       "task_id": "T-234",
-      "title": "Context bundle delivery via temp file \u2014 remove context bundle from Agent prompt arg",
-      "status": "pending",
-      "estimated_lines": 40,
-      "depends_on": [],
-      "owns": [
-        "commands/claude/orchestrate.md"
-      ]
+      "status": "complete"
     },
     {
       "task_id": "T-235",
@@ -902,14 +897,14 @@
     },
     {
       "task_id": "T-236",
-      "title": "Add post-merge conflict resolution to orchestrator (keep OWNS gate)",
+      "title": "Remove OWNS conflict gate + add post-merge conflict resolution to orchestrator",
       "status": "pending",
       "estimated_lines": 30,
       "owns": [
         "commands/claude/orchestrate.md",
         "tests/prompts/test_orchestrate_skill.py"
       ],
-      "description": "One change to orchestrate.md: after merging each PR in the human gate flow, run conflict resolution: fetch origin/main, merge into the PR branch, auto-resolve conflicts section-by-section (accept both sides for additive changes; spar on same-line conflicts), push, then re-merge. Do NOT remove the OWNS CONFLICT parallel-spawn gate \u2014 it is a load-bearing safety check that catches invalid parallel groups from oracle. Tests: assert post-merge conflict resolution step is present in orchestrate.md; assert OWNS CONFLICT gate is still present."
+      "description": "Two changes to orchestrate.md: (1) Remove the OWNS CONFLICT parallel-spawn gate \u2014 tasks may share file ownership freely; dependency ordering (depends_on) remains the only serial constraint. (2) After merging each PR in the human gate flow, run conflict resolution: fetch origin/main, merge into the PR branch, auto-resolve conflicts section-by-section (accept both sides for additive changes; spar on same-line conflicts), push, then re-merge. Tests: assert orchestrate.md no longer contains OWNS CONFLICT block; assert post-merge conflict resolution step is present."
     },
     {
       "task_id": "T-237",
@@ -951,7 +946,15 @@
     },
     {
       "task_id": "T-243",
-      "status": "complete"
+      "title": "Configure Claude / Claude2 worker sessions to start with auto-mode enabled by default",
+      "description": "When AgentFlow spawns Claude or Claude2 worker sessions (via orchestrate.md skill), ensure auto-mode is active from session start so workers do not stop to request permission on each action. Investigate correct mechanism (--yes flag, settings.json autoApprove, or env var) and wire it into the worker launch path. Must not affect oracle/interactive sessions.",
+      "owns": [],
+      "reads": [
+        "commands/claude/orchestrate.md",
+        "agentflow/config/models.py"
+      ],
+      "depends_on": [],
+      "status": "pending"
     },
     {
       "task_id": "T-244",
@@ -1036,24 +1039,20 @@
     },
     {
       "task_id": "T-259",
-      "status": "complete"
+      "description": "Spike: agentflow db CLI layer + CLI-as-interface strategy. Design and prototype (a) agentflow round start --task-ids ... command that atomically writes current_round.json + tasks_in_flight.json; (b) agentflow task done <id>; (c) evaluate migrating all skill-facing state mutations to CLI commands so skills never write state files directly \u2014 removes hook dependency on tool_name and positions for SQLite backend swap. Produce design doc + list of state files to migrate. No implementation beyond prototype.",
+      "owns": [],
+      "reads": [
+        "agentflow/hooks/post_tool_use.py",
+        "agentflow/shell/pty_signal.py",
+        "agentflow/shell/session_manager.py"
+      ],
+      "depends_on": [],
+      "status": "pending",
+      "title": "Spike: CLI-as-interface for orchestrate round announcements"
     },
     {
       "task_id": "T-260",
-      "description": "Implement agentflow round start --task-ids T-001 T-002 CLI command that atomically writes current_round.json + tasks_in_flight.json in one code path. Update orchestrate.md to call this command instead of writing current_round.json directly. Add unit tests. This removes the hook-tool_name dependency entirely.",
-      "owns": [
-        "agentflow/cli.py",
-        "commands/claude/orchestrate.md"
-      ],
-      "reads": [
-        "agentflow/hooks/post_tool_use.py",
-        "agentflow/shell/session_paths.py"
-      ],
-      "depends_on": [
-        "T-258"
-      ],
-      "status": "pending",
-      "title": "Add round-start CLI announcement to orchestrate skill"
+      "status": "complete"
     },
     {
       "task_id": "T-261",
@@ -1161,82 +1160,24 @@
     },
     {
       "task_id": "T-281",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-282",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-283",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-284",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-285",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-286",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-287",
-      "status": "complete"
-    },
-    {
-      "task_id": "T-288",
-      "title": "Oracle self-check: assert disjoint OWNS sets before writing execution_plan.md",
+      "title": "Round table [PENDING] tag format \u2014 migrate rows + update oracle/orchestrate grep",
       "status": "pending",
-      "estimated_lines": 20,
+      "milestone": "M5",
+      "estimated_lines": 40,
       "owns": [
+        "execution_plan.md",
+        "commands/claude/orchestrate.md",
         "commands/claude/oracle.md"
       ],
-      "description": "In oracle.md Phase 3 (Generate Artifacts), before writing execution_plan.md, assert that all parallel task groups (rows containing \u2016) have pairwise-disjoint OWNS sets. Algorithm: for each \u2016 group, collect task_ids, look up their owns arrays in the task list, check set intersections. If any overlap found: spar with user to split the group into sequential rounds before writing. This prevents orchestrator from receiving invalid parallel groups that it must silently serialize. Tests: assert oracle.md contains the disjoint-OWNS check in its Phase 3 instructions."
-    },
-    {
-      "task_id": "T-289",
-      "title": "Oracle: detect troubleshooting intent and offer to load debug skill",
-      "status": "pending",
-      "estimated_lines": 15,
-      "owns": [
-        "commands/claude/oracle.md"
-      ],
-      "description": "In oracle.md Phase 2 (Design Sparring), detect troubleshooting intent signals (user describes a bug, unexpected behavior, failure mode, or asks how to diagnose X). When detected, pause sparring and offer: \"This sounds like a debugging session \u2014 should I load the debug skill?\" If user confirms, invoke /debug and exit oracle mode. If user declines, continue sparring. Do not auto-load \u2014 require explicit confirmation. Tests: assert oracle.md contains troubleshooting-intent detection and conditional debug skill offer."
-    },
-    {
-      "task_id": "T-290",
-      "title": "Debug skill: inline task filing + always prompt oracle for prioritization",
-      "status": "pending",
-      "estimated_lines": 25,
-      "owns": [
-        "commands/claude/debug.md"
-      ],
-      "description": "Add terminal step to debug.md: after root cause is identified and confirmed, (1) file the task inline using the standard protocol (duplicate check via grep, then write to tasks.json with fcntl locking). (2) Always end with: \"Task filed as T-XXX. Run /oracle to prioritize it against the backlog.\" Do not attempt prioritization within the debug skill \u2014 oracle owns backlog context and milestone sequencing. If the fix has architectural implications (touches shared interface, changes a constraint, affects multiple modules), add a second prompt: \"This fix affects [area] \u2014 run /oracle to think through broader implications before filing.\" Tests: assert debug.md terminal step contains inline task filing and unconditional oracle prioritization prompt."
+      "description": "Add [PENDING] tag to all pending round rows in execution_plan.md Master Round Table. Update oracle skill to write [PENDING] on new rounds. Update orchestrate resume to use grep -m 1 \"\\[PENDING\\]\" instead of full table scan. Migrate existing pending rows (C-state2, C-3, etc.)."
     },
     {
       "task_id": "T-291",
-      "title": "Fix orchestrate.md startup: mid-round restart skips remaining sequential tasks",
-      "status": "pending",
-      "estimated_lines": 20,
-      "owns": [
-        "commands/claude/orchestrate.md"
-      ],
-      "description": "Bug: Step 4a \"any task_id complete \u2192 stale \u2192 unlink current_round.json\" + Step 4 \"first row whose tasks are all pending\" combine to skip remaining tasks after a mid-round restart. Example: Round C T-260\u2192T-234\u2192T-236; after T-260 merges and session restarts, T-260 is complete so current_round.json is unlinked; Round C no longer qualifies as \"all pending\" so orchestrator jumps to Round D, skipping T-234 and T-236. Fix: (1) Step 4a: if current_round.json exists and SOME task_ids are complete but others are pending, do not unlink \u2014 filter to pending subset and continue from there. (2) Step 4: change \"all pending\" to \"has at least one pending task\" when identifying the active round. Tests: assert orchestrate.md startup handles mid-round restart by filtering to pending subset, not unlinking."
+      "status": "complete"
     },
     {
       "task_id": "T-292",
-      "status": "pending",
-      "title": "Fix session_type detection in UPS + verbosity hooks \u2014 use startswith not substring match",
-      "description": "Both agentflow/hooks/user_prompt_submit.py and agentflow/hooks/verbosity_reminder.py use \"/orchestrate\" in prompt (substring check) to write session_type. The oracle skill expansion contains \"/orchestrate\" references, causing any /oracle invocation to flip session_type to orchestrator. Fix: replace substring check with prompt.lstrip().startswith(\"/orchestrate\") and prompt.lstrip().startswith(\"/oracle\") in both hooks.",
-      "owns": [
-        "agentflow/hooks/user_prompt_submit.py",
-        "agentflow/hooks/verbosity_reminder.py"
-      ],
-      "estimated_lines": 10
+      "status": "complete"
     }
   ]
 }
