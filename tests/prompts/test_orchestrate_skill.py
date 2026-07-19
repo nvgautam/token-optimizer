@@ -217,3 +217,27 @@ def test_context_bundle_delivered_via_temp_file():
     # Guard: missing file must error, not silently skip
     assert "missing file" in content.lower() or "file missing" in content.lower() or "gracefully" in content.lower(), \
         "orchestrate.md must document guard for missing ctx file"
+
+
+def test_orchestrate_post_merge_conflict_resolution():
+    """T-236: orchestrate.md Human gate must include post-merge conflict resolution step."""
+    content = CLAUDE_ORCHESTRATE.read_text(encoding="utf-8")
+    # Check for fetch origin/main
+    assert "fetch origin/main" in content.lower() or "fetch" in content.lower() and "origin" in content.lower(), \
+        "orchestrate.md must include fetch origin/main in post-merge conflict resolution"
+    # Check for merge into PR branch
+    assert "merge" in content.lower() and "pr" in content.lower(), \
+        "orchestrate.md must include merge into PR branch in conflict resolution"
+    # Check for auto-resolve additive conflicts (accept both sides)
+    assert "auto-resolve" in content.lower() or "additive" in content.lower(), \
+        "orchestrate.md must describe auto-resolving additive conflicts"
+    assert "accept both sides" in content.lower(), \
+        "orchestrate.md must specify accepting both sides for additive changes"
+    # Check for sparring on same-line conflicts
+    assert "spar" in content.lower() and "conflict" in content.lower(), \
+        "orchestrate.md must describe sparring on same-line conflicts"
+    # Check for push and re-merge
+    assert "push" in content.lower(), \
+        "orchestrate.md must include pushing after conflict resolution"
+    assert "re-merge" in content.lower() or "remerge" in content.lower(), \
+        "orchestrate.md must include re-merging after push"
