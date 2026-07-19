@@ -1,12 +1,64 @@
-"""agentflow.cli_db — CLI-as-interface layer for state mutations (T-259 spike stub)."""
+"""agentflow.cli_db — CLI-as-interface layer for state mutations."""
 from __future__ import annotations
 import argparse
+import json
+import os
 import sys
+import tempfile
+from datetime import datetime, timezone
+from pathlib import Path
+
+from agentflow.shell.session_paths import session_file
+
+
+def _atomic_write(path: Path, data_str: str) -> None:
+    """Write data_str to path atomically via tempfile + os.replace."""
+    fd = None
+    tmp = None
+    try:
+        fd, tmp = tempfile.mkstemp(dir=str(path.parent))
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            f.write(data_str)
+        os.replace(tmp, str(path))
+    except Exception as e:
+        print(f"atomic_write_error: {e}", file=sys.stderr)
+        if tmp is not None:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+        raise
 
 
 def cmd_round_start(args: argparse.Namespace) -> int:
-    print(f"round start: round_id={args.round_id!r} task_ids={args.task_ids} sid={args.sid!r}")
-    print("not implemented"); return 1
+    """Atomically write current_round.json + tasks_in_flight.json."""
+    sid: str = args.sid if args.sid else os.environ.get("AGENTFLOW_SESSION_ID", "")
+    round_id: str = (
+        args.round_id if args.round_id
+        else "round-" + datetime.now().strftime("%Y%m%d-%H%M%S")
+    )
+    task_ids: list[str] = list(args.task_ids)
+    timestamp: str = datetime.now(timezone.utc).isoformat()
+
+    agentflow_dir = Path(".agentflow")
+    agentflow_dir.mkdir(parents=True, exist_ok=True)
+
+    round_data = {
+        "round_id": round_id,
+        "task_ids": task_ids,
+        "estimated_lines_per_task": {},
+        "file_counts_per_task": {},
+        "session_id": sid,
+        "timestamp": timestamp,
+    }
+    current_round_path = agentflow_dir / "current_round.json"
+    _atomic_write(current_round_path, json.dumps(round_data, indent=2))
+
+    tif_path = session_file(agentflow_dir, "tasks_in_flight.json", sid or None)
+    _atomic_write(tif_path, json.dumps(task_ids))
+
+    print(round_id)
+    return 0
 
 
 def cmd_round_status(args: argparse.Namespace) -> int:

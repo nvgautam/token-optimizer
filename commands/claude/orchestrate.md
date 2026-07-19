@@ -33,9 +33,9 @@ Close prompt: "End your final message with TOKENS: input=N output=N — nothing 
 - **Execution:** Spawn worker with selected model and `worktree_abs_path`. Do not call `EnterWorktree`. Save `.agentflow/state.json`.
 
 ### Round Lifecycle & PTY Signals
-First: run `Bash(echo $AGENTFLOW_SESSION_ID)` to capture the session ID into a variable (e.g. `SID`). Then write `.agentflow/current_round.json` BEFORE spawning any Agent (immediately before the Agent spawn call — drain must see it even if spawn fails) using the Write tool (never Bash for the write itself): `{"round_id": "str", "task_ids": ["str"], "estimated_lines_per_task": {}, "file_counts_per_task": {}, "session_id": "<captured SID>", "timestamp": "ISO8601"}`.
-Worker lifecycles stdout signals:
-- Before spawning: run `pty_signal.py task_start <task_id>` and print `AGENTFLOW_TASK_START:<task_id>`
+First: run `Bash(echo $AGENTFLOW_SESSION_ID)` to capture the session ID into a variable (e.g. `SID`). Before spawning any Agent, run: `Bash: agentflow round start --task-ids T-NNN [T-MMM ...] --round-id <round_id> --sid $SID`. This atomically writes `current_round.json` and `tasks_in_flight.json` — drain sees it even if spawn fails. Do NOT use the Write tool for `current_round.json`.
+Worker lifecycle stdout signals:
+- Before spawning: print `AGENTFLOW_TASK_START:<task_id>`
 - After worker completes: print `AGENTFLOW_TASK_COMPLETE:<task_id>`
 
 ---

@@ -87,6 +87,15 @@ def build_parser() -> argparse.ArgumentParser:
     orch_sub.add_parser("status", help="Show live progress dashboard")
     orch_sub.add_parser("merge", help="Trigger DAG-ordered merge of approved PRs")
 
+    round_p = sub.add_parser("round", help="Manage round state (CLI-as-interface layer)")
+    round_sub = round_p.add_subparsers(dest="round_command", metavar="subcommand")
+    round_sub.required = True
+    start_p = round_sub.add_parser("start", help="Atomically write current_round.json + tasks_in_flight.json")
+    start_p.add_argument("--task-ids", nargs="+", required=True, dest="task_ids", metavar="TASK_ID")
+    start_p.add_argument("--round-id", default=None, dest="round_id", metavar="ROUND_ID")
+    start_p.add_argument("--sid", default=None, metavar="SESSION_ID")
+    round_sub.add_parser("status", help="Print current round state")
+
     report = sub.add_parser("report", help="Show token usage report across sessions")
     report.add_argument("--mode", choices=["aggregate", "split", "session"], default="aggregate")
     report.add_argument("--output", default="combined_report.html")
@@ -140,6 +149,9 @@ def main() -> None:
             "merge": cmd_orchestrate_merge,
         }
         rc = orch_handlers[args.orch_command](args)
+    elif args.command == "round":
+        from agentflow.cli_db import cmd_round_start, cmd_round_status
+        rc = {"start": cmd_round_start, "status": cmd_round_status}[args.round_command](args)
     elif args.command == "cache":
         from agentflow.cli_cmds import cmd_cache_prune
         rc = cmd_cache_prune(args)
