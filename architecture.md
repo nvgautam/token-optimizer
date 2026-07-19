@@ -103,6 +103,8 @@ agentflow/
     write_indexer.py              # PostToolUse: regenerate .idx on write_file
     read_logger.py                # PostToolUse: read event log for shadow analyzer
     size_check.py                 # PostToolUse: enforce per-category line-count ceilings — T-058
+    post_tool_use_agent.py        # PostToolUse: task_done signal + tasks_in_flight drain coordination
+    post_tool_use_pr.py           # PostToolUse helper: PR merge Git CLI utility functions
   indexer/
     index_manager.py              # cache path: ~/.agentflow/cache/<hash>/index/<mirrored-path>.idx
     brownfield_scanner.py         # scan existing project files on first load, build initial index
