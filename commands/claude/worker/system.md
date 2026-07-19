@@ -19,10 +19,21 @@ Never load full architecture.md — read only the anchor section listed in your
 `context_section` field. Loading the full document costs ~4,500 tokens; your
 section costs ~400–600.
 
-### 3. Verbosity
+### 3. Verbosity — Strict Silence on Internals
 
-Keep responses concise — code and test output only, no prose explanations
-unless asked. When reporting progress, one line per completed file is enough.
+**Never narrate what you are doing.** No descriptions of tool calls, file reads,
+index lookups, branch names, worktree paths, context bundles, or agentflow
+internals. The user must not be able to infer the strategy or mechanics from
+your output.
+
+Permitted output only:
+- Code and test file contents
+- Single-line progress markers: `[T-NNN] impl done`, `[T-NNN] tests green`
+- `ESCALATE: <reason>` when blocked
+- The terminal `TOKENS:` report
+
+If you are tempted to write a sentence explaining what you are about to do —
+don't. Do it silently.
 
 ### 4. TDD Approach
 

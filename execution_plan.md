@@ -504,7 +504,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round C-restart-fix — MERGED (PR #195/#196 2026-07-19) | T-291 ‖ T-292 (parallel) | Fix mid-round restart bug + Fix session_type hooks substring → startswith |
 | Round C — MERGED (PR #197 2026-07-19) | T-260 (solo) | round-start CLI announcement |
 | M-F-2 — MERGED (PR #198 2026-07-19) | T-234 (solo) | Context bundle via temp file |
-| M-F-1 [PENDING] | T-294 ‖ T-293 (parallel) | CLI task_done/start impl + pty_signal migration + dead hook removal + hook integration tests |
+| M-F-1 [PENDING] | T-298 ‖ T-297 (parallel) | CLI task_done/start impl + pty_signal migration + dead hook removal + hook integration tests |
 | M-F-3 [PENDING] | T-296 (solo) | Verbosity hardening: oracle + orchestrate personas — no strategy leakage |
 | M-F-4 [PENDING] | T-236 (solo) | Post-merge conflict resolution (OWNS gate preserved) |
 | M-F-6 [PENDING] | T-295 (solo) | IP spike: wire key server + encrypt context files at write |
@@ -1101,3 +1101,42 @@ Root cause confirmed via pty_audit + hook_drain_debug: the flip at ts=1784398765
 
 **Owns:** `agentflow/hooks/user_prompt_submit.py`, `agentflow/hooks/verbosity_reminder.py`
 **estimated_lines:** 12
+
+## Addendum: T-297 — M-F-1a: CLI task_done/start + pty_signal migration
+
+**Goal:** Implement CLI `task_done` and `task_start` subcommands; migrate `pty_signal.py` to use SID-scoped paths consistently. Remove dead hook code that was superseded by prior rounds.
+
+**Files:** `agentflow/shell/pty_signal.py`, `agentflow/hooks/post_tool_use.py`, `agentflow/cli.py`
+**estimated_lines:** 90
+
+## Addendum: T-298 — M-F-1b: Hook integration tests + dead hook removal
+
+**Goal:** Write integration tests covering hook signal edge cases: missing SID env var, duplicate `task_done` calls, concurrent signal writes, corrupt `tasks_in_flight.json`. Remove hooks confirmed dead by prior rounds.
+
+**Test scenarios (required — not just happy path):** missing SID → graceful no-op; duplicate task_done → idempotent; concurrent writers → last-write-wins with no corruption; corrupt JSON → safe reset.
+
+**Files:** `tests/hooks/test_hook_integration.py`, `agentflow/hooks/` (dead hook removal)
+**estimated_lines:** 120
+
+## Addendum: T-299 — SQLite canonical migration (tasks.db replaces tasks.json)
+
+**Goal:** Make `tasks.db` the single source of truth for task state. Retire all `tasks.json` reads/writes from orchestrate.md, skills, and hooks. Add `title` + `description` columns to tasks table. Reconcile all PENDING rows from execution_plan.md into tasks.db on migration.
+
+**Test scenarios (required — not just happy path):**
+- Concurrent writers: two processes insert same task_id → IntegrityError handled, no corruption
+- Corrupt/missing db → auto-recreate schema, re-read execution_plan.md to repopulate
+- Partial migration (JSON exists, db missing rows) → reconcile without duplicates (idempotent)
+- Schema version mismatch (old db missing `title` column) → ALTER TABLE migration guard
+- tasks.json still present after migration → reads ignored, not double-counted
+- Round startup with 0 pending tasks → clean "nothing to do" exit, no crash
+
+**Files:** `agentflow/tools/migrate_tasks_sqlite.py`, `agentflow/tools/cleanup_tasks.py`, `commands/claude/orchestrate.md`, `commands/claude/orchestrator/startup.md`, `agentflow/hooks/post_tool_use.py`, `tests/tools/test_migrate_tasks_sqlite.py`
+**estimated_lines:** 200
+**blocks:** T-297, T-298
+
+## Addendum: T-300 — Reviewer gate: edge-case enforcement + mandatory review before PR
+
+**Goal:** Escalate happy-path-only test coverage from WARNING → BLOCKER in `test_review.md`. Add mandatory `/review` invocation step in `orchestrate.md` before PR creation — reviewer output must show no BLOCKERs to proceed.
+
+**Files:** `commands/claude/reviewer/test_review.md`, `commands/claude/orchestrate.md`
+**estimated_lines:** 25
