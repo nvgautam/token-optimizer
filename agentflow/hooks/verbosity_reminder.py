@@ -52,9 +52,9 @@ def main() -> None:
         project_root = os.environ.get("AGENTFLOW_PROJECT_ROOT", "")
         agentflow_dir = Path(project_root) / ".agentflow" if project_root else Path.cwd() / ".agentflow"
         sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
-        if "/orchestrate" in prompt:
+        if prompt.lstrip().startswith("/orchestrate"):
             _write_session_state_atomic(agentflow_dir, "orchestrator", sid=sid)
-        elif "/oracle" in prompt:
+        elif prompt.lstrip().startswith("/oracle"):
             _write_session_state_atomic(agentflow_dir, "oracle", sid=sid)
     if _hook_disabled() or _arm_suppressed():
         sys.exit(0)

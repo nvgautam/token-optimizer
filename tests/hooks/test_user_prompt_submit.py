@@ -344,3 +344,21 @@ def test_reset_accumulator_not_written(monkeypatch, tmp_path):
 
     result_dir2 = _run_with_stdin("/handoff", monkeypatch, tmp_path)
     assert not (result_dir2 / "reset_accumulator").exists()
+
+
+def test_orchestrate_substring_does_not_trigger_session_type(monkeypatch, tmp_path):
+    """T-292: substring match '/orchestrate' in text should not trigger orchestrator session_type."""
+    monkeypatch.delenv("AGENTFLOW_SESSION_ID", raising=False)
+    agentflow_dir = _run_with_stdin("Read more about /orchestrate in the docs", monkeypatch, tmp_path)
+    session_state_file = agentflow_dir / "session_state.json"
+    # Should NOT create session_state.json for substring match
+    assert not session_state_file.exists()
+
+
+def test_oracle_substring_does_not_trigger_session_type(monkeypatch, tmp_path):
+    """T-292: substring match '/oracle' in text should not trigger oracle session_type."""
+    monkeypatch.delenv("AGENTFLOW_SESSION_ID", raising=False)
+    agentflow_dir = _run_with_stdin("Learn about /oracle skill", monkeypatch, tmp_path)
+    session_state_file = agentflow_dir / "session_state.json"
+    # Should NOT create session_state.json for substring match
+    assert not session_state_file.exists()

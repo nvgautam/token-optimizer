@@ -226,3 +226,57 @@ def test_session_type_with_session_id(tmp_path, monkeypatch):
     assert session_state_file.exists()
     data = json.loads(session_state_file.read_text())
     assert data["session_type"] == "orchestrator"
+
+
+def test_orchestrate_substring_does_not_trigger_session_type(tmp_path, monkeypatch):
+    """T-292: substring match '/orchestrate' in text should not trigger orchestrator session_type."""
+    import json
+    from io import StringIO
+
+    counter_file = tmp_path / "verbosity_turn_counter"
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir(parents=True, exist_ok=True)
+
+    monkeypatch.setenv("AGENTFLOW_PROJECT_ROOT", str(tmp_path))
+    monkeypatch.setenv("AGENTFLOW_SESSION_ID", "")
+
+    stdin_data = '{"prompt": "Read more about /orchestrate in the docs"}'
+
+    with patch("agentflow.hooks.verbosity_reminder.COUNTER_FILE", counter_file):
+        with patch("sys.stdin.isatty", return_value=False):
+            mock_stdin = StringIO(stdin_data)
+            with patch("sys.stdin", mock_stdin):
+                with pytest.raises(SystemExit) as exc:
+                    main()
+                assert exc.value.code == 0
+
+    # Should NOT create session_state.json for substring match
+    session_state_file = agentflow_dir / "session_state.json"
+    assert not session_state_file.exists()
+
+
+def test_oracle_substring_does_not_trigger_session_type(tmp_path, monkeypatch):
+    """T-292: substring match '/oracle' in text should not trigger oracle session_type."""
+    import json
+    from io import StringIO
+
+    counter_file = tmp_path / "verbosity_turn_counter"
+    agentflow_dir = tmp_path / ".agentflow"
+    agentflow_dir.mkdir(parents=True, exist_ok=True)
+
+    monkeypatch.setenv("AGENTFLOW_PROJECT_ROOT", str(tmp_path))
+    monkeypatch.setenv("AGENTFLOW_SESSION_ID", "")
+
+    stdin_data = '{"prompt": "Learn about /oracle skill expansion"}'
+
+    with patch("agentflow.hooks.verbosity_reminder.COUNTER_FILE", counter_file):
+        with patch("sys.stdin.isatty", return_value=False):
+            mock_stdin = StringIO(stdin_data)
+            with patch("sys.stdin", mock_stdin):
+                with pytest.raises(SystemExit) as exc:
+                    main()
+                assert exc.value.code == 0
+
+    # Should NOT create session_state.json for substring match
+    session_state_file = agentflow_dir / "session_state.json"
+    assert not session_state_file.exists()
