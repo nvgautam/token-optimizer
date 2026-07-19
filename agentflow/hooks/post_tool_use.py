@@ -126,7 +126,7 @@ def detect_pr_merge(
             tasks_data = None
             tasks_raw = None
             ep_content = None
-            archive_content = ""
+            archive_content = None
 
             if tasks_path.exists():
                 tasks_raw = tasks_path.read_text(encoding="utf-8")
@@ -174,7 +174,7 @@ def detect_pr_merge(
 
             new_ep_content = "".join(new_ep_lines)
 
-            new_archive_content = archive_content
+            new_archive_content = archive_content or ""
             if addendum_content:
                 addendum_str = "".join(addendum_content)
                 if addendum_str not in new_archive_content:
@@ -188,13 +188,22 @@ def detect_pr_merge(
                 strict_atomic_write(archive_path, new_archive_content)
                 _log(agentflow_dir, {"event": "tasks_json_written", "task_id": task_id, "status": "complete"})
             except Exception as e:
-                # Rollback
-                if tasks_raw is not None and tasks_path.exists():
-                    strict_atomic_write(tasks_path, tasks_raw)
-                if ep_content is not None and ep_path.exists():
-                    strict_atomic_write(ep_path, ep_content)
-                if archive_content and archive_path.exists():
-                    strict_atomic_write(archive_path, archive_content)
+                # Rollback - each step independent, preserve original exception
+                try:
+                    if tasks_raw is not None and tasks_path.exists():
+                        strict_atomic_write(tasks_path, tasks_raw)
+                except Exception as rb_e:
+                    _log(agentflow_dir, {"event": "pr_merge_rollback_error", "step": "tasks", "error": str(rb_e)})
+                try:
+                    if ep_content is not None and ep_path.exists():
+                        strict_atomic_write(ep_path, ep_content)
+                except Exception as rb_e:
+                    _log(agentflow_dir, {"event": "pr_merge_rollback_error", "step": "ep", "error": str(rb_e)})
+                try:
+                    if archive_content is not None and archive_path.exists():
+                        strict_atomic_write(archive_path, archive_content)
+                except Exception as rb_e:
+                    _log(agentflow_dir, {"event": "pr_merge_rollback_error", "step": "archive", "error": str(rb_e)})
                 raise e
     except Exception as e:
         _log(agentflow_dir, {"event": "pr_merge_hook_error", "task_id": task_id, "error": str(e)})

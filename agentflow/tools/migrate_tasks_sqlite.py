@@ -85,10 +85,23 @@ def migrate():
         else:
             new_ep_lines.extend(current_addendum_lines)
 
+    import tempfile, os
+
+    def atomic_write(path: Path, content: str):
+        fd, tmp = tempfile.mkstemp(dir=str(path.parent))
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(content)
+            os.replace(tmp, str(path))
+        except Exception:
+            try: os.unlink(tmp)
+            except OSError: pass
+            raise
+
     # Write back
-    ep_path.write_text("".join(new_ep_lines), encoding="utf-8")
+    atomic_write(ep_path, "".join(new_ep_lines))
     archive_path.parent.mkdir(parents=True, exist_ok=True)
-    archive_path.write_text(new_archive_content, encoding="utf-8")
+    atomic_write(archive_path, new_archive_content)
     print("Migration complete.")
 
 if __name__ == "__main__":
