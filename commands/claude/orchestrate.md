@@ -80,7 +80,7 @@ Reply: yes → merge | no [reason] → rework | skip → continue
 PR creation fallback: always push branch, show direct PR URL on permission failure. Once user replies "yes", emit: `HANDOFF RECOMMENDED: PR #N open for [task_ids] — good stopping point before you review`
 Never merge without explicit "yes".
 
-**Post-merge conflict resolution:** After user replies "yes" and before final merge, fetch origin/main and merge into the PR branch. Auto-resolve additive conflicts — accept both sides (no content loss). On same-line conflicts, escalate to Oracle for design spar. Push resolved branch, then re-merge into main. OWNS conflict gate is intentionally preserved.
+**Post-merge conflict resolution:** After user replies "yes" and before final merge, fetch origin/main and merge into the PR branch. Auto-resolve additive conflicts — accept both sides (no content loss). On same-line conflicts, escalate to the user. Push resolved branch, then re-merge into main. OWNS conflict gate is intentionally preserved.
 
 ---
 
