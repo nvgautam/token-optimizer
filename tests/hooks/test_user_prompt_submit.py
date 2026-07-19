@@ -283,4 +283,3 @@ def test_oracle_writes_sid_keyed_session_state(monkeypatch, tmp_path):
     assert sid_keyed_file.exists()
     data = json.loads(sid_keyed_file.read_text("utf-8"))
     assert data == {"session_type": "oracle"}
-
