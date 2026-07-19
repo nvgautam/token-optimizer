@@ -35,7 +35,17 @@ Close prompt: "End your final message with TOKENS: input=N output=N — nothing 
 - **Execution:** Spawn worker with selected model and `worktree_abs_path`. Do not call `EnterWorktree`. Save `.agentflow/state.json`.
 
 ### Round Lifecycle & PTY Signals
-First: run `Bash(echo $AGENTFLOW_SESSION_ID)` to capture the session ID into a variable (e.g. `SID`). Before spawning any Agent, run: `Bash: agentflow round start --task-ids T-NNN [T-MMM ...] --round-id <round_id> --sid $SID`. This atomically writes `current_round.json` and `tasks_in_flight.json` — drain sees it even if spawn fails. Do NOT use the Write tool for `current_round.json`.
+First: run `Bash(echo $AGENTFLOW_SESSION_ID)` to capture the session ID into a variable (e.g. `SID`). Before spawning any Agent, run: `Bash: agentflow round start --task-ids T-NNN [T-MMM ...] --round-id <round_id> --sid $SID`. This atomically writes `current_round.json` and `tasks_in_flight.json` with the following schema — drain sees it even if spawn fails. Do NOT use the Write tool for `current_round.json`:
+```json
+{
+  "round_id": "string",
+  "task_ids": ["string"],
+  "estimated_lines_per_task": {"task_id": "int"},
+  "file_counts_per_task": {"task_id": "int"},
+  "session_id": "<captured SID>",
+  "timestamp": "ISO8601"
+}
+```
 Worker lifecycle stdout signals:
 - Before spawning: print `AGENTFLOW_TASK_START:<task_id>`
 - After worker completes: print `AGENTFLOW_TASK_COMPLETE:<task_id>`
@@ -69,6 +79,8 @@ Reply: yes → merge | no [reason] → rework | skip → continue
 ```
 PR creation fallback: always push branch, show direct PR URL on permission failure. Once user replies "yes", emit: `HANDOFF RECOMMENDED: PR #N open for [task_ids] — good stopping point before you review`
 Never merge without explicit "yes".
+
+**Post-merge conflict resolution:** After user replies "yes" and before final merge, fetch origin/main and merge into the PR branch. Auto-resolve additive conflicts — accept both sides (no content loss). On same-line conflicts, escalate to the user. Push resolved branch, then re-merge into main. OWNS conflict gate is intentionally preserved.
 
 ---
 
