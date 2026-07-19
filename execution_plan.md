@@ -17,17 +17,7 @@ Oracle creates; orchestrator extends lazily at milestone boundaries.
 5. All Python code compiled and obfuscated — not readable in the delivered package
 6. API key controls access — key can be revoked from cloud at any time
 
-### M-F Round Table
-| Round | Tasks | What ships |
-|---|---|---|
-| M-F-1 [PENDING] | T-294 ‖ T-293 (parallel) | CLI task_done/start impl + pty_signal migration + dead hook removal + hook integration tests |
-| M-F-2 [PENDING] | T-234 (solo) | Context bundle via temp file — stops IP from displaying in worker agent output |
-| M-F-3 [PENDING] | T-296 (solo) | Verbosity hardening: oracle + orchestrate personas + UPS hook suppression reminder — no strategy leakage in terminal output |
-| M-F-4 [PENDING] | T-236 (solo) | Post-merge conflict resolution — removes last manual step from orchestrate loop |
-| M-F-5 [PENDING] | T-293 (solo) | Integration tests for debug_trigger, payload_inspector, read_logger |
-| M-F-6 [PENDING] | T-295 (solo) | Spike: wire IP stack into PTY + oracle/orchestrate as loader stubs + AGENTFLOW_KEY_SERVER_URL (localhost default) + API key validation at startup |
-| M-F-7 [PENDING] | M-F-7 (solo) | Oracle handoff UX — proactive stopping point prompt: "Hand off to a fresh session to keep context crisp" |
-| M-F-8 [PENDING] | M-F-8 (solo) | Nuitka compile + obfuscation — non-readable package delivery |
+M-F round rows live in the Master Round Table (M-F-1 through M-F-8). Orchestrator reads from there.
 
 ---
 
@@ -513,8 +503,13 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round C-cli-spike — MERGED (2026-07-18) | T-259 (solo) | CLI spike: agentflow round-start command foundation |
 | Round C-restart-fix — MERGED (PR #195/#196 2026-07-19) | T-291 ‖ T-292 (parallel) | Fix mid-round restart bug + Fix session_type hooks substring → startswith |
 | Round C — MERGED (PR #197 2026-07-19) | T-260 (solo) | round-start CLI announcement |
-| Round C-2 [PENDING] | T-234 (solo) | context bundle delivery via temp file |
-| Round C-3 [PENDING] | T-236 (solo) | post-merge conflict resolution (keep OWNS gate) |
+| M-F-2 — MERGED (PR #198 2026-07-19) | T-234 (solo) | Context bundle via temp file |
+| M-F-1 [PENDING] | T-294 ‖ T-293 (parallel) | CLI task_done/start impl + pty_signal migration + dead hook removal + hook integration tests |
+| M-F-3 [PENDING] | T-296 (solo) | Verbosity hardening: oracle + orchestrate personas — no strategy leakage |
+| M-F-4 [PENDING] | T-236 (solo) | Post-merge conflict resolution (OWNS gate preserved) |
+| M-F-6 [PENDING] | T-295 (solo) | IP spike: wire key server + encrypt context files at write |
+| M-F-7 [PENDING] | M-F-7 (solo) | Oracle handoff UX — proactive stopping-point prompt |
+| M-F-8 [PENDING] | M-F-8 (solo) | Nuitka compile + obfuscation |
 | Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
 | Round E [PENDING] | T-168 ‖ T-290 (parallel) | product judgment layer + debug terminal step |
 | Round E-2 [PENDING] | T-167 (solo) | Oracle Phase 3 plan-mode preview |
