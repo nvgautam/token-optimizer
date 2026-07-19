@@ -1146,6 +1146,7 @@ Root cause confirmed via pty_audit + hook_drain_debug: the flip at ts=1784398765
 - Skills: `commands/claude/orchestrate.md`, `commands/claude/orchestrator/startup.md`, `commands/claude/handoff.md`, `commands/claude/oracle.md`
 - Migration tool: `agentflow/tools/migrate_tasks_sqlite.py`
 - Tests: `tests/tools/test_migrate_tasks_sqlite.py`
+- Gemini skill: `commands/gemini/skills/orchestrate/SKILL.md` — line "Write full task definitions to tasks.json" must change to "write {task_id, status} to tasks.json; write full definition as addendum to execution_plan.md"
 
 **estimated_lines:** 250
 **blocks:** T-297, T-298
@@ -1232,19 +1233,21 @@ Root cause confirmed via pty_audit + hook_drain_debug: the flip at ts=1784398765
 
 ## Addendum: T-302 — Customer distribution: standalone binary + strip .py + install archive
 
-**Goal:** Package AgentFlow for friendly customers such that zero readable Python source is distributed. Builds on T-112 (Nuitka standalone compile already working). Adds: (1) post-build strip step removes all .py/.pyc from dist/, (2) bundles binary + encrypted skill files (T-110) + config templates into a versioned `.tar.gz`, (3) `install.sh` script that extracts archive, registers Claude Code hooks pointing at the binary, verifies smoke test passes.
+**Goal:** Package AgentFlow for friendly customers such that zero readable Python source is distributed. Builds on T-112 (Nuitka standalone compile). Adds: (1) post-build strip removes all .py/.pyc from dist/, (2) installs stub `.md` files into `~/.claude/commands/` — each stub instructs Claude to run `agentflow ip load-skill <skill>` and treat stdout as instructions (`load_skill.py` fetches key via T-109, decrypts `.enc` in memory, prints plaintext, exits — no disk write; design RESOLVED in design_status.md), (3) bundles binary + encrypted `.enc` skill files (T-110) + stub `.md` files + config templates into a versioned `.tar.gz`, (4) `install.sh` extracts archive, registers Claude Code hooks pointing at binary, writes stubs to `~/.claude/commands/`, smoke tests.
 
 **Files:**
 - `scripts/build_dist.sh` (new) — Nuitka standalone build + strip + bundle
-- `scripts/install.sh` (new) — customer install script
+- `scripts/install.sh` (new) — customer install: extract, register hooks, write stub .md files
+- `scripts/stubs/` (new) — stub .md templates for oracle, orchestrate, handoff, debug, drift
 - `Makefile` — add `dist` target calling build_dist.sh
-- `tests/test_dist.sh` (new) — smoke test: install into temp dir, verify no .py files, run `agentflow --version`
+- `tests/test_dist.sh` (new) — smoke test: install into temp dir, verify no .py files, run `agentflow --version`, verify stubs present
 
 **Test scenarios:**
 - `make dist` produces archive with zero .py/.pyc files
-- install.sh on clean dir → hooks registered, `agentflow --version` succeeds
-- Encrypted skill files present in archive, decryptable at runtime (T-111 path)
-- Idempotent: running install.sh twice produces no duplicate hook entries
+- install.sh on clean dir → hooks registered, stubs in ~/.claude/commands/, `agentflow --version` succeeds
+- Stub .md content contains no skill logic — only `agentflow ip load-skill <name>` invocation
+- `agentflow ip load-skill orchestrate` → decrypts + prints full skill content (T-109/T-110 path)
+- Idempotent: running install.sh twice produces no duplicate hook entries or stub overwrites
 
-**OWNS:** `scripts/build_dist.sh`, `scripts/install.sh`, `Makefile`, `tests/test_dist.sh`
-**estimated_lines:** 120
+**OWNS:** `scripts/build_dist.sh`, `scripts/install.sh`, `scripts/stubs/`, `Makefile`, `tests/test_dist.sh`
+**estimated_lines:** 150
