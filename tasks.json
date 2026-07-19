@@ -897,14 +897,14 @@
     },
     {
       "task_id": "T-236",
-      "title": "Remove OWNS conflict gate + add post-merge conflict resolution to orchestrator",
+      "title": "Add post-merge conflict resolution to orchestrator",
       "status": "pending",
       "estimated_lines": 30,
       "owns": [
         "commands/claude/orchestrate.md",
         "tests/prompts/test_orchestrate_skill.py"
       ],
-      "description": "Two changes to orchestrate.md: (1) Remove the OWNS CONFLICT parallel-spawn gate \u2014 tasks may share file ownership freely; dependency ordering (depends_on) remains the only serial constraint. (2) After merging each PR in the human gate flow, run conflict resolution: fetch origin/main, merge into the PR branch, auto-resolve conflicts section-by-section (accept both sides for additive changes; spar on same-line conflicts), push, then re-merge. Tests: assert orchestrate.md no longer contains OWNS CONFLICT block; assert post-merge conflict resolution step is present."
+      "description": "Add post-merge conflict resolution step to orchestrate.md human gate flow: after merging each PR, fetch origin/main, merge into the PR branch, auto-resolve conflicts section-by-section (accept both sides for additive changes; spar on same-line conflicts), push, then re-merge. OWNS conflict gate is intentionally preserved \u2014 removing it was descoped (contradicts RESOLVED design decision: owns disjoint check enforced). Tests: assert post-merge conflict resolution step is present in orchestrate.md."
     },
     {
       "task_id": "T-237",
