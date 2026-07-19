@@ -504,7 +504,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round C-restart-fix — MERGED (PR #195/#196 2026-07-19) | T-291 ‖ T-292 (parallel) | Fix mid-round restart bug + Fix session_type hooks substring → startswith |
 | Round C — MERGED (PR #197 2026-07-19) | T-260 (solo) | round-start CLI announcement |
 | M-F-2 — MERGED (PR #198 2026-07-19) | T-234 (solo) | Context bundle via temp file |
-| Pre-M-F-1a [PENDING] | T-300 (solo) | Reviewer gate hardening — escalate happy-path-only → BLOCKER; mandatory /review before PR |
+| Pre-M-F-1a — MERGED (PR #200 2026-07-19) | T-300 (solo) | Reviewer gate hardening — escalate happy-path-only → BLOCKER; mandatory /review before PR |
 | Pre-M-F-1b [PENDING] | T-299 (solo) | tasks.db retirement + tasks.json schema enforcement + addendum lifecycle |
 | M-F-1 [PENDING] | T-298 ‖ T-297 (parallel) | CLI task_done/start impl + pty_signal migration + dead hook removal + hook integration tests |
 | M-F-3 [PENDING] | T-296 (solo) | Verbosity hardening: oracle + orchestrate personas — no strategy leakage |
