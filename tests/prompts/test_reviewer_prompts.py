@@ -64,3 +64,30 @@ def test_no_hardcoded_secrets_in_reviewer_prompts():
               REVIEWER_DIR / "test_review.md", ORCHESTRATOR_DIR / "planning.md"]:
         content = f.read_text(encoding="utf-8")
         assert not secret_pattern.search(content), f"Possible hardcoded secret in {f.name}"
+
+def test_review_md_happy_path_only_is_blocker():
+    content = (REVIEWER_DIR / "test_review.md").read_text(encoding="utf-8")
+    # Should escalate happy-path-only scenarios to BLOCKER
+    assert "BLOCKER" in content
+    # Ideally find the line about "happy path" and ensure BLOCKER is near it
+    lines = content.splitlines()
+    found = any("happy path" in line.lower() and "blocker" in line.lower() for line in lines)
+    assert found, "test_review.md must escalate happy-path-only coverage to BLOCKER"
+
+def test_review_md_test_reimplements_feature_is_blocker():
+    content = (REVIEWER_DIR / "test_review.md").read_text(encoding="utf-8")
+    lines = content.splitlines()
+    # Find section 5 and ensure BLOCKER or CRITICAL output includes BLOCKER label
+    found = any("re-implement" in line.lower() and ("blocker" in line.lower() or "critical" in line.lower()) for line in lines)
+    assert found, "test_review.md must flag re-implementation of feature as BLOCKER/CRITICAL"
+    # Also assert that the output format actually contains BLOCKER
+    assert "BLOCKER" in content, "test_review.md must define BLOCKER in its output format"
+
+def test_orchestrate_md_review_gate_required():
+    content = Path("commands/claude/orchestrate.md").read_text(encoding="utf-8")
+    assert "/review" in content and "before opening" in content.lower(), "orchestrate.md must require /review before opening a PR"
+
+def test_orchestrate_md_no_blockers_required():
+    content = Path("commands/claude/orchestrate.md").read_text(encoding="utf-8")
+    assert "zero blockers" in content.lower() or "no blockers" in content.lower(), "orchestrate.md must require zero BLOCKERs from the reviewer"
+
