@@ -233,9 +233,9 @@ def test_orchestrate_post_merge_conflict_resolution():
         "orchestrate.md must describe auto-resolving additive conflicts"
     assert "accept both sides" in content.lower(), \
         "orchestrate.md must specify accepting both sides for additive changes"
-    # Check for sparring on same-line conflicts
-    assert "spar" in content.lower() and "conflict" in content.lower(), \
-        "orchestrate.md must describe sparring on same-line conflicts"
+    # Check for escalation on same-line conflicts
+    assert "escalate" in content.lower() and "conflict" in content.lower(), \
+        "orchestrate.md must describe escalation on same-line conflicts"
     # Check for push and re-merge
     assert "push" in content.lower(), \
         "orchestrate.md must include pushing after conflict resolution"
