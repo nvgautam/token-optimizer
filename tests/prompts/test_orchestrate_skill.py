@@ -183,3 +183,22 @@ def test_current_round_written_before_agent_spawn():
     assert spawn_pos != -1, "orchestrate.md must contain 'Spawn worker' text"
     assert before_pos < spawn_pos, \
         "current_round.json write instruction must appear before 'Spawn worker' in orchestrate.md"
+
+
+def test_orchestrate_startup_reconciliation_mid_round_restart():
+    """T-291: startup reconciliation must handle mid-round restarts with mixed complete/pending tasks."""
+    content = CLAUDE_ORCHESTRATE.read_text(encoding="utf-8")
+    assert "If ALL task_ids are complete" in content, \
+        "orchestrate.md Step 4a must check if ALL task_ids are complete (stale case)"
+    assert "startup_reconciliation_cleaned" in content, \
+        "orchestrate.md Step 4a must log 'startup_reconciliation_cleaned' when all tasks are complete"
+    assert "If SOME task_ids are complete and SOME are pending" in content, \
+        "orchestrate.md Step 4a must handle mid-round restart case with mixed statuses"
+    assert "filter to pending subset" in content, \
+        "orchestrate.md Step 4a must filter to pending subset on mid-round restart"
+    assert "startup_mid_round_resumed" in content, \
+        "orchestrate.md Step 4a must log 'startup_mid_round_resumed' on mid-round restart"
+    assert "If all are pending" in content, \
+        "orchestrate.md Step 4a must handle all pending case"
+    assert "at least one pending task" in content, \
+        "orchestrate.md Step 4 must find first row with at least one pending task (not all pending)"
