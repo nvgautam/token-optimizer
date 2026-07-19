@@ -120,14 +120,43 @@ def auto_file_size_violations(project_root: Path) -> None:
         new_task_id = f"T-{max_id:03d}"
         new_task = {
             "task_id": new_task_id,
-            "title": f"Split {filename} — size violation",
-            "description": _split_description(filename, current_lines, limit, ts),
-            "owns": [filename],
-            "reads": [],
-            "depends_on": [],
             "status": "pending"
         }
         new_tasks.append(new_task)
+
+        # Append addendum to execution_plan.md under lock
+        title = f"Split {filename} — size violation"
+        goal = _split_description(filename, current_lines, limit, ts)
+        owns = [filename]
+        addendum = f"\n## Addendum: {new_task_id} — {title}\n\n**Goal:** {goal}\n\n**Owns:** {json.dumps(owns)}\n"
+
+        ep_path = project_root / "execution_plan.md"
+        lock_path = project_root / ".agentflow" / "execution_plan.md.lock"
+        import fcntl
+        import tempfile
+        import os
+        try:
+            lock_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(lock_path, "a+", encoding="utf-8") as lf:
+                fcntl.flock(lf.fileno(), fcntl.LOCK_EX)
+                if ep_path.exists():
+                    content = ep_path.read_text("utf-8")
+                    if not content.endswith("\n"):
+                        content += "\n"
+                    content += addendum
+
+                    # Atomic write
+                    fd, tmp = tempfile.mkstemp(dir=str(ep_path.parent))
+                    try:
+                        with os.fdopen(fd, "w", encoding="utf-8") as f:
+                            f.write(content)
+                        os.replace(tmp, str(ep_path))
+                    except Exception:
+                        try: os.unlink(tmp)
+                        except OSError: pass
+                        raise
+        except Exception as e:
+            print(f"Error appending addendum for {new_task_id}: {e}")
 
     if new_tasks:
         tasks_data["tasks"].extend(new_tasks)

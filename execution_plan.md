@@ -660,3 +660,45 @@ Fix: remove the `pty_signal task_done` Bash call from the "After worker complete
 
 **OWNS:** `scripts/build_dist.sh`, `scripts/install.sh`, `scripts/stubs/`, `Makefile`, `tests/test_dist.sh`
 **estimated_lines:** 150
+
+## Addendum: T-303 — Split agentflow/hooks/post_tool_use_agent.py — size violation
+
+**Goal:** Split agentflow/hooks/post_tool_use_agent.py (271 lines, limit 250). Violation timestamp: 2026-07-16T11:32:25.567650. Read the file first, identify distinct responsibilities, then choose the split boundary by domain. Verify each output file is ≤ 250 lines after splitting.
+
+**Owns:** ["agentflow/hooks/post_tool_use_agent.py"]
+
+## Addendum: T-304 — Split agentflow/hooks/post_tool_use_agent.py — size violation
+
+**Goal:** Split agentflow/hooks/post_tool_use_agent.py (271 lines, limit 250). Violation timestamp: 2026-07-16T11:33:47.932561. Read the file first, identify distinct responsibilities, then choose the split boundary by domain. Verify each output file is ≤ 250 lines after splitting.
+
+**Owns:** ["agentflow/hooks/post_tool_use_agent.py"]
+
+## Addendum: T-305 — Split agentflow/hooks/post_tool_use_agent.py — size violation
+
+**Goal:** Split agentflow/hooks/post_tool_use_agent.py (271 lines, limit 250). Violation timestamp: 2026-07-16T11:35:32.435029. Read the file first, identify distinct responsibilities, then choose the split boundary by domain. Verify each output file is ≤ 250 lines after splitting.
+
+**Owns:** ["agentflow/hooks/post_tool_use_agent.py"]
+
+## Addendum: T-306 — Split agentflow/hooks/post_tool_use_agent.py — size violation
+
+**Goal:** Split agentflow/hooks/post_tool_use_agent.py (271 lines, limit 250). Violation timestamp: 2026-07-16T11:35:46.129644. Read the file first, identify distinct responsibilities, then choose the split boundary by domain. Verify each output file is ≤ 250 lines after splitting.
+
+**Owns:** ["agentflow/hooks/post_tool_use_agent.py"]
+
+## Addendum: T-307 — Split agentflow/hooks/post_tool_use_agent.py — size violation
+
+**Goal:** Split agentflow/hooks/post_tool_use_agent.py (271 lines, limit 250). Violation timestamp: 2026-07-16T11:39:42.948465. Read the file first, identify distinct responsibilities, then choose the split boundary by domain. Verify each output file is ≤ 250 lines after splitting.
+
+**Owns:** ["agentflow/hooks/post_tool_use_agent.py"]
+
+## Addendum: T-308 — Split agentflow/hooks/post_tool_use_agent.py — size violation
+
+**Goal:** Split agentflow/hooks/post_tool_use_agent.py (271 lines, limit 250). Violation timestamp: 2026-07-16T11:39:54.653867. Read the file first, identify distinct responsibilities, then choose the split boundary by domain. Verify each output file is ≤ 250 lines after splitting.
+
+**Owns:** ["agentflow/hooks/post_tool_use_agent.py"]
+
+## Addendum: T-309 — Split agentflow/hooks/post_tool_use_agent.py — size violation
+
+**Goal:** Split agentflow/hooks/post_tool_use_agent.py (271 lines, limit 250). Violation timestamp: 2026-07-16T11:40:04.314349. Read the file first, identify distinct responsibilities, then choose the split boundary by domain. Verify each output file is ≤ 250 lines after splitting.
+
+**Owns:** ["agentflow/hooks/post_tool_use_agent.py"]
