@@ -54,6 +54,8 @@ class StateMachine:
         elif state == States.TASK_RUNNING:
             if event == "task_complete_written":
                 return States.TASK_COMPLETE
+            # current_round_written is a no-op here — idempotency guard.
+            # Prevents double-transition if CLI + hook both fire for same round.
 
         elif state == States.TASK_COMPLETE:
             if event == "task_round_complete":
