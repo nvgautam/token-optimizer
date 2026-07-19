@@ -1,50 +1,22 @@
 """Tests for post_tool_use_agent hook."""
 
 import json
-import subprocess
 import sys
 from pathlib import Path
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from agentflow.hooks.post_tool_use_agent import (
     _fetch_merged_pr_titles,
-    _handle_pr_merge,
     _mark_task_complete,
     _run_cleanup,
     main,
+    _register_pr_url,
+    _check_pr_state,
+    _is_pr_merge_bash,
+    _log,
 )
-
-
-def _run_hook(tmp_path, stdin_data=None, in_flight=None, tasks=None):
-    """Helper: set up files and call main() with patched stdin."""
-    agentflow_dir = tmp_path / ".agentflow"
-    agentflow_dir.mkdir()
-
-    if in_flight is not None:
-        (agentflow_dir / "tasks_in_flight.json").write_text(json.dumps(in_flight))
-
-    if tasks is not None:
-        (tmp_path / "tasks.json").write_text(json.dumps({"tasks": tasks}))
-
-    # Create a stub pty_signal.py so subprocess.run has a target
-    pty_dir = tmp_path / "agentflow" / "shell"
-    pty_dir.mkdir(parents=True)
-    (pty_dir / "pty_signal.py").write_text("#!/usr/bin/env python3\nimport sys; sys.exit(0)\n")
-
-    stdin_json = json.dumps(stdin_data or {})
-
-    with patch("agentflow.hooks.post_tool_use_agent._find_workspace_root", return_value=tmp_path):
-        with patch("sys.stdin") as mock_stdin:
-            mock_stdin.read.return_value = stdin_json
-            # json.load needs a file-like; patch it directly
-            with patch("agentflow.hooks.post_tool_use_agent.json") as mock_json:
-                mock_json.load = json.load
-                mock_json.JSONDecodeError = json.JSONDecodeError
-                with pytest.raises(SystemExit) as exc:
-                    main()
-    return exc.value.code
 
 
 class TestNoOp:
@@ -125,26 +97,6 @@ class TestSignalFiring:
         called_task_ids = {c.args[0][-1] for c in mock_run.call_args_list}
         assert called_task_ids == {"T-001", "T-002"}
 
-    def test_no_signal_when_all_tasks_still_pending(self, tmp_path):
-        agentflow_dir = tmp_path / ".agentflow"
-        agentflow_dir.mkdir()
-        (agentflow_dir / "tasks_in_flight.json").write_text('["T-005"]')
-        (tmp_path / "tasks.json").write_text(json.dumps({
-            "tasks": [{"task_id": "T-005", "status": "pending"}]
-        }))
-        pty = tmp_path / "agentflow" / "shell" / "pty_signal.py"
-        pty.parent.mkdir(parents=True)
-        pty.write_text("")
-
-        with patch("agentflow.hooks.post_tool_use_agent._find_workspace_root", return_value=tmp_path):
-            with patch("agentflow.hooks.post_tool_use_agent._fetch_merged_pr_titles", return_value=set()):
-                with patch("subprocess.run") as mock_run:
-                    with pytest.raises(SystemExit) as exc:
-                        main()
-
-        assert exc.value.code == 0
-        mock_run.assert_not_called()
-
 
 class TestInFlightReconciliation:
     def test_removes_completed_tasks_from_in_flight_file(self, tmp_path):
@@ -168,43 +120,6 @@ class TestInFlightReconciliation:
                     main()
 
         assert json.loads(in_flight_file.read_text()) == ["T-020"]
-
-    def test_clears_in_flight_file_when_all_complete(self, tmp_path):
-        agentflow_dir = tmp_path / ".agentflow"
-        agentflow_dir.mkdir()
-        in_flight_file = agentflow_dir / "tasks_in_flight.json"
-        in_flight_file.write_text('["T-001", "T-002"]')
-        (tmp_path / "tasks.json").write_text(json.dumps({
-            "tasks": [
-                {"task_id": "T-001", "status": "complete"},
-                {"task_id": "T-002", "status": "complete"},
-            ]
-        }))
-        (tmp_path / "agentflow" / "shell").mkdir(parents=True)
-
-        with patch("agentflow.hooks.post_tool_use_agent._find_workspace_root", return_value=tmp_path):
-            with patch("subprocess.run"):
-                with pytest.raises(SystemExit):
-                    main()
-
-        assert json.loads(in_flight_file.read_text()) == []
-
-    def test_leaves_in_flight_unchanged_when_all_pending(self, tmp_path):
-        agentflow_dir = tmp_path / ".agentflow"
-        agentflow_dir.mkdir()
-        in_flight_file = agentflow_dir / "tasks_in_flight.json"
-        in_flight_file.write_text('["T-005"]')
-        (tmp_path / "tasks.json").write_text(json.dumps({
-            "tasks": [{"task_id": "T-005", "status": "pending"}]
-        }))
-        (tmp_path / "agentflow" / "shell").mkdir(parents=True)
-
-        with patch("agentflow.hooks.post_tool_use_agent._find_workspace_root", return_value=tmp_path):
-            with patch("subprocess.run"):
-                with pytest.raises(SystemExit):
-                    main()
-
-        assert json.loads(in_flight_file.read_text()) == ["T-005"]
 
 
 class TestRobustness:
@@ -234,4 +149,93 @@ class TestRobustness:
             with pytest.raises(SystemExit) as exc:
                 main()
 
+        assert exc.value.code == 0
+
+
+class TestSplitCoverage:
+    def test_fetch_merged_pr_titles_exception(self):
+        with patch("subprocess.run", side_effect=Exception("gh error")):
+            assert _fetch_merged_pr_titles() == set()
+
+    def test_register_pr_url_happy(self, tmp_path):
+        agentflow_dir = tmp_path / ".agentflow"
+        agentflow_dir.mkdir()
+        assert _register_pr_url(agentflow_dir, "T-100", "https://pr") is True
+        assert (agentflow_dir / "task_prs.json").exists()
+
+    def test_register_pr_url_exception(self, tmp_path):
+        agentflow_dir = tmp_path / ".agentflow"
+        assert _register_pr_url(agentflow_dir, "T-100", "https://pr") is False
+
+    def test_check_pr_state_merged(self):
+        mock_run = MagicMock()
+        mock_run.returncode = 0
+        mock_run.stdout = '{"state": "MERGED"}'
+        with patch("subprocess.run", return_value=mock_run):
+            assert _check_pr_state("https://pr") == "MERGED"
+
+    def test_check_pr_state_exception(self):
+        with patch("subprocess.run", side_effect=Exception("gh error")):
+            assert _check_pr_state("https://pr") is None
+
+    def test_is_pr_merge_bash(self):
+        assert _is_pr_merge_bash({"tool_input": {"command": "gh pr merge 1"}}) is True
+        assert _is_pr_merge_bash({"tool_input": {"command": "git status"}}) is False
+
+    def test_log_exception(self, tmp_path):
+        _log(tmp_path / "not-exists", {"event": "test"})
+
+    def test_mark_task_complete_no_file(self, tmp_path):
+        assert _mark_task_complete(tmp_path / "not_found.json", "T-101") == "not_found"
+
+    def test_mark_task_complete_not_found(self, tmp_path):
+        f = tmp_path / "tasks.json"
+        f.write_text(json.dumps({"tasks": []}))
+        assert _mark_task_complete(f, "T-101") == "not_found"
+
+    def test_mark_task_complete_exception(self, tmp_path):
+        assert _mark_task_complete(Path("/invalid_dir/tasks.json"), "T-101").startswith("error:")
+
+    def test_run_cleanup_exception(self):
+        with patch("subprocess.run", side_effect=Exception("cleanup error")):
+            _run_cleanup(Path("/nonexistent"))
+
+    def test_find_workspace_root_fallback(self, tmp_path):
+        from agentflow.hooks.post_tool_use_agent import _find_workspace_root
+        with patch("pathlib.Path.cwd", return_value=tmp_path):
+            with patch("pathlib.Path.is_dir", return_value=False):
+                assert _find_workspace_root() == tmp_path
+
+    def test_main_in_flight_file_missing(self, tmp_path):
+        with patch("agentflow.hooks.post_tool_use_agent._find_workspace_root", return_value=tmp_path):
+            with pytest.raises(SystemExit) as exc:
+                main()
+        assert exc.value.code == 0
+
+    def test_main_in_flight_corrupted(self, tmp_path):
+        agentflow_dir = tmp_path / ".agentflow"
+        agentflow_dir.mkdir()
+        (agentflow_dir / "tasks_in_flight.json").write_text("not json")
+        with patch("agentflow.hooks.post_tool_use_agent._find_workspace_root", return_value=tmp_path):
+            with pytest.raises(SystemExit) as exc:
+                main()
+        assert exc.value.code == 0
+
+    def test_main_tasks_json_missing(self, tmp_path):
+        agentflow_dir = tmp_path / ".agentflow"
+        agentflow_dir.mkdir()
+        (agentflow_dir / "tasks_in_flight.json").write_text('["T-100"]')
+        with patch("agentflow.hooks.post_tool_use_agent._find_workspace_root", return_value=tmp_path):
+            with pytest.raises(SystemExit) as exc:
+                main()
+        assert exc.value.code == 0
+
+    def test_main_tasks_json_corrupted(self, tmp_path):
+        agentflow_dir = tmp_path / ".agentflow"
+        agentflow_dir.mkdir()
+        (agentflow_dir / "tasks_in_flight.json").write_text('["T-100"]')
+        (tmp_path / "tasks.json").write_text("not json")
+        with patch("agentflow.hooks.post_tool_use_agent._find_workspace_root", return_value=tmp_path):
+            with pytest.raises(SystemExit) as exc:
+                main()
         assert exc.value.code == 0

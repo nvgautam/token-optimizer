@@ -9,6 +9,64 @@ from datetime import datetime
 from pathlib import Path
 
 
+def is_task_filed(file_path: Path, cwd: Path) -> bool:
+    try:
+        rel_path = file_path.relative_to(cwd)
+        rel_path_str = str(rel_path)
+    except ValueError:
+        rel_path_str = str(file_path)
+    filename = file_path.name
+
+    # 1. Check tasks.json
+    tasks_file = cwd / "tasks.json"
+    if tasks_file.exists():
+        try:
+            data = json.loads(tasks_file.read_text(encoding="utf-8"))
+            for task in data.get("tasks", []):
+                # Check owns
+                owns = task.get("owns", [])
+                if isinstance(owns, list):
+                    if any(rel_path_str in str(o) or filename in str(o) for o in owns):
+                        return True
+                # Check description/title/goals
+                for key in ("title", "description", "goals", "goal"):
+                    val = task.get(key)
+                    if val and (rel_path_str in str(val) or filename in str(val)):
+                        return True
+        except Exception:
+            pass
+
+    # 2. Check .agentflow/tasks.archive.json
+    archive_file = cwd / ".agentflow" / "tasks.archive.json"
+    if archive_file.exists():
+        try:
+            data = json.loads(archive_file.read_text(encoding="utf-8"))
+            tasks_list = data if isinstance(data, list) else data.get("tasks", [])
+            for task in tasks_list:
+                owns = task.get("owns", [])
+                if isinstance(owns, list):
+                    if any(rel_path_str in str(o) or filename in str(o) for o in owns):
+                        return True
+                for key in ("title", "description", "goals", "goal"):
+                    val = task.get(key)
+                    if val and (rel_path_str in str(val) or filename in str(val)):
+                        return True
+        except Exception:
+            pass
+
+    # 3. Check execution_plan.md
+    plan_file = cwd / "execution_plan.md"
+    if plan_file.exists():
+        try:
+            content = plan_file.read_text(encoding="utf-8")
+            if rel_path_str in content or filename in content:
+                return True
+        except Exception:
+            pass
+
+    return False
+
+
 def main() -> None:
     try:
         data = json.load(sys.stdin)
@@ -26,7 +84,7 @@ def main() -> None:
             sys.exit(0)
 
         path = Path(file_path).resolve()
-        cwd = Path.cwd().resolve()
+        cwd = Path(os.getcwd()).resolve()
 
         try:
             rel_path = path.relative_to(cwd)
@@ -47,10 +105,8 @@ def main() -> None:
             limit = 150
         elif is_tests and is_py:
             limit = 350
-        elif is_py:
-            limit = 250
         else:
-            sys.exit(0)
+            limit = 250
 
         try:
             content = path.read_text(encoding="utf-8")
@@ -73,20 +129,21 @@ def main() -> None:
                 "split by responsibility boundary before proceeding.",
                 file=sys.stderr,
             )
-            try:
-                violations_path = Path(os.getcwd()) / ".agentflow" / "size_violations.jsonl"
-                violations_path.parent.mkdir(parents=True, exist_ok=True)
-                entry = {
-                    "file": rel_path_str,
-                    "blocked_lines": n_lines,
-                    "actual_lines": n_lines,
-                    "limit": limit,
-                    "ts": datetime.now().isoformat(),
-                }
-                with violations_path.open("a", encoding="utf-8") as _f:
-                    _f.write(json.dumps(entry) + "\n")
-            except Exception as e:
-                print(json.dumps({"hook": "size_check.py", "event": "violations_write_error", "error": str(e), "ts": time.time()}), file=sys.stderr)
+            if not is_task_filed(path, cwd):
+                try:
+                    violations_path = Path(os.getcwd()) / ".agentflow" / "size_violations.jsonl"
+                    violations_path.parent.mkdir(parents=True, exist_ok=True)
+                    entry = {
+                        "file": rel_path_str,
+                        "blocked_lines": n_lines,
+                        "actual_lines": n_lines,
+                        "limit": limit,
+                        "ts": datetime.now().isoformat(),
+                    }
+                    with violations_path.open("a", encoding="utf-8") as _f:
+                        _f.write(json.dumps(entry) + "\n")
+                except Exception as e:
+                    print(json.dumps({"hook": "size_check.py", "event": "violations_write_error", "error": str(e), "ts": time.time()}), file=sys.stderr)
             sys.exit(1)
 
     except Exception as e:
