@@ -1130,6 +1130,11 @@ Root cause confirmed via pty_audit + hook_drain_debug: the flip at ts=1784398765
 - tasks.json still present after migration → reads ignored, not double-counted
 - Round startup with 0 pending tasks → clean "nothing to do" exit, no crash
 
+**Addendum lifecycle (new):**
+- On PR merge: `post_tool_use.py` merge hook atomically (1) marks tasks.json complete, (2) writes MERGED to round table, **(3) moves `## Addendum: T-NNN` section from execution_plan.md to `.agentflow/addendums_archive.md`** — all three or none (rollback if any step fails)
+- Migration: move all existing MERGED-task addendums out of execution_plan.md into archive as part of T-299
+- `tests/test_addendum_lifecycle.py`: assert merge hook moves addendum; assert execution_plan.md contains no addendum for a completed task; assert archive contains it; assert idempotent (second run no-ops)
+
 **Schema enforcement (new — added after root cause found in generation.md):**
 - `tests/test_tasks_json_schema.py`: assert every entry in tasks.json has ONLY `task_id` + `status`; any extra field → test fails. Runs in CI. Prevents oracle from re-introducing description fields.
 - `generation.md` updated: tasks.json schema is `{task_id, status}` only; all spec in execution_plan.md addendum.
