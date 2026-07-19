@@ -81,45 +81,40 @@ class TestMarkTaskComplete:
 
     def test_mark_task_complete_success(self):
         """Return True when task marked complete."""
-        with patch("agentflow.hooks.ups_task_sync.TaskDB") as mock_db_class:
-            mock_db = Mock()
-            mock_db.mark_complete.return_value = "marked"
-            mock_db_class.return_value = mock_db
+        tmp_dir = Path(tempfile.gettempdir()) / "test_tasks"
+        tmp_dir.mkdir(exist_ok=True)
+        tasks_file = tmp_dir / "tasks.json"
+        agentflow_dir = tmp_dir / ".agentflow"
+        agentflow_dir.mkdir(exist_ok=True)
+        tasks_file.write_text(json.dumps({"tasks": [{"task_id": "T-1", "status": "pending"}]}))
 
-            tmp_dir = Path(tempfile.gettempdir()) / "test_tasks"
-            tmp_dir.mkdir(exist_ok=True)
-            tasks_file = tmp_dir / "tasks.json"
-
+        with patch("agentflow.hooks.ups_task_sync._run_cleanup"):
             result = _mark_task_complete(tasks_file, "T-1")
             assert result is True
+            data = json.loads(tasks_file.read_text())
+            assert data["tasks"][0]["status"] == "complete"
 
     def test_mark_task_complete_already_complete(self):
-        """Return True when task already complete."""
-        with patch("agentflow.hooks.ups_task_sync.TaskDB") as mock_db_class:
-            mock_db = Mock()
-            mock_db.mark_complete.return_value = "already_complete"
-            mock_db_class.return_value = mock_db
+        """Return False when task already complete."""
+        tmp_dir = Path(tempfile.gettempdir()) / "test_tasks"
+        tmp_dir.mkdir(exist_ok=True)
+        tasks_file = tmp_dir / "tasks.json"
+        agentflow_dir = tmp_dir / ".agentflow"
+        agentflow_dir.mkdir(exist_ok=True)
+        tasks_file.write_text(json.dumps({"tasks": [{"task_id": "T-1", "status": "complete"}]}))
 
-            tmp_dir = Path(tempfile.gettempdir()) / "test_tasks"
-            tmp_dir.mkdir(exist_ok=True)
-            tasks_file = tmp_dir / "tasks.json"
-
-            result = _mark_task_complete(tasks_file, "T-1")
-            assert result is True
-
-    def test_mark_task_complete_failure(self):
-        """Return False on error."""
-        with patch("agentflow.hooks.ups_task_sync.TaskDB") as mock_db_class:
-            mock_db = Mock()
-            mock_db.mark_complete.return_value = "error"
-            mock_db_class.return_value = mock_db
-
-            tmp_dir = Path(tempfile.gettempdir()) / "test_tasks"
-            tmp_dir.mkdir(exist_ok=True)
-            tasks_file = tmp_dir / "tasks.json"
-
+        with patch("agentflow.hooks.ups_task_sync._run_cleanup"):
             result = _mark_task_complete(tasks_file, "T-1")
             assert result is False
+
+    def test_mark_task_complete_failure(self):
+        """Return False on error (e.g., file not found)."""
+        tmp_dir = Path(tempfile.gettempdir()) / "test_tasks_err"
+        tmp_dir.mkdir(exist_ok=True)
+        tasks_file = tmp_dir / "nonexistent.json"
+
+        result = _mark_task_complete(tasks_file, "T-1")
+        assert result is False
 
 
 class TestRunCleanup:
@@ -147,39 +142,31 @@ class TestLockedWriteTasks:
 
     def test_locked_write_tasks_success(self):
         """Mark complete and run cleanup on success."""
-        with patch("agentflow.hooks.ups_task_sync.TaskDB") as mock_db_class, \
-             patch("agentflow.hooks.ups_task_sync._run_cleanup") as mock_cleanup, \
-             patch("agentflow.hooks.ups_task_sync._log_drain") as mock_log:
+        tmp_dir = Path(tempfile.gettempdir()) / "test_tasks"
+        tmp_dir.mkdir(exist_ok=True)
+        tasks_file = tmp_dir / "tasks.json"
+        agentflow_dir = tmp_dir / ".agentflow"
+        agentflow_dir.mkdir(exist_ok=True)
+        tasks_file.write_text(json.dumps({"tasks": [{"task_id": "T-1", "status": "pending"}]}))
 
-            mock_db = Mock()
-            mock_db.mark_complete.return_value = "marked"
-            mock_db_class.return_value = mock_db
-
-            tmp_dir = Path(tempfile.gettempdir()) / "test_tasks"
-            tmp_dir.mkdir(exist_ok=True)
-            tasks_file = tmp_dir / "tasks.json"
-            agentflow_dir = tmp_dir / ".agentflow"
-            agentflow_dir.mkdir(exist_ok=True)
-
+        with patch("agentflow.hooks.ups_task_sync._run_cleanup") as mock_cleanup, \
+             patch("agentflow.hooks.ups_task_sync._log_drain"):
             result = _locked_write_tasks(tasks_file, agentflow_dir, "T-1")
             assert result is True
             mock_cleanup.assert_called_once()
+            data = json.loads(tasks_file.read_text())
+            assert data["tasks"][0]["status"] == "complete"
 
     def test_locked_write_tasks_bad_result(self):
-        """Return False on bad mark_complete result."""
-        with patch("agentflow.hooks.ups_task_sync.TaskDB") as mock_db_class, \
-             patch("agentflow.hooks.ups_task_sync._log_drain"):
+        """Return False on bad mark_complete result (task not found)."""
+        tmp_dir = Path(tempfile.gettempdir()) / "test_tasks"
+        tmp_dir.mkdir(exist_ok=True)
+        tasks_file = tmp_dir / "tasks.json"
+        agentflow_dir = tmp_dir / ".agentflow"
+        agentflow_dir.mkdir(exist_ok=True)
+        tasks_file.write_text(json.dumps({"tasks": [{"task_id": "T-2", "status": "pending"}]}))
 
-            mock_db = Mock()
-            mock_db.mark_complete.return_value = "error"
-            mock_db_class.return_value = mock_db
-
-            tmp_dir = Path(tempfile.gettempdir()) / "test_tasks"
-            tmp_dir.mkdir(exist_ok=True)
-            tasks_file = tmp_dir / "tasks.json"
-            agentflow_dir = tmp_dir / ".agentflow"
-            agentflow_dir.mkdir(exist_ok=True)
-
+        with patch("agentflow.hooks.ups_task_sync._log_drain"):
             result = _locked_write_tasks(tasks_file, agentflow_dir, "T-1")
             assert result is False
 

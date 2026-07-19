@@ -21,12 +21,6 @@ def _write_merged_and_clear(manager) -> None:
 	except Exception as e:
 		manager._log_audit({"event": "drain_no_current_round", "error": str(e)})
 		return  # corrupt or mid-write race — preserve TIF, retry next 30s poll
-	db = None
-	try:
-		from agentflow.tools.task_db import TaskDB
-		db = TaskDB(manager._project_root / ".agentflow" / "tasks.db")
-	except Exception:
-		pass
 	ep = manager._project_root / "execution_plan.md"
 	lock = manager._project_root / "execution_plan.md.lock"
 	try:
@@ -51,8 +45,6 @@ def _write_merged_and_clear(manager) -> None:
 	except Exception as e:
 		manager._log_audit({"event": "drain_execution_plan_write_error", "round_id": rid, "error": str(e)})
 	try:
-		if db:
-			db.clear_active_round()
 		tif_existed = manager._tasks_in_flight_path.exists()
 		manager._tasks_in_flight_path.unlink(missing_ok=True)
 		manager._log_audit({"event": "tif_unlinked", "round_id": rid, "existed": tif_existed})

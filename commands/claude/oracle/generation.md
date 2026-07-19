@@ -95,6 +95,7 @@ tasks.json        → task lifecycle
 Rules:
 - **`task_id` and `status` ONLY** — no `title`, `description`, `owns`, `reads`, `depends_on`, `estimated_lines`, or any other field
 - All task spec (title, description, owns, test scenarios) goes in `execution_plan.md` addendum ONLY
+- **Addendum Lifecycle:** On PR merge, the merge hook atomically (a) marks task complete in `tasks.json`, (b) appends `— MERGED (auto)` to the execution plan table row, and (c) moves the `## Addendum: T-NNN` section from `execution_plan.md` into `.agentflow/addendums_archive.md`.
 - All tasks start with `status: "pending"`
 - Violation enforced by `tests/test_tasks_json_schema.py` — any extra field fails CI
 

@@ -11,7 +11,6 @@ import time
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from agentflow.shell.session_paths import session_file
-from agentflow.tools.task_db import TaskDB
 def _find_workspace_root() -> Path:
     cwd = Path.cwd()
     for parent in [cwd, *cwd.parents]:
@@ -36,11 +35,37 @@ def _fetch_merged_pr_titles(limit: int = 20) -> set[str]:
 
 
 def _mark_task_complete(tasks_file: Path, task_id: str) -> str:
-    """Mark task_id complete using SQLite. Returns: 'marked'|'already_complete'|'not_found'|'error'."""
+    """Mark task_id complete using tasks.json. Returns: 'marked'|'already_complete'|'not_found'|'error'."""
+    import fcntl
+    import tempfile
+    agentflow_dir = tasks_file.parent / ".agentflow"
+    lock_path = agentflow_dir / "tasks.json.lock"
     try:
-        agentflow_dir = tasks_file.parent / ".agentflow"
-        db = TaskDB(agentflow_dir / "tasks.db", tasks_json_path=tasks_file)
-        return db.mark_complete(task_id)
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(lock_path, "a+") as f:
+            fcntl.flock(f, fcntl.LOCK_EX)
+            try:
+                if not tasks_file.exists():
+                    return "not_found"
+                data = json.loads(tasks_file.read_text())
+                found = False
+                for task in data.get("tasks", []):
+                    if task.get("task_id") == task_id:
+                        if task.get("status") == "complete":
+                            return "already_complete"
+                        task["status"] = "complete"
+                        found = True
+                        break
+                if not found:
+                    return "not_found"
+                
+                fd, tmp = tempfile.mkstemp(dir=str(tasks_file.parent))
+                with os.fdopen(fd, "w", encoding="utf-8") as tmp_f:
+                    json.dump(data, tmp_f, indent=2)
+                os.replace(tmp, str(tasks_file))
+                return "marked"
+            finally:
+                fcntl.flock(f, fcntl.LOCK_UN)
     except Exception as e:
         return f"error:{e}"
 
