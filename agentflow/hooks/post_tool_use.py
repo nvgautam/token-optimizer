@@ -139,10 +139,12 @@ def detect_pr_merge(
 
 
 def _sync_tif_from_disk_if_absent(agentflow_dir: pathlib.Path) -> None:
-    """Self-healing fallback: populate tif from current_round.json on disk when tif is absent.
+    """Populate tasks_in_flight.json from current_round.json when tif is absent.
 
-    Handles the case where orchestrate writes current_round.json via Bash (not the Write tool),
-    so the Write-tool path in sync_tasks_in_flight never fires.
+    With the CLI-driven path (`agentflow round start` via Bash), the CLI writes
+    both current_round.json and tasks_in_flight.json atomically before this hook
+    fires — so this function returns immediately (tif already exists). It remains
+    as a safety net for any legacy Write-tool path or race where tif was not written.
     """
     sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
     tif_path = session_file(agentflow_dir, "tasks_in_flight.json", sid)
@@ -170,6 +172,8 @@ def sync_tasks_in_flight(tool_name: str, tool_input: dict, agentflow_dir: pathli
     """
     file_path = tool_input.get("file_path", "")
     if tool_name != "Write":
+        # CLI-driven path (agentflow round start via Bash): tif already written atomically
+        # by the CLI before this hook fires. _sync_tif_from_disk_if_absent is a no-op.
         if file_path.endswith("/.agentflow/current_round.json"):
             _log(agentflow_dir, {"event": "sync_tif_skip", "reason": "not_write_tool", "tool": tool_name})
         _sync_tif_from_disk_if_absent(agentflow_dir)

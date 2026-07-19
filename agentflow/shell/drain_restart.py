@@ -66,6 +66,11 @@ def _write_merged_and_clear(manager) -> None:
 		pass
 
 
+# Session-restart improvement (T-260): agentflow round start atomically writes
+# current_round.json + tasks_in_flight.json in a single CLI call. This eliminates
+# the previous race where drain could read current_round.json after the Write tool
+# but before the PostToolUse hook populated tasks_in_flight.json — causing drain
+# to see a round with no in-flight tasks and incorrectly trigger a restart.
 def check_drain_restart(manager) -> None:
 	"""Trigger restart when tasks_in_flight drains and context fill >= 80K."""
 	def _skip(reason: str, **extra) -> None:
