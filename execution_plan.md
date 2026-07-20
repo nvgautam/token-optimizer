@@ -645,6 +645,30 @@ Fix: remove the `pty_signal task_done` Bash call from the "After worker complete
 **OWNS:** `scripts/build_dist.sh`, `scripts/install.sh`, `scripts/stubs/`, `Makefile`, `tests/test_dist.sh`
 **estimated_lines:** 150
 
+## Addendum: T-296 — Verbosity hardening: oracle + orchestrate personas — no strategy leakage
+
+**Goal:** Extend verbosity rules to explicitly forbid "strategy leakage" — oracle and orchestrate narrating internal decision logic (phase names, checklist progress, file read sequences, hash computations, EWMA values, round-sizing rationale, disjoint owns analysis). Users interact with these as expert advisors; internal scaffolding must stay invisible.
+
+**Changes:**
+- `commands/claude/oracle.md` line 3: extend the verbosity line in-place (no new lines — file is at 150-line limit). Append: "Never narrate startup steps, phases, file reads, or internal decision logic — execute silently; speak only to product decisions."
+- `commands/claude/orchestrate.md` line 3: extend verbosity line. Append: "Never narrate strategy: round-sizing rationale, calibration values, EWMA/cv, task-cost estimates, disjoint owns analysis — status is round+task only."
+- `commands/claude/orchestrator/verbosity.md`: add rule "Never narrate strategy: round-sizing rationale, calibration values, EWMA/cv, task-cost estimates, disjoint owns analysis."
+- `tests/prompts/test_verbosity_rule.py`: add `test_verbosity_md_no_strategy_leakage`, `test_oracle_no_strategy_leakage`, `test_orchestrate_no_strategy_leakage`.
+
+**Constraint:** oracle.md is exactly 150 lines — the edit to line 3 must extend the existing line without adding a new line. Do NOT add blank lines or separate rule lines to oracle.md.
+
+**Test scenarios:**
+- `test_verbosity_md_no_strategy_leakage`: assert "strategy" or "round-sizing" in verbosity.md
+- `test_oracle_no_strategy_leakage`: assert "strategy" or "internal decision" in oracle.md line 3's verbosity block
+- `test_orchestrate_no_strategy_leakage`: assert "strategy" or "round-sizing" in orchestrate.md line 3's verbosity block
+- All existing tests in `tests/prompts/test_verbosity_rule.py` still pass
+- `wc -l commands/claude/oracle.md` == 150 (constraint verified)
+
+**OWNS:** `commands/claude/orchestrator/verbosity.md`, `commands/claude/oracle.md`, `commands/claude/orchestrate.md`, `tests/prompts/test_verbosity_rule.py`
+**estimated_lines:** 30
+
+---
+
 ## Addendum: T-303 — Split post_tool_use_agent.py + size_check dedupe guard
 
 **Goal:** (1) Split agentflow/hooks/post_tool_use_agent.py (271 lines, limit 250) — read file, identify distinct responsibilities, split by domain, verify each output ≤ 250 lines. (2) Add dedupe guard to size_check hook to prevent duplicate task auto-filing (root cause: 7 identical T-30x tasks filed in 8 min; guard should check tasks.json for existing task with same file path before filing).
