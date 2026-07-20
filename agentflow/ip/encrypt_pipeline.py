@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import argparse
 import hashlib
 from pathlib import Path
@@ -43,7 +44,8 @@ def encrypt_skills(key: bytes, source_dir: str | Path = "commands", output_dir: 
 
             mapped_dest = map_path(md_file, source_path, output_path)
             mapped_dest.parent.mkdir(parents=True, exist_ok=True)
-            mapped_dest.write_bytes(nonce + ciphertext)
+            bundle = {"nonce": nonce.hex(), "ciphertext": ciphertext.hex()}
+            mapped_dest.write_text(json.dumps(bundle), encoding="utf-8")
 
 def derive_key(key_str: str) -> bytes:
     """

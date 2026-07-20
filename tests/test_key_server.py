@@ -247,3 +247,55 @@ def test_main_runs_and_handles_keyboard_interrupt():
          patch("agentflow.ip.key_server.HTTPServer.serve_forever", side_effect=KeyboardInterrupt) as mock_serve:
         main()
         mock_serve.assert_called_once()
+
+
+@pytest.fixture
+def master_key():
+    return os.urandom(32)
+
+
+@pytest.fixture
+def master_key_server(auth_token, skills_dir, master_key):
+    server, thread, port = run_server_in_thread(
+        host="127.0.0.1",
+        port=0,
+        token=auth_token,
+        skills_dir=skills_dir,
+        master_key=master_key,
+    )
+    yield server, f"http://127.0.0.1:{port}", master_key
+    server.shutdown()
+    thread.join()
+
+
+def test_master_key_served_on_key_endpoint(master_key_server, auth_token):
+    """When AGENTFLOW_MASTER_KEY is set, /key returns that key (no random ephemeral, no key_id)."""
+    _, url, mk = master_key_server
+    headers = {"Authorization": f"Bearer {auth_token}"}
+    response = httpx.get(f"{url}/key", headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+    # key matches master key
+    assert data["key"] == mk.hex()
+    # no key_id in master-key mode
+    assert "key_id" not in data
+
+
+def test_master_key_revocation_via_token_rejection(master_key_server):
+    """Invalid token gets 401 even when master key is set (revocation: reject the token)."""
+    _, url, _ = master_key_server
+    response = httpx.get(f"{url}/key", headers={"Authorization": "Bearer wrong-token"})
+    assert response.status_code == 401
+    assert "Unauthorized" in response.text
+
+
+def test_ephemeral_key_when_no_master_key(test_server, auth_token):
+    """Without master key, /key still returns ephemeral key + key_id (backward compat)."""
+    _, url = test_server
+    headers = {"Authorization": f"Bearer {auth_token}"}
+    response = httpx.get(f"{url}/key", headers=headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert "key_id" in data
+    assert "key" in data
+    assert len(data["key"]) == 64

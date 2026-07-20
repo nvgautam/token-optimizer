@@ -12,10 +12,18 @@ from urllib.parse import urlparse, parse_qs, unquote
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 class KeyServer(HTTPServer):
-    def __init__(self, server_address, RequestHandlerClass, token: str, skills_dir: str):
+    def __init__(
+        self,
+        server_address,
+        RequestHandlerClass,
+        token: str,
+        skills_dir: str,
+        master_key: bytes | None = None,
+    ):
         super().__init__(server_address, RequestHandlerClass)
         self.token = token
         self.skills_dir = skills_dir
+        self.master_key = master_key  # If set, /key serves this key (license-revocation mode)
         self.active_keys = {}  # key_id -> (key_bytes, expiry_time)
         self.lock = threading.Lock()
 
@@ -70,19 +78,18 @@ class KeyServerHandler(BaseHTTPRequestHandler):
             self.send_error_response(404, "Not Found")
 
     def handle_key_issuance(self):
-        self.server.clean_expired_keys()
-        key_bytes = generate_ephemeral_key()
-        key_id = str(uuid.uuid4())
-        
-        # Ephemeral key expires in 5 minutes (300 seconds)
-        expiry = time.time() + 300
-        with self.server.lock:
-            self.server.active_keys[key_id] = (key_bytes, expiry)
-
-        response_data = {
-            "key_id": key_id,
-            "key": key_bytes.hex()
-        }
+        if self.server.master_key is not None:
+            # Master-key mode: serve the pre-shared encryption key; no key_id
+            response_data = {"key": self.server.master_key.hex()}
+        else:
+            # Ephemeral-key mode (default): generate a fresh short-lived key
+            self.server.clean_expired_keys()
+            key_bytes = generate_ephemeral_key()
+            key_id = str(uuid.uuid4())
+            expiry = time.time() + 300
+            with self.server.lock:
+                self.server.active_keys[key_id] = (key_bytes, expiry)
+            response_data = {"key_id": key_id, "key": key_bytes.hex()}
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
@@ -152,8 +159,14 @@ def generate_ephemeral_key() -> bytes:
     return AESGCM.generate_key(bit_length=256)
 
 
-def run_server_in_thread(host: str, port: int, token: str, skills_dir: str):
-    server = KeyServer((host, port), KeyServerHandler, token, skills_dir)
+def run_server_in_thread(
+    host: str,
+    port: int,
+    token: str,
+    skills_dir: str,
+    master_key: bytes | None = None,
+):
+    server = KeyServer((host, port), KeyServerHandler, token, skills_dir, master_key=master_key)
     bound_port = server.server_address[1]
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()

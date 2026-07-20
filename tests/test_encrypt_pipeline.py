@@ -1,4 +1,5 @@
 import os
+import json
 import tempfile
 import hashlib
 from pathlib import Path
@@ -59,28 +60,32 @@ def test_encrypt_skills_end_to_end():
         assert out2.exists()
         assert out3.exists()
         
-        # Verify they are encrypted and not plaintext
-        data1 = out1.read_bytes()
-        assert b"Claude Oracle" not in data1
-        
+        # Verify they are encrypted and not plaintext (JSON, not raw binary)
+        raw1 = out1.read_text(encoding="utf-8")
+        assert "Claude Oracle" not in raw1
+
+        # Verify JSON format: {"nonce": hex, "ciphertext": hex}
+        bundle1 = json.loads(raw1)
+        assert "nonce" in bundle1
+        assert "ciphertext" in bundle1
+
         # Verify decrypted content matches exactly
         aesgcm = AESGCM(key)
-        
-        # Extracted nonce and ciphertext
-        nonce1 = data1[:12]
-        ciphertext1 = data1[12:]
+
+        nonce1 = bytes.fromhex(bundle1["nonce"])
+        ciphertext1 = bytes.fromhex(bundle1["ciphertext"])
         decrypted1 = aesgcm.decrypt(nonce1, ciphertext1, None).decode("utf-8")
         assert decrypted1 == "# Claude Oracle\nHello world"
-        
-        data2 = out2.read_bytes()
-        nonce2 = data2[:12]
-        ciphertext2 = data2[12:]
+
+        bundle2 = json.loads(out2.read_text(encoding="utf-8"))
+        nonce2 = bytes.fromhex(bundle2["nonce"])
+        ciphertext2 = bytes.fromhex(bundle2["ciphertext"])
         decrypted2 = aesgcm.decrypt(nonce2, ciphertext2, None).decode("utf-8")
         assert decrypted2 == "# Gemini Oracle Skill\nTest content"
-        
-        data3 = out3.read_bytes()
-        nonce3 = data3[:12]
-        ciphertext3 = data3[12:]
+
+        bundle3 = json.loads(out3.read_text(encoding="utf-8"))
+        nonce3 = bytes.fromhex(bundle3["nonce"])
+        ciphertext3 = bytes.fromhex(bundle3["ciphertext"])
         decrypted3 = aesgcm.decrypt(nonce3, ciphertext3, None).decode("utf-8")
         assert decrypted3 == "# Gemini Generation\nMore tests"
 
