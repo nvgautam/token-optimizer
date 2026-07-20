@@ -115,6 +115,12 @@ def test_cli_shell_mkdir_exception(tmp_path):
     mock_wrapper.master_fd = 0
     mock_wrapper.read_output.return_value = b""
 
+    original_mkdir = pathlib.Path.mkdir
+    def mock_mkdir(self, *args, **kwargs):
+        if "home" in self.parts and "sessions" in self.parts and self.name == "sessions":
+            raise OSError("Permission denied")
+        return original_mkdir(self, *args, **kwargs)
+
     with patch.dict(os.environ, {}, clear=False):
         os.environ.pop("AGENTFLOW_SESSION_ID", None)
 
@@ -129,7 +135,7 @@ def test_cli_shell_mkdir_exception(tmp_path):
              patch("select.select", return_value=([], [], [])), \
              patch("sys.exit"), \
              patch("agentflow.shell.pty_shell.ProxyShell"), \
-             patch("pathlib.Path.mkdir", side_effect=OSError("Permission denied")), \
+             patch("pathlib.Path.mkdir", autospec=True, side_effect=mock_mkdir), \
              patch("agentflow.shell.pty_wrapper.PTYWrapper", return_value=mock_wrapper):
 
             # Should not raise exception
@@ -155,6 +161,11 @@ def test_session_type_updates_inside_session_manager(tmp_path):
         "started_at": "2026-07-04T12:00:00"
     }), encoding="utf-8")
 
+    agentflow_dir = cwd_dir / ".agentflow"
+    agentflow_dir.mkdir(parents=True, exist_ok=True)
+    sid_state_file = agentflow_dir / "sessions" / session_id / "session_state.json"
+    sid_state_file.parent.mkdir(parents=True, exist_ok=True)
+
     pty = FakePTY()
     tok = FakeTokenizer()
 
@@ -166,23 +177,26 @@ def test_session_type_updates_inside_session_manager(tmp_path):
         sm = SessionManager(pty, tok, config={})
         assert sm.session_type is None
 
-        # Simulate output triggering oracle
-        pty._on_output(b"/oracle\r\n")
+        # Simulate update to oracle by writing to the SID session state file
+        sid_state_file.write_text(json.dumps({"session_type": "oracle"}), encoding="utf-8")
+        sm._sync_session_type()
         assert sm.session_type == "oracle"
 
         # Check file was updated
         data = json.loads(session_file.read_text(encoding="utf-8"))
         assert data["session_type"] == "oracle"
 
-        # Simulate output triggering clear
-        pty._on_output(b"/clear\r\n")
+        # Simulate output triggering clear via clear_signal file
+        (agentflow_dir / "clear_signal").touch()
+        pty._on_output(b"some clear output\n")
         assert sm.session_type is None
 
         data = json.loads(session_file.read_text(encoding="utf-8"))
         assert data["session_type"] is None
 
-        # Simulate output triggering orchestrate
-        pty._on_output(b"/orchestrate\r\n")
+        # Simulate update to orchestrator by writing to the SID session state file
+        sid_state_file.write_text(json.dumps({"session_type": "orchestrator"}), encoding="utf-8")
+        sm._sync_session_type()
         assert sm.session_type == "orchestrator"
 
         data = json.loads(session_file.read_text(encoding="utf-8"))
@@ -314,17 +328,39 @@ def test_session_id_recorded_in_verbosity_log_entries(tmp_path):
         assert record2["session_type"] == "oracle"
 
 
-def test_restart_session():
-    """Verify restart_session writes appropriate commands for oracle and orchestrator."""
+def test_restart_session(tmp_path):
+    """Verify _restart_session restarts the child process with the correct positional arguments."""
+    import pty as pty_module
+    from agentflow.shell.process_manager import spawn_new_child
+
     pty = FakePTY()
+    pty._command = ["claude"]
     tok = FakeTokenizer()
     sm = SessionManager(pty, tok, config={})
+    sm._project_root = tmp_path
 
+    # 1. Oracle restart
     sm.session_type = "oracle"
-    sm._restart_session()
-    assert "/oracle\r" in pty.inputs  # T-148: PTY expects \r not \n
+    sm._just_restarted = True
+    exec_called = []
+    with patch.object(pty_module, "fork", return_value=(0, 123)), \
+         patch("os.execvp", side_effect=lambda cmd, args: exec_called.append(args) or (_ for _ in ()).throw(SystemExit(127))), \
+         patch("os._exit"):
+        try:
+            spawn_new_child(sm)
+        except SystemExit:
+            pass
+    assert exec_called and exec_called[0] == ["claude", "/oracle"]
 
-    pty.inputs.clear()
+    # 2. Orchestrator restart
     sm.session_type = "orchestrator"
-    sm._restart_session()
-    assert "/orchestrate\r" in pty.inputs  # T-148: PTY expects \r not \n
+    sm._just_restarted = True
+    exec_called = []
+    with patch.object(pty_module, "fork", return_value=(0, 123)), \
+         patch("os.execvp", side_effect=lambda cmd, args: exec_called.append(args) or (_ for _ in ()).throw(SystemExit(127))), \
+         patch("os._exit"):
+        try:
+            spawn_new_child(sm)
+        except SystemExit:
+            pass
+    assert exec_called and exec_called[0] == ["claude", "/orchestrate", "--permission-mode", "auto"]

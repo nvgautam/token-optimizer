@@ -373,8 +373,8 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | M-F-1 [PENDING] | T-298 ‖ T-297 (MERGED PR #203) | CLI task_done/start impl + pty_signal migration + dead hook removal + hook integration tests |
 | M-F-3 [PENDING] | T-296 (solo) | Verbosity hardening: oracle + orchestrate personas — no strategy leakage |
 | M-F-4 — MERGED | T-236 (solo) | Post-merge conflict resolution (OWNS gate preserved) |
-| M-F-6 [PENDING] | T-295 (solo) | IP spike: wire key server + encrypt context files at write — must land before M-F-8 (binary ships encrypted) |
-| M-F-7 ‖ M-F-8 [PENDING] | T-301 ‖ T-302 (parallel) | Oracle handoff UX + customer distribution — disjoint OWNS (session_manager.py/oracle.md vs scripts/build_dist.sh); depends M-F-6 |
+| M-F-6 [DEFERRED] | T-295 (solo) | IP spike: wire key server + encrypt context files — DEFERRED (customer-shipped binary; Nuitka Community obfuscation sufficient for now) |
+| M-F-7 ‖ M-F-8 [PENDING] | T-301 ‖ T-302 (parallel) | Oracle handoff UX + customer distribution — disjoint OWNS (session_manager.py/oracle.md vs scripts/build_dist.sh) |
 | Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
 | Round E [PENDING] | T-168 ‖ T-290 (parallel) | product judgment layer + debug terminal step |
 | Round E-2 [PENDING] | T-167 (solo) | Oracle Phase 3 plan-mode preview |

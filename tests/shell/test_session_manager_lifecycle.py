@@ -127,6 +127,9 @@ def test_idle_poll_no_longer_triggers_on_token_count(tmp_path):
 def test_init_state_with_preexisting_current_round(tmp_path):
     (tmp_path / ".agentflow").mkdir()
     (tmp_path / ".agentflow" / "current_round.json").write_text("{}", encoding="utf-8")
+    (tmp_path / ".agentflow" / "session_state.json").write_text(
+        '{"session_type": "orchestrator"}', encoding="utf-8"
+    )
     from conftest import FakePTY, FakeTokenizer
     from agentflow.shell.session_manager import SessionManager
     pty, tok = FakePTY(), FakeTokenizer()

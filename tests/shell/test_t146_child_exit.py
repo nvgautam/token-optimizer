@@ -122,16 +122,16 @@ def _make_wrapper_mock(child_pid=12345, master_fd=77):
 
 def test_idle_tick_waitpid_detects_dead_child():
     """When master_fd is NOT readable but waitpid returns child pid, _exited is set."""
-    from agentflow import cli  # import the module to introspect cmd_shell logic
+    from agentflow import cli_cmds  # import the module to introspect cmd_shell logic
 
     wrapper = _make_wrapper_mock(child_pid=999)
     on_exit_cb = MagicMock()
     wrapper._on_exit = on_exit_cb
 
     # Simulate: select returns no ready fds (idle path), waitpid returns the child
-    with patch("agentflow.cli.select.select", return_value=([], [], [])):
-        with patch("agentflow.cli.os.waitpid", return_value=(999, 0)) as mock_waitpid:
-            with patch("agentflow.cli.os.waitstatus_to_exitcode", return_value=0):
+    with patch("agentflow.cli_cmds.select.select", return_value=([], [], [])):
+        with patch("os.waitpid", return_value=(999, 0)) as mock_waitpid:
+            with patch("os.waitstatus_to_exitcode", return_value=0):
                 # Run exactly one iteration of the idle branch logic
                 # (replicated inline to avoid mocking the whole PTY)
                 try:

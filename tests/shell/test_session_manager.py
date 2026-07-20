@@ -16,10 +16,21 @@ from conftest import make_manager, fire_output, FakePTY, FakeTokenizer
 
 def test_session_types():
     sm, pty, _ = make_manager()
-    fire_output(sm, pty, "/oracle\r\n")
+    agentflow_dir = sm._project_root / ".agentflow"
+    agentflow_dir.mkdir(parents=True, exist_ok=True)
+    (agentflow_dir / "session_state.json").write_text(
+        json.dumps({"session_type": "oracle"}), encoding="utf-8"
+    )
+    sm._sync_session_type()
     assert sm.session_type == "oracle"
+
     sm2, pty2, _ = make_manager()
-    fire_output(sm2, pty2, "/orchestrate\r\n")
+    agentflow_dir2 = sm2._project_root / ".agentflow"
+    agentflow_dir2.mkdir(parents=True, exist_ok=True)
+    (agentflow_dir2 / "session_state.json").write_text(
+        json.dumps({"session_type": "orchestrator"}), encoding="utf-8"
+    )
+    sm2._sync_session_type()
     assert sm2.session_type == "orchestrator"
 
 
@@ -169,7 +180,7 @@ def _test_spawn_new_child_command(just_restarted, session_type, expected_args):
 
 def test_spawn_new_child_appends_skill():
     """T-195: spawn_new_child appends /{skill} when _just_restarted and session_type set."""
-    _test_spawn_new_child_command(True, "orchestrator", ["claude", "/orchestrate"])
+    _test_spawn_new_child_command(True, "orchestrator", ["claude", "/orchestrate", "--permission-mode", "auto"])
     _test_spawn_new_child_command(True, "oracle", ["claude", "/oracle"])
 
 
@@ -198,7 +209,9 @@ def test_sync_session_type_reads_sid_keyed_file_first():
     agentflow_dir.mkdir(parents=True, exist_ok=True)
 
     # Both files exist with different session types
-    (agentflow_dir / "session_state_abc.json").write_text(
+    sid_dir = agentflow_dir / "sessions" / "abc"
+    sid_dir.mkdir(parents=True, exist_ok=True)
+    (sid_dir / "session_state.json").write_text(
         json.dumps({"session_type": "oracle"}), encoding="utf-8"
     )
     (agentflow_dir / "session_state.json").write_text(
@@ -225,7 +238,7 @@ def test_sync_session_type_falls_back_to_unkeyed_when_no_sid_file():
     )
 
     # No sid-keyed file, should read orchestrator from unkeyed file
-    with patch.dict(os.environ, {"AGENTFLOW_SESSION_ID": "missing_sid"}):
+    with patch.dict(os.environ, {"AGENTFLOW_SESSION_ID": ""}):
         sm.session_type = None
         sm._sync_session_type()
         assert sm.session_type == "orchestrator"
@@ -241,12 +254,16 @@ def test_isolation_two_sessions_independent_state():
     agentflow_dir = proj_root / ".agentflow"
     agentflow_dir.mkdir(parents=True, exist_ok=True)
 
-    # Session 1 writes oracle to session_state_s1.json
-    (agentflow_dir / "session_state_s1.json").write_text(
+    # Session 1 writes oracle to sessions/s1/session_state.json
+    s1_dir = agentflow_dir / "sessions" / "s1"
+    s1_dir.mkdir(parents=True, exist_ok=True)
+    (s1_dir / "session_state.json").write_text(
         json.dumps({"session_type": "oracle"}), encoding="utf-8"
     )
-    # Session 2 writes orchestrator to session_state_s2.json
-    (agentflow_dir / "session_state_s2.json").write_text(
+    # Session 2 writes orchestrator to sessions/s2/session_state.json
+    s2_dir = agentflow_dir / "sessions" / "s2"
+    s2_dir.mkdir(parents=True, exist_ok=True)
+    (s2_dir / "session_state.json").write_text(
         json.dumps({"session_type": "orchestrator"}), encoding="utf-8"
     )
 

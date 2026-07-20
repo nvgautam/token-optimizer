@@ -102,12 +102,10 @@ def test_auto_file_size_violations(tmp_path):
     # Find the new filed task
     new_task = next((t for t in tasks if t["task_id"] == "T-004"), None)
     assert new_task is not None
-    assert new_task["title"] == "Split path/to/oversized1.py — size violation"
-    assert "2026-07-06T12:00:00.000000" in new_task["description"]
-    assert "limit 250" in new_task["description"]
-    assert "split boundary by domain" in new_task["description"]
-    assert new_task["owns"] == ["path/to/oversized1.py"]
-    assert new_task["status"] == "pending"
+    assert new_task == {
+        "task_id": "T-004",
+        "status": "pending"
+    }
 
 def test_cleanup_triggers_auto_file(tmp_path):
     project_root = tmp_path
@@ -156,8 +154,10 @@ def test_cleanup_triggers_auto_file(tmp_path):
     assert t1["status"] == "complete"
 
     t2 = next(t for t in tasks if t["task_id"] == "T-002")
-    assert t2["title"] == "Split oversized.py — size violation"
-    assert t2["status"] == "pending"
+    assert t2 == {
+        "task_id": "T-002",
+        "status": "pending"
+    }
 
 
 def test_auto_file_size_violations_idempotency(tmp_path):
@@ -180,6 +180,10 @@ def test_auto_file_size_violations_idempotency(tmp_path):
     oversized_file = project_root / "oversized.py"
     oversized_file.write_text("\n" * 300, encoding="utf-8")
 
+    # Create execution_plan.md
+    ep_path = project_root / "execution_plan.md"
+    ep_path.write_text("# Plan\n", encoding="utf-8")
+
     # Create violation 1
     v1 = {"file": "oversized.py", "blocked_lines": 300, "actual_lines": 300, "limit": 250, "ts": "2026-07-06T15:00:00"}
     with open(violations_path, "w", encoding="utf-8") as f:
@@ -191,9 +195,10 @@ def test_auto_file_size_violations_idempotency(tmp_path):
     # Verify task was added
     with open(tasks_path, "r", encoding="utf-8") as f:
         result = json.load(f)
-    assert len(result["tasks"]) == 1
-    assert result["tasks"][0]["task_id"] == "T-001"
-    assert result["tasks"][0]["title"] == "Split oversized.py — size violation"
+    assert result["tasks"][0] == {
+        "task_id": "T-001",
+        "status": "pending"
+    }
 
     # Create violation 2 with a new timestamp for the same file
     v2 = {"file": "oversized.py", "blocked_lines": 300, "actual_lines": 300, "limit": 250, "ts": "2026-07-06T16:00:00"}

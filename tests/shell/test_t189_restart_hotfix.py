@@ -197,13 +197,13 @@ class TestSyncSessionTypeRereads:
         assert sm.session_type == "orchestrator", f"Expected orchestrator, got {sm.session_type}"
 
     def test_sync_session_type_checks_all_files(self):
-        """sync_session_type should check session_state_{SID}.json first if AGENTFLOW_SESSION_ID is set."""
+        """sync_session_type should check sessions/<SID>/session_state.json first if AGENTFLOW_SESSION_ID is set."""
         sm, pty, tok = make_manager()
         sm.session_type = None
 
         # Set AGENTFLOW_SESSION_ID env var
         sid = "test-session-123"
-        session_state_sid = sm._project_root / ".agentflow" / f"session_state_{sid}.json"
+        session_state_sid = sm._project_root / ".agentflow" / "sessions" / sid / "session_state.json"
         session_state_sid.parent.mkdir(parents=True, exist_ok=True)
         session_state_sid.write_text('{"session_type": "orchestrator"}', encoding="utf-8")
 
@@ -211,7 +211,7 @@ class TestSyncSessionTypeRereads:
         with patch.dict("os.environ", {"AGENTFLOW_SESSION_ID": sid}):
             sync_session_type(sm)
 
-        # Should have read from session_state_{sid}.json
+        # Should have read from sessions/<sid>/session_state.json
         assert sm.session_type == "orchestrator"
 
     def test_sync_session_type_fallback_to_session_state(self):
