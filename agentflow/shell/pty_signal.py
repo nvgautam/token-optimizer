@@ -48,11 +48,12 @@ def _write_atomic(file_path: Path, data: any):
             os.remove(temp_path)
         raise
 
-def task_start(task_id: str, workspace_root: Path = None):
+def task_start(task_id: str, workspace_root: Path = None, sid: str = ""):
     if not workspace_root:
         workspace_root = find_workspace_root()
+    if not sid:
+        sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
     agentflow_dir = workspace_root / ".agentflow"
-    sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
     in_flight_file = session_file(agentflow_dir, "tasks_in_flight.json", sid)
     lock_path = agentflow_dir / "tasks_in_flight.lock"
 
@@ -135,6 +136,23 @@ def main():
         print("Error: subcommand required (task_start, task_done, handoff_complete)", file=sys.stderr)
         sys.exit(1)
 
+    sid = ""
+    if "--sid" in args:
+        try:
+            sid_idx = args.index("--sid")
+            if sid_idx + 1 < len(args):
+                sid = args[sid_idx + 1]
+                args = args[:sid_idx] + args[sid_idx + 2:]
+            else:
+                print("Error: --sid requires an argument", file=sys.stderr)
+                sys.exit(1)
+        except ValueError:
+            pass
+
+    if not args:
+        print("Error: subcommand required (task_start, task_done, handoff_complete)", file=sys.stderr)
+        sys.exit(1)
+
     subcommand = args[0]
     if subcommand in ("task_start", "task_done"):
         if len(args) < 2:
@@ -143,15 +161,15 @@ def main():
         task_id = args[1]
         try:
             if subcommand == "task_start":
-                task_start(task_id)
+                task_start(task_id, sid=sid)
             else:
-                task_done(task_id)
+                task_done(task_id, sid=sid)
         except Exception as e:
             print(f"Error executing {subcommand}: {e}", file=sys.stderr)
             sys.exit(1)
     elif subcommand == "handoff_complete":
         try:
-            handoff_complete()
+            handoff_complete(sid=sid)
         except Exception as e:
             print(f"Error executing handoff_complete: {e}", file=sys.stderr)
             sys.exit(1)

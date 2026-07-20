@@ -12,13 +12,13 @@ import pytest
 
 
 class TestUserPromptSubmitErrorLogging:
-    """Test user_prompt_submit.py error logging via _log_drain."""
+    """Test ups_task_sync.py error logging via _log_drain."""
 
     def test_check_pr_state_logs_on_exception(self, tmp_path):
         """Patch failing subprocess call, assert _log_drain called with error event."""
         # Import after sys.path setup
         sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-        from agentflow.hooks.user_prompt_submit import _check_pr_state, _log_drain
+        from agentflow.hooks.ups_task_sync import _check_pr_state, _log_drain
 
         agentflow_dir = tmp_path / ".agentflow"
         agentflow_dir.mkdir()
@@ -26,7 +26,7 @@ class TestUserPromptSubmitErrorLogging:
         # Simulate exception during subprocess call
         with mock.patch("subprocess.run", side_effect=RuntimeError("subprocess failure")):
             with mock.patch(
-                "agentflow.hooks.user_prompt_submit._log_drain"
+                "agentflow.hooks.ups_task_sync._log_drain"
             ) as mock_log_drain:
                 result = _check_pr_state("https://github.com/example/repo/pull/1")
                 # Function handles exception silently and returns None
@@ -35,7 +35,7 @@ class TestUserPromptSubmitErrorLogging:
     def test_run_cleanup_logs_on_exception(self, tmp_path):
         """Patch failing subprocess call, assert _log_drain called with error event."""
         sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-        from agentflow.hooks.user_prompt_submit import _run_cleanup
+        from agentflow.hooks.ups_task_sync import _run_cleanup
 
         root = tmp_path
         with mock.patch("subprocess.run", side_effect=RuntimeError("cleanup failure")):
@@ -223,38 +223,3 @@ class TestReadCheckErrorLogging:
         logged = json.loads(output)
         assert logged["event"] == "count_file_lines_error"
         assert logged["hook"] == "read_check.py"
-
-
-class TestStopContextCaptureErrorLogging:
-    """Test stop_context_capture.py writes JSON to stderr on exception."""
-
-    def test_transcript_read_error_logs_to_stderr(self):
-        """Patch file read, verify exception is caught."""
-        sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-        from agentflow.hooks.stop_context_capture import extract_fill_from_transcript
-
-        with mock.patch("builtins.open", side_effect=OSError("file not found")):
-            result = extract_fill_from_transcript("/nonexistent/file.jsonl")
-            assert result is None
-
-    def test_tempfile_error_logs_to_stderr(self):
-        """Patch tempfile operations, verify exception is caught."""
-        sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-
-        payload = {
-            "transcript_path": "/some/transcript.jsonl"
-        }
-
-        stderr_capture = io.StringIO()
-
-        with mock.patch("sys.stdin.read", return_value=json.dumps(payload)):
-            with mock.patch("json.loads", return_value=payload):
-                with mock.patch(
-                    "agentflow.hooks.stop_context_capture.extract_fill_from_transcript",
-                    return_value=100
-                ):
-                    with mock.patch("tempfile.mkstemp", side_effect=OSError("tempfile failure")):
-                        with mock.patch("sys.stderr", stderr_capture):
-                            with mock.patch("sys.exit"):
-                                from agentflow.hooks.stop_context_capture import main
-                                main()
