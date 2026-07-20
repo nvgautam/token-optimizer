@@ -1067,7 +1067,7 @@
     {
       "task_id": "T-304",
       "title": "agentflow first-run init: auto-configure settings.json + permissions prompt at PTY startup",
-      "status": "pending",
+      "status": "complete",
       "milestone": "M-F-7",
       "owns": [
         "agentflow/shell/pty_shell.py",
@@ -1081,12 +1081,17 @@
     },
     {
       "task_id": "T-306",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-307",
       "status": "pending",
       "title": "Orchestrator session integration tests: edge cases (resume, interrupted spawn, stale TIF)"
+    },
+    {
+      "task_id": "T-308",
+      "status": "pending",
+      "title": "Fix _find_workspace_root(): skip .agentflow inside .claude/worktrees/"
     }
   ]
 }

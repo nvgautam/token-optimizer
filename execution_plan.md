@@ -768,5 +768,21 @@ Fix: remove the `pty_signal task_done` Bash call from the "After worker complete
 - SID mismatch reconciliation: new SID, `current_round.json` present, all round tasks MERGED in execution_plan → TIF cleared on startup
 - No-op baseline: fresh orchestrate start (empty TIF, no current_round.json) → all edge-case paths are bypassed, normal flow unchanged
 
+## Addendum: T-308 — Fix _find_workspace_root(): skip .agentflow inside .claude/worktrees/
+
+**Goal:** `_find_workspace_root()` incorrectly resolves to a git worktree when called from worktree CWD because `.agentflow/` is committed to git and present in every worktree checkout. Root cause confirmed by debug session 2026-07-20: orchestrator resumed after rate-limit gap with CWD still set to `.claude/worktrees/task-T-304-first-run-init/`; merge hook fired against the worktree's `.agentflow/`, TIF in project root was never cleared, PTY restart never triggered, orchestrator advanced to next round without restarting. Fix: add a sentinel check — if the resolved `.agentflow/` path is inside `.claude/worktrees/`, walk up to the actual project root. Alternative: orchestrate.md always cds to project root before running `gh pr merge`.
+
+**Files:**
+- `agentflow/hooks/post_tool_use_agent.py` (modify) — `_find_workspace_root()`: add worktree escape check
+- `tests/test_post_tool_use_agent.py` (modify) — add test: `_find_workspace_root()` called from worktree CWD returns project root
+
+**Test scenarios:**
+- Called from `.claude/worktrees/<any>/`: returns project root, not worktree path
+- Called from project root: unchanged behaviour
+- Called from arbitrary subdir of project root: unchanged behaviour
+
+**OWNS:** `agentflow/hooks/post_tool_use_agent.py`, `tests/test_post_tool_use_agent.py`
+**estimated_lines:** 25
+
 **OWNS:** `tests/test_orchestrator_session_edge_cases.py`
 **estimated_lines:** 140
