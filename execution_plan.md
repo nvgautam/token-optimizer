@@ -376,6 +376,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | M-F-6 — MERGED (PR #207 2026-07-20) | T-295 (solo) | Skill bundle encryption + load_skill.py with config gate (AGENTFLOW_ENCRYPT=false default — current plaintext mode preserved for dev/orchestrator) |
 | M-F-6b — MERGED | T-305 (solo) | API key server: Lambda/CF Worker — /validate endpoint, CEK issuance (15-min TTL), manual key provisioning for friendlies |
 | M-F-6c — MERGED | T-304 ‖ T-306 (parallel) | First-run auto-init at PTY startup + oracle.md size split — disjoint OWNS |
+| P0-workspace — MERGED (PR #211/#212 2026-07-20) | T-308 ‖ T-307 (parallel) | Fix _find_workspace_root() worktree escape (P0) + orchestrator session edge-case tests — disjoint OWNS |
 | M-F-7 ‖ M-F-8 [PENDING] | T-301 ‖ T-302 (parallel) | Oracle handoff UX + customer distribution — disjoint OWNS (session_manager.py/oracle.md vs scripts/build_dist.sh) |
 | Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
 | Round E [PENDING] | T-168 ‖ T-290 (parallel) | product judgment layer + debug terminal step |

@@ -1,5 +1,5 @@
 {
-  "computed_at": "2026-07-20T07:18:35.220027",
+  "computed_at": "2026-07-20T17:31:37.753658",
   "baseline_tokens": 9313,
   "sample_size": 2433,
   "ci95_low": 4970.213547865533,
@@ -7,11 +7,11 @@
   "measured": true,
   "arms": {
     "on": {
-      "n": 4380,
-      "mean": 3891.592694063927,
-      "p90": 699,
-      "ci95_low": 1867.2952941630758,
-      "ci95_high": 5915.890093964778
+      "n": 4458,
+      "mean": 4861.66778824585,
+      "p90": 820,
+      "ci95_low": 2586.902333502453,
+      "ci95_high": 7136.4332429892465
     },
     "off": {
       "n": 2433,
@@ -22,7 +22,7 @@
     }
   },
   "stopping_met": false,
-  "stopping_status": "STILL COLLECTING \u2014 n_on=4380 / 20, n_off=2433 / 20",
-  "verbosity_savings_per_turn": 5421.2,
-  "verbosity_pct_saved": 58.2
+  "stopping_status": "STILL COLLECTING \u2014 n_on=4458 / 20, n_off=2433 / 20",
+  "verbosity_savings_per_turn": 4451.1,
+  "verbosity_pct_saved": 47.8
 }
