@@ -1,4 +1,6 @@
-# T-302: NOT IMPLEMENTED YET
+# Customer distribution — T-302
+# Usage: AGENTFLOW_MASTER_KEY=<key> make dist
 .PHONY: dist
+
 dist:
-	@echo "Not implemented" && exit 1
+	bash scripts/build_dist.sh
