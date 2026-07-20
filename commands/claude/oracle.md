@@ -91,6 +91,15 @@ No match → proceed without architecture context for that topic.
 ### Task-filing duplicate check
 Before filing, grep 2–3 title nouns in tasks.json: `python3 -c "import json; n=['x','y']; [print(t['task_id'],t['title']) for t in json.load(open('tasks.json'))['tasks'] if any(w in t['title'].lower() for w in n)]"`. If hits → present as candidates; require user confirmation the new task is distinct.
 
+### Auto-commit rule (mandatory — after every state write)
+After any write to `tasks.json`, `execution_plan.md`, or `design_status.md`, immediately commit and push:
+```bash
+git add tasks.json execution_plan.md design_status.md
+git commit -m "chore(oracle): <one-line summary of what changed>"
+git push
+```
+Never leave state changes uncommitted. Risk: PTY restart or session end silently loses the work.
+
 ### Addendum rule (mandatory — every filed task)
 After filing a task to `tasks.json` and the round table, **always** append a proper `## Addendum: T-NNN — Title` block to `execution_plan.md`. Format:
 ```
