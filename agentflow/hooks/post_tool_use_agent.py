@@ -91,7 +91,19 @@ def main() -> None:
     root = _find_workspace_root()
     agentflow_dir = root / ".agentflow"
     is_merge_trigger = tool_name == "Agent" or _is_pr_merge_bash(hook_data)
-    _log(agentflow_dir, {"event": "hook_fired", "tool": tool_name, "is_merge_trigger": is_merge_trigger, "cmd": hook_data.get("tool_input", {}).get("command", "")[:80]})
+    full_cmd = hook_data.get("tool_input", {}).get("command", "")
+    log_entry: dict = {
+        "event": "hook_fired",
+        "tool": tool_name,
+        "is_merge_trigger": is_merge_trigger,
+        "cmd": full_cmd[:80],
+        "cwd": str(Path.cwd()),
+        "resolved_root": str(root),
+        "root_is_worktree": ".claude/worktrees" in str(root),
+    }
+    if is_merge_trigger and full_cmd:
+        log_entry["full_cmd"] = full_cmd
+    _log(agentflow_dir, log_entry)
 
     if tool_name == "Bash" and not _is_pr_merge_bash(hook_data):
         sys.exit(0)
