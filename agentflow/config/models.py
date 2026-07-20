@@ -10,3 +10,4 @@ class OrchestratorConfig(BaseModel):
 
     oracle_threshold_tokens: int = 50000
     encrypt_skills: bool = False
+    initialized: bool = False
