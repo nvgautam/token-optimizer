@@ -371,9 +371,10 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Pre-M-F-1b — MERGED (PR #201 2026-07-19) | T-299 (solo) | tasks.db retirement + tasks.json schema enforcement + addendum lifecycle |
 | Pre-M-F-1c — MERGED (PR #202 2026-07-19) | T-303 (solo) | Split post_tool_use_agent.py (271 lines) + size_check hook dedupe guard |
 | M-F-1 — MERGED (PR #204 2026-07-20) | T-298 ‖ T-297 | CLI task_done/start impl + pty_signal migration + dead hook removal + hook integration tests |
-| M-F-3 [PENDING] | T-296 (solo) | Verbosity hardening: oracle + orchestrate personas — no strategy leakage |
+| M-F-3 — MERGED (PR #205 2026-07-20) | T-296 (solo) | Verbosity hardening: oracle + orchestrate personas — no strategy leakage |
 | M-F-4 — MERGED | T-236 (solo) | Post-merge conflict resolution (OWNS gate preserved) |
 | M-F-6 [PENDING] | T-295 (solo) | IP spike: wire key server + encrypt skill .enc files — license revocation + skill IP protection (Nuitka Community covers binary; this covers skill content) |
+| M-F-6b [PENDING] | T-304 (solo) | First-run auto-init at PTY startup: deep-merge project settings.json, register headroom MCP globally, 2-question permissions prompt (MCP auto-install + git ops) |
 | M-F-7 ‖ M-F-8 [PENDING] | T-301 ‖ T-302 (parallel) | Oracle handoff UX + customer distribution — disjoint OWNS (session_manager.py/oracle.md vs scripts/build_dist.sh) |
 | Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
 | Round E [PENDING] | T-168 ‖ T-290 (parallel) | product judgment layer + debug terminal step |

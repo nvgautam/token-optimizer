@@ -1050,7 +1050,7 @@
     },
     {
       "task_id": "T-296",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-301",
@@ -1063,6 +1063,17 @@
     {
       "task_id": "T-303",
       "status": "complete"
+    },
+    {
+      "task_id": "T-304",
+      "title": "agentflow first-run init: auto-configure settings.json + permissions prompt at PTY startup",
+      "status": "pending",
+      "milestone": "M-F-7",
+      "owns": [
+        "agentflow/shell/pty_shell.py",
+        "agentflow/init.py"
+      ],
+      "description": "Detect first run at PTY shell startup (TTY confirmed). Run interactive init: (1) deep-merge project .claude/settings.json \u2014 move Stop hook + autoCompactEnabled:false from global to project; (2) register headroom MCP server in ~/.claude/settings.json only; (3) ask 2 questions: MCP auto-install preference (sets allowManagedMcpServersOnly) + git operation permissions (allow git push, gh pr create/merge) with plain-English explanations; (4) if no TTY, write safe defaults silently and print one-line prompt to run agentflow directly. Idempotent \u2014 skip if already configured."
     }
   ]
 }
