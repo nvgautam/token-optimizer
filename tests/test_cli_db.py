@@ -204,3 +204,47 @@ class TestTimestampSlugRoundId:
         round_path = tmp_path / ".agentflow" / "current_round.json"
         data = json.loads(round_path.read_text())
         assert data["round_id"] == out, "printed round_id must match stored round_id"
+
+
+# ---------------------------------------------------------------------------
+# CLI DB Task Commands
+# ---------------------------------------------------------------------------
+
+class TestCliDbTaskCommands:
+    def test_task_start_writes_to_tif_file(self, tmp_path: Path) -> None:
+        from agentflow.cli_db import cmd_task_start
+        # Setup tasks.json so it lists the task_id
+        tasks_file = tmp_path / "tasks.json"
+        tasks_file.write_text(json.dumps({"tasks": [{"task_id": "T-100"}]}))
+
+        args = argparse.Namespace(task_id="T-100", sid="session-t-100")
+        rc = cmd_task_start(args)
+        assert rc == 0
+
+        tif_path = tmp_path / ".agentflow" / "sessions" / "session-t-100" / "tasks_in_flight.json"
+        assert tif_path.exists()
+        assert json.loads(tif_path.read_text()) == ["T-100"]
+
+    def test_task_done_drains_and_completes(self, tmp_path: Path) -> None:
+        from agentflow.cli_db import cmd_task_start, cmd_task_done
+        # Setup tasks.json
+        tasks_file = tmp_path / "tasks.json"
+        tasks_file.write_text(json.dumps({"tasks": [{"task_id": "T-100"}]}))
+
+        # Start task
+        args_start = argparse.Namespace(task_id="T-100", sid="session-t-100")
+        cmd_task_start(args_start)
+
+        # Complete task
+        args_done = argparse.Namespace(task_id="T-100", sid="session-t-100")
+        rc = cmd_task_done(args_done)
+        assert rc == 0
+
+        tif_path = tmp_path / ".agentflow" / "sessions" / "session-t-100" / "tasks_in_flight.json"
+        assert tif_path.exists()
+        assert json.loads(tif_path.read_text()) == []
+
+        complete_path = tmp_path / ".agentflow" / "sessions" / "session-t-100" / "task_complete.json"
+        assert complete_path.exists()
+        assert json.loads(complete_path.read_text()) == {"status": "complete"}
+

@@ -68,8 +68,8 @@ def test_cli_all_subcommands_present():
         a for a in parser._actions if hasattr(a, "_name_parser_map")
     )
     assert set(subparsers_action._name_parser_map) == {
-        "init", "oracle", "orchestrate", "report", "validate", "scan", "shell",
-        "install", "uninstall", "hooks",
+        "init", "oracle", "orchestrate", "round", "task", "report", "validate",
+        "scan", "shell", "install", "uninstall", "hooks", "cache",
     }
 
 

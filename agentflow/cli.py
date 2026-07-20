@@ -95,6 +95,19 @@ def build_parser() -> argparse.ArgumentParser:
     start_p.add_argument("--round-id", default=None, dest="round_id", metavar="ROUND_ID")
     start_p.add_argument("--sid", default=None, metavar="SESSION_ID")
     round_sub.add_parser("status", help="Print current round state")
+    
+    task_p = sub.add_parser("task", help="Manage task in-flight state")
+    task_sub = task_p.add_subparsers(dest="task_command", metavar="subcommand")
+    task_sub.required = True
+
+    for verb, hlp in [
+        ("start", "Add task to tasks_in_flight.json"),
+        ("done",  "Remove task; write task_complete.json if drained"),
+    ]:
+        vp = task_sub.add_parser(verb, help=hlp)
+        vp.add_argument("task_id", metavar="TASK_ID")
+        vp.add_argument("--sid", default=None, metavar="SESSION_ID",
+                        help="Session ID (falls back to $AGENTFLOW_SESSION_ID)")
 
     report = sub.add_parser("report", help="Show token usage report across sessions")
     report.add_argument("--mode", choices=["aggregate", "split", "session"], default="aggregate")
@@ -152,6 +165,9 @@ def main() -> None:
     elif args.command == "round":
         from agentflow.cli_db import cmd_round_start, cmd_round_status
         rc = {"start": cmd_round_start, "status": cmd_round_status}[args.round_command](args)
+    elif args.command == "task":
+        from agentflow.cli_db import cmd_task_start, cmd_task_done
+        rc = {"start": cmd_task_start, "done": cmd_task_done}[args.task_command](args)
     elif args.command == "cache":
         from agentflow.cli_cmds import cmd_cache_prune
         rc = cmd_cache_prune(args)

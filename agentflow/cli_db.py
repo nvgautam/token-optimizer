@@ -66,13 +66,19 @@ def cmd_round_status(args: argparse.Namespace) -> int:
 
 
 def cmd_task_start(args: argparse.Namespace) -> int:
-    print(f"task start: task_id={args.task_id!r} sid={args.sid!r}")
-    print("not implemented"); return 1
+    from agentflow.shell.pty_signal import task_start, find_workspace_root
+    sid = args.sid if args.sid else os.environ.get("AGENTFLOW_SESSION_ID", "")
+    workspace_root = find_workspace_root()
+    task_start(args.task_id, workspace_root=workspace_root, sid=sid)
+    return 0
 
 
 def cmd_task_done(args: argparse.Namespace) -> int:
-    print(f"task done: task_id={args.task_id!r} sid={args.sid!r}")
-    print("not implemented"); return 1
+    from agentflow.shell.pty_signal import task_done, find_workspace_root
+    sid = args.sid if args.sid else os.environ.get("AGENTFLOW_SESSION_ID", "")
+    workspace_root = find_workspace_root()
+    task_done(args.task_id, workspace_root=workspace_root, sid=sid)
+    return 0
 
 
 def build_parser() -> argparse.ArgumentParser:
