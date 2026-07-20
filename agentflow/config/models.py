@@ -9,3 +9,4 @@ class OrchestratorConfig(BaseModel):
     """Configuration for orchestrator and oracle thresholds."""
 
     oracle_threshold_tokens: int = 50000
+    encrypt_skills: bool = False
