@@ -194,7 +194,8 @@ class TestLoadSkillEncrypted:
         monkeypatch.setenv("AGENTFLOW_ENCRYPT", "true")
         monkeypatch.setenv("AGENTFLOW_BUNDLE_PATH", str(bundle_path))
         monkeypatch.setenv("AGENTFLOW_KEY_SERVER_URL", "http://fake-server")
-        monkeypatch.setenv("AGENTFLOW_KEY_SERVER_TOKEN", "test-token")
+        monkeypatch.setenv("AGENTFLOW_KEY", "test-license-key")
+        monkeypatch.delenv("AGENTFLOW_MASTER_KEY", raising=False)
         captured = io.StringIO()
         with patch("urllib.request.urlopen", return_value=_key_server_mock(key)):
             with patch.object(sys, "argv", ["load_skill", "oracle"]):
@@ -235,12 +236,14 @@ class TestLoadSkillEncrypted:
         assert len(err_out.getvalue()) > 0
 
     def test_direct_key_env_var_skips_key_server(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+        """AGENTFLOW_MASTER_KEY is the direct-key dev override; bypasses /validate."""
         from agentflow.ip import load_skill as ls_mod
         key = os.urandom(32)
         bundle_path = _make_bundle({"oracle.md": "content"}, key, tmp_path)
         monkeypatch.setenv("AGENTFLOW_ENCRYPT", "true")
         monkeypatch.setenv("AGENTFLOW_BUNDLE_PATH", str(bundle_path))
-        monkeypatch.setenv("AGENTFLOW_KEY", key.hex())
+        monkeypatch.setenv("AGENTFLOW_MASTER_KEY", key.hex())
+        monkeypatch.delenv("AGENTFLOW_KEY", raising=False)
         captured = io.StringIO()
         with patch("urllib.request.urlopen") as mock_urlopen:
             with patch.object(sys, "argv", ["load_skill", "oracle"]):
