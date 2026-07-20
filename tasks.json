@@ -1046,7 +1046,8 @@
     },
     {
       "task_id": "T-295",
-      "status": "pending"
+      "status": "pending",
+      "description": "Skill bundle encryption + config gate. (1) Config: AGENTFLOW_ENCRYPT env var (default: false) \u2014 when false, load_skill.py reads plaintext .md from commands/claude/ (current behavior, orchestrator safe). When true: bundle path. (2) Build script: encrypt commands/claude/**/*.md \u2192 ~/.agentflow/skills/bundle-vN.enc using AES-256 CEK. (3) load_skill.py: if AGENTFLOW_ENCRYPT=false read plaintext; else read bundle, fetch CEK from key server, decrypt in memory, print to stdout. (4) agentflow init: download bundle via presigned S3 URL. (5) agentflow update-skills: re-download bundle."
     },
     {
       "task_id": "T-296",
@@ -1074,6 +1075,17 @@
         "agentflow/init.py"
       ],
       "description": "Detect first run at PTY shell startup (TTY confirmed). Run interactive init: (1) deep-merge project .claude/settings.json \u2014 move Stop hook + autoCompactEnabled:false from global to project; (2) register headroom MCP server in ~/.claude/settings.json only; (3) ask 2 questions: MCP auto-install preference (sets allowManagedMcpServersOnly) + git operation permissions (allow git push, gh pr create/merge) with plain-English explanations; (4) if no TTY, write safe defaults silently and print one-line prompt to run agentflow directly. Idempotent \u2014 skip if already configured."
+    },
+    {
+      "task_id": "T-305",
+      "title": "API key server: license validation + CEK issuance endpoint (Lambda/CF Worker)",
+      "status": "pending",
+      "milestone": "M-F-6",
+      "owns": [
+        "agentflow/ip/key_server/",
+        "agentflow/ip/load_skill.py"
+      ],
+      "description": "Lightweight serverless endpoint (Lambda or Cloudflare Worker). Schema: {api_key \u2192 status (active/revoked), tier}. POST /validate: check status, return signed CEK token (15-min TTL, AES-256 key for current bundle version) or 401. Manual key provisioning for friendlies via admin script. Billing gate added server-side later without client changes."
     }
   ]
 }

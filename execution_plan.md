@@ -373,8 +373,9 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | M-F-1 — MERGED (PR #204 2026-07-20) | T-298 ‖ T-297 | CLI task_done/start impl + pty_signal migration + dead hook removal + hook integration tests |
 | M-F-3 — MERGED (PR #205 2026-07-20) | T-296 (solo) | Verbosity hardening: oracle + orchestrate personas — no strategy leakage |
 | M-F-4 — MERGED | T-236 (solo) | Post-merge conflict resolution (OWNS gate preserved) |
-| M-F-6 [PENDING] | T-295 (solo) | IP spike: wire key server + encrypt skill .enc files — license revocation + skill IP protection (Nuitka Community covers binary; this covers skill content) |
-| M-F-6b [PENDING] | T-304 (solo) | First-run auto-init at PTY startup: deep-merge project settings.json, register headroom MCP globally, 2-question permissions prompt (MCP auto-install + git ops) |
+| M-F-6 [PENDING] | T-295 (solo) | Skill bundle encryption + load_skill.py with config gate (AGENTFLOW_ENCRYPT=false default — current plaintext mode preserved for dev/orchestrator) |
+| M-F-6b [PENDING] | T-305 (solo) | API key server: Lambda/CF Worker — /validate endpoint, CEK issuance (15-min TTL), manual key provisioning for friendlies |
+| M-F-6c [PENDING] | T-304 (solo) | First-run auto-init at PTY startup: deep-merge project settings.json, register headroom MCP globally, 2-question permissions prompt — wires T-295 + T-305 |
 | M-F-7 ‖ M-F-8 [PENDING] | T-301 ‖ T-302 (parallel) | Oracle handoff UX + customer distribution — disjoint OWNS (session_manager.py/oracle.md vs scripts/build_dist.sh) |
 | Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
 | Round E [PENDING] | T-168 ‖ T-290 (parallel) | product judgment layer + debug terminal step |
@@ -675,3 +676,75 @@ Fix: remove the `pty_signal task_done` Bash call from the "After worker complete
 **Goal:** (1) Split agentflow/hooks/post_tool_use_agent.py (271 lines, limit 250) — read file, identify distinct responsibilities, split by domain, verify each output ≤ 250 lines. (2) Add dedupe guard to size_check hook to prevent duplicate task auto-filing (root cause: 7 identical T-30x tasks filed in 8 min; guard should check tasks.json for existing task with same file path before filing).
 
 **Owns:** ["agentflow/hooks/post_tool_use_agent.py", "agentflow/hooks/post_tool_use_pr.py", "agentflow/hooks/size_check.py", "tests/test_post_tool_use_agent.py", "tests/hooks/test_size_check.py"]
+
+---
+
+## Addendum: T-295 — Skill bundle encryption + AGENTFLOW_ENCRYPT config gate
+
+**Goal:** Build the skill bundle system. Encrypt `commands/claude/**/*.md` → `~/.agentflow/skills/bundle-vN.enc` at build time using AES-256 CEK. `load_skill.py` reads from bundle when `AGENTFLOW_ENCRYPT=true`, or reads plaintext `.md` directly when `AGENTFLOW_ENCRYPT=false` (default) — preserves current dev/orchestrator behavior unchanged. `agentflow init` and `agentflow update-skills` download the bundle via presigned S3 URL gated by API key.
+
+**Files:**
+- `agentflow/ip/load_skill.py` (new) — decrypt bundle in memory, print skill to stdout; fallback to plaintext when AGENTFLOW_ENCRYPT=false
+- `agentflow/ip/build_bundle.py` (new) — encrypt commands/claude/**/*.md → bundle-vN.enc
+- `agentflow/config/models.py` (modify) — add `encrypt_skills: bool = False` config field
+- `scripts/build_dist.sh` (modify) — add bundle build step
+- `tests/test_skill_bundle.py` (new) — bundle creation, decryption, config gate
+
+**Test scenarios:**
+- AGENTFLOW_ENCRYPT=false (default): load_skill.py reads plaintext from commands/claude/<skill>.md — existing behavior unchanged
+- AGENTFLOW_ENCRYPT=true: load_skill.py reads bundle, decrypts with CEK, prints skill content to stdout; no plaintext written to disk
+- Bundle contains all commands/claude/**/*.md encrypted; no readable IP in output file
+- `agentflow init` downloads bundle to ~/.agentflow/skills/bundle-vN.enc on first run
+- `agentflow update-skills` replaces bundle idempotently (re-run safe)
+- Invalid/missing bundle with AGENTFLOW_ENCRYPT=true → exits 1 with clear error message
+
+**OWNS:** agentflow/ip/load_skill.py, agentflow/ip/build_bundle.py, agentflow/config/models.py, scripts/build_dist.sh, tests/test_skill_bundle.py
+**estimated_lines:** 160
+
+---
+
+## Addendum: T-305 — API key server: license validation + CEK issuance (Lambda/CF Worker)
+
+**Goal:** Lightweight serverless endpoint for license control. Schema: `{api_key → status (active/revoked), tier, bundle_version}`. `POST /validate`: checks API key status, returns signed CEK token (AES-256, 15-min TTL) for current bundle version on success, or 401 on revoked/unknown key. Manual key provisioning for friendlies via admin script. Billing gate added server-side later without any client-side changes. `load_skill.py` calls this endpoint when AGENTFLOW_ENCRYPT=true.
+
+**Files:**
+- `infra/key_server/worker.js` (new) — Cloudflare Worker: /validate endpoint, key lookup, CEK token issuance
+- `infra/key_server/keys.json` (new, gitignored) — key registry; deployed separately
+- `infra/key_server/provision.sh` (new) — admin script: add/revoke API keys
+- `agentflow/ip/load_skill.py` (modify) — add key server call: POST AGENTFLOW_KEY_SERVER_URL/validate with AGENTFLOW_KEY → receive CEK token → decrypt bundle
+
+**Test scenarios:**
+- POST /validate with valid active key → 200 + CEK token (JWT, 15-min exp)
+- POST /validate with revoked key → 401 `{"error": "license_revoked"}`
+- POST /validate with unknown key → 401 `{"error": "invalid_key"}`
+- load_skill.py with AGENTFLOW_KEY=valid → decrypts bundle, prints skill to stdout
+- load_skill.py with AGENTFLOW_KEY=revoked → exits 1 with "License invalid" message
+- provision.sh add-key → key appears in registry as active
+- provision.sh revoke-key → key status flips to revoked; subsequent validate returns 401
+
+**OWNS:** infra/key_server/, agentflow/ip/load_skill.py (shared with T-295 — T-295 must merge first)
+**estimated_lines:** 120
+
+---
+
+## Addendum: T-304 — First-run auto-init at PTY startup
+
+**Goal:** Detect first run at PTY shell startup via TTY check. Interactive init: (1) deep-merge project `.claude/settings.json` — add all agentflow hooks, move Stop hook + `autoCompactEnabled: false` from global to project level; (2) register headroom MCP server in `~/.claude/settings.json` only (one global touch); (3) ask 2 plain-English questions: MCP auto-install preference → sets `allowManagedMcpServersOnly`; git operation permissions → adds `Bash(git push *)`, `Bash(gh pr create *)`, `Bash(gh pr merge *)` to project permissions; (4) download skill bundle if AGENTFLOW_ENCRYPT=true. No-TTY path: write safe defaults silently, print one-line guidance. Idempotent — skip if already configured.
+
+**Files:**
+- `agentflow/init.py` (new) — first-run detection, TTY check, interactive prompts, settings deep-merge logic
+- `agentflow/shell/pty_shell.py` (modify) — call `init.check_and_run()` at startup before main loop
+- `agentflow/config/models.py` (modify) — add `initialized: bool = False` flag
+- `tests/test_init.py` (new) — settings merge correctness, idempotency, TTY/no-TTY paths
+
+**Test scenarios:**
+- First PTY start (initialized=false, TTY=true): prompts shown; settings written; initialized=true persisted
+- Settings deep-merge: existing user keys in .claude/settings.json preserved; agentflow hooks added without overwriting user entries
+- headroom added to allowedMcpServers without touching other MCP entries in global settings
+- allowManagedMcpServersOnly set correctly per user answer
+- Git permissions written to project .claude/settings.json
+- Second PTY start: init skipped (initialized=true)
+- No TTY (hook context): safe defaults written silently; one-line message printed to stderr
+
+**OWNS:** agentflow/init.py, agentflow/shell/pty_shell.py, agentflow/config/models.py, tests/test_init.py
+**estimated_lines:** 150

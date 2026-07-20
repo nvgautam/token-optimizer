@@ -91,6 +91,24 @@ No match → proceed without architecture context for that topic.
 ### Task-filing duplicate check
 Before filing, grep 2–3 title nouns in tasks.json: `python3 -c "import json; n=['x','y']; [print(t['task_id'],t['title']) for t in json.load(open('tasks.json'))['tasks'] if any(w in t['title'].lower() for w in n)]"`. If hits → present as candidates; require user confirmation the new task is distinct.
 
+### Addendum rule (mandatory — every filed task)
+After filing a task to `tasks.json` and the round table, **always** append a proper `## Addendum: T-NNN — Title` block to `execution_plan.md`. Format:
+```
+## Addendum: T-NNN — Title
+
+**Goal:** [1–2 sentences: what it does, why, context]
+
+**Files:**
+- `path/to/file.py` (new/modify) — purpose
+
+**Test scenarios:**
+- [concrete acceptance criterion]
+
+**OWNS:** [comma-separated file list]
+**estimated_lines:** [N]
+```
+No addendum = orchestrator cannot execute or evaluate the task. Never substitute a prose paragraph or inline note.
+
 ### Incremental Flush
 
 **After each decision resolves, immediately append `| Topic | RESOLVED | Decision summary |` to `design_status.md` — no batching (PTY may restart mid-phase).**
