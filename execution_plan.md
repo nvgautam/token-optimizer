@@ -370,10 +370,10 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Pre-M-F-1a — MERGED (PR #200 2026-07-19) | T-300 (solo) | Reviewer gate hardening — escalate happy-path-only → BLOCKER; mandatory /review before PR |
 | Pre-M-F-1b — MERGED (PR #201 2026-07-19) | T-299 (solo) | tasks.db retirement + tasks.json schema enforcement + addendum lifecycle |
 | Pre-M-F-1c — MERGED (PR #202 2026-07-19) | T-303 (solo) | Split post_tool_use_agent.py (271 lines) + size_check hook dedupe guard |
-| M-F-1 [PENDING] | T-298 ‖ T-297 (MERGED PR #203) | CLI task_done/start impl + pty_signal migration + dead hook removal + hook integration tests |
+| M-F-1 — MERGED (PR #204 2026-07-20) | T-298 ‖ T-297 | CLI task_done/start impl + pty_signal migration + dead hook removal + hook integration tests |
 | M-F-3 [PENDING] | T-296 (solo) | Verbosity hardening: oracle + orchestrate personas — no strategy leakage |
 | M-F-4 — MERGED | T-236 (solo) | Post-merge conflict resolution (OWNS gate preserved) |
-| M-F-6 [DEFERRED] | T-295 (solo) | IP spike: wire key server + encrypt context files — DEFERRED (customer-shipped binary; Nuitka Community obfuscation sufficient for now) |
+| M-F-6 [PENDING] | T-295 (solo) | IP spike: wire key server + encrypt skill .enc files — license revocation + skill IP protection (Nuitka Community covers binary; this covers skill content) |
 | M-F-7 ‖ M-F-8 [PENDING] | T-301 ‖ T-302 (parallel) | Oracle handoff UX + customer distribution — disjoint OWNS (session_manager.py/oracle.md vs scripts/build_dist.sh) |
 | Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
 | Round E [PENDING] | T-168 ‖ T-290 (parallel) | product judgment layer + debug terminal step |
@@ -511,15 +511,6 @@ Fix: remove the `pty_signal task_done` Bash call from the "After worker complete
 
 **Owns:** `commands/claude/orchestrate.md`
 **estimated_lines:** 10
-
-## Addendum: T-298 — M-F-1b: Hook integration tests + dead hook removal
-
-**Goal:** Write integration tests covering hook signal edge cases: missing SID env var, duplicate `task_done` calls, concurrent signal writes, corrupt `tasks_in_flight.json`. Remove hooks confirmed dead by prior rounds.
-
-**Test scenarios (required — not just happy path):** missing SID → graceful no-op; duplicate task_done → idempotent; concurrent writers → last-write-wins with no corruption; corrupt JSON → safe reset.
-
-**Files:** `tests/hooks/test_hook_integration.py`, `agentflow/hooks/` (dead hook removal)
-**estimated_lines:** 120
 
 ## Addendum: T-299 — tasks.db retirement + tasks.json schema enforcement + addendum lifecycle
 
