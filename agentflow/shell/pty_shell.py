@@ -15,6 +15,8 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+from agentflow import init as _init
+
 
 class ProxyShell:
     """Manages the proxy subprocess lifecycle."""
@@ -77,6 +79,7 @@ class ProxyShell:
 
     def start(self) -> None:
         """Spawn proxy subprocess, read port, set ANTHROPIC_BASE_URL env."""
+        _init.check_and_run(self.project_root)
         self._flip_ab_arm()
         self._write_model_arm()
         self._secret = secrets.token_hex(32)
