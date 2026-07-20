@@ -370,7 +370,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Pre-M-F-1a — MERGED (PR #200 2026-07-19) | T-300 (solo) | Reviewer gate hardening — escalate happy-path-only → BLOCKER; mandatory /review before PR |
 | Pre-M-F-1b — MERGED (PR #201 2026-07-19) | T-299 (solo) | tasks.db retirement + tasks.json schema enforcement + addendum lifecycle |
 | Pre-M-F-1c — MERGED (PR #202 2026-07-19) | T-303 (solo) | Split post_tool_use_agent.py (271 lines) + size_check hook dedupe guard |
-| M-F-1 [PENDING] | T-298 ‖ T-297 (parallel) | CLI task_done/start impl + pty_signal migration + dead hook removal + hook integration tests |
+| M-F-1 [PENDING] | T-298 ‖ T-297 (MERGED PR #203) | CLI task_done/start impl + pty_signal migration + dead hook removal + hook integration tests |
 | M-F-3 [PENDING] | T-296 (solo) | Verbosity hardening: oracle + orchestrate personas — no strategy leakage |
 | M-F-4 — MERGED | T-236 (solo) | Post-merge conflict resolution (OWNS gate preserved) |
 | M-F-6 [PENDING] | T-295 (solo) | IP spike: wire key server + encrypt context files at write — must land before M-F-8 (binary ships encrypted) |
@@ -511,13 +511,6 @@ Fix: remove the `pty_signal task_done` Bash call from the "After worker complete
 
 **Owns:** `commands/claude/orchestrate.md`
 **estimated_lines:** 10
-
-## Addendum: T-297 — M-F-1a: CLI task_done/start + pty_signal migration
-
-**Goal:** Implement CLI `task_done` and `task_start` subcommands; migrate `pty_signal.py` to use SID-scoped paths consistently. Remove dead hook code that was superseded by prior rounds.
-
-**Files:** `agentflow/shell/pty_signal.py`, `agentflow/hooks/post_tool_use.py`, `agentflow/cli.py`
-**estimated_lines:** 90
 
 ## Addendum: T-298 — M-F-1b: Hook integration tests + dead hook removal
 

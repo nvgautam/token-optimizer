@@ -1018,7 +1018,7 @@
     },
     {
       "task_id": "T-297",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-298",
@@ -1062,7 +1062,7 @@
     },
     {
       "task_id": "T-303",
-      "status": "pending"
+      "status": "complete"
     }
   ]
 }
