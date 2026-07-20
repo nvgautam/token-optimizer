@@ -1093,6 +1093,11 @@
       "task_id": "T-310",
       "status": "pending",
       "title": "agentflow bundle CLI: deterministic context bundle assembly for all agent types"
+    },
+    {
+      "task_id": "T-311",
+      "status": "pending",
+      "title": "Inject session_id into all log writers; filter all debug log reads by SID"
     }
   ]
 }

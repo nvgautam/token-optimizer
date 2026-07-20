@@ -381,6 +381,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
 | Round D-2 [PENDING] | T-309 (solo) | Friendly savings dashboard — aggregate-only token/cost view; no strategy breakdown |
 | Round D-3 [PENDING] | T-310 (solo) | agentflow bundle CLI — deterministic ctx assembly; eliminates LLM Write call in orchestrate |
+| Round D-4 [PENDING] | T-311 (solo) | SID injection into all log writers + debug skill filters by SID first |
 | Round E [PENDING] | T-168 ‖ T-290 (parallel) | product judgment layer + debug terminal step |
 | Round E-2 [PENDING] | T-167 (solo) | Oracle Phase 3 plan-mode preview |
 | Round E-3 [PENDING] | T-288 (solo) | Oracle self-check: disjoint OWNS before writing execution_plan.md |
@@ -827,3 +828,22 @@ Fix: remove the `pty_signal task_done` Bash call from the "After worker complete
 
 **OWNS:** `agentflow/bundle.py`, `agentflow/cli.py`, `commands/claude/orchestrate.md`, `tests/test_bundle.py`
 **estimated_lines:** 160
+
+## Addendum: T-311 — Inject session_id into all log writers; filter all debug log reads by SID
+
+**Goal:** Add `"sid": "<session_id>"` to every JSONL log entry written by hooks and PTY shell (`hook_drain_debug.jsonl`, `pty_audit.jsonl`, any future log). Update the debug skill to open with `grep '"sid":"<SID>"'` on each log file before any further processing — eliminates per-line timestamp correlation and correctly isolates events when two sessions interleave writes. SID sourced from `$AGENTFLOW_SESSION_ID` env var (already captured by orchestrate at round start).
+
+**Files:**
+- `agentflow/hooks/post_tool_use_agent.py` (modify) — inject `sid` into every `hook_drain_debug.jsonl` write
+- `agentflow/shell/pty_shell.py` (modify) — inject `sid` into every `pty_audit.jsonl` write
+- `commands/claude/debug.md` (modify) — Phase 3 Signal Trace: prepend SID-filter grep to each log read command
+- `tests/test_log_sid_injection.py` (new) — assert `sid` present in all emitted log entries
+
+**Test scenarios:**
+- Every hook_drain_debug.jsonl entry has `sid` field matching active session
+- Every pty_audit.jsonl entry has `sid` field
+- Debug skill SID-filtered grep returns only entries for the requested session
+- Two interleaved session writes: grep by SID A returns only A's entries, grep by SID B returns only B's
+
+**OWNS:** `agentflow/hooks/post_tool_use_agent.py`, `agentflow/shell/pty_shell.py`, `commands/claude/debug.md`, `tests/test_log_sid_injection.py`
+**estimated_lines:** 80
