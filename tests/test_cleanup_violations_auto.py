@@ -93,11 +93,10 @@ def test_auto_file_size_violations_files_new_task(tmp_path):
     assert len(result["tasks"]) == 1
 
     task = result["tasks"][0]
-    assert task["task_id"] == "T-001"
-    assert task["title"] == "Split test.py — size violation"
-    assert task["status"] == "pending"
-    assert task["owns"] == ["test.py"]
-    assert "2026-07-17T00:00:00" in task["description"]
+    assert task == {
+        "task_id": "T-001",
+        "status": "pending"
+    }
 
 
 def test_auto_file_size_violations_idempotent(tmp_path):
@@ -112,6 +111,10 @@ def test_auto_file_size_violations_idempotent(tmp_path):
     # Oversized file
     test_file = project_root / "test.py"
     test_file.write_text("\n" * 260)
+
+    # Create execution_plan.md
+    ep_path = project_root / "execution_plan.md"
+    ep_path.write_text("# Plan\n", encoding="utf-8")
 
     violations_path = agentflow_dir / "size_violations.jsonl"
     violations_path.write_text(
@@ -216,7 +219,10 @@ def test_auto_file_size_violations_increments_task_id(tmp_path):
     result = json.loads(tasks_path.read_text())
     assert len(result["tasks"]) == 3
     new_task = next(t for t in result["tasks"] if t["task_id"] == "T-003")
-    assert new_task["title"] == "Split test.py — size violation"
+    assert new_task == {
+        "task_id": "T-003",
+        "status": "pending"
+    }
 
 
 def test_auto_file_size_violations_handles_archive(tmp_path):

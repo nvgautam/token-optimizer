@@ -90,8 +90,8 @@ def test_t148_restart_injection_orchestrate_uses_cr(tmp_path):
         except SystemExit:
             pass
 
-    assert exec_called and exec_called[0] == ["claude", "/orchestrate"], (
-        f"Expected ['claude', '/orchestrate'], got {exec_called}"
+    assert exec_called and exec_called[0] == ["claude", "/orchestrate", "--permission-mode", "auto"], (
+        f"Expected ['claude', '/orchestrate', '--permission-mode', 'auto'], got {exec_called}"
     )
     assert len(pty.inputs) == 0, f"No PTY input expected; got {pty.inputs!r}"
 

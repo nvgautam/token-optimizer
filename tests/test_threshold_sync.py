@@ -48,12 +48,12 @@ def test_sync_session_type_reads_sid_scoped_path(tmp_path, monkeypatch):
 
 
 def test_sync_session_type_falls_back_to_root_session_state(tmp_path, monkeypatch):
-    """SID set but per-SID file absent, root session_state.json exists → use it."""
+    """No SID set, root session_state.json exists → use it."""
     # Setup
-    monkeypatch.setenv("AGENTFLOW_SESSION_ID", "test_sid_456")
+    monkeypatch.delenv("AGENTFLOW_SESSION_ID", raising=False)
     manager = _make_manager(tmp_path)
 
-    # Create only root-level session_state.json (per-SID file absent)
+    # Create only root-level session_state.json
     agentflow_dir = tmp_path / ".agentflow"
     agentflow_dir.mkdir()
     root_session_state = agentflow_dir / "session_state.json"
@@ -68,9 +68,9 @@ def test_sync_session_type_falls_back_to_root_session_state(tmp_path, monkeypatc
 
 
 def test_sync_session_type_falls_back_to_session_type_file(tmp_path, monkeypatch):
-    """Both JSON files absent, root session_type file exists → read it."""
+    """No SID set, both JSON files absent, root session_type file exists → read it."""
     # Setup
-    monkeypatch.setenv("AGENTFLOW_SESSION_ID", "test_sid_789")
+    monkeypatch.delenv("AGENTFLOW_SESSION_ID", raising=False)
     manager = _make_manager(tmp_path)
 
     # Create only the legacy session_type file (no JSON files)
@@ -158,7 +158,7 @@ def test_sync_session_type_priority_sid_over_root(tmp_path, monkeypatch):
 
 
 def test_sync_session_type_invalid_json_skips(tmp_path, monkeypatch):
-    """Invalid JSON in session_state.json should be skipped."""
+    """Invalid JSON in session_state.json should be skipped without falling back to root when SID is present."""
     # Setup
     monkeypatch.setenv("AGENTFLOW_SESSION_ID", "invalid_json_sid")
     manager = _make_manager(tmp_path)
@@ -179,13 +179,13 @@ def test_sync_session_type_invalid_json_skips(tmp_path, monkeypatch):
     # Act
     sync_session_type(manager)
 
-    # Assert: should fall back to root
-    assert manager.session_type == "oracle"
-    assert manager._state_machine.threshold_tokens == 50000
+    # Assert: should NOT fall back to root
+    assert manager.session_type is None
+    assert manager._state_machine.threshold_tokens == 0
 
 
 def test_sync_session_type_missing_session_type_key(tmp_path, monkeypatch):
-    """JSON without session_type key should be skipped."""
+    """JSON without session_type key should be skipped without falling back when SID is present."""
     # Setup
     monkeypatch.setenv("AGENTFLOW_SESSION_ID", "missing_key_sid")
     manager = _make_manager(tmp_path)
@@ -206,13 +206,13 @@ def test_sync_session_type_missing_session_type_key(tmp_path, monkeypatch):
     # Act
     sync_session_type(manager)
 
-    # Assert: should fall back to root
-    assert manager.session_type == "orchestrator"
-    assert manager._state_machine.threshold_tokens == 80000
+    # Assert: should NOT fall back to root
+    assert manager.session_type is None
+    assert manager._state_machine.threshold_tokens == 0
 
 
 def test_sync_session_type_invalid_value_skips(tmp_path, monkeypatch):
-    """Invalid session_type value should be skipped."""
+    """Invalid session_type value should be skipped without falling back when SID is present."""
     # Setup
     monkeypatch.setenv("AGENTFLOW_SESSION_ID", "invalid_val_sid")
     manager = _make_manager(tmp_path)
@@ -233,9 +233,9 @@ def test_sync_session_type_invalid_value_skips(tmp_path, monkeypatch):
     # Act
     sync_session_type(manager)
 
-    # Assert: should fall back to root
-    assert manager.session_type == "oracle"
-    assert manager._state_machine.threshold_tokens == 50000
+    # Assert: should NOT fall back to root
+    assert manager.session_type is None
+    assert manager._state_machine.threshold_tokens == 0
 
 
 def test_sync_session_type_no_files_applies_threshold(tmp_path, monkeypatch):

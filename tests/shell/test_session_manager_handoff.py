@@ -175,9 +175,11 @@ def test_async_trigger_handoff_oserror(tmp_path):
 def test_manual_handoff_reset_on_clear(tmp_path):
     (tmp_path / ".agentflow").mkdir()
     sm, pty, _ = make_manager()
+    sm._project_root = tmp_path
     sm._manual_handoff = True
+    (tmp_path / ".agentflow" / "clear_signal").touch()
     with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
-        fire_output(sm, pty, "/clear\n")
+        fire_output(sm, pty, "chunk to trigger output processing")
     assert sm._manual_handoff is False
 
 def test_tokenizer_resets_on_clear_prevents_rehangoff(tmp_path):

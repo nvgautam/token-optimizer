@@ -39,10 +39,18 @@ def test_session_manager_arm_reread(tmp_path):
     with patch.object(pathlib.Path, "cwd", return_value=tmp_path):
         sm, pty, _ = make_manager()
         assert sm._arm == "initial_arm"
-        fire_output(sm, pty, "/oracle\r\n")
-        fire_output(sm, pty, "response content\n\n")
+        # First task completion -> turn_count becomes 1
+        fire_output(sm, pty, "AGENTFLOW_TASK_COMPLETE:T-001\n")
+        assert sm._arm == "initial_arm"
+        
+        # Write new arm
         arm_file.write_text("new_arm", encoding="utf-8")
-        fire_output(sm, pty, "/clear\r\n")
-        fire_output(sm, pty, "/oracle\r\n")
-        fire_output(sm, pty, "response content\n\n")
+        
+        # Trigger /clear via clear_signal file
+        (tmp_path / ".agentflow" / "clear_signal").touch()
+        fire_output(sm, pty, "some clear output\n")
+        assert sm._turn_count == 0
+        
+        # Next task completion -> turn_count becomes 1 again, triggering re-read
+        fire_output(sm, pty, "AGENTFLOW_TASK_COMPLETE:T-002\n")
         assert sm._arm == "new_arm"

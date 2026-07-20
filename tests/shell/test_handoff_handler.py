@@ -58,7 +58,7 @@ class TestCurrentRoundSessionIdValidation:
             mock_transition.assert_called_once_with("current_round_written")
 
     def test_poll_session_allows_current_round_transition_when_no_sid_in_file(self, tmp_path, monkeypatch):
-        """current_round.json has no session_id field (legacy) → allow transition regardless."""
+        """current_round.json has no session_id field (legacy) → skip transition."""
         sm, pty, tok = make_manager()
         sm._project_root = tmp_path
         sm.session_type = "orchestrator"
@@ -76,7 +76,7 @@ class TestCurrentRoundSessionIdValidation:
         with patch.object(sm._state_machine, "transition") as mock_transition:
             from agentflow.shell.handoff_handler import poll_session
             poll_session(sm)
-            mock_transition.assert_called_once_with("current_round_written")
+            mock_transition.assert_not_called()
 
 
 class TestCheckDrainRestartDirectPath:

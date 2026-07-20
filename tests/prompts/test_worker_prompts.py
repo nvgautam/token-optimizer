@@ -26,7 +26,7 @@ def test_system_md_no_reread_rule_appears_before_task_section():
 
 def test_system_md_contains_verbosity_instruction():
     content = (WORKER_DIR / "system.md").read_text(encoding="utf-8").lower()
-    assert "concise" in content or "verbose" in content, "system.md missing verbosity instruction"
+    assert "silence" in content or "never narrate" in content or "verbosity" in content, "system.md missing verbosity instruction"
 
 def test_system_md_contains_escalate_instruction():
     content = (WORKER_DIR / "system.md").read_text(encoding="utf-8")

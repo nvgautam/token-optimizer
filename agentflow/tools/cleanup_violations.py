@@ -108,11 +108,29 @@ def auto_file_size_violations(project_root: Path) -> None:
         if current_lines <= limit:
             continue
 
-        already_filed = any(
-            (t.get("status") == "pending" and filename in t.get("owns", []))
-            or (filename in t.get("description", "") and ts in t.get("description", ""))
-            for t in all_tasks + new_tasks
-        )
+        already_filed = False
+        ep_path = project_root / "execution_plan.md"
+        if ep_path.exists():
+            try:
+                ep_content = ep_path.read_text("utf-8")
+                expected_title = f"Split {filename} — size violation"
+                if expected_title in ep_content:
+                    pattern = re.compile(rf"## Addendum:\s*(T-\d+)\s*—\s*{re.escape(expected_title)}")
+                    m = pattern.search(ep_content)
+                    if m:
+                        tid = m.group(1)
+                        matched_t = next((t for t in all_tasks + new_tasks if t.get("task_id") == tid), None)
+                        if matched_t and matched_t.get("status") == "pending":
+                            already_filed = True
+            except Exception:
+                pass
+
+        if not already_filed:
+            already_filed = any(
+                (t.get("status") == "pending" and filename in t.get("owns", []))
+                or (filename in t.get("description", "") and ts in t.get("description", ""))
+                for t in all_tasks + new_tasks
+            )
         if already_filed:
             continue
 
