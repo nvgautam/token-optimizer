@@ -374,8 +374,8 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | M-F-3 — MERGED (PR #205 2026-07-20) | T-296 (solo) | Verbosity hardening: oracle + orchestrate personas — no strategy leakage |
 | M-F-4 — MERGED | T-236 (solo) | Post-merge conflict resolution (OWNS gate preserved) |
 | M-F-6 — MERGED (PR #207 2026-07-20) | T-295 (solo) | Skill bundle encryption + load_skill.py with config gate (AGENTFLOW_ENCRYPT=false default — current plaintext mode preserved for dev/orchestrator) |
-| M-F-6b [PENDING] | T-305 (solo) | API key server: Lambda/CF Worker — /validate endpoint, CEK issuance (15-min TTL), manual key provisioning for friendlies |
-| M-F-6c [PENDING] | T-304 (solo) | First-run auto-init at PTY startup: deep-merge project settings.json, register headroom MCP globally, 2-question permissions prompt — wires T-295 + T-305 |
+| M-F-6b — MERGED | T-305 (solo) | API key server: Lambda/CF Worker — /validate endpoint, CEK issuance (15-min TTL), manual key provisioning for friendlies |
+| M-F-6c [PENDING] | T-304 ‖ T-306 (parallel) | First-run auto-init at PTY startup + oracle.md size split — disjoint OWNS |
 | M-F-7 ‖ M-F-8 [PENDING] | T-301 ‖ T-302 (parallel) | Oracle handoff UX + customer distribution — disjoint OWNS (session_manager.py/oracle.md vs scripts/build_dist.sh) |
 | Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
 | Round E [PENDING] | T-168 ‖ T-290 (parallel) | product judgment layer + debug terminal step |
@@ -754,3 +754,19 @@ Fix: remove the `pty_signal task_done` Bash call from the "After worker complete
 **Goal:** Split commands/claude/oracle.md (177 lines, limit 150). Violation timestamp: 2026-07-16T05:15:32.906479. Choose the split boundary by phase/section responsibility, not line count. Extract a cohesive section into a sub-file; replace with 'Lazy load: Read <subfile>.md now.' Verify each output file is ≤ 150 lines after splitting.
 
 **Owns:** ["commands/claude/oracle.md"]
+
+## Addendum: T-307 — Orchestrator session integration tests: edge cases
+
+**Goal:** Add a dedicated integration test file for orchestrator session lifecycle edge cases. Must be purely additive — no changes to production code, no modification of existing tests. Covers: (1) session resume after rate-limit pause: `UserPromptSubmit` hook detects TIF non-empty for current SID + 'continue' prompt → injects `[RESUME DETECTED]` into context; (2) interrupted Agent spawn: worker task in TIF but never completed → orchestrator reconciles TIF against `tasks.json` before re-spawning, preventing double-execution; (3) stale TIF after context-exhaustion restart: new SID sees empty TIF but `current_round.json` exists → startup reconciliation prunes orphaned in-flight entries by cross-checking `execution_plan.md` MERGED markers. Each test mocks file state only; no PTY subprocess required.
+
+**Files:**
+- `tests/test_orchestrator_session_edge_cases.py` (new) — isolated edge-case tests; must not import from or modify any existing test file
+
+**Test scenarios:**
+- Resume signal: TIF non-empty + 'continue' prompt → hook injects RESUME DETECTED; TIF empty + 'continue' → no injection
+- Double-spawn guard: re-launching with stale TIF entry whose `tasks.json` status is `complete` → entry pruned before spawn
+- SID mismatch reconciliation: new SID, `current_round.json` present, all round tasks MERGED in execution_plan → TIF cleared on startup
+- No-op baseline: fresh orchestrate start (empty TIF, no current_round.json) → all edge-case paths are bypassed, normal flow unchanged
+
+**OWNS:** `tests/test_orchestrator_session_edge_cases.py`
+**estimated_lines:** 140
