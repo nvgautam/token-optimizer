@@ -1097,7 +1097,7 @@
     {
       "task_id": "T-311",
       "status": "pending",
-      "title": "Inject session_id into all log writers; filter all debug log reads by SID"
+      "title": "Session-scoped log observability: session header + SID on every log line + debug SID filter"
     }
   ]
 }

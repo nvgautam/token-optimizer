@@ -381,7 +381,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
 | Round D-2 [PENDING] | T-309 (solo) | Friendly savings dashboard — aggregate-only token/cost view; no strategy breakdown |
 | Round D-3 [PENDING] | T-310 (solo) | agentflow bundle CLI — deterministic ctx assembly; eliminates LLM Write call in orchestrate |
-| Round D-4 [PENDING] | T-311 (solo) | SID injection into all log writers + debug skill filters by SID first |
+| Round D-4 [PENDING] | T-311 (solo) | Session-scoped log observability — session header + SID per line; friendlies can send logs for remote triage |
 | Round E [PENDING] | T-168 ‖ T-290 (parallel) | product judgment layer + debug terminal step |
 | Round E-2 [PENDING] | T-167 (solo) | Oracle Phase 3 plan-mode preview |
 | Round E-3 [PENDING] | T-288 (solo) | Oracle self-check: disjoint OWNS before writing execution_plan.md |
@@ -829,21 +829,21 @@ Fix: remove the `pty_signal task_done` Bash call from the "After worker complete
 **OWNS:** `agentflow/bundle.py`, `agentflow/cli.py`, `commands/claude/orchestrate.md`, `tests/test_bundle.py`
 **estimated_lines:** 160
 
-## Addendum: T-311 — Inject session_id into all log writers; filter all debug log reads by SID
+## Addendum: T-311 — Session-scoped log observability: session header + SID on every log line + debug SID filter
 
-**Goal:** Add `"sid": "<session_id>"` to every JSONL log entry written by hooks and PTY shell (`hook_drain_debug.jsonl`, `pty_audit.jsonl`, any future log). Update the debug skill to open with `grep '"sid":"<SID>"'` on each log file before any further processing — eliminates per-line timestamp correlation and correctly isolates events when two sessions interleave writes. SID sourced from `$AGENTFLOW_SESSION_ID` env var (already captured by orchestrate at round start).
+**Goal:** Friendly supportability: emit a structured session-start header record into every log file (`sid`, `session_type` ∈ {oracle, orchestrator, worker, reviewer}, `task_ids` being worked on, `ts`). Add `"sid"` to every subsequent JSONL entry. Update debug skill to grep by SID first on every log file — eliminating per-line timestamp correlation. Friendlies with a problem can run `grep '"sid"' .agentflow/*.jsonl` and send the output for remote triage without exposing unrelated sessions.
 
 **Files:**
-- `agentflow/hooks/post_tool_use_agent.py` (modify) — inject `sid` into every `hook_drain_debug.jsonl` write
-- `agentflow/shell/pty_shell.py` (modify) — inject `sid` into every `pty_audit.jsonl` write
-- `commands/claude/debug.md` (modify) — Phase 3 Signal Trace: prepend SID-filter grep to each log read command
-- `tests/test_log_sid_injection.py` (new) — assert `sid` present in all emitted log entries
+- `agentflow/hooks/post_tool_use_agent.py` (modify) — inject `sid` into every `hook_drain_debug.jsonl` write; emit session-start header on first write per SID
+- `agentflow/shell/pty_shell.py` (modify) — inject `sid` into every `pty_audit.jsonl` write; emit session-start header on PTY session open
+- `commands/claude/debug.md` (modify) — Phase 3 Signal Trace: prepend `grep '"sid":"<SID>"'` to every log read; Phase 1 Triage: show session header record first
+- `tests/test_log_sid_injection.py` (new) — assert session-start header and `sid` present in all log entries
 
 **Test scenarios:**
-- Every hook_drain_debug.jsonl entry has `sid` field matching active session
-- Every pty_audit.jsonl entry has `sid` field
-- Debug skill SID-filtered grep returns only entries for the requested session
-- Two interleaved session writes: grep by SID A returns only A's entries, grep by SID B returns only B's
+- Session-start header record emitted as first entry per SID with correct session_type and task_ids
+- Every subsequent hook_drain_debug.jsonl and pty_audit.jsonl entry has matching `sid`
+- Two interleaved sessions: grep by SID A returns only A's entries including its header
+- Friendly triage flow: `grep '"sid"' .agentflow/*.jsonl` returns complete picture of one session
 
 **OWNS:** `agentflow/hooks/post_tool_use_agent.py`, `agentflow/shell/pty_shell.py`, `commands/claude/debug.md`, `tests/test_log_sid_injection.py`
-**estimated_lines:** 80
+**estimated_lines:** 100
