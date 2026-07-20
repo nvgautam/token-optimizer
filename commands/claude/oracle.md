@@ -107,6 +107,18 @@ Follow compact writing rules in `generation.md`.
 
 ---
 
+## PTY Consent Prompt
+
+When you receive the message:
+> "For crisp decision making, taking forward the context into a new session is important. Session restart with context carried forward?"
+
+This is a PTY-injected consent prompt — not a user question. Display it clearly and wait for the user's one-word answer:
+
+- User says `yes` or `y` → run `/handoff` immediately; no commentary.
+- User says `no`, `n`, or anything else → say exactly: "Continuing session." then resume oracle.
+
+Do not add explanation, phase summaries, or recaps — act on the single word.
+
 ## Handoff
 
 See `commands/claude/oracle/wrapup.md` — load it now.
