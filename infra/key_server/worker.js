@@ -77,8 +77,9 @@ async function handleValidate(request, env) {
   try {
     const raw = await env.KEY_REGISTRY.get(apiKey);
     if (raw === null) {
-      // Use timingSafeEqual stub to keep timing consistent
-      timingSafeEqual(apiKey, apiKey);
+      // Compare against a dummy constant so timing is consistent whether or not the key exists.
+      timingSafeEqual(apiKey, "DUMMY_CONSTANT_FOR_TIMING");
+      console.error(JSON.stringify({ event: "validate_failed", reason: "invalid_key" }));
       return jsonResponse({ error: "invalid_key" }, 401);
     }
     record = JSON.parse(raw);
@@ -87,10 +88,12 @@ async function handleValidate(request, env) {
   }
 
   if (record.status === "revoked") {
+    console.error(JSON.stringify({ event: "validate_failed", reason: "license_revoked" }));
     return jsonResponse({ error: "license_revoked" }, 401);
   }
 
   if (record.status !== "active") {
+    console.error(JSON.stringify({ event: "validate_failed", reason: "invalid_key" }));
     return jsonResponse({ error: "invalid_key" }, 401);
   }
 
@@ -112,3 +115,6 @@ export default {
     });
   },
 };
+
+// Named exports for unit testing
+export { handleValidate, timingSafeEqual, generateCEK };

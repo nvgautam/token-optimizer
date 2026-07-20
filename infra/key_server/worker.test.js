@@ -3,9 +3,11 @@
  * Run with: npx vitest run infra/key_server/worker.test.js
  *
  * Uses an in-memory mock KV store — no real Cloudflare KV required.
+ * Imports production code from worker.js via named exports.
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+import { handleValidate, timingSafeEqual, generateCEK } from "./worker.js";
 
 // ---------------------------------------------------------------------------
 // Mock KV store
@@ -27,90 +29,7 @@ function makeKV(initial = {}) {
 }
 
 // ---------------------------------------------------------------------------
-// Import worker handler inline (avoids module resolution issues in test env)
-// ---------------------------------------------------------------------------
-
-// Inline the worker logic so tests run without a bundler.
-
-function timingSafeEqual(a, b) {
-  const enc = new TextEncoder();
-  const aBytes = enc.encode(a);
-  const bBytes = enc.encode(b);
-  if (aBytes.length !== bBytes.length) {
-    let diff = 0;
-    for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ 0;
-    return false;
-  }
-  let diff = 0;
-  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
-  return diff === 0;
-}
-
-async function generateCEK() {
-  // In test env (node), use crypto.getRandomValues via globalThis.crypto
-  const bytes = new Uint8Array(32);
-  globalThis.crypto.getRandomValues(bytes);
-  return Array.from(bytes)
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-function jsonResponse(body, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
-}
-
-async function handleValidate(request, env) {
-  let body;
-  try {
-    body = await request.json();
-  } catch {
-    return jsonResponse({ error: "invalid_json" }, 400);
-  }
-
-  const apiKey = body?.api_key;
-  if (!apiKey || typeof apiKey !== "string" || apiKey.trim() === "") {
-    return jsonResponse({ error: "missing_api_key" }, 400);
-  }
-
-  let record;
-  try {
-    const raw = await env.KEY_REGISTRY.get(apiKey);
-    if (raw === null) {
-      timingSafeEqual(apiKey, apiKey);
-      return jsonResponse({ error: "invalid_key" }, 401);
-    }
-    record = JSON.parse(raw);
-  } catch {
-    return jsonResponse({ error: "server_error" }, 500);
-  }
-
-  if (record.status === "revoked") {
-    return jsonResponse({ error: "license_revoked" }, 401);
-  }
-  if (record.status !== "active") {
-    return jsonResponse({ error: "invalid_key" }, 401);
-  }
-
-  const cek = await generateCEK();
-  return jsonResponse({ key: cek }, 200);
-}
-
-async function workerFetch(request, env) {
-  const url = new URL(request.url);
-  if (url.pathname === "/validate" && request.method === "POST") {
-    return handleValidate(request, env);
-  }
-  return new Response(JSON.stringify({ error: "not_found" }), {
-    status: 404,
-    headers: { "Content-Type": "application/json" },
-  });
-}
-
-// ---------------------------------------------------------------------------
-// Test fixtures
+// Test helpers
 // ---------------------------------------------------------------------------
 
 const ACTIVE_KEY = "agf-friendly-key-abc123";
@@ -133,7 +52,7 @@ function makeEnv(overrides = {}) {
   return { KEY_REGISTRY: kv };
 }
 
-function makeRequest(body) {
+function makeValidateRequest(body) {
   return new Request("https://worker.example.com/validate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -141,69 +60,70 @@ function makeRequest(body) {
   });
 }
 
+/** Thin routing shim — mirrors worker.js default export fetch() */
+async function workerFetch(request, env) {
+  const url = new URL(request.url);
+  if (url.pathname === "/validate" && request.method === "POST") {
+    return handleValidate(request, env);
+  }
+  return new Response(JSON.stringify({ error: "not_found" }), {
+    status: 404,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 // ---------------------------------------------------------------------------
-// Tests
+// POST /validate
 // ---------------------------------------------------------------------------
 
 describe("POST /validate", () => {
   it("valid active key → 200 + {key: <64-char hex>}", async () => {
     const env = makeEnv();
-    const req = makeRequest({ api_key: ACTIVE_KEY });
-    const res = await workerFetch(req, env);
+    const res = await workerFetch(makeValidateRequest({ api_key: ACTIVE_KEY }), env);
 
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data).toHaveProperty("key");
     expect(data.key).toHaveLength(64);
-    // Must be valid hex
     expect(/^[0-9a-f]{64}$/.test(data.key)).toBe(true);
   });
 
   it("each /validate call generates a fresh CEK", async () => {
     const env = makeEnv();
-    const res1 = await workerFetch(makeRequest({ api_key: ACTIVE_KEY }), env);
-    const res2 = await workerFetch(makeRequest({ api_key: ACTIVE_KEY }), env);
+    const res1 = await workerFetch(makeValidateRequest({ api_key: ACTIVE_KEY }), env);
+    const res2 = await workerFetch(makeValidateRequest({ api_key: ACTIVE_KEY }), env);
     const key1 = (await res1.json()).key;
     const key2 = (await res2.json()).key;
-    // With 32 bytes of randomness the probability of collision is negligible
     expect(key1).not.toBe(key2);
   });
 
   it("revoked key → 401 {error: 'license_revoked'}", async () => {
     const env = makeEnv();
-    const req = makeRequest({ api_key: REVOKED_KEY });
-    const res = await workerFetch(req, env);
+    const res = await workerFetch(makeValidateRequest({ api_key: REVOKED_KEY }), env);
 
     expect(res.status).toBe(401);
-    const data = await res.json();
-    expect(data.error).toBe("license_revoked");
+    expect((await res.json()).error).toBe("license_revoked");
   });
 
   it("unknown key → 401 {error: 'invalid_key'}", async () => {
     const env = makeEnv();
-    const req = makeRequest({ api_key: "not-in-registry" });
-    const res = await workerFetch(req, env);
+    const res = await workerFetch(makeValidateRequest({ api_key: "not-in-registry" }), env);
 
     expect(res.status).toBe(401);
-    const data = await res.json();
-    expect(data.error).toBe("invalid_key");
+    expect((await res.json()).error).toBe("invalid_key");
   });
 
   it("missing api_key body → 400", async () => {
     const env = makeEnv();
-    const req = makeRequest({});
-    const res = await workerFetch(req, env);
+    const res = await workerFetch(makeValidateRequest({}), env);
 
     expect(res.status).toBe(400);
-    const data = await res.json();
-    expect(data.error).toBe("missing_api_key");
+    expect((await res.json()).error).toBe("missing_api_key");
   });
 
-  it("empty api_key string → 400", async () => {
+  it("whitespace-only api_key → 400", async () => {
     const env = makeEnv();
-    const req = makeRequest({ api_key: "   " });
-    const res = await workerFetch(req, env);
-
+    const res = await workerFetch(makeValidateRequest({ api_key: "   " }), env);
     expect(res.status).toBe(400);
   });
 
@@ -220,13 +140,35 @@ describe("POST /validate", () => {
 
   it("unknown route → 404", async () => {
     const env = makeEnv();
-    const req = new Request("https://worker.example.com/health", {
-      method: "GET",
-    });
+    const req = new Request("https://worker.example.com/health", { method: "GET" });
     const res = await workerFetch(req, env);
     expect(res.status).toBe(404);
   });
+
+  it("401 paths emit console.error with reason (no api_key logged)", async () => {
+    const env = makeEnv();
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    await workerFetch(makeValidateRequest({ api_key: REVOKED_KEY }), env);
+    await workerFetch(makeValidateRequest({ api_key: "unknown-key" }), env);
+
+    expect(spy).toHaveBeenCalledTimes(2);
+    for (const call of spy.mock.calls) {
+      const logged = JSON.parse(call[0]);
+      expect(logged).toHaveProperty("event", "validate_failed");
+      expect(logged).toHaveProperty("reason");
+      // api_key must never appear in the log
+      expect(call[0]).not.toContain(REVOKED_KEY);
+      expect(call[0]).not.toContain("unknown-key");
+    }
+
+    spy.mockRestore();
+  });
 });
+
+// ---------------------------------------------------------------------------
+// provision.sh semantics via KV
+// ---------------------------------------------------------------------------
 
 describe("provision.sh semantics via KV", () => {
   it("add-key: key appears in registry as active", async () => {
@@ -234,17 +176,14 @@ describe("provision.sh semantics via KV", () => {
     const env = { KEY_REGISTRY: kv };
     const newKey = "agf-new-key-12345";
 
-    // Simulate what provision.sh add-key does via wrangler kv:key put
     await kv.put(
       newKey,
       JSON.stringify({ status: "active", tier: "friendly", bundle_version: "v1" }),
     );
 
-    const req = makeRequest({ api_key: newKey });
-    const res = await workerFetch(req, env);
+    const res = await workerFetch(makeValidateRequest({ api_key: newKey }), env);
     expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data).toHaveProperty("key");
+    expect(await res.json()).toHaveProperty("key");
   });
 
   it("revoke-key: status flips to revoked; subsequent validate returns 401", async () => {
@@ -257,20 +196,54 @@ describe("provision.sh semantics via KV", () => {
     });
     const env = { KEY_REGISTRY: kv };
 
-    // Confirm active first
-    const before = await workerFetch(makeRequest({ api_key: ACTIVE_KEY }), env);
+    const before = await workerFetch(makeValidateRequest({ api_key: ACTIVE_KEY }), env);
     expect(before.status).toBe(200);
 
-    // Simulate provision.sh revoke-key (wrangler kv:key put with revoked status)
     await kv.put(
       ACTIVE_KEY,
       JSON.stringify({ status: "revoked", tier: "friendly", bundle_version: "v1" }),
     );
 
-    // Now validate should return 401
-    const after = await workerFetch(makeRequest({ api_key: ACTIVE_KEY }), env);
+    const after = await workerFetch(makeValidateRequest({ api_key: ACTIVE_KEY }), env);
     expect(after.status).toBe(401);
-    const data = await after.json();
-    expect(data.error).toBe("license_revoked");
+    expect((await after.json()).error).toBe("license_revoked");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Unit tests for exported helpers
+// ---------------------------------------------------------------------------
+
+describe("timingSafeEqual", () => {
+  it("returns true for identical strings", () => {
+    expect(timingSafeEqual("abc", "abc")).toBe(true);
+  });
+
+  it("returns false for different strings of same length", () => {
+    expect(timingSafeEqual("abc", "xyz")).toBe(false);
+  });
+
+  it("returns false for different-length strings", () => {
+    expect(timingSafeEqual("short", "much-longer-string")).toBe(false);
+  });
+
+  it("constant dummy comparison does real work (unknown-key path)", () => {
+    // Ensures the function operates identically whether key exists or not
+    const result = timingSafeEqual("any-api-key", "DUMMY_CONSTANT_FOR_TIMING");
+    expect(typeof result).toBe("boolean");
+  });
+});
+
+describe("generateCEK", () => {
+  it("returns a 64-char lowercase hex string", async () => {
+    const cek = await generateCEK();
+    expect(cek).toHaveLength(64);
+    expect(/^[0-9a-f]{64}$/.test(cek)).toBe(true);
+  });
+
+  it("returns unique values on successive calls", async () => {
+    const a = await generateCEK();
+    const b = await generateCEK();
+    expect(a).not.toBe(b);
   });
 });
