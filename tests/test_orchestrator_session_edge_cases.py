@@ -13,7 +13,7 @@ from agentflow.hooks.ups_task_sync import _cleanup_merged_in_flight
 from agentflow.shell.session_paths import session_file
 
 
-def test_scenario_1_resume_signal_tif_non_empty_non_merged():
+def test_scenario_1_resume_signal_tif_non_empty_non_merged(tmp_path):
     """Scenario 1: Resume signal (TIF non-empty, non-merged tasks).
 
     TIF contains task IDs that are NOT merged (gh returns nothing, no title match).
@@ -21,7 +21,6 @@ def test_scenario_1_resume_signal_tif_non_empty_non_merged():
     non-merged in-flight tasks. This represents the state after a rate-limit
     pause where orchestrator resumes via 'continue' prompt.
     """
-    tmp_path = Path(__import__("tempfile").mkdtemp())
     agentflow_dir = tmp_path / ".agentflow"
     agentflow_dir.mkdir(parents=True, exist_ok=True)
 
@@ -49,13 +48,12 @@ def test_scenario_1_resume_signal_tif_non_empty_non_merged():
     assert result_tif == ["T-100", "T-101"], "Non-merged tasks should be preserved in TIF"
 
 
-def test_scenario_2_resume_signal_tif_empty():
+def test_scenario_2_resume_signal_tif_empty(tmp_path):
     """Scenario 2: Resume signal (TIF empty).
 
     Call _cleanup_merged_in_flight with TIF file containing [].
     Assert no error, no file modification (early return on empty list).
     """
-    tmp_path = Path(__import__("tempfile").mkdtemp())
     agentflow_dir = tmp_path / ".agentflow"
     agentflow_dir.mkdir(parents=True, exist_ok=True)
 
@@ -76,7 +74,7 @@ def test_scenario_2_resume_signal_tif_empty():
     assert result_tif == [], "Empty TIF should remain unchanged"
 
 
-def test_scenario_3_double_spawn_guard_merged_task_cleanup():
+def test_scenario_3_double_spawn_guard_merged_task_cleanup(tmp_path):
     """Scenario 3: Double-spawn guard.
 
     TIF has task T-999 whose tasks.json status is 'pending'. gh reports T-999
@@ -84,7 +82,6 @@ def test_scenario_3_double_spawn_guard_merged_task_cleanup():
     remove it from TIF. After call, TIF should be [] and tasks.json should
     show T-999 as 'complete'.
     """
-    tmp_path = Path(__import__("tempfile").mkdtemp())
     agentflow_dir = tmp_path / ".agentflow"
     agentflow_dir.mkdir(parents=True, exist_ok=True)
 
@@ -105,18 +102,23 @@ def test_scenario_3_double_spawn_guard_merged_task_cleanup():
     tif_file = session_file(agentflow_dir, "tasks_in_flight.json", sid)
     tif_file.write_text(json.dumps(["T-999"]))
 
-    # Mock PR check to report MERGED
+    # Mock PR check to report MERGED and suppress subprocess calls to _run_cleanup
     with patch("agentflow.hooks.ups_task_sync._check_pr_state", return_value="MERGED"):
-        with patch("agentflow.hooks.ups_task_sync._locked_write_tasks", return_value=True):
-            with patch("subprocess.run"):
-                _cleanup_merged_in_flight(agentflow_dir, sid=sid)
+        with patch("subprocess.run"):
+            _cleanup_merged_in_flight(agentflow_dir, sid=sid)
 
-    # Assert TIF is now empty
+    # Assert TIF is now empty (merged task removed)
     result_tif = json.loads(tif_file.read_text())
     assert result_tif == [], "Merged task should be removed from TIF"
 
+    # Assert tasks.json shows T-999 as complete (file-state verification)
+    tasks_data = json.loads(tasks_file.read_text())
+    t999_task = next((t for t in tasks_data["tasks"] if t["task_id"] == "T-999"), None)
+    assert t999_task is not None, "T-999 should exist in tasks.json"
+    assert t999_task["status"] == "complete", "T-999 should be marked as complete"
 
-def test_scenario_4_sid_mismatch_isolation():
+
+def test_scenario_4_sid_mismatch_isolation(tmp_path):
     """Scenario 4: SID mismatch / isolation.
 
     Old SID had current_round.json and TIF with tasks. New SID starts fresh.
@@ -125,7 +127,6 @@ def test_scenario_4_sid_mismatch_isolation():
     _cleanup_merged_in_flight(agentflow_dir, sid=new_sid) exits early (no file).
     Old SID files are untouched.
     """
-    tmp_path = Path(__import__("tempfile").mkdtemp())
     agentflow_dir = tmp_path / ".agentflow"
     agentflow_dir.mkdir(parents=True, exist_ok=True)
 
@@ -159,14 +160,13 @@ def test_scenario_4_sid_mismatch_isolation():
     assert json.loads(old_tif.read_text()) == ["T-200"], "Old SID TIF content should be unchanged"
 
 
-def test_scenario_5_no_op_baseline():
+def test_scenario_5_no_op_baseline(tmp_path):
     """Scenario 5: No-op baseline.
 
     Empty .agentflow dir (no TIF, no current_round.json), no SID.
     _cleanup_merged_in_flight(agentflow_dir, sid='') completes without error.
     No files are created or modified.
     """
-    tmp_path = Path(__import__("tempfile").mkdtemp())
     agentflow_dir = tmp_path / ".agentflow"
     agentflow_dir.mkdir(parents=True, exist_ok=True)
 
