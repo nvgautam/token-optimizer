@@ -1046,7 +1046,7 @@
     },
     {
       "task_id": "T-295",
-      "status": "pending",
+      "status": "complete",
       "description": "Skill bundle encryption + config gate. (1) Config: AGENTFLOW_ENCRYPT env var (default: false) \u2014 when false, load_skill.py reads plaintext .md from commands/claude/ (current behavior, orchestrator safe). When true: bundle path. (2) Build script: encrypt commands/claude/**/*.md \u2192 ~/.agentflow/skills/bundle-vN.enc using AES-256 CEK. (3) load_skill.py: if AGENTFLOW_ENCRYPT=false read plaintext; else read bundle, fetch CEK from key server, decrypt in memory, print to stdout. (4) agentflow init: download bundle via presigned S3 URL. (5) agentflow update-skills: re-download bundle."
     },
     {
@@ -1086,6 +1086,10 @@
         "agentflow/ip/load_skill.py"
       ],
       "description": "Lightweight serverless endpoint (Lambda or Cloudflare Worker). Schema: {api_key \u2192 status (active/revoked), tier}. POST /validate: check status, return signed CEK token (15-min TTL, AES-256 key for current bundle version) or 401. Manual key provisioning for friendlies via admin script. Billing gate added server-side later without client changes."
+    },
+    {
+      "task_id": "T-306",
+      "status": "pending"
     }
   ]
 }

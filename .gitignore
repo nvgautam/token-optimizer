@@ -36,3 +36,6 @@ build/
 # Encrypted skill bundles — never commit to git
 *.enc
 
+# License key registry — never commit key material
+infra/key_server/keys.json
+

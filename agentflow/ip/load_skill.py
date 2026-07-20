@@ -42,8 +42,12 @@ def _read_plaintext(skill_name: str, skills_dir: str) -> bytes:
 
 
 def _get_key_from_env() -> bytes | None:
-    """Return key bytes if AGENTFLOW_KEY or AGENTFLOW_MASTER_KEY is set."""
-    raw = os.environ.get("AGENTFLOW_KEY") or os.environ.get("AGENTFLOW_MASTER_KEY")
+    """Return key bytes if AGENTFLOW_MASTER_KEY is set (dev override only).
+
+    NOTE: AGENTFLOW_KEY is the license/API key sent to /validate — it is NOT
+    a direct key override. Only AGENTFLOW_MASTER_KEY bypasses the key server.
+    """
+    raw = os.environ.get("AGENTFLOW_MASTER_KEY")
     if not raw:
         return None
     raw = raw.strip()
@@ -56,16 +60,32 @@ def _get_key_from_env() -> bytes | None:
     return hashlib.sha256(raw.encode("utf-8")).digest()
 
 
-def _fetch_key_from_server(key_server_url: str, token: str) -> bytes:
-    """Fetch decryption key from key server; exits 1 on network failure."""
+def _fetch_key_from_server(key_server_url: str, api_key: str) -> bytes:
+    """POST api_key to /validate; returns CEK bytes on 200, exits 1 on 401 or error."""
     req = urllib.request.Request(
-        f"{key_server_url}/key",
-        headers={"Authorization": f"Bearer {token}"},
+        f"{key_server_url}/validate",
+        data=json.dumps({"api_key": api_key}).encode("utf-8"),
+        headers={"Content-Type": "application/json"},
+        method="POST",
     )
     try:
         with urllib.request.urlopen(req) as resp:
             data = json.loads(resp.read())
             return bytes.fromhex(data["key"])
+    except urllib.error.HTTPError as exc:
+        if exc.code == 401:
+            body = exc.read()
+            try:
+                err = json.loads(body).get("error", "")
+            except Exception:
+                err = ""
+            if err in ("license_revoked", "invalid_key"):
+                sys.stderr.write("License invalid\n")
+            else:
+                sys.stderr.write("License invalid\n")
+            sys.exit(1)
+        sys.stderr.write(f"Error: key server returned {exc.code}: {exc}\n")
+        sys.exit(1)
     except urllib.error.URLError as exc:
         sys.stderr.write(f"Error: key server unreachable at {key_server_url}: {exc}\n")
         sys.exit(1)
@@ -74,18 +94,18 @@ def _fetch_key_from_server(key_server_url: str, token: str) -> bytes:
         sys.exit(1)
 
 
-def _get_key(key_server_url: str, token: str) -> bytes:
-    """Resolve the decryption key: env var takes priority over key server."""
+def _get_key(key_server_url: str, api_key: str) -> bytes:
+    """Resolve the decryption key: AGENTFLOW_MASTER_KEY takes priority over key server."""
     direct = _get_key_from_env()
     if direct is not None:
         return direct
-    if not key_server_url:
+    if not key_server_url or not api_key:
         sys.stderr.write(
-            "Error: AGENTFLOW_KEY_SERVER_URL not set and no key in AGENTFLOW_KEY / "
-            "AGENTFLOW_MASTER_KEY.\n"
+            "Error: AGENTFLOW_KEY_SERVER_URL and AGENTFLOW_KEY must be set "
+            "when AGENTFLOW_ENCRYPT=true.\n"
         )
         sys.exit(1)
-    return _fetch_key_from_server(key_server_url, token)
+    return _fetch_key_from_server(key_server_url, api_key)
 
 
 def _decrypt_from_bundle(skill_name: str, bundle_path: str, key: bytes) -> bytes:
@@ -140,8 +160,8 @@ def main() -> None:
             os.path.expanduser("~/.agentflow/skills/bundle-v1.enc"),
         )
         key_server_url = os.environ.get("AGENTFLOW_KEY_SERVER_URL", "")
-        token = os.environ.get("AGENTFLOW_KEY_SERVER_TOKEN", "")
-        key = _get_key(key_server_url, token)
+        api_key = os.environ.get("AGENTFLOW_KEY", "")
+        key = _get_key(key_server_url, api_key)
         content = _decrypt_from_bundle(args.skill_name, bundle_path, key)
         # Decode and write to stdout; never write to disk
         sys.stdout.write(content.decode("utf-8"))
