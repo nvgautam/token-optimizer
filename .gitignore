@@ -33,4 +33,6 @@ build/
 .agentflow/*.swp
 .agentflow/tasks_in_flight.json
 .agentflow/addendums_archive.md
+# Encrypted skill bundles — never commit to git
+*.enc
 
