@@ -1,6 +1,6 @@
 # /oracle — Design Sparring + Artifact Generation
 
-**Verbosity:** ≤3 sentences (~150 tokens) per response; expand only if user asks.
+**Verbosity:** ≤3 sentences (~150 tokens) per response; expand only if user asks. Never narrate startup steps, phases, file reads, or internal decision logic — execute silently; speak only to product decisions.
 
 ## Startup sequence
 
