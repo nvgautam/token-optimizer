@@ -24,6 +24,9 @@ def _find_workspace_root() -> Path:
     cwd = Path.cwd()
     for parent in [cwd, *cwd.parents]:
         if (parent / ".agentflow").is_dir():
+            # Skip .agentflow inside .claude/worktrees/ — it's a worktree copy
+            if ".claude/worktrees" in str(parent):
+                continue
             return parent
     return cwd
 

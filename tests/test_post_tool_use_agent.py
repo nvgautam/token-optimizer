@@ -206,6 +206,45 @@ class TestSplitCoverage:
             with patch("pathlib.Path.is_dir", return_value=False):
                 assert _find_workspace_root() == tmp_path
 
+    def test_find_workspace_root_from_worktree(self, tmp_path):
+        """When called from inside .claude/worktrees/, skip worktree .agentflow and return project root."""
+        from agentflow.hooks.post_tool_use_agent import _find_workspace_root
+        # Create project root with .agentflow
+        (tmp_path / ".agentflow").mkdir()
+        # Create worktree structure
+        worktree_path = tmp_path / ".claude" / "worktrees" / "task-T-308"
+        worktree_path.mkdir(parents=True)
+        (worktree_path / ".agentflow").mkdir()
+
+        # Call from worktree CWD
+        with patch("pathlib.Path.cwd", return_value=worktree_path):
+            result = _find_workspace_root()
+
+        # Should return project root, not worktree
+        assert result == tmp_path
+
+    def test_find_workspace_root_from_project_root(self, tmp_path):
+        """When called from project root with .agentflow present, return project root."""
+        from agentflow.hooks.post_tool_use_agent import _find_workspace_root
+        (tmp_path / ".agentflow").mkdir()
+
+        with patch("pathlib.Path.cwd", return_value=tmp_path):
+            result = _find_workspace_root()
+
+        assert result == tmp_path
+
+    def test_find_workspace_root_from_subdir(self, tmp_path):
+        """When called from subdir of project root, return project root."""
+        from agentflow.hooks.post_tool_use_agent import _find_workspace_root
+        (tmp_path / ".agentflow").mkdir()
+        subdir = tmp_path / "subdir" / "nested"
+        subdir.mkdir(parents=True)
+
+        with patch("pathlib.Path.cwd", return_value=subdir):
+            result = _find_workspace_root()
+
+        assert result == tmp_path
+
     def test_main_in_flight_file_missing(self, tmp_path):
         with patch("agentflow.hooks.post_tool_use_agent._find_workspace_root", return_value=tmp_path):
             with pytest.raises(SystemExit) as exc:
