@@ -43,6 +43,7 @@ class SessionManager:
         self.session_type: Optional[str] = None
         self._turn_count = 0
         self._manual_handoff = self._injecting = self._last_had_content = False
+        self._oracle_consent_pending = self._oracle_consent_fired = self._oracle_consent_confirmed = False
         self._handoff_event = self._handoff_thread = None
         self._current_turn_output_tokens, self._turn_output_history, self._task_start_tokens = 0, [], {}
         self._arm = self._read_arm_file()
@@ -138,6 +139,8 @@ class SessionManager:
         self.poll()
         self._check_drain_restart()
         self._check_debug_restart_trigger()
+        from agentflow.shell.oracle_consent import check_oracle_consent_threshold
+        check_oracle_consent_threshold(self)
         now = time.monotonic()
         if not hasattr(self, "_last_guard_tick") or now - self._last_guard_tick > 60.0:
             self._last_guard_tick = now
@@ -168,10 +171,15 @@ class SessionManager:
         clear_signal_files(self)
 
     def on_enter_handoff_pending(self) -> None:
+        from agentflow.shell.oracle_consent import on_enter_handoff_pending_oracle
+        if on_enter_handoff_pending_oracle(self):
+            return
         from agentflow.shell.session_manager_handlers import handle_enter_handoff_pending
         handle_enter_handoff_pending(self)
 
     def on_enter_restarting(self) -> None:
+        from agentflow.shell.oracle_consent import on_enter_restarting_oracle
+        on_enter_restarting_oracle(self)
         from agentflow.shell.session_manager_handlers import handle_enter_restarting
         handle_enter_restarting(self)
 
@@ -193,6 +201,8 @@ class SessionManager:
         spawn_new_child_impl(self)
 
     def _handle_output(self, chunk: bytes) -> None:
+        from agentflow.shell.oracle_consent import check_oracle_consent_output
+        check_oracle_consent_output(self, chunk)
         from agentflow.shell.session_manager_handlers import handle_output_impl
         handle_output_impl(self, chunk)
 
@@ -210,6 +220,9 @@ class SessionManager:
 
     def _on_session_exit(self, exit_code: int) -> None:
         """Called by PTYWrapper when the child process exits."""
+        from agentflow.shell.oracle_consent import on_session_exit_oracle
+        if on_session_exit_oracle(self):
+            return
         from agentflow.shell.session_manager_handlers import handle_session_exit
         handle_session_exit(self, exit_code)
 

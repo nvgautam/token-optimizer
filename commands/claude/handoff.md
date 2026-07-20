@@ -115,6 +115,8 @@ Use the actual path from Step 6 (either `.agentflow/handoff_<YYYY-MM-DD>.md` or 
 
 In PTY mode the shell polls `handoff_complete_{sid}.json` and restarts automatically when the file appears. In interactive mode this message is the restart signal.
 
+**Oracle consent restart (PTY only):** when `/handoff` runs after the PTY-injected consent prompt, the PTY detects `handoff_complete_{sid}.json` and restarts oracle automatically in `--permission-mode auto`. No additional user action needed.
+
 ### Step 10 — Report to user
 
 - Path of handoff file written
