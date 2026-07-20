@@ -379,6 +379,8 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | P0-workspace — MERGED (PR #211/#212 2026-07-20) | T-308 ‖ T-307 (parallel) | Fix _find_workspace_root() worktree escape (P0) + orchestrator session edge-case tests — disjoint OWNS |
 | M-F-7 ‖ M-F-8 [PENDING] | T-301 ‖ T-302 (parallel) | Oracle handoff UX + customer distribution — disjoint OWNS (session_manager.py/oracle.md vs scripts/build_dist.sh) |
 | Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
+| Round D-2 [PENDING] | T-309 (solo) | Friendly savings dashboard — aggregate-only token/cost view; no strategy breakdown |
+| Round D-3 [PENDING] | T-310 (solo) | agentflow bundle CLI — deterministic ctx assembly; eliminates LLM Write call in orchestrate |
 | Round E [PENDING] | T-168 ‖ T-290 (parallel) | product judgment layer + debug terminal step |
 | Round E-2 [PENDING] | T-167 (solo) | Oracle Phase 3 plan-mode preview |
 | Round E-3 [PENDING] | T-288 (solo) | Oracle self-check: disjoint OWNS before writing execution_plan.md |
@@ -787,3 +789,41 @@ Fix: remove the `pty_signal task_done` Bash call from the "After worker complete
 
 **OWNS:** `tests/test_orchestrator_session_edge_cases.py`
 **estimated_lines:** 140
+
+## Addendum: T-309 — Friendly savings dashboard: aggregate-only token/cost view
+
+**Goal:** A separate dashboard (HTML or CLI report) for friendly users showing aggregate savings only — total tokens saved, total USD saved, session count, and a per-session sparkline. No strategy breakdown (no "targeted reads", "verbosity", "headroom" labels). Session recycling surfaces as "session optimization" in any attribution layer. Separate artifact from combined_report.html which remains internal-only.
+
+**Files:**
+- `agentflow/shadow/friendly_report.py` (new) — reads agentflow_ledger.json; emits aggregate-only metrics
+- `agentflow/cli.py` (modify) — add `agentflow friendly-report` subcommand
+- `tests/test_friendly_report.py` (new) — unit tests for aggregation logic and output format
+
+**Test scenarios:**
+- Aggregate totals match sum of ledger entries
+- No strategy-level keys appear in output (targeted_reads, verbosity, headroom, no_reread absent)
+- Empty ledger → zero-state output (no crash)
+- Session count correct across multi-session ledger
+
+**OWNS:** `agentflow/shadow/friendly_report.py`, `agentflow/cli.py`, `tests/test_friendly_report.py`
+**estimated_lines:** 120
+
+## Addendum: T-310 — agentflow bundle CLI: deterministic context bundle assembly for all agent types
+
+**Goal:** Replace the orchestrate skill's LLM-written Write tool call for ctx bundle JSON with a deterministic CLI command: `agentflow bundle <task_id> [--agent-type worker|reviewer|test]`. Reads task metadata from tasks.json, addendum from execution_plan.md, and the appropriate skill file (worker/system.md, reviewer/code_review.md, etc.); outputs ctx JSON to `/tmp/ctx-<task_id>-<hash>.json`. Orchestrate skill replaces the Write block with a single Bash call. Eliminates LLM token cost for bundle assembly and removes ctx JSON dump from visible tool call output.
+
+**Files:**
+- `agentflow/cli.py` (modify) — add `agentflow bundle <task_id>` subcommand
+- `agentflow/bundle.py` (new) — deterministic assembly: tasks.json lookup, addendum parser, skill file loader, JSON writer
+- `tests/test_bundle.py` (new) — unit tests for each agent type; assert output contains correct fields, no extra keys
+- `commands/claude/orchestrate.md` (modify) — replace Write ctx block with `Bash: agentflow bundle <task_id> --agent-type <type>`
+
+**Test scenarios:**
+- Worker bundle: correct system_prompt (worker/system.md), correct owns/dependencies from addendum
+- Reviewer bundle: correct system_prompt (reviewer/code_review.md)
+- Test bundle: correct system_prompt (worker/testing_guide.md)
+- Missing task_id → clear error, no partial file written
+- Idempotent: running twice produces identical output
+
+**OWNS:** `agentflow/bundle.py`, `agentflow/cli.py`, `commands/claude/orchestrate.md`, `tests/test_bundle.py`
+**estimated_lines:** 160

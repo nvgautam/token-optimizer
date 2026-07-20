@@ -1083,6 +1083,16 @@
     {
       "task_id": "T-308",
       "status": "complete"
+    },
+    {
+      "task_id": "T-309",
+      "status": "pending",
+      "title": "Friendly savings dashboard: aggregate-only token/cost view"
+    },
+    {
+      "task_id": "T-310",
+      "status": "pending",
+      "title": "agentflow bundle CLI: deterministic context bundle assembly for all agent types"
     }
   ]
 }
