@@ -379,9 +379,10 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | P0-workspace — MERGED (PR #211/#212 2026-07-20) | T-308 ‖ T-307 (parallel) | Fix _find_workspace_root() worktree escape (P0) + orchestrator session edge-case tests — disjoint OWNS |
 | M-F-7 ‖ M-F-8 (MERGED PR #213/#214) | T-301 ‖ T-302 (parallel) | Oracle handoff UX + customer distribution — disjoint OWNS (session_manager.py/oracle.md vs scripts/build_dist.sh) |
 | M-F-9 — MERGED (PR #215 2026-07-21) | T-311 (solo) | Session-scoped log observability — session header + SID per line; friendlies can send logs for remote triage |
-| M-F-10 [PENDING] | T-309 (solo) | Friendly savings dashboard — aggregate-only token/cost view; no strategy breakdown |
-| M-F-11 [PENDING] | T-310 (solo) | agentflow bundle CLI — deterministic ctx assembly; eliminates LLM Write call in orchestrate |
-| M-F-12 [PENDING] | T-312 (solo) | Provider usage limits — PTY-inject /usage at session start + before restart; parse Claude + Gemini output; store in session state |
+| M-F-10 [PENDING] | T-313 (solo) | SPIKE: accurate per-session input+output token tracking — determine viable approach; no PTY injection |
+| M-F-11 [PENDING] | T-309 (solo) | Friendly savings dashboard — aggregate-only token/cost view; no strategy breakdown |
+| M-F-12 [PENDING] | T-310 (solo) | agentflow bundle CLI — deterministic ctx assembly; eliminates LLM Write call in orchestrate |
+| M-F-13 [PENDING] | T-312 (solo) | Provider usage limits — PTY-inject /usage at session start + before restart; parse Claude + Gemini output; store in session state |
 | Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
 | Round E [PENDING] | T-168 ‖ T-290 (parallel) | product judgment layer + debug terminal step |
 | Round E-2 [PENDING] | T-167 (solo) | Oracle Phase 3 plan-mode preview |
@@ -890,3 +891,20 @@ Extract: weekly `%_used`, `refreshes_in`; 5-hour `%_used`, `refreshes_in`.
 
 **OWNS:** `agentflow/shell/usage_parser.py`, `agentflow/shell/pty_shell.py`, `tests/test_usage_parser.py`
 **estimated_lines:** 120
+
+## Addendum: T-313 — SPIKE: accurate per-session input+output token tracking
+
+**Goal:** Determine a reliable, non-intrusive mechanism for counting both input and output tokens consumed in the current session — so the PTY threshold fires on actual context consumption, not output-only approximation. Current gap: heavy-input sessions (web searches, large file reads, tool results) exhaust context before the output-only threshold fires.
+
+**Spike questions to answer:**
+1. Does headroom's proxy server expose per-request token usage (input+output from Anthropic API response `usage` field)? If so, via callback, log file, or IPC?
+2. Does Claude Code write token usage anywhere readable without PTY injection (e.g., `~/.claude/` logs, session files)?
+3. Can the PostToolUse hook context include token counts for the triggering API call?
+4. Is there a headroom API (Python or HTTP) that returns accumulated session token usage?
+
+**Deliverable:** A design decision in `design_status.md` — chosen mechanism, why, and exact integration point in `session_manager.py`. No implementation in this spike; implementation follows in a separate task.
+
+**Out of scope:** Any UI, reporting, or PTY injection. Research and decision only.
+
+**OWNS:** `design_status.md` (one new RESOLVED entry), `agentflow/shell/` (read-only investigation)
+**estimated_lines:** 30
