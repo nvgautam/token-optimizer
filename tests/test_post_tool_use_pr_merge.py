@@ -86,17 +86,21 @@ Test addendum for task T-229.
     assert "MERGED" in plan_text
 
 
-def test_detect_pr_merge_skips_non_orchestrate_session(tmp_path):
-    """session_type != orchestrate → no file changes."""
+def test_detect_pr_merge_works_in_non_orchestrate_session(tmp_path):
+    """User-CLI merge in non-orchestrate session (worker, oracle, etc) should update files."""
     agentflow_dir = tmp_path / ".agentflow"
     agentflow_dir.mkdir()
     sessions_dir = agentflow_dir / "sessions" / "test-session"
     sessions_dir.mkdir(parents=True)
-    sessions_dir.joinpath("session_state.json").write_text('{"session_type": "oracle"}')
+    sessions_dir.joinpath("session_state.json").write_text('{"session_type": "worker"}')
 
     tasks_json = tmp_path / "tasks.json"
-    original = json.dumps({"tasks": [{"task_id": "T-229", "status": "pending"}]})
-    tasks_json.write_text(original)
+    tasks_json.write_text(json.dumps({"tasks": [{"task_id": "T-229", "status": "pending"}]}))
+
+    exec_plan = tmp_path / "execution_plan.md"
+    exec_plan.write_text("""# Plan
+| M-F-12 [PENDING] | T-229 | Test task |
+""")
 
     payload = json.dumps({
         "tool_name": "Bash",
@@ -110,8 +114,13 @@ def test_detect_pr_merge_skips_non_orchestrate_session(tmp_path):
     })
 
     assert code == 0
-    # tasks.json should remain unchanged
-    assert tasks_json.read_text() == original
+    # tasks.json should be updated to complete
+    tasks = json.loads(tasks_json.read_text())
+    assert tasks["tasks"][0]["task_id"] == "T-229"
+    assert tasks["tasks"][0]["status"] == "complete"
+    # execution_plan.md should have MERGED annotation
+    plan_text = exec_plan.read_text()
+    assert "MERGED" in plan_text
 
 
 def test_detect_pr_merge_skips_non_bash_tool(tmp_path):
