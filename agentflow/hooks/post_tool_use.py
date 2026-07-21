@@ -80,18 +80,8 @@ def detect_pr_merge(
     if "✓ Merged pull request" not in output:
         return
 
-    # Check session_type
-    sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
-    session_type = "unknown"
-    try:
-        ss_path = session_file(agentflow_dir, "session_state.json", sid if sid else None)
-        if ss_path.exists():
-            session_type = json.loads(ss_path.read_text()).get("session_type", "unknown")
-    except Exception:
-        pass
-
-    if not session_type.startswith("orchestrat"):
-        return
+    # Note: detect_pr_merge should work for any session type (user CLI, orchestrator, worker, etc).
+    # We don't filter by session_type here — we only filter by tool output and task ID presence.
 
     # Extract task_id from PR title: match conventional commit with task ID
     match = re.search(r'(?:feat|fix|chore|refactor)\((T-\d+)\)', output)
