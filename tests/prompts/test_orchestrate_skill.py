@@ -207,9 +207,9 @@ def test_orchestrate_startup_reconciliation_mid_round_restart():
 def test_context_bundle_delivered_via_temp_file():
     """T-234: orchestrate.md must instruct writing ctx bundle to temp file, not embedding in prompt."""
     content = CLAUDE_ORCHESTRATE.read_text(encoding="utf-8")
-    assert ".agentflow/ctx-" in content, \
-        "orchestrate.md must instruct writing context bundle to .agentflow/ctx-<session-id>.json"
-    assert "ctx-" in content and ".json" in content, \
+    assert "agentflow bundle" in content or ".agentflow/ctx-" in content, \
+        "orchestrate.md must instruct writing/getting context bundle via file, not embedding in prompt"
+    assert "ctx" in content and "JSON" in content, \
         "orchestrate.md must reference ctx file path pattern"
     # Worker reads and deletes the file
     assert "reads and deletes" in content or ("reads" in content and "deletes" in content), \
@@ -241,3 +241,10 @@ def test_orchestrate_post_merge_conflict_resolution():
         "orchestrate.md must include pushing after conflict resolution"
     assert "re-merge" in content.lower() or "remerge" in content.lower(), \
         "orchestrate.md must include re-merging after push"
+
+
+def test_orchestrate_does_not_require_write_tool_for_current_round():
+    """T-316: orchestrate.md must not require Write tool for current_round.json, since the CLI path is used."""
+    content = CLAUDE_ORCHESTRATE.read_text(encoding="utf-8")
+    assert "MUST use the Write tool — never Bash" not in content, \
+        "orchestrate.md should not instruct using Write tool for current_round.json"

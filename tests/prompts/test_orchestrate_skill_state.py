@@ -152,6 +152,9 @@ def test_orchestrate_enforces_write_tool_for_current_round():
     """T-279: Enforce Write tool (not Bash) for current_round.json writes."""
     for f in SKILL_FILES:
         content = f.read_text(encoding="utf-8")
+        if f == CLAUDE_ORCHESTRATE:
+            assert "MUST use the Write tool — never Bash" not in content
+            continue
         assert "Write tool" in content and "current_round.json" in content
         assert "never Bash" in content or "never use Bash" in content.lower()
 
