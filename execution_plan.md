@@ -381,6 +381,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | M-F-9 [PENDING] | T-311 (solo) | Session-scoped log observability — session header + SID per line; friendlies can send logs for remote triage |
 | M-F-10 [PENDING] | T-309 (solo) | Friendly savings dashboard — aggregate-only token/cost view; no strategy breakdown |
 | M-F-11 [PENDING] | T-310 (solo) | agentflow bundle CLI — deterministic ctx assembly; eliminates LLM Write call in orchestrate |
+| M-F-12 [PENDING] | T-312 (solo) | Provider usage limits — PTY-inject /usage at session start + before restart; parse Claude + Gemini output; store in session state |
 | Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
 | Round E [PENDING] | T-168 ‖ T-290 (parallel) | product judgment layer + debug terminal step |
 | Round E-2 [PENDING] | T-167 (solo) | Oracle Phase 3 plan-mode preview |
@@ -850,3 +851,42 @@ Fix: remove the `pty_signal task_done` Bash call from the "After worker complete
 
 **OWNS:** `agentflow/hooks/post_tool_use_agent.py`, `agentflow/shell/pty_shell.py`, `cli.py`, `commands/claude/ops.md`, `tests/test_log_sid_injection.py`
 **estimated_lines:** 100
+
+## Addendum: T-312 — Provider usage limits: PTY-inject /usage at session start + before restart
+
+**Goal:** Surface Claude and Gemini usage limits (% used, time to reset) in session state so the oracle/orchestrator can warn when headroom is low. Capture at session start and non-blocking just before PTY restart (2s timeout; skip-and-log on failure, never block restart).
+
+**Parse targets:**
+
+Claude (`/usage` output):
+```
+Current session
+████████████   24% used
+Resets 11:19am (Asia/Calcutta)
+
+Current week (all models)
+██████████████   84% used
+Resets Jul 24 at 2:29am (Asia/Calcutta)
+```
+Extract: session `%_used`, `resets_at`; weekly `%_used`, `resets_at`.
+
+Gemini (`/usage` output):
+```
+Weekly Limit   30.13%   30% remaining · Refreshes in 89h 27m
+Five Hour Limit  31.22%  31% remaining · Refreshes in 3h 7m
+```
+Extract: weekly `%_used`, `refreshes_in`; 5-hour `%_used`, `refreshes_in`.
+
+**Auth mode detection:** if `ANTHROPIC_API_KEY` set → skip PTY `/usage`; read `x-ratelimit-tokens-remaining` / `x-ratelimit-requests-reset` headers from API responses instead (RPM/TPM, not 5-hour %).
+
+**Failure contract:** parse failure → log warning to session state with raw output; return `None` for that field; never raise. Fast-fail integration test asserts all fields populated on known fixture strings.
+
+**Files:**
+- `agentflow/shell/usage_parser.py` (new) — regex parsers for Claude + Gemini output; `parse_claude_usage(text)`, `parse_gemini_usage(text)`; strip ANSI codes before parsing
+- `agentflow/shell/pty_shell.py` (modify) — inject `/usage` at session open + non-blocking capture before restart; write result to session state
+- `tests/test_usage_parser.py` (new) — fixture strings for Claude + Gemini output; assert all fields; assert graceful None on malformed input
+
+**Out of scope:** UI display (that is T-309 savings dashboard); API key header parsing (file separately if needed).
+
+**OWNS:** `agentflow/shell/usage_parser.py`, `agentflow/shell/pty_shell.py`, `tests/test_usage_parser.py`
+**estimated_lines:** 120
