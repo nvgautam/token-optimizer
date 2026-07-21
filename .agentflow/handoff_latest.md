@@ -1,1 +1,1 @@
-sessions/88b068fc-3c27-49a9-9465-8b1f7a33607f/handoff_2026-07-20.md
+sessions/b6e95d4b-e2bb-419b-b159-8b551b8c2823/handoff_2026-07-21.md
