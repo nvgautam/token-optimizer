@@ -70,6 +70,7 @@ Oracle reads on startup. Handoff writes updates. Architecture.md = workers only.
 | task_done callers | RESOLVED | Two hook paths, zero LLM: (1) Primary: PostToolUse Bash hook on `gh pr merge N` — extracts PR number, calls `gh pr view N` for url+title+state, drains on MERGED; (2) Secondary: UserPromptSubmit `_cleanup_merged_in_flight` — title-match, no race, calls `pty_signal.py task_done`. orchestrate.md line 78 task_done removed. T-223 |
 | tasks_in_flight.json path | RESOLVED | SID-scoped via `session_file(agentflow_dir, "tasks_in_flight.json", AGENTFLOW_SESSION_ID)`. All callers (pty_signal.py, PTY _tasks_in_flight_path, post_tool_use_agent.py, user_prompt_submit.py, pre_tool_use_agent.py) must use this path. Flat path was a latent bug when agy running. T-223 |
 | task_prs.json role | RESOLVED | Secondary backstop only — populated at merge time if gh pr merge --auto returns OPEN (PR scheduled not immediate). UserPromptSubmit checks URL if registered, else title-match. _detect_pr_create removed (dead code — worker always creates PR inside Agent, parent hook never sees gh pr create). T-223 |
+| Per-session token tracking | RESOLVED | Hook-based: confirmed context_fill.json is single source of truth for restart thresholds. Gap found: oracle_consent.py (line 44) was using output accumulator _last_accumulated_tokens instead of context_fill.json. Fix: swap in _read_fill_tokens(manager._project_root) in should_prompt_consent to evaluate true input+cache token size. |
 
 ## Oracle Direction — Sparred 2026-06-30
 
