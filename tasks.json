@@ -1086,18 +1086,15 @@
     },
     {
       "task_id": "T-309",
-      "status": "pending",
-      "title": "Friendly savings dashboard: aggregate-only token/cost view"
+      "status": "pending"
     },
     {
       "task_id": "T-310",
-      "status": "pending",
-      "title": "agentflow bundle CLI: deterministic context bundle assembly for all agent types"
+      "status": "pending"
     },
     {
       "task_id": "T-311",
-      "status": "pending",
-      "title": "Session-scoped log observability: session header + SID on every log line + debug SID filter"
+      "status": "pending"
     }
   ]
 }
