@@ -70,6 +70,17 @@ def cmd_hooks(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_bundle(args: argparse.Namespace) -> int:
+    from agentflow.bundle import assemble_bundle
+    try:
+        out = assemble_bundle(args.task_id, args.agent_type, Path("."), Path(args.out_dir))
+        print(str(out))
+        return 0
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 1
+
+
 class AgentFlowParser(argparse.ArgumentParser):
     def parse_args(self, args=None, namespace=None):
         parsed = super().parse_args(args, namespace)
@@ -129,6 +140,11 @@ def build_parser() -> argparse.ArgumentParser:
     friendly = sub.add_parser("friendly-report", help="Show aggregate savings dashboard for users")
     friendly.add_argument("--ledger", default="agentflow_ledger.json", metavar="FILE")
     friendly.add_argument("--json", dest="json_output", action="store_true", help="Output JSON instead of text")
+
+    bundle_p = sub.add_parser("bundle", help="Assemble deterministic context bundle for a task")
+    bundle_p.add_argument("task_id", metavar="TASK_ID")
+    bundle_p.add_argument("--agent-type", choices=["worker", "reviewer", "test"], default="worker")
+    bundle_p.add_argument("--out-dir", default="/tmp", metavar="DIR")
 
     validate = sub.add_parser("validate", help="Validate tasks.json schema and ownership rules")
     validate.add_argument("tasks_file", nargs="?", default="tasks.json", metavar="FILE")
@@ -241,6 +257,7 @@ def main() -> None:
         "install": cmd_install,
         "uninstall": cmd_uninstall,
         "hooks": cmd_hooks,
+        "bundle": cmd_bundle,
     }
 
     if args.command == "orchestrate":
