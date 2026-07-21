@@ -95,6 +95,74 @@ def main() -> None:
             st = json.loads(ss.read_text())
             session_type = st.get("session_type") or "unknown"
         print(f"<agentflow-reminder>[SESSION: {session_type}]</agentflow-reminder>")
+
+        # Oracle consent check: update context_fill.json timestamp if it exists,
+        # then check should_prompt_consent. If it is True, we touch/update context_fill.json ts
+        # so that the PTY session manager will also see it as fresh and fire the prompt!
+        if session_type == "oracle":
+            fill_path = session_file(agentflow_dir, "context_fill.json", sid)
+            if fill_path.exists():
+                try:
+                    data = json.loads(fill_path.read_text("utf-8"))
+                    data["ts"] = time.time()
+                    with tempfile.NamedTemporaryFile(
+                        mode="w", dir=fill_path.parent, delete=False, suffix=".tmp", encoding="utf-8"
+                    ) as tmp:
+                        json.dump(data, tmp)
+                        tmp_path = Path(tmp.name)
+                    os.replace(tmp_path, fill_path)
+                except Exception:
+                    pass
+
+            from agentflow.shell.oracle_consent import should_prompt_consent, inject_consent_prompt
+            from agentflow.shell.state_machine import States
+
+            class HookConsentManager:
+                def __init__(self, root_dir: Path, s_type: str):
+                    self._project_root = root_dir
+                    self.session_type = s_type
+                    
+                    class FakeSM:
+                        state = States.IDLE
+                    self._state_machine = FakeSM()
+                    
+                    self._config = {
+                        "oracle_threshold_tokens": 50000,
+                    }
+                    try:
+                        import tomllib
+                    except ImportError:
+                        import tomli as tomllib
+                    try:
+                        cfg_path = Path.home() / ".agentflow" / "config.toml"
+                        if cfg_path.exists():
+                            with open(cfg_path, "rb") as fh:
+                                toml_cfg = tomllib.load(fh)
+                                self._config.update(toml_cfg.get("shell", {}))
+                    except Exception:
+                        pass
+                    
+                    if "oracle_consent_threshold_tokens" not in self._config:
+                        self._config["oracle_consent_threshold_tokens"] = self._config["oracle_threshold_tokens"]
+                        
+                    self._oracle_consent_fired = False
+                    self._oracle_consent_pending = False
+                    self._last_accumulated_tokens = 0
+                    
+                    class MockPty:
+                        def write_input(self, text: str) -> None:
+                            pass
+                    self._pty = MockPty()
+                    
+                def _auto_handoff_disabled(self) -> bool:
+                    return (self._project_root / ".agentflow" / "handoff_disabled").exists()
+                
+                def _log_audit(self, entry: dict) -> None:
+                    pass
+
+            mock_manager = HookConsentManager(agentflow_dir.parent, session_type)
+            if should_prompt_consent(mock_manager):
+                inject_consent_prompt(mock_manager)
     except Exception as e:
         print(json.dumps({"hook": "user_prompt_submit.py", "event": "session_type_error", "error": str(e), "ts": time.time()}), file=sys.stderr)
 
