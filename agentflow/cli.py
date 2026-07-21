@@ -33,6 +33,18 @@ def cmd_report(args: argparse.Namespace) -> int:
     return build_report(project_root=Path.cwd(), mode=args.mode, output_path=args.output)
 
 
+def cmd_friendly_report(args: argparse.Namespace) -> int:
+    from agentflow.shadow.friendly_report import compute_friendly_report, render_text_report
+    ledger_path = Path(args.ledger)
+    report = compute_friendly_report(ledger_path)
+    if args.json_output:
+        import json
+        print(json.dumps(report, indent=2))
+    else:
+        print(render_text_report(report))
+    return 0
+
+
 def cmd_validate(args: argparse.Namespace) -> int:
     print("agentflow validate — not yet implemented"); return 0
 
@@ -113,6 +125,10 @@ def build_parser() -> argparse.ArgumentParser:
     report.add_argument("--mode", choices=["aggregate", "split", "session"], default="aggregate")
     report.add_argument("--output", default="combined_report.html")
     report.add_argument("--agent", choices=["claude", "agy"], default=None)
+
+    friendly = sub.add_parser("friendly-report", help="Show aggregate savings dashboard for users")
+    friendly.add_argument("--ledger", default="agentflow_ledger.json", metavar="FILE")
+    friendly.add_argument("--json", dest="json_output", action="store_true", help="Output JSON instead of text")
 
     validate = sub.add_parser("validate", help="Validate tasks.json schema and ownership rules")
     validate.add_argument("tasks_file", nargs="?", default="tasks.json", metavar="FILE")
@@ -217,6 +233,7 @@ def main() -> None:
         "init": cmd_init,
         "oracle": cmd_oracle,
         "report": cmd_report,
+        "friendly-report": cmd_friendly_report,
         "validate": cmd_validate,
         "scan": cmd_scan,
         "shell": cmd_shell,
