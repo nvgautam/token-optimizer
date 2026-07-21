@@ -56,13 +56,13 @@ def main() -> None:
     # Write session_state.json for /orchestrate and /oracle
     sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
     if prompt:
-        if prompt.lstrip().startswith("/orchestrate"):
+        if prompt.lstrip().startswith("/orchestrat"):
             _write_session_state_atomic(agentflow_dir, "orchestrator", sid=sid)
         elif prompt.lstrip().startswith("/oracle"):
             _write_session_state_atomic(agentflow_dir, "oracle", sid=sid)
 
     # If the prompt contains "/orchestrate" or "/handoff":
-    if prompt and (prompt.lstrip().startswith("/orchestrate") or prompt.lstrip().startswith("/handoff")):
+    if prompt and (prompt.lstrip().startswith("/orchestrat") or prompt.lstrip().startswith("/handoff")):
         # Delete session-scoped handoff_complete and task_complete if they exist.
         agentflow_dir.mkdir(parents=True, exist_ok=True)
         for name in ("handoff_complete.json", "task_complete.json"):
