@@ -1086,11 +1086,11 @@
     },
     {
       "task_id": "T-309",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-310",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-311",
@@ -1103,6 +1103,31 @@
     {
       "task_id": "T-313",
       "status": "complete"
+    },
+    {
+      "task_id": "T-314",
+      "status": "pending",
+      "title": "Log full Bash cmd in hook_drain_debug \u2014 scrub secrets pattern, add rotation"
+    },
+    {
+      "task_id": "T-315",
+      "status": "pending",
+      "title": "Wire UserPromptSubmit internal hook dispatch \u2014 oracle_consent.py never invoked without it"
+    },
+    {
+      "task_id": "T-316",
+      "status": "pending",
+      "title": "Fix orchestrate.md Write-tool contradiction \u2014 remove HARD RULE clause from line 16"
+    },
+    {
+      "task_id": "T-317",
+      "status": "pending",
+      "title": "Add session_type guard to sync_tasks_in_flight \u2014 prevent oracle sessions from inheriting orchestrator round state"
+    },
+    {
+      "task_id": "T-318",
+      "status": "pending",
+      "title": "Fix orchestrate.md human gate: verbosity exemption + PR URL HARD RULE"
     }
   ]
 }

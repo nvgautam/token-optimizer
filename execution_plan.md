@@ -380,13 +380,12 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | M-F-7 ‖ M-F-8 (MERGED PR #213/#214) | T-301 ‖ T-302 (parallel) | Oracle handoff UX + customer distribution — disjoint OWNS (session_manager.py/oracle.md vs scripts/build_dist.sh) |
 | M-F-9 — MERGED (PR #215 2026-07-21) | T-311 (solo) | Session-scoped log observability — session header + SID per line; friendlies can send logs for remote triage |
 | M-F-10 — MERGED (PR #216 2026-07-21) | T-313 (solo) | SPIKE: accurate per-session input+output token tracking — determine viable approach; no PTY injection |
-| M-F-11 [PENDING] | T-309 (solo) | Friendly savings dashboard — aggregate-only token/cost view; no strategy breakdown |
-| M-F-12 [PENDING] | T-310 (solo) | agentflow bundle CLI — deterministic ctx assembly; eliminates LLM Write call in orchestrate |
-| M-F-13 [PENDING] | T-312 (solo) | Provider usage limits — PTY-inject /usage at session start + before restart; parse Claude + Gemini output; store in session state |
+| M-F-11 [MERGED] | T-309 (solo) | Friendly savings dashboard — aggregate-only token/cost view; no strategy breakdown |
+| M-F-13 [PENDING] | T-314 ‖ T-315 ‖ T-316 ‖ T-317 (parallel) | Full Bash cmd logging + oracle_consent wiring + orchestrate.md contradiction fix + session_type guard |
+| M-F-12 [PENDING] | T-312 ‖ T-288 ‖ T-318 (parallel) | Provider usage limits + oracle OWNS self-check + human gate PR URL fix (T-310 already merged) |
 | Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
 | Round E [PENDING] | T-168 ‖ T-290 (parallel) | product judgment layer + debug terminal step |
 | Round E-2 [PENDING] | T-167 (solo) | Oracle Phase 3 plan-mode preview |
-| Round E-3 [PENDING] | T-288 (solo) | Oracle self-check: disjoint OWNS before writing execution_plan.md |
 | Round E-4 [PENDING] | T-289 (solo) | Oracle troubleshoot detection → offer debug skill |
 | Round F [PENDING] | T-063 (solo) | Multi-provider chain step 1 (enterprise) |
 | Round F-2 [PENDING] | T-064 (solo) | Multi-provider chain step 2 |
@@ -793,7 +792,7 @@ Fix: remove the `pty_signal task_done` Bash call from the "After worker complete
 **OWNS:** `tests/test_orchestrator_session_edge_cases.py`
 **estimated_lines:** 140
 
-## Addendum: T-309 — Friendly savings dashboard: aggregate-only token/cost view
+## Addendum: T-309 — Friendly savings dashboard: aggregate-only token/cost view (MERGED)
 
 **Goal:** A separate dashboard (HTML or CLI report) for friendly users showing aggregate savings only — total tokens saved, total USD saved, session count, and a per-session sparkline. No strategy breakdown (no "targeted reads", "verbosity", "headroom" labels). Session recycling surfaces as "session optimization" in any attribution layer. Separate artifact from combined_report.html which remains internal-only.
 
@@ -811,7 +810,7 @@ Fix: remove the `pty_signal task_done` Bash call from the "After worker complete
 **OWNS:** `agentflow/shadow/friendly_report.py`, `agentflow/cli.py`, `tests/test_friendly_report.py`
 **estimated_lines:** 120
 
-## Addendum: T-310 — agentflow bundle CLI: deterministic context bundle assembly for all agent types
+## Addendum: T-310 — agentflow bundle CLI: deterministic context bundle assembly for all agent types (MERGED)
 
 **Goal:** Replace the orchestrate skill's LLM-written Write tool call for ctx bundle JSON with a deterministic CLI command: `agentflow bundle <task_id> [--agent-type worker|reviewer|test]`. Reads task metadata from tasks.json, addendum from execution_plan.md, and the appropriate skill file (worker/system.md, reviewer/code_review.md, etc.); outputs ctx JSON to `/tmp/ctx-<task_id>-<hash>.json`. Orchestrate skill replaces the Write block with a single Bash call. Eliminates LLM token cost for bundle assembly and removes ctx JSON dump from visible tool call output.
 
@@ -892,6 +891,22 @@ Extract: weekly `%_used`, `refreshes_in`; 5-hour `%_used`, `refreshes_in`.
 **OWNS:** `agentflow/shell/usage_parser.py`, `agentflow/shell/pty_shell.py`, `tests/test_usage_parser.py`
 **estimated_lines:** 120
 
+## Addendum: T-288 — Oracle self-check: disjoint OWNS before writing execution_plan.md
+
+**Goal:** Add a mandatory pairwise-disjoint OWNS check to the oracle's round composition step. Before assigning two or more tasks to the same round in `execution_plan.md`, oracle must verify that every pair of tasks in that round has no overlapping files in their OWNS sets. If any overlap is found, split the tasks into sequential solo rounds and explain why.
+
+**Files:**
+- `commands/claude/oracle/prioritization.md` (modify) — add disjoint OWNS check rule before the round composition instruction; include the grep command to extract OWNS from each task's addendum and the split rule on overlap
+
+**Test scenarios:**
+- Two tasks with overlapping OWNS proposed as parallel → oracle splits into sequential rounds
+- Two tasks with fully disjoint OWNS → oracle keeps them parallel
+- Three tasks pairwise disjoint → oracle keeps all three parallel
+- One task has no addendum (no OWNS defined) → oracle treats as unknown, schedules solo until addendum is written
+
+**OWNS:** `commands/claude/oracle/prioritization.md`
+**estimated_lines:** 15
+
 ## Addendum: T-313 — SPIKE: accurate per-session input+output token tracking
 
 **Goal:** Determine a reliable, non-intrusive mechanism for counting both input and output tokens consumed in the current session — so the PTY threshold fires on actual context consumption, not output-only approximation. Current gap: heavy-input sessions (web searches, large file reads, tool results) exhaust context before the output-only threshold fires.
@@ -908,3 +923,68 @@ Extract: weekly `%_used`, `refreshes_in`; 5-hour `%_used`, `refreshes_in`.
 
 **OWNS:** `design_status.md` (one new RESOLVED entry), `agentflow/shell/` (read-only investigation)
 **estimated_lines:** 30
+
+## Addendum: T-314 — Full Bash cmd audit logging with secret scrubbing
+
+**Goal:** Replace `full_cmd[:80]` truncation with full command capture; scrub secrets patterns before writing; add log rotation to keep `hook_drain_debug.jsonl` bounded.
+
+**Files:** `agentflow/hooks/post_tool_use_agent.py` (modify)
+
+**Context:** 80-char truncation at line 141 blocked root-cause analysis of T-309 SID-unknown issue. Full cmd is needed for diagnosing multi-session races and CLI argument bugs. Secret scrubber prevents env-var values from appearing in audit logs (constraint: no secrets in logs).
+
+**Out of scope:** Any hook other than post_tool_use_agent.py. No schema changes to JSONL format beyond adding `full_cmd` field.
+
+**OWNS:** `agentflow/hooks/post_tool_use_agent.py`
+**estimated_lines:** 30
+
+## Addendum: T-315 — Wire UserPromptSubmit internal hook dispatch for oracle_consent
+
+**Goal:** Import and invoke `oracle_consent.should_prompt_consent` inside `user_prompt_submit.py` so the PTY consent prompt fires when fill_tokens ≥ oracle_threshold (50K).
+
+**Files:** `agentflow/hooks/user_prompt_submit.py` (modify)
+
+**Context:** T-313 fixed `oracle_consent.py` to read `context_fill.json` correctly, but the function is never called — `user_prompt_submit.py` does not dispatch to it. Three other hooks (`verbosity_reminder`, `idx_reminder`, `ups_task_sync`) fire but oracle_consent does not. Fill was 135K vs 50K threshold with no prompt triggered this session.
+
+**Out of scope:** Changes to `oracle_consent.py` itself or PTY session restart logic. This task is wiring only.
+
+**OWNS:** `agentflow/hooks/user_prompt_submit.py`
+**estimated_lines:** 15
+
+## Addendum: T-316 — Fix orchestrate.md Write-tool contradiction
+
+**Goal:** Remove "MUST use the Write tool — never Bash" clause from the Agent spawn HARD RULE (line 16). The CLI path (`agentflow round start --sid $SID`) is the correct and only path; the Write-tool instruction is dead code that contradicts line 38.
+
+**Files:** `commands/claude/orchestrate.md` (modify)
+
+**Context:** T-260 introduced the CLI path which atomically writes both `current_round.json` and `tasks_in_flight.json`, eliminating the Write-tool race. Line 16's Write-tool instruction was never removed. An LLM weights HARD RULE heavily and may follow line 16 over line 38, producing `session_id: "unknown"` (no `--sid` arg) and a TIF-population race.
+
+**Out of scope:** Any change to line 38 or the CLI path itself.
+
+**OWNS:** `commands/claude/orchestrate.md`
+**estimated_lines:** 5
+
+## Addendum: T-317 — Add session_type guard to sync_tasks_in_flight
+
+**Goal:** Add a session_type check at the top of `sync_tasks_in_flight` (and `_sync_tif_from_disk_if_absent`) so oracle and other non-orchestrator sessions never read `current_round.json` or write TIF.
+
+**Files:** `agentflow/hooks/post_tool_use.py` (modify)
+
+**Context:** `sync_tasks_in_flight` runs for every session on every PostToolUse event with no session_type guard. When oracle makes any tool call while `current_round.json` lists an active round, `_sync_tif_from_disk_if_absent` populates the oracle session's TIF with orchestrator tasks — causing the agent hook to process task completion as if oracle owned the round (session poisoning). Fix: read `session_state.json` for current SID; bail if `session_type != "orchestrator"`.
+
+**Out of scope:** Changes to `post_tool_use_agent.py` or drain logic. Hook dispatch logic in `user_prompt_submit.py`.
+
+**OWNS:** `agentflow/hooks/post_tool_use.py`
+**estimated_lines:** 15
+
+## Addendum: T-318 — Fix orchestrate.md human gate: verbosity exemption + PR URL HARD RULE
+
+**Goal:** (1) Add explicit verbosity exemption: "Exception: the Human gate block must be emitted in full — no lines may be omitted." (2) Strengthen line 77: `PR: <URL>  ← HARD RULE: emit even if URL was shown earlier; never omit`.
+
+**Files:** `commands/claude/orchestrate.md` (modify)
+
+**Context:** T-296 added "status is round+task only" verbosity rule. The LLM applies this to the Human gate block and drops the PR URL line — the URL is no longer displayed to the user, breaking the human approval workflow. Both changes are defensive wording only; no logic changes.
+
+**Out of scope:** Any other orchestrate.md changes. Does not overlap with T-316 (which removes line 16's Write-tool clause — different section).
+
+**OWNS:** `commands/claude/orchestrate.md`
+**estimated_lines:** 10
