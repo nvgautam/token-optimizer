@@ -25,9 +25,10 @@ design_status.md     → Oracle state: RESOLVED / UNRESOLVED / DEFERRED design d
                        Oracle reads this on startup (not architecture.md)
 architecture.md      → Design reference: module boundaries, PTY design, config schema, etc.
                        Workers read anchored sections; oracle does not read this at startup
-execution_plan.md    → Milestone state: milestone structure + Milestone 1 tasks (full);
-                       Orchestrator extends with tasks for each subsequent milestone on prior completion
-tasks.json           → Task state: individual task lifecycle PENDING → MERGED
+execution_plan.md    → Milestone state + round → task_id mapping (Master Round Table);
+                       USE THIS for next-round selection and task-ID lookup, not tasks.db or tasks.json
+tasks.json           → Task state: individual task lifecycle PENDING → MERGED; use Python one-liner to extract pending entries
+tasks.db             → RETIRED migration artifact — DO NOT READ; execution_plan.md owns round data, tasks.json owns task status
 ```
 
 ## Integrations
@@ -37,6 +38,7 @@ Skills execute via Claude Code / Gemini CLI (agy)
 ```
 
 ## Constraints
+- tasks.db is a RETIRED migration artifact — never read or query it; use execution_plan.md (Master Round Table) for round→task mapping
 - Compliance: None
 - No secrets in code or config — env vars only, never logged
 - No implementation file > 250 lines; tests ≤ 350; prompts ≤ 150; stubs ≤ 100
