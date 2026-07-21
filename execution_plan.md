@@ -377,11 +377,11 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | M-F-6b — MERGED | T-305 (solo) | API key server: Lambda/CF Worker — /validate endpoint, CEK issuance (15-min TTL), manual key provisioning for friendlies |
 | M-F-6c — MERGED | T-304 ‖ T-306 (parallel) | First-run auto-init at PTY startup + oracle.md size split — disjoint OWNS |
 | P0-workspace — MERGED (PR #211/#212 2026-07-20) | T-308 ‖ T-307 (parallel) | Fix _find_workspace_root() worktree escape (P0) + orchestrator session edge-case tests — disjoint OWNS |
-| M-F-7 ‖ M-F-8 [PENDING] | T-301 ‖ T-302 (parallel) | Oracle handoff UX + customer distribution — disjoint OWNS (session_manager.py/oracle.md vs scripts/build_dist.sh) |
-| Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
+| M-F-7 ‖ M-F-8 (MERGED PR #213/#214) | T-301 ‖ T-302 (parallel) | Oracle handoff UX + customer distribution — disjoint OWNS (session_manager.py/oracle.md vs scripts/build_dist.sh) |
+| Round D-4 [PENDING] | T-311 (solo) | Session-scoped log observability — session header + SID per line; friendlies can send logs for remote triage |
 | Round D-2 [PENDING] | T-309 (solo) | Friendly savings dashboard — aggregate-only token/cost view; no strategy breakdown |
 | Round D-3 [PENDING] | T-310 (solo) | agentflow bundle CLI — deterministic ctx assembly; eliminates LLM Write call in orchestrate |
-| Round D-4 [PENDING] | T-311 (solo) | Session-scoped log observability — session header + SID per line; friendlies can send logs for remote triage |
+| Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
 | Round E [PENDING] | T-168 ‖ T-290 (parallel) | product judgment layer + debug terminal step |
 | Round E-2 [PENDING] | T-167 (solo) | Oracle Phase 3 plan-mode preview |
 | Round E-3 [PENDING] | T-288 (solo) | Oracle self-check: disjoint OWNS before writing execution_plan.md |
