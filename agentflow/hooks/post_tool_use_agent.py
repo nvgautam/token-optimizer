@@ -33,12 +33,51 @@ def _find_workspace_root() -> Path:
 
 def _log(agentflow_dir: Path, entry: dict) -> None:
     try:
+        sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+        if "sid" not in entry:
+            entry = {"sid": sid, **entry}
+            
+        agentflow_dir.mkdir(parents=True, exist_ok=True)
+        
+        if sid:
+            marker = agentflow_dir / "sessions" / sid / "hook_drain_debug_header_emitted"
+            if not marker.exists():
+                marker.parent.mkdir(parents=True, exist_ok=True)
+                
+                session_type = "worker"
+                ss_file = session_file(agentflow_dir, "session_state.json", sid)
+                if ss_file.exists():
+                    try:
+                        session_type = json.loads(ss_file.read_text("utf-8")).get("session_type", "worker")
+                    except Exception:
+                        pass
+                
+                task_ids = []
+                in_flight_file = session_file(agentflow_dir, "tasks_in_flight.json", sid)
+                if in_flight_file.exists():
+                    try:
+                        task_ids = json.loads(in_flight_file.read_text("utf-8"))
+                    except Exception:
+                        pass
+                
+                header = {
+                    "sid": sid,
+                    "session_type": session_type,
+                    "task_ids": task_ids,
+                    "ts": time.time(),
+                }
+                
+                with open(agentflow_dir / "hook_drain_debug.jsonl", "a") as f:
+                    f.write(json.dumps(header) + "\n")
+                try:
+                    marker.touch()
+                except Exception:
+                    pass
+                    
         with open(agentflow_dir / "hook_drain_debug.jsonl", "a") as f:
             f.write(json.dumps({"ts": time.time(), **entry}) + "\n")
     except Exception:
         pass
-
-
 def _mark_task_complete(tasks_file: Path, task_id: str) -> str:
     """Mark task_id complete using tasks.json. Returns: 'marked'|'already_complete'|'not_found'|'error'."""
     import fcntl

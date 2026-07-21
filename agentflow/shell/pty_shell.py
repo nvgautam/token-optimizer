@@ -133,3 +133,79 @@ class ProxyShell:
         if self._proc is not None and self._proc.poll() is None:
             return f"[agentflow] proxy: active ({self.base_url})"
         return "[agentflow] proxy: inactive (headroom not available)"
+
+
+# T-311: Monkey patch SessionManager and session_audit to inject sid and emit header on PTY session open.
+try:
+    import agentflow.shell.session_audit as sa
+    import agentflow.shell.session_manager as sm
+    import os
+    import json
+    import datetime
+    
+    original_log_audit = sa.log_audit
+    original_sm_init = sm.SessionManager.__init__
+    
+    def _write_pty_audit_header(manager, sid: str) -> None:
+        if not sid:
+            return
+        lp = manager._project_root / ".agentflow" / "pty_audit.jsonl"
+        if not lp.parent.exists():
+            lp.parent.mkdir(parents=True, exist_ok=True)
+            
+        marker = manager._project_root / ".agentflow" / "sessions" / sid / "pty_audit_header_emitted"
+        if not marker.exists():
+            marker.parent.mkdir(parents=True, exist_ok=True)
+            
+            from agentflow.shell.session_paths import session_file
+            
+            st = getattr(manager, "session_type", None)
+            if not st:
+                try:
+                    ss_fp = session_file(manager._project_root / ".agentflow", "session_state.json", sid)
+                    if ss_fp.exists():
+                        ss_data = json.loads(ss_fp.read_text("utf-8"))
+                        st = ss_data.get("session_type")
+                except Exception:
+                    pass
+            if not st:
+                st = "orchestrator"
+                
+            task_ids = []
+            try:
+                tif_path = session_file(manager._project_root / ".agentflow", "tasks_in_flight.json", sid)
+                if tif_path.exists():
+                    task_ids = json.loads(tif_path.read_text("utf-8"))
+            except Exception:
+                pass
+                
+            header = {
+                "sid": sid,
+                "session_type": st,
+                "task_ids": task_ids,
+                "ts": datetime.datetime.now().isoformat(),
+            }
+            try:
+                with open(lp, "a", encoding="utf-8") as fh:
+                    fh.write(json.dumps(header) + "\n")
+                marker.touch()
+            except Exception:
+                pass
+
+    def patched_log_audit(manager, entry: dict) -> None:
+        sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+        entry["sid"] = sid
+        if "session_id" not in entry:
+            entry["session_id"] = sid
+        _write_pty_audit_header(manager, sid)
+        original_log_audit(manager, entry)
+        
+    def patched_sm_init(self, pty_wrapper, tokenizer, config: dict) -> None:
+        original_sm_init(self, pty_wrapper, tokenizer, config)
+        sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+        _write_pty_audit_header(self, sid)
+        
+    sa.log_audit = patched_log_audit
+    sm.SessionManager.__init__ = patched_sm_init
+except Exception:
+    pass
