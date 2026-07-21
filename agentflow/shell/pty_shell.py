@@ -209,3 +209,41 @@ try:
     sm.SessionManager.__init__ = patched_sm_init
 except Exception:
     pass
+
+# T-312: inject /usage at session start and non-blocking before restart
+try:
+    import agentflow.shell.session_manager as _sm_312
+    import agentflow.shell.session_manager_handlers as _smh_312
+    _312_ot = _sm_312.SessionManager.on_idle_tick
+    _312_or = _smh_312.handle_enter_restarting
+
+    def _t312_cap(mgr, label: str, timeout: float = 2.0) -> None:
+        try:
+            import json as _j, os as _o, datetime as _dt
+            from agentflow.shell.usage_parser import capture_provider_usage
+            from agentflow.shell.session_paths import session_file
+            u = capture_provider_usage(mgr._pty, timeout=timeout)
+            if u is None:
+                mgr._log_audit({"event": "t312_no_usage", "label": label}); return
+            sid = _o.environ.get("AGENTFLOW_SESSION_ID", "")
+            fp = session_file(mgr._project_root / ".agentflow", "session_state.json", sid)
+            d = _j.loads(fp.read_text("utf-8")) if fp.exists() else {}
+            d.setdefault("usage_snapshots", []).append(
+                {"label": label, "ts": _dt.datetime.now().isoformat(), **u})
+            fp.write_text(_j.dumps(d, indent=2), encoding="utf-8")
+            mgr._log_audit({"event": "t312_usage_written", "label": label})
+        except Exception as _e:
+            mgr._log_audit({"event": "t312_usage_error", "label": label, "error": str(_e)})
+
+    def _t312_tick(self) -> None:
+        if not getattr(self, "_t312_cap_done", False):
+            self._t312_cap_done = True; _t312_cap(self, "session_start")
+        _312_ot(self)
+
+    def _t312_restart(mgr) -> None:
+        _t312_cap(mgr, "pre_restart", timeout=2.0); _312_or(mgr)
+
+    _sm_312.SessionManager.on_idle_tick = _t312_tick
+    _smh_312.handle_enter_restarting = _t312_restart
+except Exception:
+    pass
