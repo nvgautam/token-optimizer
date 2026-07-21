@@ -91,6 +91,24 @@ def test_should_prompt_consent_non_idle_state(tmp_path):
     assert should_prompt_consent(sm) is False
 
 
+def test_should_prompt_consent_reads_fresh_context_fill(tmp_path):
+    import time
+    from agentflow.shell.oracle_consent import should_prompt_consent
+    sm, _ = _oracle_manager(tmp_path, threshold=90_000, tokens=0)
+    fill_file = tmp_path / ".agentflow" / "context_fill.json"
+    fill_file.write_text(json.dumps({"fill_tokens": 95_000, "ts": time.time()}))
+    assert should_prompt_consent(sm) is True
+
+
+def test_should_prompt_consent_falls_back_on_stale_context_fill(tmp_path):
+    import time
+    from agentflow.shell.oracle_consent import should_prompt_consent
+    sm, _ = _oracle_manager(tmp_path, threshold=90_000, tokens=80_000)
+    fill_file = tmp_path / ".agentflow" / "context_fill.json"
+    fill_file.write_text(json.dumps({"fill_tokens": 95_000, "ts": time.time() - 300}))
+    assert should_prompt_consent(sm) is False
+
+
 # ---------------------------------------------------------------------------
 # inject_consent_prompt
 # ---------------------------------------------------------------------------

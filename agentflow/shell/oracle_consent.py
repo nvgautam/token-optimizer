@@ -41,7 +41,10 @@ def should_prompt_consent(manager) -> bool:
     threshold = manager._config.get(
         "oracle_consent_threshold_tokens", _CONSENT_THRESHOLD_DEFAULT
     )
-    return manager._last_accumulated_tokens >= threshold
+    from agentflow.shell.output_handler import _read_fill_tokens
+    fill = _read_fill_tokens(manager._project_root)
+    tokens = fill if fill is not None else manager._last_accumulated_tokens
+    return tokens >= threshold
 
 
 def inject_consent_prompt(manager) -> None:
