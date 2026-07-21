@@ -383,6 +383,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | M-F-11 [MERGED] | T-309 (solo) | Friendly savings dashboard — aggregate-only token/cost view; no strategy breakdown |
 | M-F-13 [MERGED] | T-314 (MERGED) ‖ T-315 (MERGED) ‖ T-316 (MERGED) ‖ T-317 (MERGED) (parallel) | Full Bash cmd logging + oracle_consent wiring + orchestrate.md contradiction fix + session_type guard |
 | M-F-12 [MERGED] | T-312 (MERGED) ‖ T-288 (MERGED) ‖ T-318 (MERGED) ‖ T-319 (MERGED) (parallel) | Provider usage limits + oracle OWNS self-check + human gate PR URL fix + detect_pr_merge execution_plan.md update |
+| Round M-F-14 [PENDING] | T-320 (solo) | Fix startswith("/orchestrat") in user_prompt_submit.py — /orchestrator:startup session_type never set |
 | Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
 | Round E [PENDING] | T-168 ‖ T-290 (parallel) | product judgment layer + debug terminal step |
 | Round E-2 [PENDING] | T-167 (solo) | Oracle Phase 3 plan-mode preview |
