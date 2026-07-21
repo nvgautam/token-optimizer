@@ -1034,22 +1034,7 @@
     },
     {
       "task_id": "T-288",
-      "title": "Oracle self-check: disjoint OWNS before writing execution_plan.md",
-      "owns": [
-        "commands/claude/oracle/prioritization.md"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "test_requirements": {
-        "unit": [
-          "Verify pairwise disjoint check of OWNS list during round composition splits overlapping tasks into sequential rounds"
-        ],
-        "coverage_threshold": 85
-      },
-      "acceptance_criteria": "Mandatory disjoint OWNS check added to oracle prioritization rules.",
-      "estimated_lines": 15,
-      "context_section": "execution_plan.md#addendum-t-288-oracle-self-check-disjoint-owns-before-writing-execution_plan.md",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-289",
@@ -1113,28 +1098,7 @@
     },
     {
       "task_id": "T-312",
-      "title": "Provider usage limits: PTY-inject /usage at session start + before restart",
-      "owns": [
-        "agentflow/shell/usage_parser.py",
-        "agentflow/shell/pty_shell.py",
-        "tests/test_usage_parser.py"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "test_requirements": {
-        "unit": [
-          "Assert all fields parsed correctly on known Claude and Gemini /usage output fixtures",
-          "Assert None or graceful handling of malformed input"
-        ],
-        "integration": [
-          "Mock PTY shell and verify usage is captured at session open and before restart, with 2s timeout logic"
-        ],
-        "coverage_threshold": 85
-      },
-      "acceptance_criteria": "Claude and Gemini /usage output parsed and surfaced in session state without blocking restart.",
-      "estimated_lines": 120,
-      "context_section": "execution_plan.md#addendum-t-312-provider-usage-limits-pty-inject-usage-at-session-start-before-restart",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-313",
@@ -1158,44 +1122,11 @@
     },
     {
       "task_id": "T-318",
-      "title": "Fix orchestrate.md human gate: verbosity exemption + PR URL HARD RULE",
-      "owns": [
-        "commands/claude/orchestrate.md"
-      ],
-      "reads": [],
-      "depends_on": [],
-      "test_requirements": {
-        "unit": [
-          "Verify orchestrate.md has human gate verbosity exemption and PR URL hard rule"
-        ],
-        "coverage_threshold": 85
-      },
-      "acceptance_criteria": "orchestrate.md is updated to exempt Human gate from verbosity limits and enforce PR URL emission.",
-      "estimated_lines": 10,
-      "context_section": "execution_plan.md#addendum-t-318-fix-orchestrate.md-human-gate-verbosity-exemption-pr-url-hard-rule",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-319",
-      "title": "Fix detect_pr_merge in post_tool_use.py \u2014 update execution_plan.md on user-CLI-merged PRs",
-      "owns": [
-        "agentflow/hooks/post_tool_use.py"
-      ],
-      "reads": [
-        "agentflow/tools/cleanup_tasks.py"
-      ],
-      "depends_on": [],
-      "test_requirements": {
-        "unit": [
-          "Simulate a user-merged PR and assert execution_plan.md row updated with MERGED annotation",
-          "Assert tasks.json status also updated atomically in same operation"
-        ],
-        "coverage_threshold": 85
-      },
-      "acceptance_criteria": "detect_pr_merge in post_tool_use.py updates execution_plan.md Master Round Table row with MERGED annotation when a PR is merged via user CLI (not only via post_tool_use_agent.py).",
-      "estimated_lines": 40,
-      "context_section": "execution_plan.md#addendum-t-319",
-      "status": "pending"
+      "status": "complete"
     }
   ]
 }
