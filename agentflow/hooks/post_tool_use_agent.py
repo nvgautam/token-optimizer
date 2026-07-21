@@ -12,38 +12,51 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from agentflow.shell.session_paths import session_file
 from agentflow.hooks.post_tool_use_pr import (
-    _fetch_merged_pr_titles,
-    _is_pr_merge_bash,
-    _register_pr_url,  # noqa: F401
-    _check_pr_state,
-    _handle_pr_merge,
+    _fetch_merged_pr_titles, _is_pr_merge_bash, _register_pr_url, _check_pr_state, _handle_pr_merge  # noqa: F401
 )
 
 
 def _find_workspace_root() -> Path:
-    cwd = Path.cwd()
-    for parent in [cwd, *cwd.parents]:
-        if (parent / ".agentflow").is_dir():
-            # Skip .agentflow inside .claude/worktrees/ — it's a worktree copy
-            if ".claude/worktrees" in str(parent):
-                continue
+    for parent in [Path.cwd(), *Path.cwd().parents]:
+        if (parent / ".agentflow").is_dir() and ".claude/worktrees" not in str(parent):
             return parent
-    return cwd
+    return Path.cwd()
+
+
+def _scrub_secrets(text: str) -> str:
+    if not isinstance(text, str):
+        return text
+    pattern = r'(?i)\b([\w-]*(?:password|secret|api[-_]key|token)[\w-]*)\b\s*(=|\s+)\s*("[^"]*"|\'[^\']*\'|\S+)'
+    return re.sub(pattern, r'\1\2******', text)
+
+
+def _rotate_log(log_path: Path, max_size_bytes: int = 100 * 1024, backup_count: int = 3) -> None:
+    try:
+        if not log_path.exists() or log_path.stat().st_size < max_size_bytes:
+            return
+        for i in range(backup_count - 1, 0, -1):
+            src = log_path.with_name(f"{log_path.name}.{i}")
+            dst = log_path.with_name(f"{log_path.name}.{i+1}")
+            if src.exists():
+                src.replace(dst)
+        log_path.replace(log_path.with_name(f"{log_path.name}.1"))
+    except Exception:
+        pass
 
 
 def _log(agentflow_dir: Path, entry: dict) -> None:
     try:
         sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+        entry = {k: (_scrub_secrets(v) if isinstance(v, str) else v) for k, v in entry.items()}
         if "sid" not in entry:
             entry = {"sid": sid, **entry}
-            
         agentflow_dir.mkdir(parents=True, exist_ok=True)
-        
+        log_file = agentflow_dir / "hook_drain_debug.jsonl"
+        _rotate_log(log_file)
         if sid:
             marker = agentflow_dir / "sessions" / sid / "hook_drain_debug_header_emitted"
             if not marker.exists():
                 marker.parent.mkdir(parents=True, exist_ok=True)
-                
                 session_type = "worker"
                 ss_file = session_file(agentflow_dir, "session_state.json", sid)
                 if ss_file.exists():
@@ -51,7 +64,6 @@ def _log(agentflow_dir: Path, entry: dict) -> None:
                         session_type = json.loads(ss_file.read_text("utf-8")).get("session_type", "worker")
                     except Exception:
                         pass
-                
                 task_ids = []
                 in_flight_file = session_file(agentflow_dir, "tasks_in_flight.json", sid)
                 if in_flight_file.exists():
@@ -59,25 +71,19 @@ def _log(agentflow_dir: Path, entry: dict) -> None:
                         task_ids = json.loads(in_flight_file.read_text("utf-8"))
                     except Exception:
                         pass
-                
-                header = {
-                    "sid": sid,
-                    "session_type": session_type,
-                    "task_ids": task_ids,
-                    "ts": time.time(),
-                }
-                
-                with open(agentflow_dir / "hook_drain_debug.jsonl", "a") as f:
+                header = {"sid": sid, "session_type": session_type, "task_ids": task_ids, "ts": time.time()}
+                with open(log_file, "a") as f:
                     f.write(json.dumps(header) + "\n")
                 try:
                     marker.touch()
                 except Exception:
                     pass
-                    
-        with open(agentflow_dir / "hook_drain_debug.jsonl", "a") as f:
+        with open(log_file, "a") as f:
             f.write(json.dumps({"ts": time.time(), **entry}) + "\n")
     except Exception:
         pass
+
+
 def _mark_task_complete(tasks_file: Path, task_id: str) -> str:
     """Mark task_id complete using tasks.json. Returns: 'marked'|'already_complete'|'not_found'|'error'."""
     import fcntl
@@ -102,7 +108,6 @@ def _mark_task_complete(tasks_file: Path, task_id: str) -> str:
                         break
                 if not found:
                     return "not_found"
-                
                 fd, tmp = tempfile.mkstemp(dir=str(tasks_file.parent))
                 with os.fdopen(fd, "w", encoding="utf-8") as tmp_f:
                     json.dump(data, tmp_f, indent=2)
@@ -116,8 +121,7 @@ def _mark_task_complete(tasks_file: Path, task_id: str) -> str:
 
 def _run_cleanup(root: Path) -> None:
     try:
-        subprocess.run([sys.executable, str(root / "agentflow" / "tools" / "cleanup_tasks.py"), str(root)],
-                       check=False, capture_output=True)
+        subprocess.run([sys.executable, str(root / "agentflow" / "tools" / "cleanup_tasks.py"), str(root)], check=False, capture_output=True)
     except Exception as e:
         print(json.dumps({"hook": "post_tool_use_agent.py", "event": "run_cleanup_error", "error": str(e), "ts": time.time()}), file=sys.stderr)
 
@@ -128,7 +132,6 @@ def main() -> None:
     except Exception as e:
         print(json.dumps({"hook": "post_tool_use_agent.py", "event": "load_stdin_error", "error": str(e), "ts": time.time()}), file=sys.stderr)
         hook_data = {}
-
     tool_name = hook_data.get("tool_name", "")
     root = _find_workspace_root()
     agentflow_dir = root / ".agentflow"
@@ -138,22 +141,18 @@ def main() -> None:
         "event": "hook_fired",
         "tool": tool_name,
         "is_merge_trigger": is_merge_trigger,
-        "cmd": full_cmd[:80],
+        "cmd": full_cmd,
+        "full_cmd": full_cmd,
         "cwd": str(Path.cwd()),
         "resolved_root": str(root),
         "root_is_worktree": ".claude/worktrees" in str(root),
     }
-    if is_merge_trigger and full_cmd:
-        log_entry["full_cmd"] = full_cmd
     _log(agentflow_dir, log_entry)
-
     if tool_name == "Bash" and not _is_pr_merge_bash(hook_data):
         sys.exit(0)
-
     in_flight_file = session_file(agentflow_dir, "tasks_in_flight.json", os.environ.get("AGENTFLOW_SESSION_ID", ""))
     if not in_flight_file.exists():
         sys.exit(0)
-
     try:
         in_flight: list[str] = json.loads(in_flight_file.read_text())
     except Exception as e:
@@ -182,7 +181,6 @@ def main() -> None:
     merged_titles = _fetch_merged_pr_titles()
     drain_start_time = time.time()
     _log(agentflow_dir, {"event": "drain_start", "in_flight_count": len(in_flight), "in_flight": in_flight})
-
     pr_states: dict[str, str | None] = {}
     mark_results: dict[str, str] = {}
     for task_id in in_flight:
@@ -193,7 +191,6 @@ def main() -> None:
         else:
             is_merged = any(re.search(r'(?:feat|fix|chore|refactor)\(' + re.escape(task_id) + r'\)', t) for t in merged_titles)
             pr_states[task_id] = "title_match" if is_merged else "no_url_no_title_match"
-
         if is_merged:
             result = _mark_task_complete(tasks_file, task_id)
             mark_results[task_id] = result
@@ -204,22 +201,18 @@ def main() -> None:
     except Exception as e:
         _log(agentflow_dir, {"event": "reload_tasks_file_error", "error": str(e)})
         sys.exit(0)
-
     status_by_id = {t["task_id"]: t.get("status", "pending") for t in tasks_data.get("tasks", [])}
     signal_script = root / "agentflow" / "shell" / "pty_signal.py"
-
     completed = []
     signal_results: dict[str, str] = {}
     for task_id in in_flight:
         if status_by_id.get(task_id, "pending") != "pending":
             completed.append(task_id)
             try:
-                r = subprocess.run([sys.executable, str(signal_script), "task_done", task_id],
-                                   check=False, capture_output=True)
+                r = subprocess.run([sys.executable, str(signal_script), "task_done", task_id], check=False, capture_output=True)
                 signal_results[task_id] = "ok" if r.returncode == 0 else f"rc={r.returncode}"
             except Exception as e:
                 signal_results[task_id] = f"error:{e}"
-
     still_in_flight = [tid for tid in in_flight if tid not in set(completed)]
     if completed:
         try:
@@ -228,12 +221,10 @@ def main() -> None:
             _log(agentflow_dir, {"event": "tif_written", "still_in_flight": still_in_flight})
         except Exception as e:
             _log(agentflow_dir, {"event": "drain_write_in_flight_error", "error": str(e)})
-
     drain_elapsed = time.time() - drain_start_time
     _log(agentflow_dir, {"event": "drain_complete", "completed_count": len(completed), "elapsed": drain_elapsed, "total_tasks": len(in_flight)})
     if still_in_flight:
         _log(agentflow_dir, {"event": "drain_partial", "still_in_flight": still_in_flight, "completed_count": len(completed)})
-
     sys.exit(0)
 
 

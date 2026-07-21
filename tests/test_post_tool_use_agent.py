@@ -278,3 +278,55 @@ class TestSplitCoverage:
             with pytest.raises(SystemExit) as exc:
                 main()
         assert exc.value.code == 0
+
+
+class TestT314:
+    def test_scrub_secrets(self):
+        from agentflow.hooks.post_tool_use_agent import _scrub_secrets
+        assert _scrub_secrets("export PASSWORD=foo") == "export PASSWORD=******"
+        assert _scrub_secrets("export API_KEY='bar'") == "export API_KEY=******"
+        assert _scrub_secrets("my-tool --token abc") == "my-tool --token ******"
+        assert _scrub_secrets("my-tool --db-password=xyz") == "my-tool --db-password=******"
+        assert _scrub_secrets("echo normal") == "echo normal"
+
+    def test_log_rotation(self, tmp_path):
+        from agentflow.hooks.post_tool_use_agent import _rotate_log
+        log_file = tmp_path / "test.jsonl"
+        log_file.write_text("a" * 15)
+        _rotate_log(log_file, max_size_bytes=10, backup_count=3)
+        assert not log_file.exists()
+        assert (tmp_path / "test.jsonl.1").exists()
+        assert (tmp_path / "test.jsonl.1").read_text() == "a" * 15
+
+        log_file.write_text("b" * 15)
+        _rotate_log(log_file, max_size_bytes=10, backup_count=3)
+        assert not log_file.exists()
+        assert (tmp_path / "test.jsonl.1").read_text() == "b" * 15
+        assert (tmp_path / "test.jsonl.2").read_text() == "a" * 15
+
+    def test_main_logging(self, tmp_path):
+        import io
+        agentflow_dir = tmp_path / ".agentflow"
+        agentflow_dir.mkdir()
+        (agentflow_dir / "tasks_in_flight.json").write_text("[]")
+        (tmp_path / "tasks.json").write_text(json.dumps({"tasks": []}))
+        (tmp_path / "agentflow" / "shell").mkdir(parents=True)
+        # Test scrubbed
+        hook_in = {"tool_name": "Bash", "tool_input": {"command": "python script.py --token=super-secret"}}
+        with patch("agentflow.hooks.post_tool_use_agent._find_workspace_root", return_value=tmp_path):
+            with patch("sys.stdin", io.StringIO(json.dumps(hook_in))):
+                with pytest.raises(SystemExit):
+                    main()
+        log_f = agentflow_dir / "hook_drain_debug.jsonl"
+        assert json.loads(log_f.read_text().splitlines()[-1])["cmd"] == "python script.py --token=******"
+        # Test full command when secrets absent
+        long_cmd = "echo " + "a" * 100
+        hook_in = {"tool_name": "Bash", "tool_input": {"command": long_cmd}}
+        with patch("agentflow.hooks.post_tool_use_agent._find_workspace_root", return_value=tmp_path):
+            with patch("sys.stdin", io.StringIO(json.dumps(hook_in))):
+                with pytest.raises(SystemExit):
+                    main()
+        assert json.loads(log_f.read_text().splitlines()[-1])["cmd"] == long_cmd
+
+
+
