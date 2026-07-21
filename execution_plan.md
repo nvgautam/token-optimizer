@@ -381,8 +381,8 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | M-F-9 — MERGED (PR #215 2026-07-21) | T-311 (solo) | Session-scoped log observability — session header + SID per line; friendlies can send logs for remote triage |
 | M-F-10 — MERGED (PR #216 2026-07-21) | T-313 (solo) | SPIKE: accurate per-session input+output token tracking — determine viable approach; no PTY injection |
 | M-F-11 [MERGED] | T-309 (solo) | Friendly savings dashboard — aggregate-only token/cost view; no strategy breakdown |
-| M-F-13 [PENDING] | T-314 ‖ T-315 ‖ T-316 ‖ T-317 (parallel) | Full Bash cmd logging + oracle_consent wiring + orchestrate.md contradiction fix + session_type guard |
-| M-F-12 [PENDING] | T-312 ‖ T-288 ‖ T-318 (parallel) | Provider usage limits + oracle OWNS self-check + human gate PR URL fix (T-310 already merged) |
+| M-F-13 [MERGED] | T-314 (MERGED) ‖ T-315 (MERGED) ‖ T-316 (MERGED) ‖ T-317 (MERGED) (parallel) | Full Bash cmd logging + oracle_consent wiring + orchestrate.md contradiction fix + session_type guard |
+| M-F-12 [PENDING] | T-312 ‖ T-288 ‖ T-318 ‖ T-319 (parallel) | Provider usage limits + oracle OWNS self-check + human gate PR URL fix + detect_pr_merge execution_plan.md update |
 | Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
 | Round E [PENDING] | T-168 ‖ T-290 (parallel) | product judgment layer + debug terminal step |
 | Round E-2 [PENDING] | T-167 (solo) | Oracle Phase 3 plan-mode preview |

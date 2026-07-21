@@ -2340,5 +2340,95 @@
     "task_id": "T-308",
     "status": "complete",
     "title": "Fix _find_workspace_root(): skip .agentflow inside .claude/worktrees/"
+  },
+  {
+    "task_id": "T-316",
+    "title": "Fix orchestrate.md Write-tool contradiction \u2014 remove HARD RULE clause from line 16",
+    "owns": [
+      "commands/claude/orchestrate.md"
+    ],
+    "reads": [],
+    "depends_on": [],
+    "test_requirements": {
+      "unit": [
+        "Check line 16 has the Write-tool contradiction removed"
+      ],
+      "coverage_threshold": 85
+    },
+    "acceptance_criteria": "Orchestrator guide is updated to remove Write-tool spawning contradiction.",
+    "estimated_lines": 5,
+    "context_section": "execution_plan.md#addendum-t-316-fix-orchestrate.md-write-tool-contradiction",
+    "status": "complete"
+  },
+  {
+    "task_id": "T-314",
+    "title": "Full Bash cmd audit logging with secret scrubbing",
+    "owns": [
+      "agentflow/hooks/post_tool_use_agent.py"
+    ],
+    "reads": [],
+    "depends_on": [],
+    "test_requirements": {
+      "unit": [
+        "Scrub secrets from commands containing password/secret/api_key/token before logging",
+        "Log full command length when secrets are absent",
+        "Ensure log rotation keeps the hook_drain_debug.jsonl bounded"
+      ],
+      "integration": [
+        "Run post_tool_use_agent hook with secret inputs and verify secrets are scrubbed in the output log"
+      ],
+      "coverage_threshold": 85
+    },
+    "acceptance_criteria": "Full Bash command logged in hook_drain_debug.jsonl with secrets scrubbed and log rotation applied.",
+    "estimated_lines": 30,
+    "context_section": "execution_plan.md#addendum-t-314-full-bash-cmd-audit-logging-with-secret-scrubbing",
+    "status": "complete"
+  },
+  {
+    "task_id": "T-315",
+    "title": "Wire UserPromptSubmit internal hook dispatch \u2014 oracle_consent.py never invoked without it",
+    "owns": [
+      "agentflow/hooks/user_prompt_submit.py"
+    ],
+    "reads": [
+      "agentflow/shell/oracle_consent.py"
+    ],
+    "depends_on": [],
+    "test_requirements": {
+      "unit": [
+        "Verify should_prompt_consent is called inside user_prompt_submit.py hook execution when context fill tokens exceeds threshold"
+      ],
+      "integration": [
+        "Integrate hook prompt consent flow and verify prompt triggers at threshold"
+      ],
+      "coverage_threshold": 85
+    },
+    "acceptance_criteria": "oracle_consent.should_prompt_consent is imported and invoked in user_prompt_submit.py.",
+    "estimated_lines": 15,
+    "context_section": "execution_plan.md#addendum-t-315-wire-userpromptsubmit-internal-hook-dispatch-for-oracle_consent",
+    "status": "complete"
+  },
+  {
+    "task_id": "T-317",
+    "title": "Add session_type guard to sync_tasks_in_flight \u2014 prevent oracle sessions from inheriting orchestrator round state",
+    "owns": [
+      "agentflow/hooks/post_tool_use.py"
+    ],
+    "reads": [],
+    "depends_on": [],
+    "test_requirements": {
+      "unit": [
+        "Verify sync_tasks_in_flight returns early for non-orchestrator session types",
+        "Verify oracle sessions do not modify tasks in flight"
+      ],
+      "integration": [
+        "Run post_tool_use hook inside an oracle session and verify TIF remains unaffected"
+      ],
+      "coverage_threshold": 85
+    },
+    "acceptance_criteria": "session_type check added to prevent oracle sessions from inheriting round state.",
+    "estimated_lines": 15,
+    "context_section": "execution_plan.md#addendum-t-317-add-session_type-guard-to-sync_tasks_in_flight",
+    "status": "complete"
   }
 ]
