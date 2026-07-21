@@ -831,19 +831,22 @@ Fix: remove the `pty_signal task_done` Bash call from the "After worker complete
 
 ## Addendum: T-311 — Session-scoped log observability: session header + SID on every log line + debug SID filter
 
-**Goal:** Friendly supportability: emit a structured session-start header record into every log file (`sid`, `session_type` ∈ {oracle, orchestrator, worker, reviewer}, `task_ids` being worked on, `ts`). Add `"sid"` to every subsequent JSONL entry. Update debug skill to grep by SID first on every log file — eliminating per-line timestamp correlation. Friendlies with a problem can run `grep '"sid"' .agentflow/*.jsonl` and send the output for remote triage without exposing unrelated sessions.
+**Goal:** Friendly supportability: emit a structured session-start header record into every log file (`sid`, `session_type` ∈ {oracle, orchestrator, worker, reviewer}, `task_ids` being worked on, `ts`). Add `"sid"` to every subsequent JSONL entry. Add `agentflow logs --session <SID>` CLI command so friendlies can export their session logs in one command and paste for remote triage. `commands/claude/debug.md` is customer-facing and must NOT reference AgentFlow-internal log paths or SID mechanics — keep it clean. AgentFlow-internal log triage lives in a new internal-only ops skill (`commands/claude/ops.md`) NOT bundled into customer distribution.
 
 **Files:**
 - `agentflow/hooks/post_tool_use_agent.py` (modify) — inject `sid` into every `hook_drain_debug.jsonl` write; emit session-start header on first write per SID
 - `agentflow/shell/pty_shell.py` (modify) — inject `sid` into every `pty_audit.jsonl` write; emit session-start header on PTY session open
-- `commands/claude/debug.md` (modify) — Phase 3 Signal Trace: prepend `grep '"sid":"<SID>"'` to every log read; Phase 1 Triage: show session header record first
+- `cli.py` (modify) — add `agentflow logs --session <SID>` subcommand: greps all `.agentflow/*.jsonl` for matching SID and writes to stdout
+- `commands/claude/ops.md` (new, internal only — not in customer bundle) — AgentFlow operator triage: SID log paths, grep patterns, PTY audit interpretation
 - `tests/test_log_sid_injection.py` (new) — assert session-start header and `sid` present in all log entries
+
+**Out of scope:** `commands/claude/debug.md` — must not be modified; it is customer-facing and must stay agnostic to AgentFlow internals.
 
 **Test scenarios:**
 - Session-start header record emitted as first entry per SID with correct session_type and task_ids
 - Every subsequent hook_drain_debug.jsonl and pty_audit.jsonl entry has matching `sid`
 - Two interleaved sessions: grep by SID A returns only A's entries including its header
-- Friendly triage flow: `grep '"sid"' .agentflow/*.jsonl` returns complete picture of one session
+- `agentflow logs --session <SID>` outputs complete picture of one session to stdout
 
-**OWNS:** `agentflow/hooks/post_tool_use_agent.py`, `agentflow/shell/pty_shell.py`, `commands/claude/debug.md`, `tests/test_log_sid_injection.py`
+**OWNS:** `agentflow/hooks/post_tool_use_agent.py`, `agentflow/shell/pty_shell.py`, `cli.py`, `commands/claude/ops.md`, `tests/test_log_sid_injection.py`
 **estimated_lines:** 100
