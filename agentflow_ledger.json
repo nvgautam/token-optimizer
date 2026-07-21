@@ -7141,11 +7141,76 @@
         }
       },
       "status": "closed"
+    },
+    {
+      "session_id": "20260721_160848",
+      "agent": "claude",
+      "task_ids": "",
+      "start_time": "2026-07-21T16:08:48.663207",
+      "end_time": "2026-07-21T16:08:48.663229",
+      "context_at_start": 42225,
+      "input_tokens": 17843361,
+      "output_tokens": 100892,
+      "token_detail": {
+        "uncached_input": 4521,
+        "cache_creation": 325226,
+        "cache_read": 17513614,
+        "output": 100892,
+        "n_turns": 178,
+        "initial_ctx": 42225,
+        "final_ctx": 150899
+      },
+      "n_turns": 178,
+      "final_ctx": 150899,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 28269001,
+        "shadow_output": 156794,
+        "shadow_extra": 9102030,
+        "compaction": {
+          "before": 159720,
+          "after": 55902,
+          "cost_tokens": 55902,
+          "reonboarding_overhead": 1314789
+        }
+      },
+      "status": "closed"
+    },
+    {
+      "session_id": "20260721_164945",
+      "agent": "claude",
+      "task_ids": "",
+      "start_time": "2026-07-21T16:49:45.599910",
+      "end_time": "2026-07-21T16:49:45.599923",
+      "context_at_start": 40050,
+      "input_tokens": 7416350,
+      "output_tokens": 32289,
+      "token_detail": {
+        "uncached_input": 232,
+        "cache_creation": 157384,
+        "cache_read": 7258734,
+        "output": 32289,
+        "n_turns": 88,
+        "initial_ctx": 40050,
+        "final_ctx": 115405
+      },
+      "n_turns": 88,
+      "final_ctx": 115405,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 12220321,
+        "shadow_output": 32289,
+        "shadow_extra": 4919376,
+        "compaction": null
+      },
+      "status": "closed"
     }
   ],
   "shadow_state": {
-    "accumulated_context": 51135,
-    "compaction_events": 135
+    "accumulated_context": 131168,
+    "compaction_events": 136
   },
   "handoffs": [
     {

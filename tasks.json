@@ -1248,6 +1248,28 @@
       "estimated_lines": 10,
       "context_section": "execution_plan.md#addendum-t-318-fix-orchestrate.md-human-gate-verbosity-exemption-pr-url-hard-rule",
       "status": "pending"
+    },
+    {
+      "task_id": "T-319",
+      "title": "Fix detect_pr_merge in post_tool_use.py \u2014 update execution_plan.md on user-CLI-merged PRs",
+      "owns": [
+        "agentflow/hooks/post_tool_use.py"
+      ],
+      "reads": [
+        "agentflow/tools/cleanup_tasks.py"
+      ],
+      "depends_on": [],
+      "test_requirements": {
+        "unit": [
+          "Simulate a user-merged PR and assert execution_plan.md row updated with MERGED annotation",
+          "Assert tasks.json status also updated atomically in same operation"
+        ],
+        "coverage_threshold": 85
+      },
+      "acceptance_criteria": "detect_pr_merge in post_tool_use.py updates execution_plan.md Master Round Table row with MERGED annotation when a PR is merged via user CLI (not only via post_tool_use_agent.py).",
+      "estimated_lines": 40,
+      "context_section": "execution_plan.md#addendum-t-319",
+      "status": "pending"
     }
   ]
 }
