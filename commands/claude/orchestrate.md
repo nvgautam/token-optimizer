@@ -1,6 +1,6 @@
 # /orchestrate — Agent Orchestration + Implementation
 
-**Verbosity:** ≤3 sentences (~150 tokens) per orchestrator status message. Never narrate strategy: round-sizing rationale, calibration values, EWMA/cv, task-cost estimates, disjoint owns analysis — status is round+task only.
+**Verbosity:** ≤3 sentences (~150 tokens) per orchestrator status message. Never narrate strategy: round-sizing rationale, calibration values, EWMA/cv, task-cost estimates, disjoint owns analysis — status is round+task only. **Exception: the Human gate block must be emitted in full — no lines may be omitted.**
 
 ## Startup
 Execute `commands/claude/orchestrator/startup.md` steps: Step 1 (Persona), Step 2 (Rate check), Step 2b (Index execution_plan.md only), Step 3 (Oracle gate on design_status.md UNRESOLVED items; stop if count > 0), Step 3b (Cache), Step 4 (Load state: state.json is advisory only, on resume derive next round from execution_plan.md Master Round Table for the first row with at least one pending task; read round table, identify pending tasks, state.json is not the sole authority for next_round), Step 4a (Startup reconciliation: if .agentflow/current_round.json exists, read its task_ids and check each against tasks.json. If ALL task_ids are complete → stale, unlink current_round.json and tasks_in_flight.json, log 'startup_reconciliation_cleaned'. If SOME task_ids are complete and SOME are pending → filter to pending subset, log 'startup_mid_round_resumed', continue from that round. If all are pending → trust the file and continue), Step 4b (Select round: run `grep -m 1 '\[PENDING\]'` on execution_plan.md Master Round Table to find first pending round; announce "Picking up Round X: T-xxx"), and Step 5 (Load prior calibration from rate_calibration_claude.json).
@@ -74,7 +74,7 @@ PR #N ready — [task_ids] ([module])
   Description: <brief description>
 git diff main...<branch>
 Worktree: <absolute path>
-PR: <URL> (always push and show PR/new URL)
+PR: <URL>  ← HARD RULE: emit even if URL was shown earlier; never omit
 Reply: yes → merge | no [reason] → rework | skip → continue
 ```
 PR creation fallback: always push branch, show direct PR URL on permission failure. Once user replies "yes", emit: `HANDOFF RECOMMENDED: PR #N open for [task_ids] — good stopping point before you review`
