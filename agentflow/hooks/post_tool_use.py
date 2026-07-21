@@ -19,7 +19,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from agentflow.shell.session_paths import session_file
-from agentflow.hooks.fill_utils import compute_fill, extract_fill_from_transcript
+from agentflow.hooks.fill_utils import compute_fill, extract_fill_from_transcript  # noqa: F401
 
 
 def _atomic_write(path: pathlib.Path, data_str: str) -> None:
@@ -218,6 +218,17 @@ def _sync_tif_from_disk_if_absent(agentflow_dir: pathlib.Path) -> None:
     as a safety net for any legacy Write-tool path or race where tif was not written.
     """
     sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+    session_type = "unknown"
+    try:
+        ss_path = session_file(agentflow_dir, "session_state.json", sid if sid else None)
+        if ss_path.exists():
+            session_type = json.loads(ss_path.read_text()).get("session_type", "unknown")
+    except Exception as e:
+        _log(agentflow_dir, {"event": "session_state_read_error", "err": str(e)})
+
+    if session_type != "orchestrator":
+        return
+
     tif_path = session_file(agentflow_dir, "tasks_in_flight.json", sid)
     if tif_path.exists():
         return
@@ -241,6 +252,18 @@ def sync_tasks_in_flight(tool_name: str, tool_input: dict, agentflow_dir: pathli
     [] tombstone = drained (PTY may restart).
     Non-empty = tasks running (PTY skips drain check).
     """
+    sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+    session_type = "unknown"
+    try:
+        ss_path = session_file(agentflow_dir, "session_state.json", sid if sid else None)
+        if ss_path.exists():
+            session_type = json.loads(ss_path.read_text()).get("session_type", "unknown")
+    except Exception as e:
+        _log(agentflow_dir, {"event": "session_state_read_error", "err": str(e)})
+
+    if session_type != "orchestrator":
+        return
+
     file_path = tool_input.get("file_path", "")
     if tool_name != "Write":
         # CLI-driven path (agentflow round start via Bash): tif already written atomically
@@ -256,12 +279,12 @@ def sync_tasks_in_flight(tool_name: str, tool_input: dict, agentflow_dir: pathli
         if not isinstance(task_ids, list) or not task_ids:
             _log(agentflow_dir, {"event": "sync_tif_skip", "reason": "no_task_ids"})
             return
-        sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
         tif_path = session_file(agentflow_dir, "tasks_in_flight.json", sid)
         _atomic_write(tif_path, json.dumps(task_ids))
         _log(agentflow_dir, {"event": "sync_tif_written", "task_ids": task_ids})
     except Exception as e:
         _log(agentflow_dir, {"event": "sync_tif_error", "err": str(e)})
+
 
 
 def audit_orchestrator_direct_write(tool_name: str, tool_input: dict, agentflow_dir: pathlib.Path) -> None:

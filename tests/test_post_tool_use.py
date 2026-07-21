@@ -2,13 +2,9 @@
 from __future__ import annotations
 import json
 import os
-import sys
-import tempfile
-import time
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
 
 
 def _invoke(stdin_data: str, env: dict | None = None) -> int:
@@ -134,9 +130,14 @@ def test_main_malformed_json_payload_exits_zero(tmp_path):
 
 def test_sync_tasks_in_flight_writes_on_current_round_write(tmp_path, monkeypatch):
     from agentflow.hooks.post_tool_use import sync_tasks_in_flight
+    from agentflow.shell.session_paths import session_file
     af = tmp_path / ".agentflow"
     af.mkdir()
     monkeypatch.delenv("AGENTFLOW_SESSION_ID", raising=False)
+    # Write session_state.json as orchestrator
+    ss_path = session_file(af, "session_state.json", None)
+    ss_path.parent.mkdir(parents=True, exist_ok=True)
+    ss_path.write_text(json.dumps({"session_type": "orchestrator"}))
     content = json.dumps({"round_id": "r1", "task_ids": ["T-001", "T-002"]})
     sync_tasks_in_flight("Write", {"file_path": str(tmp_path / ".agentflow/current_round.json"), "content": content}, af)
     tif = af / "tasks_in_flight.json"
@@ -175,9 +176,14 @@ def test_sync_tasks_in_flight_bash_write_populates(tmp_path, monkeypatch):
     # Orchestrate writes current_round.json via Bash, not the Write tool.
     # The hook must still populate tasks_in_flight.json by reading the file from disk.
     from agentflow.hooks.post_tool_use import sync_tasks_in_flight
+    from agentflow.shell.session_paths import session_file
     af = tmp_path / ".agentflow"
     af.mkdir()
     monkeypatch.delenv("AGENTFLOW_SESSION_ID", raising=False)
+    # Write session_state.json as orchestrator
+    ss_path = session_file(af, "session_state.json", None)
+    ss_path.parent.mkdir(parents=True, exist_ok=True)
+    ss_path.write_text(json.dumps({"session_type": "orchestrator"}))
     cr = af / "current_round.json"
     cr.write_text(json.dumps({"round_id": "A", "task_ids": ["T-001", "T-002"]}))
     sync_tasks_in_flight("Bash", {"command": "python3 -c \"json.dump(...)\""}, af)
@@ -285,11 +291,16 @@ def test_main_writes_to_root_path_with_empty_sid(tmp_path):
 
 def test_main_sync_tasks_in_flight_sid_scoped(tmp_path):
     """main() should sync tasks_in_flight to SID-scoped path when AGENTFLOW_SESSION_ID is set."""
+    from agentflow.shell.session_paths import session_file
     transcript = _make_transcript(tmp_path, [
         {"type": "assistant", "message": {"usage": {"input_tokens": 100}}},
     ])
     agentflow_dir = tmp_path / ".agentflow"
     agentflow_dir.mkdir()
+    # Write session_state.json as orchestrator for my-session-999
+    ss_path = session_file(agentflow_dir, "session_state.json", "my-session-999")
+    ss_path.parent.mkdir(parents=True, exist_ok=True)
+    ss_path.write_text(json.dumps({"session_type": "orchestrator"}))
     payload = json.dumps({
         "transcript_path": str(transcript),
         "tool_name": "Write",
@@ -313,3 +324,35 @@ def test_main_sync_tasks_in_flight_sid_scoped(tmp_path):
     # Ensure root-level file was NOT created
     flat_tif = agentflow_dir / "tasks_in_flight.json"
     assert not flat_tif.exists()
+
+
+# --- sync_tasks_in_flight session_type bail tests ---
+
+def test_sync_tasks_in_flight_bails_if_not_orchestrator(tmp_path, monkeypatch):
+    from agentflow.hooks.post_tool_use import sync_tasks_in_flight
+    from agentflow.shell.session_paths import session_file
+    af = tmp_path / ".agentflow"
+    af.mkdir()
+    monkeypatch.delenv("AGENTFLOW_SESSION_ID", raising=False)
+    # Write session_state.json with oracle type
+    ss_path = session_file(af, "session_state.json", None)
+    ss_path.parent.mkdir(parents=True, exist_ok=True)
+    ss_path.write_text(json.dumps({"session_type": "oracle"}))
+
+    content = json.dumps({"round_id": "r1", "task_ids": ["T-001", "T-002"]})
+    sync_tasks_in_flight("Write", {"file_path": str(tmp_path / ".agentflow/current_round.json"), "content": content}, af)
+    tif = af / "tasks_in_flight.json"
+    assert not tif.exists()
+
+
+def test_sync_tasks_in_flight_bails_if_no_session_state(tmp_path, monkeypatch):
+    from agentflow.hooks.post_tool_use import sync_tasks_in_flight
+    af = tmp_path / ".agentflow"
+    af.mkdir()
+    monkeypatch.delenv("AGENTFLOW_SESSION_ID", raising=False)
+    # Note: no session_state.json is written, so session_type defaults to unknown
+
+    content = json.dumps({"round_id": "r1", "task_ids": ["T-001", "T-002"]})
+    sync_tasks_in_flight("Write", {"file_path": str(tmp_path / ".agentflow/current_round.json"), "content": content}, af)
+    tif = af / "tasks_in_flight.json"
+    assert not tif.exists()
