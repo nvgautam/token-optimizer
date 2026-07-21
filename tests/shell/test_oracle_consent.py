@@ -10,10 +10,7 @@ import pytest
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from conftest import make_manager, FakePTY, FakeTokenizer
 
-
-# ---------------------------------------------------------------------------
 # Helpers
-# ---------------------------------------------------------------------------
 
 def _oracle_manager(tmp_path, threshold=90_000, tokens=0):
     """Return a manager set up as an oracle session at the given accumulated tokens."""
@@ -28,10 +25,7 @@ def _oracle_manager(tmp_path, threshold=90_000, tokens=0):
     sm._last_accumulated_tokens = tokens
     return sm, pty
 
-
-# ---------------------------------------------------------------------------
 # should_prompt_consent
-# ---------------------------------------------------------------------------
 
 def test_should_prompt_consent_oracle_at_threshold(tmp_path):
     from agentflow.shell.oracle_consent import should_prompt_consent
@@ -108,10 +102,7 @@ def test_should_prompt_consent_falls_back_on_stale_context_fill(tmp_path):
     fill_file.write_text(json.dumps({"fill_tokens": 95_000, "ts": time.time() - 300}))
     assert should_prompt_consent(sm) is False
 
-
-# ---------------------------------------------------------------------------
 # inject_consent_prompt
-# ---------------------------------------------------------------------------
 
 def test_inject_consent_prompt_writes_to_child_stdin(tmp_path):
     from agentflow.shell.oracle_consent import inject_consent_prompt, _CONSENT_PROMPT
@@ -149,10 +140,7 @@ def test_inject_consent_prompt_pty_error_does_not_raise(tmp_path):
     # flags not set when pty write fails
     assert sm._oracle_consent_pending is False
 
-
-# ---------------------------------------------------------------------------
-# check_oracle_consent_threshold (on_idle_tick integration)
-# ---------------------------------------------------------------------------
+# check_oracle_consent_threshold
 
 def test_check_oracle_consent_threshold_triggers_at_threshold(tmp_path):
     from agentflow.shell.oracle_consent import check_oracle_consent_threshold, _CONSENT_PROMPT
@@ -180,10 +168,7 @@ def test_check_oracle_consent_threshold_no_retrigger(tmp_path):
     consent_writes = [inp for inp in pty.inputs if _CONSENT_PROMPT in inp]
     assert len(consent_writes) == 1
 
-
-# ---------------------------------------------------------------------------
-# check_oracle_consent_output (handoff_complete detection)
-# ---------------------------------------------------------------------------
+# check_oracle_consent_output
 
 def test_check_oracle_consent_output_no_op_when_not_pending(tmp_path):
     from agentflow.shell.oracle_consent import check_oracle_consent_output
@@ -232,10 +217,7 @@ def test_check_oracle_consent_output_no_double_trigger(tmp_path):
         check_oracle_consent_output(sm, b"output")
         mock_trigger.assert_not_called()
 
-
-# ---------------------------------------------------------------------------
 # on_enter_handoff_pending_oracle
-# ---------------------------------------------------------------------------
 
 def test_on_enter_handoff_pending_oracle_skips_when_confirmed(tmp_path):
     from agentflow.shell.oracle_consent import on_enter_handoff_pending_oracle
@@ -263,10 +245,7 @@ def test_on_enter_handoff_pending_oracle_false_for_non_oracle(tmp_path):
     result = on_enter_handoff_pending_oracle(sm)
     assert result is False
 
-
-# ---------------------------------------------------------------------------
 # on_session_exit_oracle
-# ---------------------------------------------------------------------------
 
 def test_on_session_exit_oracle_allows_restart_when_confirmed(tmp_path):
     from agentflow.shell.oracle_consent import on_session_exit_oracle
@@ -309,10 +288,7 @@ def test_on_session_exit_oracle_false_for_non_oracle(tmp_path):
     result = on_session_exit_oracle(sm)
     assert result is False
 
-
-# ---------------------------------------------------------------------------
 # on_enter_restarting_oracle
-# ---------------------------------------------------------------------------
 
 def test_on_enter_restarting_oracle_adds_auto_mode(tmp_path):
     from agentflow.shell.oracle_consent import on_enter_restarting_oracle
