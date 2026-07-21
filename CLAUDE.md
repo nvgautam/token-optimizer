@@ -29,6 +29,7 @@ execution_plan.md    → Milestone state: milestone structure + Milestone 1 task
                        Orchestrator extends with tasks for each subsequent milestone on prior completion
 tasks.json           → Task state: {task_id, status}, status ∈ {pending, complete};
                        execution_plan.md carries MERGED per task once the skill confirms the merge
+tasks.db             → Migration artifact ONLY — NOT the active store; tasks.json is authoritative. Ignore .agentflow/tasks.db-shm/.db-wal artifacts in git status.
 ```
 
 ## Integrations
