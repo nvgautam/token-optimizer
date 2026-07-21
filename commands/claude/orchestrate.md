@@ -27,7 +27,7 @@ For details, see `commands/claude/orchestrator/startup.md`.
 4. Full task definitions (grep `^## Addendum: <task_id>` in execution_plan.md or idx)
 5. Milestone architecture anchor section
 6. Reads files: `.idx` exists → embed `### <file> — <name> (lines start-end)` via Read; else embed full file.
-7. **Context bundle delivery:** Before spawning the worker, assemble the full context bundle (steps 1–6 above) and write it to `.agentflow/ctx-<session-id>.json`. Pass only the file path string in the Agent `prompt` arg (not the bundle text inline). Worker reads and deletes `.agentflow/ctx-<session-id>.json` on startup; if file missing, worker must error gracefully (not silently skip).
+7. **Context bundle delivery:** Run `Bash: agentflow bundle <task_id> --agent-type <worker|reviewer|test>` — prints the output path. Pass that path string in the Agent `prompt` arg. Worker reads and deletes the ctx JSON on startup; if file missing, worker must error gracefully (not silently skip).
 
 Close prompt: "End your final message with TOKENS: input=N output=N — nothing after that line."
 - **Model selection:** Mechanical (lines ≤ 80 or test/fix/stub/lint/config) → `model: "haiku"`; Default → `model: "sonnet"`.
