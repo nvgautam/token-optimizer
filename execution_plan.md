@@ -378,7 +378,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | M-F-6c — MERGED | T-304 ‖ T-306 (parallel) | First-run auto-init at PTY startup + oracle.md size split — disjoint OWNS |
 | P0-workspace — MERGED (PR #211/#212 2026-07-20) | T-308 ‖ T-307 (parallel) | Fix _find_workspace_root() worktree escape (P0) + orchestrator session edge-case tests — disjoint OWNS |
 | M-F-7 ‖ M-F-8 (MERGED PR #213/#214) | T-301 ‖ T-302 (parallel) | Oracle handoff UX + customer distribution — disjoint OWNS (session_manager.py/oracle.md vs scripts/build_dist.sh) |
-| M-F-9 [PENDING] | T-311 (solo) | Session-scoped log observability — session header + SID per line; friendlies can send logs for remote triage |
+| M-F-9 — MERGED (PR #215 2026-07-21) | T-311 (solo) | Session-scoped log observability — session header + SID per line; friendlies can send logs for remote triage |
 | M-F-10 [PENDING] | T-309 (solo) | Friendly savings dashboard — aggregate-only token/cost view; no strategy breakdown |
 | M-F-11 [PENDING] | T-310 (solo) | agentflow bundle CLI — deterministic ctx assembly; eliminates LLM Write call in orchestrate |
 | M-F-12 [PENDING] | T-312 (solo) | Provider usage limits — PTY-inject /usage at session start + before restart; parse Claude + Gemini output; store in session state |
