@@ -1166,6 +1166,10 @@
     },
     {
       "task_id": "T-329",
+      "status": "complete"
+    },
+    {
+      "task_id": "T-330",
       "status": "pending"
     }
   ]

@@ -385,9 +385,9 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | M-F-12 [MERGED] | T-312 (MERGED) ‖ T-288 (MERGED) ‖ T-318 (MERGED) ‖ T-319 (MERGED) (parallel) | Provider usage limits + oracle OWNS self-check + human gate PR URL fix + detect_pr_merge execution_plan.md update |
 | Round M-F-14 [MERGED] | T-320 (MERGED) (solo) | Fix startswith("/orchestrat") in user_prompt_submit.py — /orchestrator:startup session_type never set |
 | Round M-F-15 [MERGED] | T-321 (MERGED) (solo) | Validate tasks.json schema and execution_plan.md addendums in PostToolUse hook |
-| Round M-F-15b [PENDING] | T-329 (solo) | Support namespaced slash commands |
-| Round M-F-16 [PENDING] | T-322 ‖ T-323 (parallel) | Unify common markdown specs + Create coding standards skill |
-| Round M-F-17 [PENDING] | T-324 ‖ T-325 (parallel) | Centralize constants + Implement standardized audit logging |
+| Round M-F-15b [MERGED] | T-329 (MERGED) (solo) | Support namespaced slash commands |
+| Round M-F-16 [PENDING] | T-323 ‖ T-324 (parallel) | Create coding standards skill + Centralize constants |
+| Round M-F-17 [PENDING] | T-325 (solo) | Implement standardized audit logging |
 | Round M-F-18 [PENDING] | T-326 (solo) | Asynchronous logging and log rotation |
 | Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
 | Round E [PENDING] | T-168 ‖ T-290 (parallel) | product judgment layer + debug terminal step |
@@ -999,30 +999,6 @@ Extract: weekly `%_used`, `refreshes_in`; 5-hour `%_used`, `refreshes_in`.
 **OWNS:** `commands/claude/orchestrate.md`
 **estimated_lines:** 10
 
-## Addendum: T-322 — Unify common oracle and orchestrator markdown specifications
-
-**Goal:** Create a `commands/common/` directory to host identical, provider-agnostic markdown files (`checklist.md`, `generation.md`, `market.md`, `prioritization.md`, `phase2_state.md`) to eliminate duplication and prevent design document/schema drift across Claude and Gemini/AGY skills. Update both providers' oracle and orchestrator top-level skills to load from the common folder.
-
-**Files:**
-- `commands/common/oracle/checklist.md` (new) — unified checklist
-- `commands/common/oracle/generation.md` (new) — unified generation rules
-- `commands/common/oracle/market.md` (new) — unified market segment rules
-- `commands/common/oracle/prioritization.md` (new) — unified prioritization spar rules
-- `commands/common/oracle/phase2_state.md` (new) — unified phase 2 state rules
-- `commands/claude/oracle.md` (modify) — update references to `commands/common/`
-- `commands/claude/orchestrate.md` (modify) — update references to `commands/common/`
-- `commands/claude/orchestrator/decomposition.md` (modify) — update references to `commands/common/`
-- `commands/gemini/skills/oracle/SKILL.md` (modify) — update references to `commands/common/`
-- `commands/gemini/skills/orchestrate/SKILL.md` (modify) — update references to `commands/common/`
-
-**Test scenarios:**
-- Verify all modified files correctly reference files under `commands/common/`
-- Verify deleting old files does not cause validation or runtime failures
-- Run all tests to confirm zero regression on orchestrate / oracle execution paths
-
-**OWNS:** `commands/common/oracle/checklist.md`, `commands/common/oracle/generation.md`, `commands/common/oracle/market.md`, `commands/common/oracle/prioritization.md`, `commands/common/oracle/phase2_state.md`, `commands/claude/oracle.md`, `commands/claude/orchestrate.md`, `commands/claude/orchestrator/decomposition.md`, `commands/gemini/skills/oracle/SKILL.md`, `commands/gemini/skills/orchestrate/SKILL.md`
-**estimated_lines:** 120
-
 ## Addendum: T-323 — Coding standards skill and prompt integration
 
 **Goal:**
@@ -1128,23 +1104,8 @@ Extract: weekly `%_used`, `refreshes_in`; 5-hour `%_used`, `refreshes_in`.
 **estimated_lines:** 60
 
 
-## Addendum: T-329 — Support namespaced slash commands and fix PTY restart commands
+## Addendum: T-330 — Split tests/test_user_prompt_submit.py — size violation
 
-**Goal:** Fix the PTY shell start/restart loop and prompt detection when using namespaced Claude slash commands (e.g. `/claude:orchestrate` or `/orchestrator:startup` instead of `/orchestrate`). Update prompt matching to detect the session type from namespaced commands anywhere in the prompt string. Add dynamic command resolution in PTY shell spawn logic to automatically locate the correct namespace and file under `~/.claude/commands/` when constructing the restart command.
+**Goal:** Split tests/test_user_prompt_submit.py (358 lines, limit 350). Violation timestamp: 2026-07-22T14:21:57.170063. Choose the split boundary by test class or fixture group, not line count. Verify each output file is ≤ 350 lines after splitting.
 
-**Files:**
-- `agentflow/hooks/user_prompt_submit.py` (modify) — match `"orchestrat"` or `"oracle"` commands within any namespaced slash command; clear complete files for namespaced orchestrate/handoff commands.
-- `agentflow/shell/process_manager.py` (modify) — implement `_get_claude_skill_cmd` helper to resolve namespaced command paths dynamically from `~/.claude/commands/` directory; use resolved namespaced command during child restart.
-
-**Test scenarios:**
-- Verify user_prompt_submit correctly sets session_type to `"orchestrator"` and `"oracle"` for namespaced inputs (`/claude:orchestrate`, `/orchestrator:startup`, `/claude:oracle`).
-- Verify complete files are deleted on namespaced orchestrate/handoff commands.
-- Verify `_get_claude_skill_cmd` returns the correct namespaced slash commands based on the files present in `~/.claude/commands/`.
-
-**OWNS:** `agentflow/hooks/user_prompt_submit.py`, `agentflow/shell/process_manager.py`
-**estimated_lines:** 50
-
-
-
-
-
+**Owns:** ["tests/test_user_prompt_submit.py"]
