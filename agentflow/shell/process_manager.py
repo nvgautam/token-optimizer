@@ -3,6 +3,39 @@ from __future__ import annotations
 import os
 import time
 import signal
+from pathlib import Path
+
+# T-329: base directory for resolving namespaced slash commands.
+# Tests patch this module-level constant to inject a fake directory.
+_COMMANDS_DIR: Path = Path.home() / ".claude" / "commands"
+
+
+def _get_claude_skill_cmd(skill_name: str) -> str:
+    """Return the slash command string for *skill_name*, resolved against _COMMANDS_DIR.
+
+    Resolution order:
+    1. Iterate subdirectories of _COMMANDS_DIR alphabetically; return
+       ``/{subdir}:{skill_name}`` for the first subdir that contains
+       ``{skill_name}.md``.
+    2. If ``{skill_name}.md`` exists at the root of _COMMANDS_DIR, return
+       ``/{skill_name}`` (no namespace).
+    3. Fallback: return ``/{skill_name}``.
+    """
+    base: Path = _COMMANDS_DIR
+    if not base.is_dir():
+        return f"/{skill_name}"
+
+    # Check subdirectories first (alphabetical so "claude" wins in the known layout).
+    for subdir in sorted(p for p in base.iterdir() if p.is_dir()):
+        if (subdir / f"{skill_name}.md").is_file():
+            return f"/{subdir.name}:{skill_name}"
+
+    # Check root level.
+    if (base / f"{skill_name}.md").is_file():
+        return f"/{skill_name}"
+
+    return f"/{skill_name}"
+
 
 def handle_enter_restarting(manager) -> None:
     manager._just_restarted = True
@@ -69,12 +102,14 @@ def spawn_new_child(manager) -> None:
             manager._pty._exited = False
         return
 
-    # T-195: Append skill as positional arg when restarting with known session_type
+    # T-195/T-329: Append skill as positional arg when restarting with known session_type.
+    # T-329: Use _get_claude_skill_cmd to resolve the correct namespaced command path
+    # (e.g. /claude:orchestrate) rather than hard-coding /orchestrate or /oracle.
     if getattr(manager, "_just_restarted", False):
         _stype = getattr(manager, "session_type", None)
         skill = "oracle" if _stype == "oracle" else "orchestrate" if _stype == "orchestrator" else None
         if skill:
-            command = list(command) + [f"/{skill}"]
+            command = list(command) + [_get_claude_skill_cmd(skill)]
 
     # T-243: Pass --permission-mode auto to claude/claude2 orchestrator restarts (not agy)
     if getattr(manager, "_just_restarted", False):

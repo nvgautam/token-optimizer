@@ -1,9 +1,6 @@
 import json
-import os
-import tempfile
 from pathlib import Path
 from unittest import mock
-import pytest
 
 
 def write_current_round(tmpdir, task_ctx=None):
@@ -33,11 +30,17 @@ def test_spawn_new_child_appends_task_ctx_when_present(tmpdir, monkeypatch):
     write_current_round(tmpdir, task_ctx)
 
     # Mock PTY and os.execvp
+    # T-329: patch _COMMANDS_DIR to a nonexistent path so the slash command
+    # falls back to /orchestrate — real filesystem state not consulted.
+    import agentflow.shell.process_manager as _pm
+    _empty = Path("/nonexistent/commands-dir-for-tests")
+
     with mock.patch("pty.fork") as mock_fork, \
          mock.patch("os.execvp") as mock_execvp, \
          mock.patch("fcntl.fcntl") as mock_fcntl, \
          mock.patch("fcntl.ioctl"), \
-         mock.patch("os.close"):
+         mock.patch("os.close"), \
+         mock.patch.object(_pm, "_COMMANDS_DIR", _empty):
 
         # Return (0, 10) so child_pid == 0 and we enter the execvp path
         mock_fork.return_value = (0, 10)

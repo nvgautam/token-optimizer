@@ -1,4 +1,4 @@
-"""Tests for T-243: spawn_new_child passes --auto to claude/claude2 orchestrator restarts."""
+"""Tests for T-243/T-329: spawn_new_child and _get_claude_skill_cmd."""
 from __future__ import annotations
 
 import pty as pty_module
@@ -6,9 +6,8 @@ import sys
 import pathlib
 from unittest.mock import patch
 
-import pytest
 
-from agentflow.shell.process_manager import spawn_new_child
+from agentflow.shell.process_manager import spawn_new_child, _get_claude_skill_cmd
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 from conftest import make_manager
@@ -89,3 +88,63 @@ class TestAutoFlag:
 
         args = _capture_exec(sm, ["claude"])
         assert "--permission-mode" not in args, f"Did not expect --permission-mode in {args}"
+
+
+# ---------------------------------------------------------------------------
+# T-329: _get_claude_skill_cmd helper
+# ---------------------------------------------------------------------------
+
+class TestGetClaudeSkillCmd:
+    def test_namespaced_cmd_claude_orchestrate(self, tmp_path):
+        """_get_claude_skill_cmd('orchestrate') → '/claude:orchestrate' when file exists."""
+        import agentflow.shell.process_manager as _pm
+        commands_base = tmp_path / ".claude" / "commands"
+        claude_sub = commands_base / "claude"
+        claude_sub.mkdir(parents=True)
+        (claude_sub / "orchestrate.md").write_text("# orchestrate")
+
+        with patch.object(_pm, "_COMMANDS_DIR", commands_base):
+            result = _get_claude_skill_cmd("orchestrate")
+        assert result == "/claude:orchestrate"
+
+    def test_namespaced_cmd_claude_oracle(self, tmp_path):
+        """_get_claude_skill_cmd('oracle') → '/claude:oracle' when file exists."""
+        import agentflow.shell.process_manager as _pm
+        commands_base = tmp_path / ".claude" / "commands"
+        claude_sub = commands_base / "claude"
+        claude_sub.mkdir(parents=True)
+        (claude_sub / "oracle.md").write_text("# oracle")
+
+        with patch.object(_pm, "_COMMANDS_DIR", commands_base):
+            result = _get_claude_skill_cmd("oracle")
+        assert result == "/claude:oracle"
+
+    def test_root_level_fallback(self, tmp_path):
+        """When file is at commands root level (no subdir) → /orchestrate."""
+        import agentflow.shell.process_manager as _pm
+        commands_base = tmp_path / ".claude" / "commands"
+        commands_base.mkdir(parents=True)
+        (commands_base / "orchestrate.md").write_text("# orchestrate")
+
+        with patch.object(_pm, "_COMMANDS_DIR", commands_base):
+            result = _get_claude_skill_cmd("orchestrate")
+        assert result == "/orchestrate"
+
+    def test_not_found_fallback(self, tmp_path):
+        """When neither subdir nor root has the file → /orchestrate (bare fallback)."""
+        import agentflow.shell.process_manager as _pm
+        commands_base = tmp_path / ".claude" / "commands"
+        commands_base.mkdir(parents=True)
+
+        with patch.object(_pm, "_COMMANDS_DIR", commands_base):
+            result = _get_claude_skill_cmd("orchestrate")
+        assert result == "/orchestrate"
+
+    def test_nonexistent_commands_dir_fallback(self, tmp_path):
+        """When commands dir does not exist → /orchestrate (bare fallback)."""
+        import agentflow.shell.process_manager as _pm
+        commands_base = tmp_path / ".claude" / "commands"  # Not created
+
+        with patch.object(_pm, "_COMMANDS_DIR", commands_base):
+            result = _get_claude_skill_cmd("orchestrate")
+        assert result == "/orchestrate"
