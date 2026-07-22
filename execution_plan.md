@@ -1042,6 +1042,19 @@ Extract: weekly `%_used`, `refreshes_in`; 5-hour `%_used`, `refreshes_in`.
 - Design structured JSON schema for audit logging.
 - Implement logging middleware with PII/secret scrubbing.
 
+**Mandatory log schema** — every audit entry must contain these fields:
+
+| Field | Type | Auto-stamped | Description |
+|---|---|---|---|
+| `sid` | str \| None | yes — from `AGENTFLOW_SESSION_ID` | Session identifier |
+| `ts` | str (ISO-8601) | yes — `datetime.now().isoformat()` | Timestamp |
+| `event` | str | no — caller supplies | Event name/code (e.g. `"drain_restart"`, `"contract_violation"`) |
+| `source` | str | no — caller supplies | Module that emitted the log (e.g. `"drain_restart"`, `"post_tool_use"`) |
+| `level` | str | yes — defaults to `"INFO"` | Severity: `"INFO"`, `"WARN"`, or `"ERROR"` |
+| `session_type` | str \| None | no — caller supplies when known | `"orchestrator"`, `"oracle"`, or `"unknown"` |
+
+`write_audit` auto-stamps `sid`, `ts`, and `level` (defaulting to `"INFO"` if absent). Callers must supply `event` and `source`; `session_type` is required when the emitting code has session context.
+
 **Files:**
 - `agentflow/shell/audit_logger.py` (new) — structured logger
 - `agentflow/shell/session_manager.py` (modify) — write logs
@@ -1050,6 +1063,8 @@ Extract: weekly `%_used`, `refreshes_in`; 5-hour `%_used`, `refreshes_in`.
 **Test scenarios:**
 - Verify log entries contain session and trace IDs.
 - Verify secrets/PII are successfully masked in output.
+- Verify `level` defaults to `"INFO"` when not supplied by caller.
+- Verify caller-supplied `level` is preserved.
 
 **OWNS:** `agentflow/shell/audit_logger.py`, `agentflow/shell/session_manager.py`, `agentflow/hooks/post_tool_use.py`
 **estimated_lines:** 90

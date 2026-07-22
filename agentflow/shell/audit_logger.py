@@ -26,7 +26,13 @@ def write_audit(log_path: pathlib.Path, entry: dict) -> None:
     if not log_path.parent.exists():
         return
     try:
-        record = {**scrub(entry), KEY_TS: datetime.datetime.now().isoformat(), KEY_SID: os.environ.get(ENV_SESSION_ID)}
+        scrubbed = scrub(entry)
+        record = {
+            KEY_TS: datetime.datetime.now().isoformat(),
+            KEY_SID: os.environ.get(ENV_SESSION_ID),
+            "level": scrubbed.get("level", "INFO"),
+            **scrubbed,
+        }
         with open(log_path, "a", encoding=UTF8) as fh:
             fh.write(json.dumps(record) + "\n")
     except Exception:

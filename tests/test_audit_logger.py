@@ -71,3 +71,17 @@ def test_scrub_does_not_mutate_original():
     entry = {"token": "secret_value", "event": "e"}
     scrub(entry)
     assert entry["token"] == "secret_value"
+
+
+def test_write_audit_defaults_level_to_info(tmp_path):
+    log_path = tmp_path / "audit.jsonl"
+    write_audit(log_path, {"event": "startup"})
+    record = json.loads(log_path.read_text())
+    assert record["level"] == "INFO"
+
+
+def test_write_audit_preserves_caller_level(tmp_path):
+    log_path = tmp_path / "audit.jsonl"
+    write_audit(log_path, {"event": "drain_fail", "level": "ERROR"})
+    record = json.loads(log_path.read_text())
+    assert record["level"] == "ERROR"
