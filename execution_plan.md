@@ -386,7 +386,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round M-F-14 [MERGED] | T-320 (MERGED) (solo) | Fix startswith("/orchestrat") in user_prompt_submit.py — /orchestrator:startup session_type never set |
 | Round M-F-15 [MERGED] | T-321 (MERGED) (solo) | Validate tasks.json schema and execution_plan.md addendums in PostToolUse hook |
 | Round M-F-15b [MERGED] | T-329 (MERGED) (solo) | Support namespaced slash commands |
-| Round M-F-16 [PENDING] | T-323 ‖ T-324 (parallel) | Create coding standards skill + Centralize constants |
+| Round M-F-16 [MERGED] | T-323 (MERGED) ‖ T-324 (MERGED) (parallel) | Create coding standards skill + Centralize constants |
 | Round M-F-17 [PENDING] | T-325 (solo) | Implement standardized audit logging |
 | Round M-F-18 [PENDING] | T-326 (solo) | Asynchronous logging and log rotation |
 | Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
