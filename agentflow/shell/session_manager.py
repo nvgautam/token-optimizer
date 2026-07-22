@@ -14,13 +14,14 @@ try:
 except ImportError:
     import tomli as tomllib  # type: ignore
 
+from agentflow.config import constants
 from agentflow.shell.countdown import countdown  # noqa: F401
 from agentflow.shell.state_machine import StateMachine, States
 from agentflow.shell.session_paths import session_file, cleanup_stale_sessions
 
 _DEFAULTS = {
-    "handoff_primary_tokens": 80000,  # T-151: only threshold that triggers auto-handoff
-    "restart_delay_seconds": 5
+    constants.CFG_HANDOFF_PRIMARY_TOKENS: 80000,  # T-151: only threshold that triggers auto-handoff
+    constants.CFG_RESTART_DELAY_SECONDS: 5
 }
 
 class SessionManager:
@@ -29,13 +30,13 @@ class SessionManager:
     def __init__(self, pty_wrapper, tokenizer, config: dict) -> None:
         cfg = dict(_DEFAULTS)
         try:
-            with open(pathlib.Path.home() / ".agentflow" / "config.toml", "rb") as fh:
+            with open(pathlib.Path.home() / constants.DIR_AGENTFLOW / constants.FILE_CONFIG_TOML, "rb") as fh:
                 toml_cfg = tomllib.load(fh)
-                cfg.update(toml_cfg.get("shell", {}))
+                cfg.update(toml_cfg.get(constants.CFG_SHELL, {}))
                 # Provider-specific overrides: [shell.gemini] / [shell.claude]
                 provider = (getattr(pty_wrapper, "_command", None) or "").split("/")[-1]
-                if provider and provider in toml_cfg.get("shell", {}):
-                    cfg.update(toml_cfg["shell"][provider])
+                if provider and provider in toml_cfg.get(constants.CFG_SHELL, {}):
+                    cfg.update(toml_cfg[constants.CFG_SHELL][provider])
         except Exception:
             pass
         self._config = {**cfg, **(config or {})}
@@ -52,14 +53,14 @@ class SessionManager:
         self._last_accumulated_tokens = 0  # output token accumulator — observability only, not used for restart decisions
         self._last_audit_token_bucket: int = 0
         self._last_restart_ts: float = 0.0
-        self._current_trigger = "auto"
+        self._current_trigger = constants.TRIGGER_AUTO
         self._deadline_state = None
         self._deadline_entered_at: float = 0.0
 
         # State machine initialization
         self._state_machine = StateMachine(
             initial_state=States.IDLE,
-            threshold_tokens=self._config["handoff_primary_tokens"]
+            threshold_tokens=self._config[constants.CFG_HANDOFF_PRIMARY_TOKENS]
         )
         self._state_machine.on_enter_restarting = self.on_enter_restarting
         self._state_machine.on_enter_handoff_pending = self.on_enter_handoff_pending
@@ -73,11 +74,11 @@ class SessionManager:
         pty_wrapper._on_output = self._handle_output
         pty_wrapper._on_exit = self._on_session_exit
         self._run_stale_index_guard()
-        cleanup_stale_sessions(self._project_root / ".agentflow")
+        cleanup_stale_sessions(self._project_root / constants.DIR_AGENTFLOW)
         self._sync_session_type()
 
         # T-194: Only enter TASK_RUNNING for orchestrator sessions with active round
-        if self.session_type == "orchestrator" and self._current_round_path.exists() and not self._task_complete_path.exists():
+        if self.session_type == constants.SESSION_TYPE_ORCHESTRATOR and self._current_round_path.exists() and not self._task_complete_path.exists():
             self._state_machine.state = States.TASK_RUNNING
 
     @property
@@ -85,10 +86,10 @@ class SessionManager:
     @_project_root.setter
     def _project_root(self, val: pathlib.Path) -> None: self._project_root_override = val
 
-    def _auto_handoff_disabled(self) -> bool: return (self._project_root / ".agentflow" / "handoff_disabled").exists()
+    def _auto_handoff_disabled(self) -> bool: return (self._project_root / constants.DIR_AGENTFLOW / constants.FILE_HANDOFF_DISABLED).exists()
 
     @property
-    def _current_round_path(self) -> pathlib.Path: return getattr(self, "_current_round_path_override", None) or (self._project_root / ".agentflow" / "current_round.json")
+    def _current_round_path(self) -> pathlib.Path: return getattr(self, "_current_round_path_override", None) or (self._project_root / constants.DIR_AGENTFLOW / constants.FILE_CURRENT_ROUND)
     @_current_round_path.setter
     def _current_round_path(self, val: pathlib.Path) -> None: self._current_round_path_override = val
 
@@ -97,8 +98,8 @@ class SessionManager:
         override = getattr(self, "_task_complete_path_override", None)
         if override:
             return override
-        sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
-        return session_file(self._project_root / ".agentflow", "task_complete.json", sid)
+        sid = os.environ.get(constants.ENV_SESSION_ID, "")
+        return session_file(self._project_root / constants.DIR_AGENTFLOW, constants.FILE_TASK_COMPLETE, sid)
     @_task_complete_path.setter
     def _task_complete_path(self, val: pathlib.Path) -> None: self._task_complete_path_override = val
 
@@ -107,8 +108,8 @@ class SessionManager:
         override = getattr(self, "_tasks_in_flight_path_override", None)
         if override:
             return override
-        sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
-        return session_file(self._project_root / ".agentflow", "tasks_in_flight.json", sid)
+        sid = os.environ.get(constants.ENV_SESSION_ID, "")
+        return session_file(self._project_root / constants.DIR_AGENTFLOW, constants.FILE_TASKS_IN_FLIGHT, sid)
     @_tasks_in_flight_path.setter
     def _tasks_in_flight_path(self, val: pathlib.Path) -> None: self._tasks_in_flight_path_override = val
 
@@ -117,9 +118,9 @@ class SessionManager:
         override = getattr(self, "_handoff_complete_path_override", None)
         if override:
             return override
-        sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
-        filename = f"handoff_complete_{sid}.json" if sid else "handoff_complete.json"
-        return self._project_root / ".agentflow" / filename
+        sid = os.environ.get(constants.ENV_SESSION_ID, "")
+        filename = f"handoff_complete_{sid}.json" if sid else constants.FILE_HANDOFF_COMPLETE
+        return self._project_root / constants.DIR_AGENTFLOW / filename
     @_handoff_complete_path.setter
     def _handoff_complete_path(self, val: pathlib.Path) -> None: self._handoff_complete_path_override = val
 
@@ -127,8 +128,10 @@ class SessionManager:
     def _handoff_in_progress(self) -> bool: return self._state_machine.state in (States.HANDOFF_PENDING, States.RESTARTING)
 
     def _read_arm_file(self) -> str | None:
-        try: return (pathlib.Path.cwd() / ".agentflow" / "verbosity_ab_arm.txt").read_text("utf-8").strip() or None
-        except Exception: return None
+        try:
+            return (pathlib.Path.cwd() / constants.DIR_AGENTFLOW / constants.FILE_VERBOSITY_AB_ARM).read_text(constants.UTF8).strip() or None
+        except Exception:
+            return None
 
     def _log_audit(self, entry: dict) -> None:
         from agentflow.shell.session_manager_handlers import log_audit
@@ -226,7 +229,7 @@ class SessionManager:
         from agentflow.shell.session_manager_handlers import handle_session_exit
         handle_session_exit(self, exit_code)
 
-    def trigger_handoff(self, trigger: str = "auto") -> None:
+    def trigger_handoff(self, trigger: str = constants.TRIGGER_AUTO) -> None:
         from agentflow.shell.session_manager_handlers import trigger_handoff_impl
         trigger_handoff_impl(self, trigger)
 
