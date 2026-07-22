@@ -71,6 +71,8 @@ Ask: "Who is your primary user — B2C, SMB, or enterprise? Describe them in one
 
 Emit: `HANDOFF RECOMMENDED: market segment resolved — good stopping point if context is growing`
 
+**Lazy load:** Read `commands/claude/oracle/market_unknowns.md` (section matching resolved segment); surface 2–3 questions before Phase 2 begins.
+
 ---
 
 ## Phase 2 — Design Sparring
