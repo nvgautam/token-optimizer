@@ -390,15 +390,15 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round M-F-17 — MERGED | T-325 (solo) | Implement standardized audit logging |
 | Round M-F-18 — MERGED | T-326 (solo) | Asynchronous logging and log rotation |
 | Pre-D — MERGED | T-330 ‖ T-331 (parallel) | Split test_user_prompt_submit.py + remove duplicate session_id key |
-| Round M-F-19 [PENDING] | T-334 (solo) | Enforce conventional commit PR titles in worker prompts |
-| Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
-| Round D-2 [PENDING] | T-333 (solo) | Wire market_unknowns.md into Oracle Phase 1 emit |
+| Round M-F-19 [PENDING] | T-334 ‖ T-335 (parallel) | Enforce conventional commit PR titles + execution_plan rolling archive |
+| Round D-2 [MERGED] | T-333 (solo) | Wire market_unknowns.md into Oracle Phase 1 emit |
+| Round E-6 [PENDING] | T-328 (solo) | Ledger-lookup based baseline usage reconstruction |
 | Round D-3 [PENDING] | T-332 (solo, depends T-333) | Architecture↔market cross-linking in Oracle Phase 2 |
+| Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
 | Round E [PENDING] | T-168 ‖ T-290 (parallel) | product judgment layer + debug terminal step |
 | Round E-2 [PENDING] | T-167 (solo) | Oracle Phase 3 plan-mode preview |
 | Round E-4 [PENDING] | T-289 (solo) | Oracle troubleshoot detection → offer debug skill |
 | Round E-5 [PENDING] | T-327 (solo) | Log troubleshooting debug skill |
-| Round E-6 [PENDING] | T-328 (solo) | Ledger-lookup based baseline usage reconstruction |
 | Round F [PENDING] | T-063 (solo) | Multi-provider chain step 1 (enterprise) |
 | Round F-2 [PENDING] | T-064 (solo) | Multi-provider chain step 2 |
 | Round F-3 [PENDING] | T-099 (solo) | Multi-provider chain step 3 |
@@ -1175,3 +1175,19 @@ Forces callers to supply required fields; requires updating every existing `_log
 
 **OWNS:** `commands/claude/worker/system.md`, `tests/prompts/test_worker_pr_titles.py`
 **estimated_lines:** 25
+
+## Addendum: T-335 — Keep rolling 3-merged-rounds buffer in execution_plan.md
+
+**Milestone:** M-F
+
+**Goal:** Update the session drain/restart code to maintain a rolling buffer of at most 3 merged rounds in `execution_plan.md`. When a new round is marked merged, if the count of merged rounds in the table exceeds 3, the oldest merged round row is removed and appended to `execution_plan.archive.md` (or `.agentflow/execution_plan_archive.md`), followed by an immediate index rebuild.
+
+**Files:**
+- `agentflow/shell/drain_restart.py` (modify) — implement the rolling archive logic.
+- `tests/shell/test_drain_restart_archive.py` (new) — unit/integration tests for the rolling buffer and index regeneration.
+
+**Test scenarios:**
+- Mock `execution_plan.md` with 3 merged rounds, mark a 4th round merged, and verify that the oldest is moved to the archive and index is rebuilt.
+
+**OWNS:** `agentflow/shell/drain_restart.py`, `tests/shell/test_drain_restart_archive.py`
+**estimated_lines:** 70
