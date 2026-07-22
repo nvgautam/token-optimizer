@@ -340,3 +340,19 @@ class TestUserPromptSubmitHookMain:
         assert state_file.exists()
         assert json.loads(state_file.read_text())["session_type"] == "oracle"
 
+    def test_orchestrator_tool_lookalike_does_not_trigger(self, tmp_path, monkeypatch):
+        """/my-orchestrator-tool should NOT set session_type (exact-match guard)."""
+        sid = "sess-lookalike"
+        monkeypatch.setenv("AGENTFLOW_PROJECT_ROOT", str(tmp_path))
+        monkeypatch.setenv("AGENTFLOW_SESSION_ID", sid)
+        session_dir = tmp_path / ".agentflow" / "sessions" / sid
+        session_dir.mkdir(parents=True)
+        with patch("agentflow.hooks.user_prompt_submit.sys.stdin") as mock_stdin, \
+             patch("agentflow.hooks.user_prompt_submit.sys.argv", ["user_prompt_submit.py"]):
+            mock_stdin.isatty.return_value = False
+            mock_stdin.read.return_value = json.dumps({"prompt": "/my-orchestrator-tool"})
+            with pytest.raises(SystemExit):
+                main()
+        state_file = session_dir / "session_state.json"
+        assert not state_file.exists()
+

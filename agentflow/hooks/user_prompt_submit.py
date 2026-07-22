@@ -54,19 +54,28 @@ def main() -> None:
     else:
         agentflow_dir = Path.cwd() / ".agentflow"
 
-    # Write session_state.json for /orchestrate and /oracle
-    # T-329: use re.match (anchored at start) with \s* to match namespaced commands
-    # like /claude:orchestrate, /orchestrator:startup, /claude:oracle while still
-    # requiring the slash command to appear at prompt start — not in prose (T-292).
+    # T-329: Parse namespace and subcommand from the leading slash command.
+    # Uses exact name matching to avoid false-positives from skills whose names
+    # merely contain "orchestrat" (e.g. /my-orchestrator-tool — T-292 / T-329).
     sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+    is_orchestrate = is_oracle = is_handoff = False
     if prompt:
-        if re.match(r"\s*/\S*orchestrat", prompt):
+        m = re.match(r"\s*/(\S+)", prompt)
+        if m:
+            cmd = m.group(1)                         # e.g. "claude:orchestrate"
+            ns, _, sub = cmd.partition(":")          # ns="claude", sub="orchestrate"
+            is_orchestrate = sub == "orchestrate" or ns in ("orchestrate", "orchestrator")
+            is_oracle      = sub == "oracle"      or ns == "oracle"
+            is_handoff     = sub == "handoff"     or ns == "handoff"
+
+    if prompt:
+        if is_orchestrate:
             _write_session_state_atomic(agentflow_dir, "orchestrator", sid=sid)
-        elif re.match(r"\s*/\S*oracle", prompt):
+        elif is_oracle:
             _write_session_state_atomic(agentflow_dir, "oracle", sid=sid)
 
-    # If the prompt starts with (optionally namespaced) /orchestrate or /handoff:
-    if prompt and (re.match(r"\s*/\S*orchestrat", prompt) or re.match(r"\s*/\S*handoff", prompt)):
+    # If the prompt starts with /orchestrate or /handoff (bare or namespaced):
+    if prompt and (is_orchestrate or is_handoff):
         # Delete session-scoped handoff_complete and task_complete if they exist.
         agentflow_dir.mkdir(parents=True, exist_ok=True)
         for name in ("handoff_complete.json", "task_complete.json"):
