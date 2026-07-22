@@ -5,7 +5,6 @@ import os
 import pathlib
 import sys
 from unittest.mock import MagicMock, patch
-import pytest
 from agentflow.shell.session_manager import SessionManager
 from agentflow.shell.state_machine import States
 from agentflow.shell.countdown import countdown
@@ -157,9 +156,17 @@ def test_init_task_running_gated_on_orchestrator_session_type(tmp_path):
 
 
 def _test_spawn_new_child_command(just_restarted, session_type, expected_args):
-    """Helper: verify spawn_new_child command."""
+    """Helper: verify spawn_new_child command.
+
+    T-329: patch _COMMANDS_DIR to a nonexistent path so _get_claude_skill_cmd
+    returns bare /{skill} fallbacks — real filesystem state is not consulted.
+    """
+    import pathlib as _pathlib
+    import agentflow.shell.process_manager as _pm
     from agentflow.shell.process_manager import spawn_new_child
     import pty as pty_module
+
+    _empty = _pathlib.Path("/nonexistent/commands-dir-for-tests")
 
     sm, pty, _ = make_manager()
     sm._just_restarted = just_restarted
@@ -168,7 +175,8 @@ def _test_spawn_new_child_command(just_restarted, session_type, expected_args):
     exec_called = []
     with patch.object(pty_module, "fork", return_value=(0, 123)), \
          patch("os.execvp", side_effect=lambda cmd, args: exec_called.append(args) or (_ for _ in ()).throw(SystemExit(127))), \
-         patch("os._exit"):
+         patch("os._exit"), \
+         patch.object(_pm, "_COMMANDS_DIR", _empty):
         try:
             spawn_new_child(sm)
         except SystemExit:

@@ -3,6 +3,7 @@
 
 import json
 import os
+import re
 import sys
 import tempfile
 import time
@@ -54,15 +55,18 @@ def main() -> None:
         agentflow_dir = Path.cwd() / ".agentflow"
 
     # Write session_state.json for /orchestrate and /oracle
+    # T-329: use re.match (anchored at start) with \s* to match namespaced commands
+    # like /claude:orchestrate, /orchestrator:startup, /claude:oracle while still
+    # requiring the slash command to appear at prompt start — not in prose (T-292).
     sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
     if prompt:
-        if prompt.lstrip().startswith("/orchestrat"):
+        if re.match(r"\s*/\S*orchestrat", prompt):
             _write_session_state_atomic(agentflow_dir, "orchestrator", sid=sid)
-        elif prompt.lstrip().startswith("/oracle"):
+        elif re.match(r"\s*/\S*oracle", prompt):
             _write_session_state_atomic(agentflow_dir, "oracle", sid=sid)
 
-    # If the prompt contains "/orchestrate" or "/handoff":
-    if prompt and (prompt.lstrip().startswith("/orchestrat") or prompt.lstrip().startswith("/handoff")):
+    # If the prompt starts with (optionally namespaced) /orchestrate or /handoff:
+    if prompt and (re.match(r"\s*/\S*orchestrat", prompt) or re.match(r"\s*/\S*handoff", prompt)):
         # Delete session-scoped handoff_complete and task_complete if they exist.
         agentflow_dir.mkdir(parents=True, exist_ok=True)
         for name in ("handoff_complete.json", "task_complete.json"):
