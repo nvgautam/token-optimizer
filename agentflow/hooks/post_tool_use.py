@@ -13,6 +13,7 @@ import os
 import pathlib
 import re
 import sys
+import subprocess
 import tempfile
 import time
 from pathlib import Path
@@ -305,12 +306,96 @@ def audit_orchestrator_direct_write(tool_name: str, tool_input: dict, agentflow_
         pass
 
 
+def validate_state_files(project_root: Path) -> None:
+    # 1. Validate tasks.json
+    tasks_path = project_root / "tasks.json"
+    if tasks_path.exists():
+        try:
+            content = tasks_path.read_text(encoding="utf-8")
+            data = json.loads(content)
+            if not isinstance(data, dict) or "tasks" not in data:
+                print("Validation Error: tasks.json must be a dict containing a 'tasks' list.", file=sys.stderr)
+                sys.exit(1)
+            for idx, task in enumerate(data.get("tasks", [])):
+                if not isinstance(task, dict):
+                    print(f"Validation Error: Task at index {idx} is not a dictionary.", file=sys.stderr)
+                    sys.exit(1)
+                allowed_keys = {"task_id", "status"}
+                actual_keys = set(task.keys())
+                missing = allowed_keys - actual_keys
+                extra = actual_keys - allowed_keys
+                if missing:
+                    print(f"Validation Error: Task at index {idx} missing required keys: {missing}", file=sys.stderr)
+                    sys.exit(1)
+                if extra:
+                    print(f"Validation Error: Task at index {idx} contains extra keys not allowed: {extra}", file=sys.stderr)
+                    sys.exit(1)
+                if task.get("status") not in {"pending", "complete", "cancelled"}:
+                    print(f"Validation Error: Task {task.get('task_id')} has invalid status: {task.get('status')}", file=sys.stderr)
+                    sys.exit(1)
+        except json.JSONDecodeError:
+            print("Validation Error: tasks.json is not valid JSON.", file=sys.stderr)
+            sys.exit(1)
+        except SystemExit:
+            raise
+        except Exception:
+            pass
+
+    # 2. Validate newly added/modified addendums in execution_plan.md
+    ep_path = project_root / "execution_plan.md"
+    if ep_path.exists():
+        try:
+            res = subprocess.run(
+                ["git", "diff", "-U0", "--", "execution_plan.md"],
+                cwd=str(project_root),
+                capture_output=True,
+                text=True,
+                check=False
+            )
+            new_tids = []
+            if res.returncode == 0:
+                for line in res.stdout.splitlines():
+                    # Match line starting with +## Addendum: T-NNN
+                    m = re.match(r'^\+## Addendum:\s*(T-\w+)', line)
+                    if m:
+                        new_tids.append(m.group(1))
+
+            if new_tids:
+                content = ep_path.read_text(encoding="utf-8")
+                sections = re.split(r'^## Addendum: ', content, flags=re.MULTILINE)
+                for sec in sections[1:]:
+                    header_line = sec.split('\n')[0]
+                    m = re.match(r'(T-\w+)', header_line)
+                    if not m:
+                        continue
+                    tid = m.group(1)
+                    if tid in new_tids:
+                        if "cancelled" in header_line.lower():
+                            continue
+                        required_fields = {
+                            "**Goal:**": "Goal",
+                            "**Files:**": "Files",
+                            "**Test scenarios:**": "Test scenarios",
+                            "**OWNS:**": "OWNS",
+                            "**estimated_lines:**": "estimated_lines"
+                        }
+                        for field, label in required_fields.items():
+                            if field not in sec:
+                                print(f"Validation Error: Addendum for {tid} is missing required field: {field}", file=sys.stderr)
+                                sys.exit(1)
+        except SystemExit:
+            raise
+        except Exception:
+            pass
+
+
 def main() -> None:
     project_root = pathlib.Path(os.environ.get("CLAUDE_PROJECT_DIR", os.getcwd()))
     agentflow_dir = project_root / ".agentflow"
     try:
         agentflow_dir.mkdir(parents=True, exist_ok=True)
         payload = json.loads(sys.stdin.read())
+        validate_state_files(project_root)
         tn, ti = payload.get("tool_name", ""), payload.get("tool_input", {})
         sync_tasks_in_flight(tn, ti, agentflow_dir)
         audit_orchestrator_direct_write(tn, ti, agentflow_dir)
