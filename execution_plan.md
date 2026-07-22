@@ -1074,13 +1074,23 @@ Extract: weekly `%_used`, `refreshes_in`; 5-hour `%_used`, `refreshes_in`.
 **Goal:**
 - Implement asynchronous logging queue to prevent write blocking.
 - Create automated log file rotation and size capping.
+- Standardize audit log call signature using approach B (explicit kwargs).
+
+**Approach B — Explicit kwargs (breaking):**
+Change signature to:
+`write_audit(log_path, entry, *, event: str, source: str, level: str = "INFO", session_type: str | None = None)`
+Forces callers to supply required fields; requires updating every existing `_log_audit` call site.
+**Acceptance:** No call site passes `event` or `source` as positional args after this change.
 
 **Files:**
-- `agentflow/shell/audit_logger.py` (modify) — async/rotation logic
+- `agentflow/shell/audit_logger.py` (modify) — async queue, rotation, new signature
+- All files containing `_log_audit(` calls (modify) — update to explicit kwargs
 
 **Test scenarios:**
 - Verify log files rotate when size exceeds limit.
-- Verify async queue handles rapid concurrent write requests.
+- Verify async queue handles rapid concurrent write requests without blocking the PTY tick.
+- Verify `write_audit` rejects calls missing `event` or `source` (TypeError at call time, not log time).
+- Verify each existing call site passes kwargs explicitly — grep `_log_audit(` returns zero hits post-migration.
 
 **OWNS:** `agentflow/shell/audit_logger.py`
 **estimated_lines:** 70
@@ -1124,3 +1134,23 @@ Extract: weekly `%_used`, `refreshes_in`; 5-hour `%_used`, `refreshes_in`.
 **Goal:** Split tests/test_user_prompt_submit.py (358 lines, limit 350). Violation timestamp: 2026-07-22T14:21:57.170063. Choose the split boundary by test class or fixture group, not line count. Verify each output file is ≤ 350 lines after splitting.
 
 **Owns:** ["tests/test_user_prompt_submit.py"]
+
+## Addendum: T-331 — Remove duplicate session_id key from PTY audit log entries
+
+**Goal:** `pty_shell.py` `patched_log_audit` always stamps `"sid"`, then conditionally writes `"session_id"` if not already present (lines 197–199). `process_manager.py` also writes `"session_id"`. Result: entries have both fields with identical values. Remove the `session_id` fallback write in `patched_log_audit`; `sid` is the canonical key everywhere else.
+
+**Acceptance:** `grep '"session_id"' .agentflow/hook_drain_debug.jsonl` returns zero hits after a session run.
+
+**Owns:** `agentflow/shell/pty_shell.py`
+
+## Addendum: T-332 — Architecture↔market cross-linking in Oracle Phase 2
+
+**Goal:** When an architectural choice is made (e.g. SQLite, cloud-only, monorepo), Oracle surfaces the market implication as a follow-up question (e.g. "SQLite rules out multi-tenant SaaS without a migration plan — is that intentional?"). Requires a cross-link table mapping architecture patterns to market segment implications, wired into oracle.md Phase 2 sparring rules. Depends on T-333 (market_unknowns.md) being complete first.
+
+**Owns:** `commands/claude/oracle.md`, `commands/claude/oracle/market_unknowns.md`, `commands/gemini/skills/oracle/SKILL.md`
+
+## Addendum: T-333 — Wire market_unknowns.md into Oracle Phase 1 emit
+
+**Goal:** After market segment resolves, lazy-load `commands/claude/oracle/market_unknowns.md`, select 2–3 questions matching the resolved segment, and surface them as proactive unknowns before Phase 2 sparring begins. File already written at `commands/claude/oracle/market_unknowns.md` (94 lines). Add lazy-load rule to oracle.md Phase 1 emit block.
+
+**Owns:** `commands/claude/oracle.md`, `commands/gemini/skills/oracle/SKILL.md`
