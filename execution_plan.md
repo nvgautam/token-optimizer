@@ -390,7 +390,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round M-F-17 — MERGED | T-325 (solo) | Implement standardized audit logging |
 | Round M-F-18 — MERGED | T-326 (solo) | Asynchronous logging and log rotation |
 | Pre-D — MERGED | T-330 ‖ T-331 (parallel) | Split test_user_prompt_submit.py + remove duplicate session_id key |
-| Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
+| Round D [PENDING] | T-178 ‖ T-211 ‖ T-334 (parallel) | Hook audit log spike + Gemini lifecycle spike + PR title enforcement |
 | Round D-2 [PENDING] | T-333 (solo) | Wire market_unknowns.md into Oracle Phase 1 emit |
 | Round D-3 [PENDING] | T-332 (solo, depends T-333) | Architecture↔market cross-linking in Oracle Phase 2 |
 | Round E [PENDING] | T-168 ‖ T-290 (parallel) | product judgment layer + debug terminal step |
@@ -1157,3 +1157,18 @@ Forces callers to supply required fields; requires updating every existing `_log
 **Goal:** After market segment resolves, lazy-load `commands/claude/oracle/market_unknowns.md`, select 2–3 questions matching the resolved segment, and surface them as proactive unknowns before Phase 2 sparring begins. File already written at `commands/claude/oracle/market_unknowns.md` (94 lines). Add lazy-load rule to oracle.md Phase 1 emit block.
 
 **Owns:** `commands/claude/oracle.md`, `commands/gemini/skills/oracle/SKILL.md`
+
+## Addendum: T-334 — Enforce conventional commit PR titles in worker prompts
+
+**Goal:** Update the worker system instructions to explicitly mandate that all pull requests and commit messages follow conventional commit formatting enclosing the task ID (e.g., `feat(T-330): split test_user_prompt_submit.py`). Prevents regex matching failures in the post-tool-use hooks and ensures correct task cleanup.
+
+**Files:**
+- `commands/claude/worker/system.md` (modify) — add rule instructing the worker to use `<type>(<task_id>): <desc>` format for PR titles and commits.
+- `tests/prompts/test_worker_pr_titles.py` (new) — verify prompt rule presence.
+
+**Test scenarios:**
+- Verify `commands/claude/worker/system.md` contains instructions mandating conventional commit PR titles with `(T-NNN)`.
+- Verify prompt validation tests pass.
+
+**OWNS:** `commands/claude/worker/system.md`, `tests/prompts/test_worker_pr_titles.py`
+**estimated_lines:** 25
