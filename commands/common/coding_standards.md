@@ -21,6 +21,8 @@ All Python and prompt files in this codebase must adhere to these standards.
 
 6. **Secrets & Credentials**: Never hardcode credentials, passwords, API keys, or tokens. Use environment variables. Ensure secrets are never printed to stdout or logged to files.
 
+7. **Constants & Hardcoded Strings**: Avoid hardcoded string literals and magic numbers in logical checks or command inputs. Centralize them in a configuration or constants module (e.g., `agentflow/config/constants.py`).
+
 ## Prompt & Skill Standards
 
 1. **Silence on Internals**: Do not narrate tool calls, file paths, index caching, or internal workflow steps. Output only the requested deliverables or structured responses.
