@@ -42,8 +42,14 @@ def _atomic_write(path: pathlib.Path, data_str: str) -> None:
 
 
 def _log(agentflow_dir: pathlib.Path, entry: dict) -> None:
-    from agentflow.shell.audit_logger import write_audit
-    write_audit(agentflow_dir / constants.FILE_HOOK_DRAIN_DEBUG, entry)
+    from agentflow.shell.audit_logger import flush_writes, write_audit
+    event = entry.get("event", "unknown")
+    source = entry.get("source", "hook")
+    level = entry.get("level", "INFO")
+    session_type = entry.get("session_type")
+    extra = {k: v for k, v in entry.items() if k not in {"event", "source", "level", "session_type"}}
+    write_audit(agentflow_dir / constants.FILE_HOOK_DRAIN_DEBUG, event=event, source=source, level=level, session_type=session_type, **extra)
+    flush_writes()
 
 
 @contextlib.contextmanager
