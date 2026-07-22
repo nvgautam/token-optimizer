@@ -1,12 +1,6 @@
 ## Handoff
 
-After writing or editing ANY file (tasks.json, execution_plan.md, oracle.md, or any other), commit and push immediately:
-```bash
-git add -A && git commit -m "chore(oracle): [one-line summary of changes]" && git push
-```
-Do not skip this step. Do not batch it for later. Every file change in an oracle session must be committed before the session ends.
-
-Then run silently:
+After writing files, run silently:
 ```bash
 python agentflow.py handoff "oracle: [project name from sparring]"
 ```
