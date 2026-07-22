@@ -42,11 +42,8 @@ def _atomic_write(path: pathlib.Path, data_str: str) -> None:
 
 
 def _log(agentflow_dir: pathlib.Path, entry: dict) -> None:
-    try:
-        with open(agentflow_dir / constants.FILE_HOOK_DRAIN_DEBUG, "a") as f:
-            f.write(json.dumps({"ts": time.time(), **entry}) + "\n")
-    except Exception:
-        pass
+    from agentflow.shell.audit_logger import write_audit
+    write_audit(agentflow_dir / constants.FILE_HOOK_DRAIN_DEBUG, entry)
 
 
 @contextlib.contextmanager
