@@ -390,7 +390,8 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round M-F-17 — MERGED | T-325 (solo) | Implement standardized audit logging |
 | Round M-F-18 — MERGED | T-326 (solo) | Asynchronous logging and log rotation |
 | Pre-D — MERGED | T-330 ‖ T-331 (parallel) | Split test_user_prompt_submit.py + remove duplicate session_id key |
-| Round D [PENDING] | T-178 ‖ T-211 ‖ T-334 (parallel) | Hook audit log spike + Gemini lifecycle spike + PR title enforcement |
+| Round M-F-19 [PENDING] | T-334 (solo) | Enforce conventional commit PR titles in worker prompts |
+| Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
 | Round D-2 [PENDING] | T-333 (solo) | Wire market_unknowns.md into Oracle Phase 1 emit |
 | Round D-3 [PENDING] | T-332 (solo, depends T-333) | Architecture↔market cross-linking in Oracle Phase 2 |
 | Round E [PENDING] | T-168 ‖ T-290 (parallel) | product judgment layer + debug terminal step |
@@ -1159,6 +1160,8 @@ Forces callers to supply required fields; requires updating every existing `_log
 **Owns:** `commands/claude/oracle.md`, `commands/gemini/skills/oracle/SKILL.md`
 
 ## Addendum: T-334 — Enforce conventional commit PR titles in worker prompts
+
+**Milestone:** M-F
 
 **Goal:** Update the worker system instructions to explicitly mandate that all pull requests and commit messages follow conventional commit formatting enclosing the task ID (e.g., `feat(T-330): split test_user_prompt_submit.py`). Prevents regex matching failures in the post-tool-use hooks and ensures correct task cleanup.
 
