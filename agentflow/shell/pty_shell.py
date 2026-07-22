@@ -143,9 +143,6 @@ try:
     import json
     import datetime
     
-    original_log_audit = sa.log_audit
-    original_sm_init = sm.SessionManager.__init__
-    
     def _write_pty_audit_header(manager, sid: str) -> None:
         if not sid:
             return
@@ -192,19 +189,34 @@ try:
             except Exception:
                 pass
 
-    def patched_log_audit(manager, entry: dict) -> None:
-        sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
-        entry["sid"] = sid
-        _write_pty_audit_header(manager, sid)
-        original_log_audit(manager, entry)
-        
-    def patched_sm_init(self, pty_wrapper, tokenizer, config: dict) -> None:
-        original_sm_init(self, pty_wrapper, tokenizer, config)
-        sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
-        _write_pty_audit_header(self, sid)
-        
-    sa.log_audit = patched_log_audit
-    sm.SessionManager.__init__ = patched_sm_init
+    if "original_log_audit" not in globals():
+        original_log_audit = sa.log_audit
+    if "mock" in type(original_log_audit).__name__.lower():
+        if "mock" not in type(sa.log_audit).__name__.lower() and getattr(sa.log_audit, "__name__", None) != "patched_log_audit":
+            original_log_audit = sa.log_audit
+
+    if getattr(sa.log_audit, "__name__", None) != "patched_log_audit":
+        def patched_log_audit(manager, entry: dict) -> None:
+            sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+            entry["sid"] = sid
+            _write_pty_audit_header(manager, sid)
+            original_log_audit(manager, entry)
+            
+        sa.log_audit = patched_log_audit
+
+    if "original_sm_init" not in globals():
+        original_sm_init = sm.SessionManager.__init__
+    if "mock" in type(original_sm_init).__name__.lower():
+        if "mock" not in type(sm.SessionManager.__init__).__name__.lower() and getattr(sm.SessionManager.__init__, "__name__", None) != "patched_sm_init":
+            original_sm_init = sm.SessionManager.__init__
+
+    if getattr(sm.SessionManager.__init__, "__name__", None) != "patched_sm_init":
+        def patched_sm_init(self, pty_wrapper, tokenizer, config: dict) -> None:
+            original_sm_init(self, pty_wrapper, tokenizer, config)
+            sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+            _write_pty_audit_header(self, sid)
+            
+        sm.SessionManager.__init__ = patched_sm_init
 except Exception:
     pass
 
@@ -212,17 +224,18 @@ except Exception:
 try:
     import agentflow.shell.session_manager as _sm_312
     import agentflow.shell.session_manager_handlers as _smh_312
-    _312_ot = _sm_312.SessionManager.on_idle_tick
-    _312_or = _smh_312.handle_enter_restarting
 
     def _t312_cap(mgr, label: str, timeout: float = 2.0) -> None:
         try:
-            import json as _j, os as _o, datetime as _dt
+            import datetime as _dt
+            import json as _j
+            import os as _o
             from agentflow.shell.usage_parser import capture_provider_usage
             from agentflow.shell.session_paths import session_file
             u = capture_provider_usage(mgr._pty, timeout=timeout)
             if u is None:
-                mgr._log_audit({"event": "t312_no_usage", "label": label}); return
+                mgr._log_audit({"event": "t312_no_usage", "label": label})
+                return
             sid = _o.environ.get("AGENTFLOW_SESSION_ID", "")
             fp = session_file(mgr._project_root / ".agentflow", "session_state.json", sid)
             d = _j.loads(fp.read_text("utf-8")) if fp.exists() else {}
@@ -233,13 +246,17 @@ try:
         except Exception as _e:
             mgr._log_audit({"event": "t312_usage_error", "label": label, "error": str(_e)})
 
-    def _t312_tick(self) -> None:
-        _312_ot(self)
+    if getattr(_sm_312.SessionManager.on_idle_tick, "__name__", None) != "_t312_tick":
+        _312_ot = _sm_312.SessionManager.on_idle_tick
+        def _t312_tick(self) -> None:
+            _312_ot(self)
+        _sm_312.SessionManager.on_idle_tick = _t312_tick
 
-    def _t312_restart(mgr) -> None:
-        _t312_cap(mgr, "pre_restart", timeout=2.0); _312_or(mgr)
-
-    _sm_312.SessionManager.on_idle_tick = _t312_tick
-    _smh_312.handle_enter_restarting = _t312_restart
+    if getattr(_smh_312.handle_enter_restarting, "__name__", None) != "_t312_restart":
+        _312_or = _smh_312.handle_enter_restarting
+        def _t312_restart(mgr) -> None:
+            _t312_cap(mgr, "pre_restart", timeout=2.0)
+            _312_or(mgr)
+        _smh_312.handle_enter_restarting = _t312_restart
 except Exception:
     pass

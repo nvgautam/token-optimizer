@@ -14,7 +14,7 @@ Personas: Senior Principal Engineer · Senior Principal PM · Senior Principal D
 Say: "This session will consume approximately 2% of your 5-hour window limit."
 
 ### Step 1b-pre — Load state management rules (mandatory, always)
-Read `commands/claude/oracle/phase2_state.md` in full now — before any other step. Contains the auto-commit rule, addendum rule, and file-locking protocol that apply throughout the entire session, not just Phase 2.
+Read `commands/common/oracle/phase2_state.md` in full now — before any other step. Contains the auto-commit rule, addendum rule, and file-locking protocol that apply throughout the entire session, not just Phase 2.
 
 ### Step 1c — Handoff continuity check
 Run: `ls -t .agentflow/handoff_*.md 2>/dev/null | head -1`

@@ -350,7 +350,7 @@ def test_restart_session(tmp_path):
             spawn_new_child(sm)
         except SystemExit:
             pass
-    assert exec_called and exec_called[0] == ["claude", "/oracle"]
+    assert exec_called and exec_called[0] == ["claude", "/claude:oracle"]
 
     # 2. Orchestrator restart
     sm.session_type = "orchestrator"
@@ -363,4 +363,4 @@ def test_restart_session(tmp_path):
             spawn_new_child(sm)
         except SystemExit:
             pass
-    assert exec_called and exec_called[0] == ["claude", "/orchestrate", "--permission-mode", "auto"]
+    assert exec_called and exec_called[0] == ["claude", "/claude:orchestrate", "--permission-mode", "auto"]

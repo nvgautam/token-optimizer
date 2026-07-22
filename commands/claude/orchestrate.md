@@ -14,19 +14,6 @@ For details, see `commands/claude/orchestrator/startup.md`.
 
 ## Agent spawn
 > **HARD RULE:** Orchestrator MUST NEVER write code, edit source files, or implement tasks. If you are writing code, STOP — spawn a worker agent instead. Violating this rule breaks the drain-restart chain.
-**Pre-spawn (once before first agent):**
-- Branch `main`, working tree clean. No GitHub remote → `gh repo create --source=. --remote=origin --push`.
-- Stub every `owns` path (`raise NotImplementedError`). `.gitignore` absent → generate.
-- Generate `.idx` in ~/.agentflow/cache/ for reads files ≥50 lines (using ast for Python files, grep H2/H3 for Markdown files). Pre-create branch: `git worktree add .claude/worktrees/<branch> -b <branch> main`.
-- Capture worktree path: `git worktree list | grep <branch> | awk '{print $1}'` as `worktree_abs_path`.
-- **Never** run `git checkout` in root — inspect via `git show` or `gh pr diff`.
-**Context bundle delivery (ONLY permitted way to build agent prompt):**
-Run `Bash: agentflow bundle <task_id> --agent-type <worker|reviewer|test>` — prints an output path. Pass that path string as the Agent `prompt` arg — nothing else. Do NOT inline skill content, task definitions, or file reads into the prompt. The bundle contains everything; the worker reads and deletes it on startup.
-
-Close prompt: "End your final message with TOKENS: input=N output=N — nothing after that line."
-- **Model selection:** Mechanical (lines ≤ 80 or test/fix/stub/lint/config) → `model: "haiku"`; Default → `model: "sonnet"`.
-- **Scheduling:** Run `task_estimator` to estimate task cost (fallback 2500). Disjoint owns check: if tasks share an owns path, OWNS CONFLICT, move overlap to next round.
-- **Execution:** Spawn worker with selected model and `worktree_abs_path`. Do not call `EnterWorktree`. Save `.agentflow/state.json`.
 
 ### Round Lifecycle & PTY Signals
 First: run `Bash(echo $AGENTFLOW_SESSION_ID)` to capture the session ID into a variable (e.g. `SID`). Before spawning any Agent, register the round via CLI — **NEVER use the Write tool for current_round.json**: `Bash: agentflow round start --task-ids T-NNN [T-MMM ...] --round-id <round_id> --sid $SID`. This atomically writes `current_round.json` and `tasks_in_flight.json` — drain sees it even if spawn fails. Schema:
@@ -43,6 +30,20 @@ First: run `Bash(echo $AGENTFLOW_SESSION_ID)` to capture the session ID into a v
 Worker lifecycle stdout signals:
 - Before spawning: print `AGENTFLOW_TASK_START:<task_id>`
 - After worker completes: print `AGENTFLOW_TASK_COMPLETE:<task_id>`
+
+**Pre-spawn (once before first agent):**
+- Branch `main`, working tree clean. No GitHub remote → `gh repo create --source=. --remote=origin --push`.
+- Stub every `owns` path (`raise NotImplementedError`). `.gitignore` absent → generate.
+- Generate `.idx` in ~/.agentflow/cache/ for reads files ≥50 lines (using ast for Python files, grep H2/H3 for Markdown files). Pre-create branch: `git worktree add .claude/worktrees/<branch> -b <branch> main`.
+- Capture worktree path: `git worktree list | grep <branch> | awk '{print $1}'` as `worktree_abs_path`.
+- **Never** run `git checkout` in root — inspect via `git show` or `gh pr diff`.
+**Context bundle delivery (ONLY permitted way to build agent prompt):**
+Run `Bash: agentflow bundle <task_id> --agent-type <worker|reviewer|test>` — prints an output path. Pass that path string as the Agent `prompt` arg — nothing else. Do NOT inline skill content, task definitions, or file reads into the prompt. The bundle contains everything; the worker reads and deletes it on startup.
+
+Close prompt: "End your final message with TOKENS: input=N output=N — nothing after that line."
+- **Model selection:** Mechanical (lines ≤ 80 or test/fix/stub/lint/config) → `model: "haiku"`; Default → `model: "sonnet"`.
+- **Scheduling:** Run `task_estimator` to estimate task cost (fallback 2500). Disjoint owns check: if tasks share an owns path, OWNS CONFLICT, move overlap to next round.
+- **Execution:** Spawn worker with selected model and `worktree_abs_path`. Do not call `EnterWorktree`. Save `.agentflow/state.json`.
 
 ---
 
