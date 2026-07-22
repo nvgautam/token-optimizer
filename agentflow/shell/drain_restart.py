@@ -88,7 +88,6 @@ def check_drain_restart(manager) -> None:
 		return
 	tif = manager._tasks_in_flight_path
 	if not tif.exists():
-		_skip("no_tasks_in_flight_file")
 		return
 	try:
 		tif_content = json.loads(tif.read_text("utf-8"))
@@ -103,7 +102,6 @@ def check_drain_restart(manager) -> None:
 		return
 
 	if not tif_is_tombstone:
-		_skip("tasks_in_flight_nonempty", tasks=tif_content)
 		return
 
 	threshold = manager._config.get("handoff_primary_tokens", 80000)
@@ -122,7 +120,6 @@ def check_drain_restart(manager) -> None:
 	except Exception as e:
 		manager._log_audit({"event": "drain_restart_fill_tokens_read_error", "error": str(e)})
 	if fill_tokens < threshold:
-		_skip("fill_tokens_below_threshold", fill_tokens=fill_tokens, threshold=threshold)
 		return
 	manager._log_audit({"event": "drain_restart_triggered", "fill_tokens": fill_tokens, "threshold": threshold})
 	try:
