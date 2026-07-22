@@ -51,7 +51,7 @@ Read `~/.agentflow/rate_calibration_claude.json` (if absent and `~/.agentflow/ra
 
 ### Step 2c — Prioritization Spar (pending tasks found)
 
-**See `commands/claude/oracle/prioritization.md` for Prioritization Spar details.** Current round context: `grep -m 1 '\[PENDING\]' execution_plan.md`.
+**See `commands/common/oracle/prioritization.md` for Prioritization Spar details.** Current round context: `grep -m 1 '\[PENDING\]' execution_plan.md`.
 
 ### Step 3 — Opening question
 Ask: "Tell me about your project. What are you building?"
@@ -62,7 +62,7 @@ Argument provided (`/oracle "desc"`) → use it and skip.
 
 ## Phase 1 — Market Segment
 
-**Lazy load:** Read `commands/claude/oracle/market.md` now.
+**Lazy load:** Read `commands/common/oracle/market.md` now.
 
 Ask: "Who is your primary user — B2C, SMB, or enterprise? Describe them in one sentence." Silently apply segment defaults; ask follow-ups. Don't ask user to confirm defaults.
 
@@ -72,7 +72,7 @@ Emit: `HANDOFF RECOMMENDED: market segment resolved — good stopping point if c
 
 ## Phase 2 — Design Sparring
 
-**Lazy load:** Read `commands/claude/oracle/checklist.md` now.
+**Lazy load:** Read `commands/common/oracle/checklist.md` now.
 
 Work 24 items silently — never mention checklist. Challenge vague answers. Don't fill gaps. Lead with hard questions: data ownership, failure modes, scale, security, compliance.
 
@@ -91,13 +91,13 @@ No match → proceed without architecture context for that topic.
 ### Task-filing duplicate check
 Before filing, grep 2–3 title nouns in tasks.json: `python3 -c "import json; n=['x','y']; [print(t['task_id'],t['title']) for t in json.load(open('tasks.json'))['tasks'] if any(w in t['title'].lower() for w in n)]"`. If hits → present as candidates; require user confirmation the new task is distinct.
 
-**Lazy load:** Read `commands/claude/oracle/phase2_state.md` now.
+**Lazy load:** Read `commands/common/oracle/phase2_state.md` now.
 
 ---
 
 ## Phase 3 — Generate Artifacts
 
-**Lazy load:** Read `commands/claude/oracle/generation.md` now.
+**Lazy load:** Read `commands/common/oracle/generation.md` now.
 
 Write five files to project root: `design_status.md`, `architecture.md`, `CLAUDE.md`, `execution_plan.md`, `tasks.json`.
 

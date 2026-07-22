@@ -44,7 +44,7 @@ Ask: "Tell me about your project. What are you building?" (Skip if argument prov
 ---
 
 ## Phase 1 — Market Segment
-Lazy load `commands/gemini/oracle/market.md`. Ask B2C/SMB/Enterprise question, apply segment defaults, ask follow-ups, and emit:
+Lazy load `commands/common/oracle/market.md`. Ask B2C/SMB/Enterprise question, apply segment defaults, ask follow-ups, and emit:
 ```
 HANDOFF RECOMMENDED: market segment resolved — good stopping point if context is growing
 ```
@@ -52,14 +52,14 @@ HANDOFF RECOMMENDED: market segment resolved — good stopping point if context 
 ---
 
 ## Phase 2 — Design Sparring
-Lazy load `commands/gemini/oracle/checklist.md`. Work 24 items silently. For architecture lookup, read indexed sections.
+Lazy load `commands/common/oracle/checklist.md`. Work 24 items silently. For architecture lookup, read indexed sections.
 Batch HANDOFF signals per checklist section (Functional, NFR, Integrations, Security, Quality gates, Delivery).
 On completion, say: "I have enough to generate the architecture and task plan. Shall I proceed?"
 
 ---
 
 ## Phase 3 — Generate Artifacts
-Lazy load `commands/gemini/oracle/generation.md`.
+Lazy load `commands/common/oracle/generation.md`.
 Write: `design_status.md`, `architecture.md`, `CLAUDE.md`, `execution_plan.md`, `tasks.json`.
 If `ewma_cv >= 0.3` and `sample_count >= 7`, cap `estimated_lines` at 80% and split tasks exceeding 180 lines (skip if sample_count < 7).
 
