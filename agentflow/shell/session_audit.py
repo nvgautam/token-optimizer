@@ -6,17 +6,12 @@ import os
 import pathlib
 import sys
 
+from agentflow.shell.audit_logger import write_audit
+
 
 def log_audit(manager, entry: dict) -> None:
     lp = manager._project_root / ".agentflow" / "pty_audit.jsonl"
-    if not lp.parent.exists():
-        return
-    try:
-        entry = {**entry, "ts": datetime.datetime.now().isoformat(), "session_id": os.environ.get("AGENTFLOW_SESSION_ID")}
-        with open(lp, "a", encoding="utf-8") as fh:
-            fh.write(json.dumps(entry) + "\n")
-    except Exception:
-        pass
+    write_audit(lp, entry)
 
 
 def update_session_file(manager) -> None:
