@@ -130,9 +130,10 @@ effective_rate = min(rate_5hr, rate_wkly)
 1. `commands/claude/worker/system.md`
 2. `commands/claude/worker/context_bundle.md`
 3. `commands/claude/worker/testing_guide.md`
-4. Full task definitions for this group
-5. Milestone architecture anchor section
-6. For each `reads` file:
+4. `commands/common/coding_standards.md`
+5. Full task definitions for this group
+6. Milestone architecture anchor section
+7. For each `reads` file:
 
    **Anchor-qualified** (`file.md#section`): load named section only.
 
