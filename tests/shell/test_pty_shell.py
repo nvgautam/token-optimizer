@@ -198,3 +198,67 @@ class TestProxyShellBanner:
         shell = ProxyShell(project_root=tmp_path)
         banner = shell.banner()
         assert "inactive" in banner
+
+
+class TestPatchedLogAudit:
+    def test_patched_log_audit_adds_sid(self, tmp_path: Path):
+        """patched_log_audit adds 'sid' from AGENTFLOW_SESSION_ID env var."""
+        os.environ["AGENTFLOW_SESSION_ID"] = "test-sid-123"
+
+        # Create mock objects
+        mock_manager = MagicMock()
+        mock_manager._project_root = tmp_path
+
+        # Import the patched function
+        import agentflow.shell.pty_shell
+
+        # Get the patched_log_audit function from the module
+        # (it's defined at module level in the try block)
+        entry = {}
+
+        with patch("agentflow.shell.session_audit.log_audit"):
+            # Re-import to trigger the monkey patching
+            import importlib
+            importlib.reload(agentflow.shell.pty_shell)
+
+            # Get the patched function from the module
+            import agentflow.shell.session_audit as sa
+
+            # Call the patched function
+            sa.log_audit(mock_manager, entry)
+
+        assert entry.get("sid") == "test-sid-123"
+
+        # Cleanup
+        os.environ.pop("AGENTFLOW_SESSION_ID", None)
+
+    def test_patched_log_audit_no_session_id_fallback(self, tmp_path: Path):
+        """patched_log_audit does NOT add 'session_id' as a fallback."""
+        os.environ["AGENTFLOW_SESSION_ID"] = "test-sid-456"
+
+        # Create mock objects
+        mock_manager = MagicMock()
+        mock_manager._project_root = tmp_path
+
+        # Import the patched function
+        import agentflow.shell.pty_shell
+
+        # Get the patched_log_audit function from the module
+        entry = {}
+
+        with patch("agentflow.shell.session_audit.log_audit"):
+            # Re-import to trigger the monkey patching
+            import importlib
+            importlib.reload(agentflow.shell.pty_shell)
+
+            # Get the patched function from the module
+            import agentflow.shell.session_audit as sa
+
+            # Call the patched function
+            sa.log_audit(mock_manager, entry)
+
+        # session_id should not be present
+        assert "session_id" not in entry
+
+        # Cleanup
+        os.environ.pop("AGENTFLOW_SESSION_ID", None)

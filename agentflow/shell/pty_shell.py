@@ -195,8 +195,6 @@ try:
     def patched_log_audit(manager, entry: dict) -> None:
         sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
         entry["sid"] = sid
-        if "session_id" not in entry:
-            entry["session_id"] = sid
         _write_pty_audit_header(manager, sid)
         original_log_audit(manager, entry)
         
