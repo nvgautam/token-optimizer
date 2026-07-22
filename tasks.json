@@ -1130,8 +1130,11 @@
     },
     {
       "task_id": "T-320",
-      "status": "pending",
-      "description": "Fix user_prompt_submit.py: change startswith(\"/orchestrate\") to startswith(\"/orchestrat\") so that /orchestrator:startup (and any /orchestrator:* skill invocation) correctly triggers session_state.json write. Root cause of session 49d9f2c0 restart failure: /orchestrat+or vs /orchestrat+e prefix mismatch meant session_type was never set to orchestrator, blocking drain_restart at line 76."
+      "status": "complete"
+    },
+    {
+      "task_id": "T-321",
+      "status": "pending"
     }
   ]
 }

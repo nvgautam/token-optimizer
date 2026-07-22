@@ -6,7 +6,7 @@ Oracle creates; orchestrator extends lazily at milestone boundaries.
 
 ## Milestone M-F: Friendlies Delivery — CURRENT FOCUS
 **Goal:** Ship a polished, trustworthy package to friendly beta users with zero user involvement beyond PR approvals.
-**Status:** IN PROGRESS
+**Status:** COMPLETE
 **Owner:** Orchestrator works this milestone until all rounds below are MERGED.
 
 ### Success criteria
@@ -383,7 +383,8 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | M-F-11 [MERGED] | T-309 (solo) | Friendly savings dashboard — aggregate-only token/cost view; no strategy breakdown |
 | M-F-13 [MERGED] | T-314 (MERGED) ‖ T-315 (MERGED) ‖ T-316 (MERGED) ‖ T-317 (MERGED) (parallel) | Full Bash cmd logging + oracle_consent wiring + orchestrate.md contradiction fix + session_type guard |
 | M-F-12 [MERGED] | T-312 (MERGED) ‖ T-288 (MERGED) ‖ T-318 (MERGED) ‖ T-319 (MERGED) (parallel) | Provider usage limits + oracle OWNS self-check + human gate PR URL fix + detect_pr_merge execution_plan.md update |
-| Round M-F-14 [PENDING] | T-320 (solo) | Fix startswith("/orchestrat") in user_prompt_submit.py — /orchestrator:startup session_type never set |
+| Round M-F-14 [MERGED] | T-320 (MERGED) (solo) | Fix startswith("/orchestrat") in user_prompt_submit.py — /orchestrator:startup session_type never set |
+| Round M-F-15 [PENDING] | T-321 (solo) | Validate tasks.json schema and execution_plan.md addendums in PostToolUse hook |
 | Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
 | Round E [PENDING] | T-168 ‖ T-290 (parallel) | product judgment layer + debug terminal step |
 | Round E-2 [PENDING] | T-167 (solo) | Oracle Phase 3 plan-mode preview |
@@ -989,3 +990,21 @@ Extract: weekly `%_used`, `refreshes_in`; 5-hour `%_used`, `refreshes_in`.
 
 **OWNS:** `commands/claude/orchestrate.md`
 **estimated_lines:** 10
+
+## Addendum: T-321 — Validate tasks.json schema and execution_plan.md addendums in PostToolUse hook
+
+**Goal:** Implement lightweight schema validation for tasks.json (must only contain task_id and status keys) and markdown template validation for execution_plan.md addendums (must match the template structure) inside the PostToolUse hook. Exiting with status 1 blocks/rejects invalid writes and alerts the LLM agent to rework them.
+
+**Files:**
+- `agentflow/hooks/post_tool_use.py` (modify) — add inline validation for tasks.json and execution_plan.md on write/edit tools
+- `tests/hooks/test_post_tool_use_validation.py` (new) — unit tests for the validation logic (happy and unhappy paths)
+
+**Test scenarios:**
+- Write tasks.json with extra fields (e.g. description) → validation fails, exits 1
+- Write tasks.json with only task_id and status → validation succeeds, exits 0
+- Append malformed addendum to execution_plan.md → validation fails, exits 1
+- Append correctly formatted addendum to execution_plan.md → validation succeeds, exits 0
+
+**OWNS:** `agentflow/hooks/post_tool_use.py`, `tests/hooks/test_post_tool_use_validation.py`
+**estimated_lines:** 70
+
