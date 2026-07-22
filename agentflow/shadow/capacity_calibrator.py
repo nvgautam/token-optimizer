@@ -2,6 +2,9 @@ import json
 import math
 import statistics
 from pathlib import Path
+from typing import Optional
+
+_TERMINAL_LABELS = frozenset({"pre_restart", "session_end"})
 
 def calibrate_capacity(project_root: Path, current_start_pct: float, agent: str = "claude") -> dict:
     """
@@ -114,5 +117,48 @@ def calibrate_capacity(project_root: Path, current_start_pct: float, agent: str 
             json.dump(cal_data, f, indent=2)
     except Exception:
         pass
-        
+
     return cal_data
+
+
+def get_baseline_usage_from_ledger(
+    project_root: Path,
+    session_type: Optional[str] = None,
+) -> Optional[dict]:
+    """Retrieve the most recent terminal usage snapshot from agentflow_ledger.json.
+
+    Queries pre_restart or session_end snapshots from the ledger, optionally
+    filtered by session_type, as a non-disruptive alternative to PTY /usage
+    injection at session start.
+
+    Parameters
+    ----------
+    project_root:
+        Root directory that contains agentflow_ledger.json.
+    session_type:
+        When provided, prefer snapshots whose ``session_type`` field matches.
+        Falls back to the most recent terminal snapshot if no typed match exists.
+
+    Returns
+    -------
+    A usage snapshot dict (containing at minimum ``start_pct_5hr`` and ``label``)
+    or ``None`` if the ledger is absent, malformed, or has no terminal snapshots.
+    """
+    ledger_path = project_root / "agentflow_ledger.json"
+    if not ledger_path.exists():
+        return None
+    try:
+        with open(ledger_path, encoding="utf-8") as fh:
+            ledger = json.load(fh)
+    except (json.JSONDecodeError, OSError):
+        return None
+
+    snapshots = ledger.get("usage_snapshots", [])
+    terminal = [s for s in snapshots if s.get("label") in _TERMINAL_LABELS]
+
+    if session_type:
+        typed = [s for s in terminal if s.get("session_type") == session_type]
+        if typed:
+            return typed[-1]
+
+    return terminal[-1] if terminal else None
