@@ -39,3 +39,7 @@ build/
 # License key registry — never commit key material
 infra/key_server/keys.json
 
+# Local installed skills dir - never commit to git
+.agents/skills/
+
+
