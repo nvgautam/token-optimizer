@@ -236,8 +236,6 @@ try:
             mgr._log_audit({"event": "t312_usage_error", "label": label, "error": str(_e)})
 
     def _t312_tick(self) -> None:
-        if not getattr(self, "_t312_cap_done", False):
-            self._t312_cap_done = True; _t312_cap(self, "session_start")
         _312_ot(self)
 
     def _t312_restart(mgr) -> None:

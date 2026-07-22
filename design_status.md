@@ -311,3 +311,16 @@ Oracle reads on startup. Handoff writes updates. Architecture.md = workers only.
 | Skill bundle path — provider scoping | DEFERRED | Current path (~/.agentflow/skills/bundle-v1.enc) is provider-agnostic. When Gemini support is added, bundles must be provider-scoped (Claude and Gemini skill formats are incompatible; sharing one bundle bloats every install). Candidate: ~/.agentflow/skills/{provider}/bundle-vN.enc. Requires: load_skill.py to accept --provider flag, key server CEK issuance to be provider-scoped, _run_silent() / _download_skill_bundle() updated accordingly. Revisit when Gemini bundle is ready to ship. |
 | SWE-bench Pro benchmark | DEFERRED | Validate AgentFlow token savings against an external, reproducible benchmark. Design: (1) curate SWE-bench Pro tasks with 5+ related issues on same repo to force multi-task orchestration + cycling; (2) adapt SWE-bench Docker harness to AgentFlow orchestrate flow; (3) run same tasks natively (Claude Code, no AgentFlow) as baseline; (4) metrics: tokens/task, cost/resolved issue, cycling events triggered, success rate. Prerequisite: D-4 (T-311, session log observability) must ship first — logs needed to interpret what AgentFlow did per run. Timing: after friendly feedback collected; use for VC pitch as external quantitative validation alongside real-world friendly data. |
 | Databricks Omnigent integration | DEFERRED | Omnigent (open-source, Apache 2.0) is a meta-harness for cross-harness agent routing (Claude Code, Codex, Gemini, custom). Complementary to AgentFlow: Omnigent handles which-agent-gets-which-task routing; AgentFlow handles token optimization within each Claude Code session. Primary integration risk: PTY session boundary conflict — Omnigent's session continuity layer and AgentFlow's context-cycling restarts both manage Claude Code session lifecycle; two session managers on one process is the design problem to solve. Timing: after friendly feedback collected + hard token savings numbers proven; position as "AgentFlow is the optimization layer inside any meta-harness" for VC pitch (roadmap slide, not pre-pitch requirement). Spike task to file when Gemini bundle is shipped and Claude-only loop is solid. |
+
+## Oracle Direction — Sparred 2026-07-22
+
+| Item | Status | Decision |
+|---|---|---|
+| Skill namespace protection | RESOLVED | Keep skill names but isolate under `~/.agentflow/skills/` path. Route via PTY wrapper. |
+| Hardcoded string literals | RESOLVED | Move all command prefixes, paths, and signal regexes to `agentflow/config/constants.py`. |
+| Audit logging schema | RESOLVED | Standardized JSON with `session_id`, `session_type`, `trace_id`, and `actor` fields. |
+| Asynchronous logging | DEFERRED | Postpone to future milestone to address potential I/O latency. |
+| PII and secret protection | RESOLVED | Add PII and credential scrubbing regex filter in logging middleware. |
+| Debugging log consumption | RESOLVED | Restrict log reads to dedicated debug skill using index-targeted reads. |
+| Startup token usage | RESOLVED | Partition checklist.md into micro-modules and enforce token ceiling in PTY. |
+

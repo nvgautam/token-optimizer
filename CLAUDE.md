@@ -3,7 +3,7 @@
 Provider-agnostic multi-agent project management: skills for Claude and Gemini + PTY overlay shell that manages context lifecycle transparently. Reduces token consumption by cycling agent context at task boundaries and enabling targeted file reads via a local symbol index.
 
 ## Commands
-- Test:  `pytest tests/`
+- Test:  `pytest tests/` (for metadata/task-only changes, run targeted tests like `pytest tests/test_cleanup_tasks.py`)
 - Lint:  `ruff check .`
 - Build: `python -m build`
 

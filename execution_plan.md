@@ -384,14 +384,21 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | M-F-13 [MERGED] | T-314 (MERGED) ‖ T-315 (MERGED) ‖ T-316 (MERGED) ‖ T-317 (MERGED) (parallel) | Full Bash cmd logging + oracle_consent wiring + orchestrate.md contradiction fix + session_type guard |
 | M-F-12 [MERGED] | T-312 (MERGED) ‖ T-288 (MERGED) ‖ T-318 (MERGED) ‖ T-319 (MERGED) (parallel) | Provider usage limits + oracle OWNS self-check + human gate PR URL fix + detect_pr_merge execution_plan.md update |
 | Round M-F-14 [MERGED] | T-320 (MERGED) (solo) | Fix startswith("/orchestrat") in user_prompt_submit.py — /orchestrator:startup session_type never set |
-| Round M-F-15 [PENDING] | T-321 (solo) | Validate tasks.json schema and execution_plan.md addendums in PostToolUse hook |
+| Round M-F-15 [MERGED] | T-321 (MERGED) (solo) | Validate tasks.json schema and execution_plan.md addendums in PostToolUse hook |
+| Round M-F-15b [PENDING] | T-329 (solo) | Support namespaced slash commands |
+| Round M-F-16 [PENDING] | T-322 ‖ T-323 (parallel) | Unify common markdown specs + Create coding standards skill |
+| Round M-F-17 [PENDING] | T-324 ‖ T-325 (parallel) | Centralize constants + Implement standardized audit logging |
+| Round M-F-18 [PENDING] | T-326 (solo) | Asynchronous logging and log rotation |
 | Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
 | Round E [PENDING] | T-168 ‖ T-290 (parallel) | product judgment layer + debug terminal step |
 | Round E-2 [PENDING] | T-167 (solo) | Oracle Phase 3 plan-mode preview |
 | Round E-4 [PENDING] | T-289 (solo) | Oracle troubleshoot detection → offer debug skill |
+| Round E-5 [PENDING] | T-327 (solo) | Log troubleshooting debug skill |
+| Round E-6 [PENDING] | T-328 (solo) | Ledger-lookup based baseline usage reconstruction |
 | Round F [PENDING] | T-063 (solo) | Multi-provider chain step 1 (enterprise) |
 | Round F-2 [PENDING] | T-064 (solo) | Multi-provider chain step 2 |
 | Round F-3 [PENDING] | T-099 (solo) | Multi-provider chain step 3 |
+
 
 Priority rationale (2026-07-17): T-274 (P0) + T-273 (P1) prepend Round C — both block reliable orchestrate restart loop. Restart-path hardening (A/B) before skill rewrites — loop reliability prerequisite. CLI spike (T-259) gates T-260. Rounds D–E are spikes/oracle enhancements. Round F deferred until Claude-only loop is solid. T-276 (C-P3) prepends C-1 — audit log coverage is a prerequisite for diagnosing any further drain/restart bugs. T-277 (C-P4) prepends C-1 — this is the root fix for the C-2 premature-drain bug; was documented in T-276 spec but missed during implementation.
 
@@ -499,6 +506,7 @@ Root cause traced to session recycling making restart invisible to user. Both fi
 - Automated merge sequencer: v2
 - Tier/licensing: TBD
 - PTY binary naming: TBD
+- Async logging/rotation (T-326): v2 — avoid I/O latency and disk bloat
 ## Addendum: T-283
 
 **Title:** Add sid to pty_signal.py _log calls — task_done, task_start, handoff_complete
@@ -991,20 +999,152 @@ Extract: weekly `%_used`, `refreshes_in`; 5-hour `%_used`, `refreshes_in`.
 **OWNS:** `commands/claude/orchestrate.md`
 **estimated_lines:** 10
 
-## Addendum: T-321 — Validate tasks.json schema and execution_plan.md addendums in PostToolUse hook
+## Addendum: T-322 — Unify common oracle and orchestrator markdown specifications
 
-**Goal:** Implement lightweight schema validation for tasks.json (must only contain task_id and status keys) and markdown template validation for execution_plan.md addendums (must match the template structure) inside the PostToolUse hook. Exiting with status 1 blocks/rejects invalid writes and alerts the LLM agent to rework them.
+**Goal:** Create a `commands/common/` directory to host identical, provider-agnostic markdown files (`checklist.md`, `generation.md`, `market.md`, `prioritization.md`, `phase2_state.md`) to eliminate duplication and prevent design document/schema drift across Claude and Gemini/AGY skills. Update both providers' oracle and orchestrator top-level skills to load from the common folder.
 
 **Files:**
-- `agentflow/hooks/post_tool_use.py` (modify) — add inline validation for tasks.json and execution_plan.md on write/edit tools
-- `tests/hooks/test_post_tool_use_validation.py` (new) — unit tests for the validation logic (happy and unhappy paths)
+- `commands/common/oracle/checklist.md` (new) — unified checklist
+- `commands/common/oracle/generation.md` (new) — unified generation rules
+- `commands/common/oracle/market.md` (new) — unified market segment rules
+- `commands/common/oracle/prioritization.md` (new) — unified prioritization spar rules
+- `commands/common/oracle/phase2_state.md` (new) — unified phase 2 state rules
+- `commands/claude/oracle.md` (modify) — update references to `commands/common/`
+- `commands/claude/orchestrate.md` (modify) — update references to `commands/common/`
+- `commands/claude/orchestrator/decomposition.md` (modify) — update references to `commands/common/`
+- `commands/gemini/skills/oracle/SKILL.md` (modify) — update references to `commands/common/`
+- `commands/gemini/skills/orchestrate/SKILL.md` (modify) — update references to `commands/common/`
 
 **Test scenarios:**
-- Write tasks.json with extra fields (e.g. description) → validation fails, exits 1
-- Write tasks.json with only task_id and status → validation succeeds, exits 0
-- Append malformed addendum to execution_plan.md → validation fails, exits 1
-- Append correctly formatted addendum to execution_plan.md → validation succeeds, exits 0
+- Verify all modified files correctly reference files under `commands/common/`
+- Verify deleting old files does not cause validation or runtime failures
+- Run all tests to confirm zero regression on orchestrate / oracle execution paths
 
-**OWNS:** `agentflow/hooks/post_tool_use.py`, `tests/hooks/test_post_tool_use_validation.py`
+**OWNS:** `commands/common/oracle/checklist.md`, `commands/common/oracle/generation.md`, `commands/common/oracle/market.md`, `commands/common/oracle/prioritization.md`, `commands/common/oracle/phase2_state.md`, `commands/claude/oracle.md`, `commands/claude/orchestrate.md`, `commands/claude/orchestrator/decomposition.md`, `commands/gemini/skills/oracle/SKILL.md`, `commands/gemini/skills/orchestrate/SKILL.md`
+**estimated_lines:** 120
+
+## Addendum: T-323 — Coding standards skill and prompt integration
+
+**Goal:**
+- Create provider-agnostic coding standards document.
+- Integrate standard into Claude and Gemini worker prompts.
+
+**Files:**
+- `commands/common/coding_standards.md` (new) — coding standards
+- `commands/claude/worker_system.md` (modify) — import standards
+- `commands/gemini/skills/orchestrate/SKILL.md` (modify) — import standards
+
+**Test scenarios:**
+- Verify worker prompts correctly import common standards.
+- Verify coding standards document contains no syntax errors.
+
+**OWNS:** `commands/common/coding_standards.md`, `commands/claude/worker_system.md`, `commands/gemini/skills/orchestrate/SKILL.md`
+**estimated_lines:** 40
+
+## Addendum: T-324 — Centralize constants and eliminate hardcoding
+
+**Goal:**
+- Define central constants file for all hardcoded literals.
+- Replace string literals with constants across entire codebase.
+
+**Files:**
+- `agentflow/config/constants.py` (new) — central constants
+- `agentflow/shell/session_manager.py` (modify) — use constants
+- `agentflow/hooks/post_tool_use.py` (modify) — use constants
+- `agentflow/hooks/user_prompt_submit.py` (modify) — use constants
+
+**Test scenarios:**
+- Verify all unit and integration tests pass successfully.
+- Verify no remaining hardcoded signal strings exist.
+
+**OWNS:** `agentflow/config/constants.py`, `agentflow/shell/session_manager.py`, `agentflow/hooks/post_tool_use.py`, `agentflow/hooks/user_prompt_submit.py`
+**estimated_lines:** 80
+
+## Addendum: T-325 — Standardized structured audit logging
+
+**Goal:**
+- Design structured JSON schema for audit logging.
+- Implement logging middleware with PII/secret scrubbing.
+
+**Files:**
+- `agentflow/shell/audit_logger.py` (new) — structured logger
+- `agentflow/shell/session_manager.py` (modify) — write logs
+- `agentflow/hooks/post_tool_use.py` (modify) — write logs
+
+**Test scenarios:**
+- Verify log entries contain session and trace IDs.
+- Verify secrets/PII are successfully masked in output.
+
+**OWNS:** `agentflow/shell/audit_logger.py`, `agentflow/shell/session_manager.py`, `agentflow/hooks/post_tool_use.py`
+**estimated_lines:** 90
+
+## Addendum: T-326 — Asynchronous logging and log rotation
+
+**Goal:**
+- Implement asynchronous logging queue to prevent write blocking.
+- Create automated log file rotation and size capping.
+
+**Files:**
+- `agentflow/shell/audit_logger.py` (modify) — async/rotation logic
+
+**Test scenarios:**
+- Verify log files rotate when size exceeds limit.
+- Verify async queue handles rapid concurrent write requests.
+
+**OWNS:** `agentflow/shell/audit_logger.py`
 **estimated_lines:** 70
+
+## Addendum: T-327 — Log troubleshooting debug skill
+
+**Goal:**
+- Build debug skill to parse structured audit logs.
+- Enforce index-targeted reads to prevent token window bloat.
+
+**Files:**
+- `commands/common/debug/logs.md` (new) — log parser skill
+
+**Test scenarios:**
+- Verify debug skill retrieves only target log offsets.
+- Verify total tokens consumed remains under budget limit.
+
+**OWNS:** `commands/common/debug/logs.md`
+**estimated_lines:** 50
+
+
+## Addendum: T-328 — Ledger-lookup based baseline usage reconstruction
+
+**Goal:** Implement baseline rate-limit usage reconstruction by querying the most recent usage stats in the ledger (`agentflow_ledger.json`) or session states for the same `session_type`, rather than performing a racy and disruptive startup `/usage` PTY command injection.
+
+**Files:**
+- `agentflow/shadow/capacity_calibrator.py` (modify) — update baseline usage lookup logic to retrieve the previous session's pre_restart or session_end usage data matching the current `session_type` from the ledger or sessions cache.
+- `agentflow/shell/pty_shell.py` (modify) — ensure session_type is written at session start, and verify the pre_restart capture logs correctly on exit.
+
+**Test scenarios:**
+- Verify calibrator correctly retrieves and parses the prior session's usage for the given session type.
+- Verify calibrator falls back gracefully (e.g. returns default baseline/None) when no prior ledger entry or session logs exist.
+- Verify no interactive `/usage` is sent or swallowed on PTY shell startup.
+
+**OWNS:** `agentflow/shadow/capacity_calibrator.py`
+**estimated_lines:** 60
+
+
+## Addendum: T-329 — Support namespaced slash commands and fix PTY restart commands
+
+**Goal:** Fix the PTY shell start/restart loop and prompt detection when using namespaced Claude slash commands (e.g. `/claude:orchestrate` or `/orchestrator:startup` instead of `/orchestrate`). Update prompt matching to detect the session type from namespaced commands anywhere in the prompt string. Add dynamic command resolution in PTY shell spawn logic to automatically locate the correct namespace and file under `~/.claude/commands/` when constructing the restart command.
+
+**Files:**
+- `agentflow/hooks/user_prompt_submit.py` (modify) — match `"orchestrat"` or `"oracle"` commands within any namespaced slash command; clear complete files for namespaced orchestrate/handoff commands.
+- `agentflow/shell/process_manager.py` (modify) — implement `_get_claude_skill_cmd` helper to resolve namespaced command paths dynamically from `~/.claude/commands/` directory; use resolved namespaced command during child restart.
+
+**Test scenarios:**
+- Verify user_prompt_submit correctly sets session_type to `"orchestrator"` and `"oracle"` for namespaced inputs (`/claude:orchestrate`, `/orchestrator:startup`, `/claude:oracle`).
+- Verify complete files are deleted on namespaced orchestrate/handoff commands.
+- Verify `_get_claude_skill_cmd` returns the correct namespaced slash commands based on the files present in `~/.claude/commands/`.
+
+**OWNS:** `agentflow/hooks/user_prompt_submit.py`, `agentflow/shell/process_manager.py`
+**estimated_lines:** 50
+
+
+
+
 
