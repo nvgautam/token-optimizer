@@ -31,8 +31,9 @@ def _worker() -> None:
             _rotate_if_needed(log_path)
             with open(log_path, "a", encoding=UTF8) as fh:
                 fh.write(json.dumps(record) + "\n")
-        except Exception:
-            pass
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
         finally:
             _q.task_done()
 
