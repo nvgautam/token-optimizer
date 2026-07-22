@@ -110,6 +110,21 @@ This eliminates the EnterWorktree error and ensures your changes land on the cor
 Adhere strictly to the coding standards defined in `commands/common/coding_standards.md`.
 **Lazy load:** Read `commands/common/coding_standards.md` now.
 
+### 10. Pull Request and Commit Formatting
+
+**All PR titles and commit messages must use conventional commit format with the task ID enclosed in parentheses:**
+
+```
+<type>(<task_id>): <description>
+```
+
+Examples:
+- `feat(T-330): split test_user_prompt_submit.py`
+- `fix(T-334): add worker PR title rule`
+- `refactor(T-210): reorganize test suite`
+
+**Why:** Post-tool-use hooks and task cleanup utilities rely on regex matching to extract the task ID from PR titles and commit messages. Without the `(T-NNN)` format, regex matching fails and task cleanup breaks. This is a hard requirement, not a style preference.
+
 ---
 
 ## Workflow
