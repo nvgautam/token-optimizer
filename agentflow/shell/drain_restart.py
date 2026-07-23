@@ -6,8 +6,60 @@ import os
 import re
 import tempfile
 import time
+from pathlib import Path
+from agentflow.indexer.index_manager import update_index
 from agentflow.shell.session_paths import session_file
 from agentflow.shell.state_machine import States
+
+# Maximum number of merged round rows to keep in execution_plan.md
+_MAX_MERGED_ROUNDS = 3
+
+
+def _archive_oldest_merged_round(manager, ep: Path, lines: list[str]) -> list[str]:
+    """Move the oldest merged round row to the archive file if count > 3.
+
+    Returns the (possibly modified) lines list. Lines are unchanged on error
+    or when no archival is needed.
+    """
+    merged_indices: list[int] = []
+    for i, ln in enumerate(lines):
+        if not ln.startswith("|"):
+            continue
+        inner = ln.strip().strip("|")
+        parts = [p.strip() for p in inner.split("|")]
+        if not parts:
+            continue
+        first_col = parts[0]
+        # Skip header rows (Round, Task) and separator rows (---)
+        if re.match(r"^(-+|Round|Task)$", first_col, re.IGNORECASE):
+            continue
+        # Skip task rows — task IDs start with T-
+        if re.match(r"^T-", first_col):
+            continue
+        if "MERGED" in ln:
+            merged_indices.append(i)
+
+    if len(merged_indices) <= _MAX_MERGED_ROUNDS:
+        return lines
+
+    oldest_idx = merged_indices[0]
+    oldest_line = lines[oldest_idx]
+    archive_path = manager._project_root / "execution_plan.archive.md"
+    try:
+        with open(archive_path, "a", encoding="utf-8") as af:
+            af.write(oldest_line)
+        new_lines = [ln for i, ln in enumerate(lines) if i != oldest_idx]
+        manager._log_audit(
+            {
+                "event": "round_archive_written",
+                "archived_round": oldest_line.strip(),
+                "archive_path": str(archive_path),
+            }
+        )
+        return new_lines
+    except Exception as e:
+        manager._log_audit({"event": "round_archive_error", "error": str(e)})
+        return lines
 
 
 def _write_merged_and_clear(manager) -> None:
@@ -37,11 +89,14 @@ def _write_merged_and_clear(manager) -> None:
 					lines[i] = ln.rstrip("\n").rstrip() + " — MERGED\n"
 					changed = True
 			if changed:
+				lines = _archive_oldest_merged_round(manager, ep, lines)
+				content = "".join(lines)
 				with tempfile.NamedTemporaryFile(mode="w", dir=ep.parent, delete=False, suffix=".tmp", encoding="utf-8") as t:
-					t.write("".join(lines))
+					t.write(content)
 					tmp = t.name
 				os.replace(tmp, ep)
 				manager._log_audit({"event": "execution_plan_written", "round_id": rid, "task_ids": tids})
+				update_index(manager._project_root, ep, content)
 	except Exception as e:
 		manager._log_audit({"event": "drain_execution_plan_write_error", "round_id": rid, "error": str(e)})
 	try:
