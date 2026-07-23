@@ -1190,11 +1190,11 @@
     },
     {
       "task_id": "T-335",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-336",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-337",
@@ -1206,6 +1206,10 @@
     },
     {
       "task_id": "T-339",
+      "status": "pending"
+    },
+    {
+      "task_id": "T-340",
       "status": "pending"
     }
   ]

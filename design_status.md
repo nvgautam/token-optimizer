@@ -73,6 +73,7 @@ Oracle reads on startup. Handoff writes updates. Architecture.md = workers only.
 | Per-session token tracking | RESOLVED | Hook-based: confirmed context_fill.json is single source of truth for restart thresholds. Gap found: oracle_consent.py (line 44) was using output accumulator _last_accumulated_tokens instead of context_fill.json. Fix: swap in _read_fill_tokens(manager._project_root) in should_prompt_consent to evaluate true input+cache token size. |
 | Oracle codebase edits guard | RESOLVED | Programmatic PreToolUse hook blocks Write/Edit on non-allowlisted files during oracle session; allowlist includes 5 state files by default, customizable via config; prints recovery guidance + risk warnings on block. T-338 |
 | Simplify orchestrator lifecycle state | UNRESOLVED | SPIKE: Audit and consolidate state tracking variables (TIF, current_round, task_complete, agent_active) up to PTY restart to reduce variables in play and address race risks. T-339 |
+| Human gate interactive prompt | RESOLVED | Human gate prompts the user via an interactive multiple-choice CLI tool called via Bash rather than plain stdin text, returning selection to LLM stdout. T-340 |
 
 ## Oracle Direction — Sparred 2026-06-30
 

@@ -393,6 +393,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round M-F-19 [PENDING] | T-334 (MERGED) ‖ T-335 ‖ T-336 (parallel) | Enforce conventional commit PR titles + rolling execution_plan archive + log truncation |
 | Round M-F-20 [PENDING] | T-338 (solo) | Oracle write guard hook with allowlist and risk warning |
 | Round M-F-21 [PENDING] | T-339 (solo) | SPIKE: Simplify and audit orchestrator lifecycle state variables up to PTY restart |
+| Round M-F-22 [PENDING] | T-340 (solo) | Interactive select menu for human gate PR reviews |
 | Round D-2 [MERGED] | T-333 (solo) | Wire market_unknowns.md into Oracle Phase 1 emit |
 | Round E-6 [MERGED] | T-328 (solo) | Ledger-lookup based baseline usage reconstruction |
 | Round D-3 [PENDING] | T-332 (solo, depends T-333) | Architecture↔market cross-linking in Oracle Phase 2 |
@@ -1260,3 +1261,18 @@ Forces callers to supply required fields; requires updating every existing `_log
 
 **OWNS:** `design_status.md`
 **estimated_lines:** 0
+
+## Addendum: T-340 — Interactive select menu for human gate PR reviews
+
+**Milestone:** M-F
+
+**Goal:** Implement a python script `agentflow/tools/human_gate_prompt.py` that displays an interactive select menu (using numbers or arrow keys in the PTY terminal) for the user to make a choice during the human gate (e.g., "yes - merge both", "merge PR #123 only", "provide feedback"). Update `orchestrate.md` to instruct the orchestrator to call this tool inside the Bash tool and read the choice returned via stdout.
+
+**Files:**
+- `agentflow/tools/human_gate_prompt.py` (new) — interactive select menu script using curses or simple numbered input choice.
+- `commands/claude/orchestrate.md` (modify) — update human gate section to execute the tool via Bash tool rather than asking user to type prose.
+- `commands/gemini/skills/orchestrate/SKILL.md` (modify) — update human gate instructions to match.
+- `tests/tools/test_human_gate_prompt.py` (new) — unit tests validating interactive input mock output.
+
+**OWNS:** `agentflow/tools/human_gate_prompt.py`, `commands/claude/orchestrate.md`, `commands/gemini/skills/orchestrate/SKILL.md`, `tests/tools/test_human_gate_prompt.py`
+**estimated_lines:** 50
