@@ -1294,7 +1294,7 @@ Forces callers to supply required fields; requires updating every existing `_log
 
 **Milestone:** M-F
 
-**Goal:** Implement the consolidated orchestrator lifecycle state tracking resolved in the T-339 Spike. Eliminate `task_complete.json` and make `poll_session()` watch `tasks_in_flight.json` == `[]` directly. Merge and refine the active flag logic from PR #243 (`agent_active.json` using FILE_AGENT_ACTIVE constant, orchestrator-only UPS writes, and unconditional PostToolUse write to reset TTL). Update the existing integration test suite (e.g. `tests/test_cli_round_restart_integration.py` and `tests/shell/test_drain_restart_integration.py`) to cover the consolidated states (no `task_complete.json`) and verify the active flag lifecycle, ensuring zero regressions before packaging for friendlies.
+**Goal:** Implement the consolidated orchestrator lifecycle state tracking resolved in the T-339 Spike. Eliminate `task_complete.json` and make `poll_session()` watch `tasks_in_flight.json` == `[]` directly. Merge and refine the active flag logic from PR #243 (`agent_active.json` using FILE_AGENT_ACTIVE constant, orchestrator-only UPS writes, and unconditional PostToolUse write to reset TTL). Replace the PTY usage tracking of `/usage` with `/cost` (parsing its output) so token consumption is tracked correctly even when Claude is run with API keys. Ensure `/cost` is injected and parsed at the right time (idle state) before the PTY restarts the session, updating the ledger. Update the existing integration test suite (e.g. `tests/test_cli_round_restart_integration.py` and `tests/shell/test_drain_restart_integration.py`) to cover the consolidated states (no `task_complete.json`), verify the active flag lifecycle, and validate the `/cost` capture and parsing sequence.
 
 **Files:**
 - `agentflow/config/constants.py` (modify) — add FILE_AGENT_ACTIVE constant.
@@ -1304,7 +1304,9 @@ Forces callers to supply required fields; requires updating every existing `_log
 - `agentflow/shell/drain_restart.py` (modify) — implement active guard check with 120s TTL.
 - `agentflow/shell/handoff_handler.py` (modify) — update `poll_session()` to transition `TASK_RUNNING` to `TASK_COMPLETE` when `tasks_in_flight.json` is `[]`, eliminating `task_complete.json` dependency.
 - `agentflow/shell/pty_signal.py` (modify) — remove `task_complete.json` write logic.
-- `tests/test_cli_round_restart_integration.py` (modify) — update integration tests to verify consolidated state files and active flag lifecycle.
+- `agentflow/shell/usage_parser.py` (modify) — replace `/usage` capture and parsing with `/cost` capture and parsing.
+- `agentflow/shell/pty_shell.py` (modify) — update usage capture call to use `/cost` and parse its response correctly.
+- `tests/test_cli_round_restart_integration.py` (modify) — update integration tests to verify consolidated state files, active flag lifecycle, and `/cost` capture.
 
-**OWNS:** `agentflow/config/constants.py`, `agentflow/hooks/user_prompt_submit.py`, `agentflow/hooks/post_tool_use.py`, `agentflow/hooks/stop_context_capture.py`, `agentflow/shell/drain_restart.py`, `agentflow/shell/handoff_handler.py`, `agentflow/shell/pty_signal.py`, `tests/test_cli_round_restart_integration.py`
-**estimated_lines:** 180
+**OWNS:** `agentflow/config/constants.py`, `agentflow/hooks/user_prompt_submit.py`, `agentflow/hooks/post_tool_use.py`, `agentflow/hooks/stop_context_capture.py`, `agentflow/shell/drain_restart.py`, `agentflow/shell/handoff_handler.py`, `agentflow/shell/pty_signal.py`, `agentflow/shell/usage_parser.py`, `agentflow/shell/pty_shell.py`, `tests/test_cli_round_restart_integration.py`
+**estimated_lines:** 210
