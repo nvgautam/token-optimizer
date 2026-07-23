@@ -71,6 +71,7 @@ Oracle reads on startup. Handoff writes updates. Architecture.md = workers only.
 | tasks_in_flight.json path | RESOLVED | SID-scoped via `session_file(agentflow_dir, "tasks_in_flight.json", AGENTFLOW_SESSION_ID)`. All callers (pty_signal.py, PTY _tasks_in_flight_path, post_tool_use_agent.py, user_prompt_submit.py, pre_tool_use_agent.py) must use this path. Flat path was a latent bug when agy running. T-223 |
 | task_prs.json role | RESOLVED | Secondary backstop only — populated at merge time if gh pr merge --auto returns OPEN (PR scheduled not immediate). UserPromptSubmit checks URL if registered, else title-match. _detect_pr_create removed (dead code — worker always creates PR inside Agent, parent hook never sees gh pr create). T-223 |
 | Per-session token tracking | RESOLVED | Hook-based: confirmed context_fill.json is single source of truth for restart thresholds. Gap found: oracle_consent.py (line 44) was using output accumulator _last_accumulated_tokens instead of context_fill.json. Fix: swap in _read_fill_tokens(manager._project_root) in should_prompt_consent to evaluate true input+cache token size. |
+| Oracle codebase edits guard | RESOLVED | Programmatic PreToolUse hook blocks Write/Edit on non-allowlisted files during oracle session; allowlist includes 5 state files by default, customizable via config; prints recovery guidance + risk warnings on block. T-338 |
 
 ## Oracle Direction — Sparred 2026-06-30
 
