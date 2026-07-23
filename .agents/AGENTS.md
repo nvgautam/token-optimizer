@@ -3,7 +3,7 @@
 Project guide for Antigravity (AGY) sessions in the Token Optimizer / AgentFlow workspace.
 
 ## Commands
-- Test:  `pytest tests/` (for metadata/task-only changes, run targeted tests like `pytest tests/test_cleanup_tasks.py`)
+- Test:  `pytest tests/`
 - Lint:  `ruff check .`
 - Build: `python -m build`
 
