@@ -1210,7 +1210,7 @@
     },
     {
       "task_id": "T-340",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-341",
@@ -1218,6 +1218,10 @@
     },
     {
       "task_id": "T-342",
+      "status": "pending"
+    },
+    {
+      "task_id": "T-343",
       "status": "pending"
     }
   ]

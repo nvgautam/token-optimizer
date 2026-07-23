@@ -391,8 +391,9 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round M-F-18 — MERGED | T-326 (solo) | Asynchronous logging and log rotation |
 | Pre-D — MERGED | T-330 ‖ T-331 (parallel) | Split test_user_prompt_submit.py + remove duplicate session_id key |
 | Round M-F-19 [PENDING] | T-334 (MERGED) ‖ T-335 ‖ T-336 (parallel) | Enforce conventional commit PR titles + rolling execution_plan archive + log truncation |
-| Round M-F-20 [PENDING] | T-338 ‖ T-339 ‖ T-340 ‖ T-341 (parallel) | Oracle write guard + SPIKE: orchestrator lifecycle + Interactive human gate + Oracle re-prioritization block |
-| Round M-F-21 [PENDING] | T-342 (solo, depends T-339) | Implement orchestrator lifecycle fix and state consolidation |
+| Round M-F-20 [PENDING] | T-343 (solo) | Implement worktree path propagation to worker agents via bundle metadata |
+| Round M-F-21 [PENDING] | T-338 ‖ T-339 ‖ T-340 ‖ T-341 (parallel) | Oracle write guard + SPIKE: orchestrator lifecycle + Interactive human gate + Oracle re-prioritization block |
+| Round M-F-22 [PENDING] | T-342 (solo, depends T-339) | Implement orchestrator lifecycle fix and state consolidation |
 | Round D-2 [MERGED] | T-333 (solo) | Wire market_unknowns.md into Oracle Phase 1 emit |
 | Round E-6 [MERGED] | T-328 (solo) | Ledger-lookup based baseline usage reconstruction |
 | Round D-3 [PENDING] | T-332 (solo, depends T-333) | Architecture↔market cross-linking in Oracle Phase 2 |
@@ -1310,3 +1311,19 @@ Forces callers to supply required fields; requires updating every existing `_log
 
 **OWNS:** `agentflow/config/constants.py`, `agentflow/hooks/user_prompt_submit.py`, `agentflow/hooks/post_tool_use.py`, `agentflow/hooks/stop_context_capture.py`, `agentflow/shell/drain_restart.py`, `agentflow/shell/handoff_handler.py`, `agentflow/shell/pty_signal.py`, `agentflow/shell/usage_parser.py`, `agentflow/shell/pty_shell.py`, `tests/test_cli_round_restart_integration.py`
 **estimated_lines:** 210
+
+## Addendum: T-343 — Implement worktree path propagation to worker agents via bundle metadata
+
+**Milestone:** M-F
+
+**Goal:** Extend the `agentflow bundle` CLI with a `--worktree <path>` option to inject target worktree metadata into generated task bundles. Update orchestrator specifications (`orchestrate.md` and Gemini equivalent) to capture and pass `worktree_abs_path` to the bundler command. Update the worker system prompt (`worker_system.md`) to extract the worktree path from the bundle and run all file/shell tools in that directory. Write tests validating path extraction and task bundle generation.
+
+**Files:**
+- `agentflow/cli.py` (modify) — add `--worktree` option to `bundle` parser and format task metadata with it.
+- `commands/claude/orchestrate.md` (modify) — update bundling command in instructions to query and pass `--worktree`.
+- `commands/gemini/skills/orchestrate/SKILL.md` (modify) — update bundling command instructions.
+- `commands/claude/worker_system.md` (modify) — instruct worker to extract the worktree path and navigate/run tools relative to it.
+- `tests/test_bundle_worktree.py` (new) — verify worktree path option parsing and bundle injection logic.
+
+**OWNS:** `agentflow/cli.py`, `commands/claude/orchestrate.md`, `commands/gemini/skills/orchestrate/SKILL.md`, `commands/claude/worker_system.md`, `tests/test_bundle_worktree.py`
+**estimated_lines:** 60

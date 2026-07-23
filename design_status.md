@@ -76,6 +76,7 @@ Oracle reads on startup. Handoff writes updates. Architecture.md = workers only.
 | Human gate interactive prompt | RESOLVED | Human gate prompts the user via an interactive multiple-choice CLI tool called via Bash rather than plain stdin text, returning selection to LLM stdout. T-340 |
 | Oracle reactive re-prioritization block | RESOLVED | Oracle prompt enforces strict sequential gating: lazy-load prioritization.md, execute pairwise-disjoint OWNS checks, and block file writes until user confirms rounds in chat. T-341 |
 | Consolidate orchestrator lifecycle state | RESOLVED | Eliminate task_complete.json; watch tasks_in_flight.json == [] directly in poll_session(); implement agent_active.json with constants, orchestrator-only UPS writes, and unconditional PostToolUse write. Replace /usage with /cost capture for API-key compatibility. T-342 |
+| Worker worktree propagation | RESOLVED | Extend agentflow bundle with --worktree option to write absolute worktree path to task bundle; update supervisor prompts to pass it and worker prompts to run tools in Cwd. T-343 |
 
 ## Oracle Direction — Sparred 2026-06-30
 
