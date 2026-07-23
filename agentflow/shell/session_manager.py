@@ -16,7 +16,6 @@ except ImportError:
 
 from agentflow.config import constants
 from agentflow.shell.countdown import countdown  # noqa: F401
-from agentflow.shell.housekeeping import run_startup_housekeeping
 from agentflow.shell.state_machine import StateMachine, States
 from agentflow.shell.session_paths import session_file, cleanup_stale_sessions
 from agentflow.shell.audit_logger import truncate_flat_logs
@@ -58,7 +57,6 @@ class SessionManager:
         self._current_trigger = constants.TRIGGER_AUTO
         self._deadline_state = None
         self._deadline_entered_at: float = 0.0
-
         self._state_machine = StateMachine(
             initial_state=States.IDLE,
             threshold_tokens=self._config[constants.CFG_HANDOFF_PRIMARY_TOKENS]
@@ -77,11 +75,11 @@ class SessionManager:
         cleanup_stale_sessions(self._project_root / constants.DIR_AGENTFLOW)
         self._sync_session_type()
         truncate_flat_logs(self._project_root / constants.DIR_AGENTFLOW)
-        run_startup_housekeeping(self)  # T-345: housekeeping check on startup
+        from agentflow.shell.drain_restart import check_and_update_round_statuses as _check_rounds
+        _check_rounds(self)
         # T-194: Only enter TASK_RUNNING for orchestrator sessions with active round
         if self.session_type == constants.SESSION_TYPE_ORCHESTRATOR and self._current_round_path.exists() and not self._task_complete_path.exists():
             self._state_machine.state = States.TASK_RUNNING
-
     @property
     def _project_root(self) -> pathlib.Path: return getattr(self, "_project_root_override", None) or pathlib.Path.cwd()
     @_project_root.setter
