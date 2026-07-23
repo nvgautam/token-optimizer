@@ -5,7 +5,10 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).parents[2]))
 
-from agentflow.shadow.capacity_calibrator import calibrate_capacity
+from agentflow.shadow.capacity_calibrator import (
+    calibrate_capacity,
+    get_baseline_usage_from_ledger,
+)
 
 @pytest.fixture
 def mock_home(tmp_path, monkeypatch):
@@ -244,3 +247,102 @@ def test_sample_count_written_to_cal_file(tmp_path, mock_home):
     cal_data = json.loads(cal_file.read_text())
     assert "sample_count" in cal_data
     assert cal_data["sample_count"] == 2
+
+
+# ---------------------------------------------------------------------------
+# Tests for get_baseline_usage_from_ledger (T-328)
+# ---------------------------------------------------------------------------
+
+def _make_usage_snap(label: str, pct_5hr: int, session_type: str | None = None) -> dict:
+    snap: dict = {"label": label, "start_pct_5hr": pct_5hr, "ts": "2026-07-22T10:00:00"}
+    if session_type is not None:
+        snap["session_type"] = session_type
+    return snap
+
+
+def test_get_baseline_returns_most_recent_terminal(tmp_path):
+    """Returns the last pre_restart or session_end snapshot."""
+    ledger = {
+        "usage_snapshots": [
+            _make_usage_snap("session_start", 0),
+            _make_usage_snap("session_end", 12),
+            _make_usage_snap("session_start", 15),
+            _make_usage_snap("pre_restart", 28),
+        ]
+    }
+    (tmp_path / "agentflow_ledger.json").write_text(json.dumps(ledger))
+    result = get_baseline_usage_from_ledger(tmp_path)
+    assert result is not None
+    assert result["start_pct_5hr"] == 28
+    assert result["label"] == "pre_restart"
+
+
+def test_get_baseline_filters_by_session_type(tmp_path):
+    """Filters by session_type when provided."""
+    ledger = {
+        "usage_snapshots": [
+            _make_usage_snap("session_end", 10, session_type="oracle"),
+            _make_usage_snap("session_end", 25, session_type="orchestrator"),
+        ]
+    }
+    (tmp_path / "agentflow_ledger.json").write_text(json.dumps(ledger))
+    result = get_baseline_usage_from_ledger(tmp_path, session_type="oracle")
+    assert result is not None
+    assert result["start_pct_5hr"] == 10
+    assert result["session_type"] == "oracle"
+
+
+def test_get_baseline_falls_back_when_no_type_match(tmp_path):
+    """Falls back to most recent terminal snapshot when session_type has no match."""
+    ledger = {
+        "usage_snapshots": [
+            _make_usage_snap("session_end", 18, session_type="oracle"),
+        ]
+    }
+    (tmp_path / "agentflow_ledger.json").write_text(json.dumps(ledger))
+    result = get_baseline_usage_from_ledger(tmp_path, session_type="orchestrator")
+    assert result is not None
+    assert result["start_pct_5hr"] == 18
+
+
+def test_get_baseline_returns_none_no_ledger(tmp_path):
+    """Returns None when agentflow_ledger.json does not exist."""
+    result = get_baseline_usage_from_ledger(tmp_path)
+    assert result is None
+
+
+def test_get_baseline_returns_none_empty_snapshots(tmp_path):
+    """Returns None when usage_snapshots list is empty."""
+    ledger: dict = {"usage_snapshots": []}
+    (tmp_path / "agentflow_ledger.json").write_text(json.dumps(ledger))
+    result = get_baseline_usage_from_ledger(tmp_path)
+    assert result is None
+
+
+@pytest.mark.parametrize("snaps", [
+    [{"label": "session_start", "start_pct_5hr": 5, "ts": "t"}],
+    [{"label": "session_start", "start_pct_5hr": 5, "ts": "t"},
+     {"label": "session_start", "start_pct_5hr": 20, "ts": "t"}],
+])
+def test_get_baseline_skips_non_terminal_labels(tmp_path, snaps):
+    """Ignores session_start entries; only considers pre_restart and session_end."""
+    (tmp_path / "agentflow_ledger.json").write_text(json.dumps({"usage_snapshots": snaps}))
+    assert get_baseline_usage_from_ledger(tmp_path) is None
+
+
+def test_get_baseline_malformed_or_absent_ledger(tmp_path):
+    """Returns None for absent ledger and for malformed JSON."""
+    assert get_baseline_usage_from_ledger(tmp_path) is None
+    (tmp_path / "agentflow_ledger.json").write_text("not valid json{{")
+    assert get_baseline_usage_from_ledger(tmp_path) is None
+
+
+def test_get_baseline_no_subprocess_or_pty(tmp_path, monkeypatch):
+    """get_baseline_usage_from_ledger reads only the ledger — no PTY injection."""
+    import subprocess as _sp
+    calls: list = []
+    monkeypatch.setattr(_sp, "Popen", lambda *a, **kw: calls.append(a))
+    ledger = {"usage_snapshots": [_make_usage_snap("session_end", 7)]}
+    (tmp_path / "agentflow_ledger.json").write_text(json.dumps(ledger))
+    get_baseline_usage_from_ledger(tmp_path)
+    assert calls == [], "get_baseline_usage_from_ledger must not spawn any subprocess"
