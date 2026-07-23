@@ -393,7 +393,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round M-F-19 [MERGED] | T-334 (MERGED) ‖ T-335 ‖ T-336 (parallel) | Enforce conventional commit PR titles + rolling execution_plan archive + log truncation |
 | Round M-F-20 [MERGED] | T-343 (solo) | Implement worktree path propagation to worker agents via bundle metadata |
 | Round M-F-21 — MERGED | T-338 ‖ T-339 ‖ T-340 ‖ T-341 (parallel) | Oracle write guard + SPIKE: orchestrator lifecycle + Interactive human gate + Oracle re-prioritization block |
-| Round M-F-22 [PENDING] | T-342 ‖ T-345 ‖ T-346 (parallel, T-342 depends T-339) | Implement orchestrator lifecycle fix + round table startup housekeeping + prohibit worktree editable installs |
+| Round M-F-22 [PENDING] | T-342 ‖ T-346 ‖ T-347 (parallel, T-342 depends T-339) | Implement orchestrator lifecycle fix + prohibit worktree editable installs + fix task completion tests |
 | Round M-F-23 — MERGED | T-344 (solo) | Enforce critical anti-bias analysis and architecture sparring in Oracle prompts |
 | Round D-2 [MERGED] | T-333 (solo) | Wire market_unknowns.md into Oracle Phase 1 emit |
 | Round E-6 [MERGED] | T-328 (solo) | Ledger-lookup based baseline usage reconstruction |
@@ -1376,3 +1376,17 @@ Forces callers to supply required fields; requires updating every existing `_log
 
 **OWNS:** `commands/claude/worker_system.md`, `commands/claude/worker/system.md`, `commands/claude/worker/testing_guide.md`, `tests/prompts/test_worker_worktree_rules.py`
 **estimated_lines:** 25
+
+## Addendum: T-347 — Fix task_complete.json assertions for T-342 compatibility
+
+**Milestone:** M-F
+
+**Goal:** Update PTY signal and database tests to remove assertions checking for the deprecated `task_complete.json` file. Assert instead that task completion status is correctly updated via `tasks_in_flight.json` == `[]`.
+
+**Files:**
+- `tests/test_pty_signal.py` (modify) — update assertions
+- `tests/shell/test_pty_signal.py` (modify) — update assertions
+- `tests/test_cli_db.py` (modify) — update assertions
+
+**OWNS:** `tests/test_pty_signal.py`, `tests/shell/test_pty_signal.py`, `tests/test_cli_db.py`
+**estimated_lines:** 30
