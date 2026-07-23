@@ -394,6 +394,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round M-F-20 [PENDING] | T-343 (solo) | Implement worktree path propagation to worker agents via bundle metadata |
 | Round M-F-21 [PENDING] | T-338 ‖ T-339 ‖ T-340 ‖ T-341 (parallel) | Oracle write guard + SPIKE: orchestrator lifecycle + Interactive human gate + Oracle re-prioritization block |
 | Round M-F-22 [PENDING] | T-342 (solo, depends T-339) | Implement orchestrator lifecycle fix and state consolidation |
+| Round M-F-23 — MERGED | T-344 (solo) | Enforce critical anti-bias analysis and architecture sparring in Oracle prompts |
 | Round D-2 [MERGED] | T-333 (solo) | Wire market_unknowns.md into Oracle Phase 1 emit |
 | Round E-6 [MERGED] | T-328 (solo) | Ledger-lookup based baseline usage reconstruction |
 | Round D-3 [PENDING] | T-332 (solo, depends T-333) | Architecture↔market cross-linking in Oracle Phase 2 |
@@ -1327,3 +1328,17 @@ Forces callers to supply required fields; requires updating every existing `_log
 
 **OWNS:** `agentflow/cli.py`, `commands/claude/orchestrate.md`, `commands/gemini/skills/orchestrate/SKILL.md`, `commands/claude/worker_system.md`, `tests/test_bundle_worktree.py`
 **estimated_lines:** 60
+
+## Addendum: T-344 — Enforce critical anti-bias analysis and architecture sparring in Oracle prompts
+
+**Milestone:** M-F
+
+**Goal:** Update `commands/claude/oracle.md` and `commands/gemini/skills/oracle/SKILL.md` in the Phase 2 — Design Sparring section to add the Anti-Bias & Critical Analysis (Anti-Anchoring) instruction. Ensure the Oracle critically analyzes user proposals even when stated clearly, presents better alternative architectures with trade-offs, and leaves final decisions to the user.
+
+**Files:**
+- `commands/claude/oracle.md` (modify) — add Anti-Bias block in Phase 2 sparring.
+- `commands/gemini/skills/oracle/SKILL.md` (modify) — add Anti-Bias block in Phase 2 sparring.
+- `tests/prompts/test_oracle_reactive_rules.py` (modify) — add Test 7 verifying anti-bias rules.
+
+**OWNS:** `commands/claude/oracle.md`, `commands/gemini/skills/oracle/SKILL.md`, `tests/prompts/test_oracle_reactive_rules.py`
+**estimated_lines:** 10

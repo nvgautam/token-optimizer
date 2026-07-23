@@ -1223,6 +1223,10 @@
     {
       "task_id": "T-343",
       "status": "pending"
+    },
+    {
+      "task_id": "T-344",
+      "status": "complete"
     }
   ]
 }

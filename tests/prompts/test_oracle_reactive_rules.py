@@ -120,3 +120,14 @@ def test_reactive_reprioritization_requires_user_confirmation():
         )
         assert confirmation, \
             f"{f.name} Reactive Re-prioritization must require explicit user confirmation before writing files"
+
+
+# Test 7: Anti-Bias & Critical Analysis block exists in Phase 2
+def test_anti_bias_critical_analysis_exists():
+    for f in ORACLE_FILES:
+        content = f.read_text(encoding="utf-8")
+        assert "Anti-Bias & Critical Analysis" in content, \
+            f"{f.name} must contain 'Anti-Bias & Critical Analysis' rules"
+        assert "Anti-Anchoring" in content, \
+            f"{f.name} must contain 'Anti-Anchoring' term"
+
