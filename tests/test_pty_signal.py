@@ -47,6 +47,7 @@ def test_task_done_removes_task_from_multi_task_list(tmp_path, monkeypatch):
 
 
 def test_task_done_writes_task_complete_json_when_drained(tmp_path, monkeypatch):
+    """task_complete.json is eliminated — only tif tombstone [] signals completion."""
     tif = tmp_path / ".agentflow" / "tasks_in_flight.json"
     tif.parent.mkdir(parents=True)
     tif.write_text('["T-001"]')
@@ -54,9 +55,10 @@ def test_task_done_writes_task_complete_json_when_drained(tmp_path, monkeypatch)
     monkeypatch.delenv("AGENTFLOW_SESSION_ID", raising=False)
     _task_done("T-001", tmp_path)
 
+    # task_complete.json is no longer written; poll_session watches tif==[] instead.
     complete = tmp_path / ".agentflow" / "task_complete.json"
-    assert complete.exists()
-    assert json.loads(complete.read_text())["status"] == "complete"
+    assert not complete.exists(), "task_complete.json must not be written (T-342)"
+    assert tif.exists() and json.loads(tif.read_text()) == []
 
 
 def test_task_done_no_task_complete_written_when_tasks_remain(tmp_path):
@@ -108,10 +110,9 @@ def test_task_done_sid_scoped_path(tmp_path, monkeypatch):
     assert tif_sid.exists()
     assert json.loads(tif_sid.read_text()) == []
 
-    # Check task_complete was also SID-scoped
+    # task_complete.json is no longer written (T-342); only tif tombstone [] signals completion.
     complete_sid = sid_dir / "task_complete.json"
-    assert complete_sid.exists()
-    assert json.loads(complete_sid.read_text())["status"] == "complete"
+    assert not complete_sid.exists(), "task_complete.json must not be written (T-342)"
 
 
 def test_task_done_fallback_flat_path_when_no_sid(tmp_path, monkeypatch):
@@ -180,12 +181,12 @@ def test_task_done_audit_contains_sid(tmp_path, monkeypatch):
     assert len(entries) == 1
     assert entries[0]["sid"] == "session-done-123"
     
-    # 2. Defaults to env when sid param not passed
+    # 2. Defaults to env when sid param not passed (task_done emits 1 event: tif_written)
     task_done("T-002", workspace_root=tmp_path)
     entries = [json.loads(line) for line in audit_file.read_text().splitlines() if line.strip()]
-    assert len(entries) == 3
+    # T-342: task_complete_written event removed; task_done emits only tif_written.
+    assert len(entries) == 2
     assert entries[1]["sid"] == "session-done-123"
-    assert entries[2]["sid"] == "session-done-123"
 
     # 3. Defaulting when sid param not passed and env is empty
     monkeypatch.delenv("AGENTFLOW_SESSION_ID", raising=False)
@@ -195,14 +196,14 @@ def test_task_done_audit_contains_sid(tmp_path, monkeypatch):
         tif_file.unlink()
     if audit_file.exists():
         audit_file.unlink()
-    
+
     task_start("T-003", workspace_root=tmp_path)
     task_done("T-003", workspace_root=tmp_path)
     entries = [json.loads(line) for line in audit_file.read_text().splitlines() if line.strip()]
-    assert len(entries) == 3
+    # T-342: task_start(1 tif_written) + task_done(1 tif_written) = 2 events.
+    assert len(entries) == 2
     assert entries[0]["sid"] == ""
     assert entries[1]["sid"] == ""
-    assert entries[2]["sid"] == ""
 
 
 def test_handoff_complete_audit_contains_sid(tmp_path, monkeypatch):

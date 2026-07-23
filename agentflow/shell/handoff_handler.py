@@ -131,8 +131,14 @@ def poll_session(manager) -> None:
             except Exception as e:
                 manager._log_audit({"event": "poll_session_stat_error", "error": str(e)})
     elif state == States.TASK_RUNNING:
-        if manager._task_complete_path.exists():
-            manager._state_machine.transition("task_complete_written")
+        tif = manager._tasks_in_flight_path
+        if tif.exists():
+            try:
+                content = json.loads(tif.read_text("utf-8"))
+                if content == []:
+                    manager._state_machine.transition("task_complete_written")
+            except Exception as e:
+                manager._log_audit({"event": "poll_session_tif_read_error", "error": str(e)})
     elif state == States.TASK_COMPLETE:
         if _check_deadline(manager, state):
             return

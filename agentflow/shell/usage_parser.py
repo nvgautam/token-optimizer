@@ -112,15 +112,65 @@ def parse_gemini_usage(text: str) -> Optional[dict]:
 
 
 # ---------------------------------------------------------------------------
+# Claude /cost parser
+#
+# Expected output (after ANSI strip):
+#   Total cost:  $0.2467
+#   ...
+#   Input:  5,234 tokens ($0.0157)
+#   Output:  1,234 tokens ($0.0741)
+#   ...
+# ---------------------------------------------------------------------------
+
+_CL_COST_TOTAL_RE = re.compile(
+    r"[Tt]otal\s+cost\s*[:\s]\s*\$\s*([\d,]+\.?\d*)",
+    re.IGNORECASE,
+)
+_CL_COST_INPUT_RE = re.compile(
+    r"[Ii]nput\s*[:\s]\s*([\d,]+)\s+tokens?",
+    re.IGNORECASE,
+)
+_CL_COST_OUTPUT_RE = re.compile(
+    r"[Oo]utput\s*[:\s]\s*([\d,]+)\s+tokens?",
+    re.IGNORECASE,
+)
+
+
+def parse_claude_cost(text: str) -> Optional[dict]:
+    """Parse Claude /cost output; return dict or None on failure.
+
+    Extracts total_cost_usd and optional token counts.
+    Never raises — any parse failure returns None.
+    """
+    try:
+        clean = _strip_ansi(text)
+        mt = _CL_COST_TOTAL_RE.search(clean)
+        if not mt:
+            return None
+        result: dict = {
+            "total_cost_usd": float(mt.group(1).replace(",", "")),
+        }
+        mi = _CL_COST_INPUT_RE.search(clean)
+        if mi:
+            result["input_tokens"] = int(mi.group(1).replace(",", ""))
+        mo = _CL_COST_OUTPUT_RE.search(clean)
+        if mo:
+            result["output_tokens"] = int(mo.group(1).replace(",", ""))
+        return result
+    except Exception:
+        return None
+
+
+# ---------------------------------------------------------------------------
 # PTY capture + provider dispatch
 # ---------------------------------------------------------------------------
 
 
 def capture_provider_usage(wrapper, timeout: float = 2.0) -> Optional[dict]:
-    """Inject /usage into the PTY and parse the response by provider.
+    """Inject /cost into the PTY and parse the response by provider.
 
-    Skips silently when ``ANTHROPIC_API_KEY`` is set (API-key mode has no
-    interactive /usage command).  Returns parsed dict or None; never raises.
+    Works in both API-key mode (ANTHROPIC_API_KEY set) and OAuth mode
+    because /cost is available in both.  Returns parsed dict or None; never raises.
 
     Parameters
     ----------
@@ -129,16 +179,13 @@ def capture_provider_usage(wrapper, timeout: float = 2.0) -> Optional[dict]:
     timeout:
         Maximum seconds to wait for PTY output.
     """
-    if os.environ.get("ANTHROPIC_API_KEY"):
-        return None  # API-key mode — /usage is a Claude Code CLI command only
-
     # Detect provider from wrapper command list
     cmd = getattr(wrapper, "_command", None) or []
     cmd0 = (cmd[0] if isinstance(cmd, list) and cmd else str(cmd or ""))
     provider = os.path.basename(str(cmd0)).lower()
 
     try:
-        wrapper.write_input("/usage\r")
+        wrapper.write_input("/cost\r")
         deadline = time.monotonic() + timeout
         chunks: list[bytes] = []
         while True:
@@ -158,6 +205,6 @@ def capture_provider_usage(wrapper, timeout: float = 2.0) -> Optional[dict]:
         text = b"".join(chunks).decode("utf-8", errors="replace")
         if "gemini" in provider or "aistudio" in provider:
             return parse_gemini_usage(text)
-        return parse_claude_usage(text)
+        return parse_claude_cost(text)
     except Exception:
         return None

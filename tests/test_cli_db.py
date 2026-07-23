@@ -244,7 +244,7 @@ class TestCliDbTaskCommands:
         assert tif_path.exists()
         assert json.loads(tif_path.read_text()) == []
 
+        # T-342: task_complete.json is no longer written; tif tombstone [] is the completion signal.
         complete_path = tmp_path / ".agentflow" / "sessions" / "session-t-100" / "task_complete.json"
-        assert complete_path.exists()
-        assert json.loads(complete_path.read_text()) == {"status": "complete"}
+        assert not complete_path.exists(), "task_complete.json must not be written (T-342)"
 

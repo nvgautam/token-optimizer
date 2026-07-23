@@ -85,6 +85,7 @@ KEY_PROMPT = "prompt"
 STATUS_PENDING = "pending"
 STATUS_COMPLETE = "complete"
 STATUS_CANCELLED = "cancelled"
+STATUS_SKIPPED = "skipped"
 
 # Hook names
 HOOK_USER_PROMPT_SUBMIT = "user_prompt_submit"

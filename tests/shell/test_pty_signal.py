@@ -89,10 +89,8 @@ def test_task_done_parallel(tmp_path, monkeypatch):
 
     assert in_flight_file.exists(), "tasks_in_flight.json must remain as [] tombstone"
     assert json.loads(in_flight_file.read_text()) == []
-    assert complete_file.exists()
-    with open(complete_file, "r") as f:
-        res = json.load(f)
-        assert res.get("status") == "complete"
+    # T-342: task_complete.json is no longer written; tif==[] is the completion signal.
+    assert not complete_file.exists(), "task_complete.json must not be written (T-342)"
 
 def test_handoff_complete_idempotent(tmp_path):
     agentflow_dir = tmp_path / ".agentflow"
@@ -166,7 +164,8 @@ def test_cli_task_done_success(tmp_path, monkeypatch):
 
     tif = tmp_path / ".agentflow" / "tasks_in_flight.json"
     assert tif.exists() and json.loads(tif.read_text()) == []  # [] tombstone = drained
-    assert (tmp_path / ".agentflow" / "task_complete.json").exists()
+    # T-342: task_complete.json is no longer written; tif==[] is the completion signal.
+    assert not (tmp_path / ".agentflow" / "task_complete.json").exists()
 
 def test_cli_handoff_complete_success(tmp_path, monkeypatch):
     monkeypatch.setattr(Path, "cwd", lambda: tmp_path)
@@ -193,7 +192,7 @@ def test_cli_errors(tmp_path, monkeypatch):
     assert exc_info.value.code == 1
 
 def test_task_done_writes_task_complete_to_sid_path(tmp_path, monkeypatch):
-    """With SID set, task_done() writes to sessions/<sid>/task_complete.json."""
+    """T-342: task_complete.json is not written; tif tombstone [] in sessions/<sid>/ suffices."""
     tasks_file = tmp_path / "tasks.json"
     tasks_data = {"tasks": [{"task_id": "T-001"}]}
     tasks_file.write_text(json.dumps(tasks_data))
@@ -208,18 +207,16 @@ def test_task_done_writes_task_complete_to_sid_path(tmp_path, monkeypatch):
     task_start("T-001", workspace_root=tmp_path)
     task_done("T-001", workspace_root=tmp_path)
 
-    # Verify task_complete.json is in sessions/<sid>/ directory, not flat .agentflow/
+    # T-342: task_complete.json is no longer written; tif tombstone [] is the signal.
     sid_complete_file = agentflow_dir / "sessions" / sid / "task_complete.json"
     flat_complete_file = agentflow_dir / "task_complete.json"
-
-    assert sid_complete_file.exists(), f"Expected {sid_complete_file} to exist"
-    assert not flat_complete_file.exists(), f"Expected {flat_complete_file} to NOT exist"
-    with open(sid_complete_file, "r") as f:
-        res = json.load(f)
-        assert res.get("status") == "complete"
+    assert not sid_complete_file.exists(), "task_complete.json must not be written (T-342)"
+    assert not flat_complete_file.exists(), "task_complete.json must not be written (T-342)"
+    tif = agentflow_dir / "sessions" / sid / "tasks_in_flight.json"
+    assert tif.exists() and json.loads(tif.read_text()) == []
 
 def test_task_done_writes_task_complete_to_flat_path_without_sid(tmp_path, monkeypatch):
-    """Without SID, task_done() writes to .agentflow/task_complete.json (backward compat)."""
+    """T-342: task_complete.json is not written; tif tombstone [] in flat .agentflow/ suffices."""
     tasks_file = tmp_path / "tasks.json"
     tasks_data = {"tasks": [{"task_id": "T-001"}]}
     tasks_file.write_text(json.dumps(tasks_data))
@@ -233,12 +230,11 @@ def test_task_done_writes_task_complete_to_flat_path_without_sid(tmp_path, monke
     task_start("T-001", workspace_root=tmp_path)
     task_done("T-001", workspace_root=tmp_path)
 
-    # Verify task_complete.json is in flat .agentflow/ directory
+    # T-342: task_complete.json is no longer written; tif tombstone [] is the signal.
     flat_complete_file = agentflow_dir / "task_complete.json"
-    assert flat_complete_file.exists(), f"Expected {flat_complete_file} to exist"
-    with open(flat_complete_file, "r") as f:
-        res = json.load(f)
-        assert res.get("status") == "complete"
+    assert not flat_complete_file.exists(), "task_complete.json must not be written (T-342)"
+    tif = agentflow_dir / "tasks_in_flight.json"
+    assert tif.exists() and json.loads(tif.read_text()) == []
 
 def test_handoff_complete_with_sid(tmp_path, monkeypatch):
     agentflow_dir = tmp_path / ".agentflow"

@@ -93,7 +93,6 @@ def task_done(task_id: str, workspace_root: Path = None, sid: str = ""):
         sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
     agentflow_dir = workspace_root / ".agentflow"
     in_flight_file = session_file(agentflow_dir, "tasks_in_flight.json", sid)
-    complete_file = session_file(agentflow_dir, "task_complete.json", sid)
     lock_path = agentflow_dir / "tasks_in_flight.lock"
 
     with file_lock(lock_path):
@@ -111,8 +110,6 @@ def task_done(task_id: str, workspace_root: Path = None, sid: str = ""):
             in_flight_set.remove(task_id)
 
         if not in_flight_set:
-            _write_atomic(complete_file, {"status": "complete"})
-            _log(agentflow_dir, {"event": "task_complete_written", "task_id": task_id, "sid": sid})
             _write_atomic(in_flight_file, [])  # tombstone: [] = drained; absent = never initialized
             _log(agentflow_dir, {"event": "tif_written", "caller": "task_done", "task_id": task_id, "in_flight": [], "sid": sid})
         else:

@@ -10,6 +10,7 @@ from pathlib import Path
 from agentflow.indexer.index_manager import update_index
 from agentflow.shell.session_paths import session_file
 from agentflow.shell.state_machine import States
+from agentflow.config import constants
 
 # Maximum number of merged round rows to keep in execution_plan.md
 _MAX_MERGED_ROUNDS = 3
@@ -160,6 +161,25 @@ def check_drain_restart(manager) -> None:
 	if not tif_is_tombstone:
 		_skip("tasks_in_flight_nonempty")
 		return
+
+	# Gate: all current-round tasks must be terminal (complete or skipped) before draining.
+	try:
+		round_path = manager._current_round_path
+		if round_path.exists():
+			round_data = json.loads(round_path.read_text("utf-8"))
+			task_ids = round_data.get("task_ids", [])
+			if task_ids:
+				tasks_path = manager._project_root / "tasks.json"
+				if tasks_path.exists():
+					tasks_data = json.loads(tasks_path.read_text("utf-8"))
+					status_map = {t["task_id"]: t["status"] for t in tasks_data.get("tasks", [])}
+					terminal = {"complete", "skipped"}
+					non_terminal = [tid for tid in task_ids if status_map.get(tid, "pending") not in terminal]
+					if non_terminal:
+						_skip("tasks_not_terminal", tasks=non_terminal)
+						return
+	except Exception as e:
+		manager._log_audit({"event": "drain_tasks_gate_error", "error": str(e)})
 
 	threshold = manager._config.get("handoff_primary_tokens", 80000)
 	fill_tokens = 0

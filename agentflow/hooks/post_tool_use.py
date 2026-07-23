@@ -334,7 +334,7 @@ def validate_state_files(project_root: Path) -> None:
                 if extra:
                     print(f"Validation Error: Task at index {idx} contains extra keys not allowed: {extra}", file=sys.stderr)
                     sys.exit(1)
-                if task.get(constants.KEY_STATUS) not in {constants.STATUS_PENDING, constants.STATUS_COMPLETE, constants.STATUS_CANCELLED}:
+                if task.get(constants.KEY_STATUS) not in {constants.STATUS_PENDING, constants.STATUS_COMPLETE, constants.STATUS_CANCELLED, constants.STATUS_SKIPPED}:
                     print(f"Validation Error: Task {task.get(constants.KEY_TASK_ID)} has invalid status: {task.get(constants.KEY_STATUS)}", file=sys.stderr)
                     sys.exit(1)
         except json.JSONDecodeError:

@@ -78,6 +78,8 @@ def main() -> None:
     # If the prompt starts with /orchestrate or /handoff (bare or namespaced):
     if prompt and (is_orchestrate or is_handoff):
         # Delete session-scoped handoff_complete and task_complete if they exist.
+        # task_complete.json is no longer written (poll_session watches tif==[] now),
+        # but retain cleanup here in case a stale file exists from a prior session.
         agentflow_dir.mkdir(parents=True, exist_ok=True)
         for name in (constants.FILE_HANDOFF_COMPLETE, constants.FILE_TASK_COMPLETE):
             complete_file = session_file(agentflow_dir, name, sid)
