@@ -390,7 +390,9 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round M-F-17 — MERGED | T-325 (solo) | Implement standardized audit logging |
 | Round M-F-18 — MERGED | T-326 (solo) | Asynchronous logging and log rotation |
 | Pre-D — MERGED | T-330 ‖ T-331 (parallel) | Split test_user_prompt_submit.py + remove duplicate session_id key |
-| Round M-F-19 [PENDING] | T-334 ‖ T-335 ‖ T-336 (parallel) | Enforce conventional commit PR titles + rolling execution_plan archive + log truncation |
+| Round M-F-19 [PENDING] | T-334 (MERGED) ‖ T-335 ‖ T-336 (parallel) | Enforce conventional commit PR titles + rolling execution_plan archive + log truncation |
+| Round M-F-20 [PENDING] | T-338 (solo) | Oracle write guard hook with allowlist and risk warning |
+| Round M-F-21 [PENDING] | T-339 (solo) | SPIKE: Simplify and audit orchestrator lifecycle state variables up to PTY restart |
 | Round D-2 [MERGED] | T-333 (solo) | Wire market_unknowns.md into Oracle Phase 1 emit |
 | Round E-6 [MERGED] | T-328 (solo) | Ledger-lookup based baseline usage reconstruction |
 | Round D-3 [PENDING] | T-332 (solo, depends T-333) | Architecture↔market cross-linking in Oracle Phase 2 |
@@ -1230,3 +1232,31 @@ Forces callers to supply required fields; requires updating every existing `_log
 
 **OWNS:** `commands/claude/oracle.md`, `commands/gemini/skills/oracle/SKILL.md`, `commands/common/oracle/prioritization.md`, `commands/common/oracle/wrapup.md`, `tests/prompts/test_oracle_parity.py`
 **estimated_lines:** 40
+
+## Addendum: T-338 — Oracle write guard hook with allowlist and risk warning
+
+**Milestone:** M-F
+
+**Goal:** Implement a programmatic write-prevention hook for the Oracle session with a configurable allowlist and clear user risk warnings when edits are blocked.
+
+**Files:**
+- `agentflow/hooks/oracle_write_guard.py` (new) — hook that blocks Write and Edit tools when session_type is "oracle" and target file is not in default or custom allowlist.
+- `tests/hooks/test_oracle_write_guard.py` (new) — unit tests validating write blocking, custom allowlists, and risk messages.
+- `.claude/settings.json` (modify) — register the hook for Write and Edit tools.
+
+**Test scenarios:**
+- Under oracle session: writing to allowed file (e.g. `design_status.md`) succeeds.
+- Under oracle session: writing to project source file (e.g. `agentflow/init.py`) is blocked (exit code 1) and prints risk warning and custom allowlist configuration instructions.
+- Under orchestrator session: writing to any file succeeds (hook is bypassed).
+
+**OWNS:** `agentflow/hooks/oracle_write_guard.py`, `tests/hooks/test_oracle_write_guard.py`, `.claude/settings.json`
+**estimated_lines:** 70
+
+## Addendum: T-339 — SPIKE: Simplify and audit orchestrator lifecycle state variables up to PTY restart
+
+**Milestone:** M-F
+
+**Goal:** Map all edge cases and variables in play during the orchestrator lifecycle up to session restart (`tasks_in_flight.json`, `current_round.json`, `task_complete.json`, `agent_active.json`). A partial implementation using `agent_active.json` is committed on branch `fix/drain-restart-mid-turn` and open under PR #243 (https://github.com/nvgautam/token-optimizer/pull/243). The worker/spike should check out this branch to inspect the active flag logic, audit the risks (stale flags, delay races, multi-session collision), and evaluate if we can consolidate/simplify state tracking to reduce the number of variables in play. Output a concrete design status document with a simplified approach.
+
+**OWNS:** `design_status.md`
+**estimated_lines:** 0
