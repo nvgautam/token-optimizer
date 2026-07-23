@@ -341,7 +341,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | C3b-tif-repro — MERGED (18fd947b1 2026-07-17) | T-257 (solo) | Failing test: Bash-written current_round.json does not populate tasks_in_flight.json — pins the regression before fix |
 | C3b-tif-fix — MERGED (PR #163 2026-07-17) | T-258 (solo) | Self-healing fallback in sync_tasks_in_flight: read current_round.json from disk when tif absent after Bash call |
 | C3b-splits — MERGED (PR #164/#165 2026-07-17) | T-262 ‖ T-263 (parallel) | Size-violation splits: handoff_handler.py (T-262) + post_tool_use.py / fill_utils.py (T-263) |
-| C3b-restart-paths | T-264 ‖ T-265 (parallel) | Simplify restart paths: Path 1 never restarts (rename check_tokens→task_round_complete, always→IDLE, remove guard_tokens_threshold) + remove dead _handoff_in_progress setter (Path 3) |
+| C3b-restart-paths | T-264 ‖ T-265 (parallel) | Simplify restart paths: Path 1 never restarts (rename check_tokens→task_round_complete, always→IDLE, remove guard_tokens_threshold) + remove dead _handoff_in_progress setter (Path 3) | — MERGED
 | C3b-worker-guard — MERGED | T-261 (solo) | Hard guard: orchestrate must always dispatch a worker — never implement directly; runtime audit check + test |
 | Round A — MERGED (PR #167/#168 2026-07-17) | T-269 ‖ T-264 (parallel) | Fix premature drain restart (clear current_round.json after merge) + simplify Path 1 restart — unblocks stable orchestrate startup |
 | Round B — MERGED (PR #169/#170 2026-07-17) | T-265 ‖ T-267 (parallel) | Remove dead _handoff_in_progress setter (Path 3) + oracle.md opinionated-expert note |
@@ -390,8 +390,8 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round M-F-17 — MERGED | T-325 (solo) | Implement standardized audit logging |
 | Round M-F-18 — MERGED | T-326 (solo) | Asynchronous logging and log rotation |
 | Pre-D — MERGED | T-330 ‖ T-331 (parallel) | Split test_user_prompt_submit.py + remove duplicate session_id key |
-| Round M-F-19 [PENDING] | T-334 (MERGED) ‖ T-335 ‖ T-336 (parallel) | Enforce conventional commit PR titles + rolling execution_plan archive + log truncation |
-| Round M-F-20 [PENDING] | T-343 (solo) | Implement worktree path propagation to worker agents via bundle metadata |
+| Round M-F-19 [MERGED] | T-334 (MERGED) ‖ T-335 ‖ T-336 (parallel) | Enforce conventional commit PR titles + rolling execution_plan archive + log truncation |
+| Round M-F-20 [MERGED] | T-343 (solo) | Implement worktree path propagation to worker agents via bundle metadata |
 | Round M-F-21 — MERGED | T-338 ‖ T-339 ‖ T-340 ‖ T-341 (parallel) | Oracle write guard + SPIKE: orchestrator lifecycle + Interactive human gate + Oracle re-prioritization block |
 | Round M-F-22 [PENDING] | T-342 ‖ T-345 ‖ T-346 (parallel, T-342 depends T-339) | Implement orchestrator lifecycle fix + round table startup housekeeping + prohibit worktree editable installs |
 | Round M-F-23 — MERGED | T-344 (solo) | Enforce critical anti-bias analysis and architecture sparring in Oracle prompts |
