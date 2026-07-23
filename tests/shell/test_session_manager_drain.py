@@ -33,6 +33,34 @@ class TestDrainRestart:
 
         assert sm._state_machine.state == States.RESTARTING
 
+    def test_drain_restart_skips_when_agent_active(self, tmp_path):
+        """Active agent session skips drain restart even if other conditions met."""
+        sm, pty, tok = make_manager()
+        sm._project_root = tmp_path
+        sm.session_type = "orchestrator"
+        sm._state_machine.state = States.IDLE
+
+        agentflow_dir = tmp_path / ".agentflow"
+        agentflow_dir.mkdir()
+        (agentflow_dir / "current_round.json").write_text('{"task":"T-001"}')
+        (agentflow_dir / "context_fill.json").write_text(json.dumps({"fill_tokens": 90000, "ts": "2026-07-10T00:00:00"}))
+        (agentflow_dir / "tasks_in_flight.json").write_text("[]")
+
+        import os
+        import time
+        from agentflow.shell.session_paths import session_file
+        os.environ["AGENTFLOW_SESSION_ID"] = "test-sid-active"
+        active_file = session_file(agentflow_dir, "agent_active.json", "test-sid-active")
+        active_file.write_text(json.dumps({"active": True, "ts": time.time()}), encoding="utf-8")
+
+        with patch.object(sm, "trigger_handoff") as mock_trigger:
+            from agentflow.shell.handoff_handler import check_drain_restart
+            check_drain_restart(sm)
+            mock_trigger.assert_not_called()
+
+        assert sm._state_machine.state == States.IDLE
+        os.environ.pop("AGENTFLOW_SESSION_ID", None)
+
     def test_drain_restart_no_fire_wrong_session_type(self, tmp_path):
         """Oracle session does not trigger drain restart."""
         sm, pty, tok = make_manager()

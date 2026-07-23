@@ -414,6 +414,13 @@ def main() -> None:
         fill_path = session_file(agentflow_dir, constants.FILE_CONTEXT_FILL, sid if sid else None)
         _atomic_write(fill_path, json.dumps({constants.KEY_FILL_TOKENS: fill_tokens, constants.KEY_TS: time.time()}))
         _log(agentflow_dir, {constants.HOOK_FIELD_EVENT: "context_fill_written", constants.KEY_FILL_TOKENS: fill_tokens, constants.KEY_SID: sid})
+        if sid:
+            try:
+                active_file = session_file(agentflow_dir, "agent_active.json", sid)
+                if active_file.exists():
+                    active_file.write_text(json.dumps({"active": True, "ts": time.time()}), encoding="utf-8")
+            except Exception:
+                pass
     except Exception as e:
         _log(agentflow_dir, {constants.HOOK_FIELD_EVENT: "context_fill_write_error", constants.HOOK_FIELD_ERROR: str(e)})
     sys.exit(0)

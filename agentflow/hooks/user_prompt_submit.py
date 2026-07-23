@@ -74,6 +74,12 @@ def main() -> None:
             _write_session_state_atomic(agentflow_dir, constants.SESSION_TYPE_ORCHESTRATOR, sid=sid)
         elif is_oracle:
             _write_session_state_atomic(agentflow_dir, constants.SESSION_TYPE_ORACLE, sid=sid)
+        if sid:
+            try:
+                active_file = session_file(agentflow_dir, "agent_active.json", sid)
+                active_file.write_text(json.dumps({"active": True, "ts": time.time()}), encoding="utf-8")
+            except Exception:
+                pass
 
     # If the prompt starts with /orchestrate or /handoff (bare or namespaced):
     if prompt and (is_orchestrate or is_handoff):
