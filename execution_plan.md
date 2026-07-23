@@ -1294,7 +1294,7 @@ Forces callers to supply required fields; requires updating every existing `_log
 
 **Milestone:** M-F
 
-**Goal:** Implement the consolidated orchestrator lifecycle state tracking resolved in the T-339 Spike. Eliminate `task_complete.json` and make `poll_session()` watch `tasks_in_flight.json` == `[]` directly. Merge and refine the active flag logic from PR #243 (`agent_active.json` using FILE_AGENT_ACTIVE constant, orchestrator-only UPS writes, and unconditional PostToolUse write to reset TTL). Write a comprehensive integration test that mocks the full session loop (task start, tool/PR merge hooks, active flag, PTY restart, and `/usage` ledger recording) to ensure zero regressions or edge cases exist before packaging for friendlies.
+**Goal:** Implement the consolidated orchestrator lifecycle state tracking resolved in the T-339 Spike. Eliminate `task_complete.json` and make `poll_session()` watch `tasks_in_flight.json` == `[]` directly. Merge and refine the active flag logic from PR #243 (`agent_active.json` using FILE_AGENT_ACTIVE constant, orchestrator-only UPS writes, and unconditional PostToolUse write to reset TTL). Update the existing integration test suite (e.g. `tests/test_cli_round_restart_integration.py` and `tests/shell/test_drain_restart_integration.py`) to cover the consolidated states (no `task_complete.json`) and verify the active flag lifecycle, ensuring zero regressions before packaging for friendlies.
 
 **Files:**
 - `agentflow/config/constants.py` (modify) — add FILE_AGENT_ACTIVE constant.
@@ -1304,7 +1304,7 @@ Forces callers to supply required fields; requires updating every existing `_log
 - `agentflow/shell/drain_restart.py` (modify) — implement active guard check with 120s TTL.
 - `agentflow/shell/handoff_handler.py` (modify) — update `poll_session()` to transition `TASK_RUNNING` to `TASK_COMPLETE` when `tasks_in_flight.json` is `[]`, eliminating `task_complete.json` dependency.
 - `agentflow/shell/pty_signal.py` (modify) — remove `task_complete.json` write logic.
-- `tests/test_orchestrator_lifecycle_integration.py` (new) — comprehensive integration test for full session loop, active flag lifecycle, state files consolidation, and /usage capture.
+- `tests/test_cli_round_restart_integration.py` (modify) — update integration tests to verify consolidated state files and active flag lifecycle.
 
-**OWNS:** `agentflow/config/constants.py`, `agentflow/hooks/user_prompt_submit.py`, `agentflow/hooks/post_tool_use.py`, `agentflow/hooks/stop_context_capture.py`, `agentflow/shell/drain_restart.py`, `agentflow/shell/handoff_handler.py`, `agentflow/shell/pty_signal.py`, `tests/test_orchestrator_lifecycle_integration.py`
+**OWNS:** `agentflow/config/constants.py`, `agentflow/hooks/user_prompt_submit.py`, `agentflow/hooks/post_tool_use.py`, `agentflow/hooks/stop_context_capture.py`, `agentflow/shell/drain_restart.py`, `agentflow/shell/handoff_handler.py`, `agentflow/shell/pty_signal.py`, `tests/test_cli_round_restart_integration.py`
 **estimated_lines:** 180
