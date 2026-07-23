@@ -30,6 +30,7 @@ FILE_TASKS_JSON = "tasks.json"
 FILE_EXECUTION_PLAN = "execution_plan.md"
 FILE_ADDENDUMS_ARCHIVE = "addendums_archive.md"
 FILE_CONTEXT_FILL = "context_fill.json"
+FILE_AGENT_ACTIVE = "agent_active.json"
 FILE_CONFIG_TOML = "config.toml"
 FILE_HOOK_DRAIN_DEBUG = "hook_drain_debug.jsonl"
 

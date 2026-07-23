@@ -220,7 +220,7 @@ try:
 except Exception:
     pass
 
-# T-312: inject /usage at session start and non-blocking before restart
+# T-312 / T-342: inject /cost at session start and non-blocking before restart
 try:
     import agentflow.shell.session_manager as _sm_312
     import agentflow.shell.session_manager_handlers as _smh_312
@@ -234,17 +234,17 @@ try:
             from agentflow.shell.session_paths import session_file
             u = capture_provider_usage(mgr._pty, timeout=timeout)
             if u is None:
-                mgr._log_audit({"event": "t312_no_usage", "label": label})
+                mgr._log_audit({"event": "t342_no_cost", "label": label})
                 return
             sid = _o.environ.get("AGENTFLOW_SESSION_ID", "")
             fp = session_file(mgr._project_root / ".agentflow", "session_state.json", sid)
             d = _j.loads(fp.read_text("utf-8")) if fp.exists() else {}
-            d.setdefault("usage_snapshots", []).append(
+            d.setdefault("cost_snapshots", []).append(
                 {"label": label, "ts": _dt.datetime.now().isoformat(), **u})
             fp.write_text(_j.dumps(d, indent=2), encoding="utf-8")
-            mgr._log_audit({"event": "t312_usage_written", "label": label})
+            mgr._log_audit({"event": "t342_cost_written", "label": label})
         except Exception as _e:
-            mgr._log_audit({"event": "t312_usage_error", "label": label, "error": str(_e)})
+            mgr._log_audit({"event": "t342_cost_error", "label": label, "error": str(_e)})
 
     if getattr(_sm_312.SessionManager.on_idle_tick, "__name__", None) != "_t312_tick":
         _312_ot = _sm_312.SessionManager.on_idle_tick

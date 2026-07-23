@@ -78,6 +78,8 @@ def main() -> None:
     # If the prompt starts with /orchestrate or /handoff (bare or namespaced):
     if prompt and (is_orchestrate or is_handoff):
         # Delete session-scoped handoff_complete and task_complete if they exist.
+        # task_complete.json is no longer written (poll_session watches tif==[] now),
+        # but retain cleanup here in case a stale file exists from a prior session.
         agentflow_dir.mkdir(parents=True, exist_ok=True)
         for name in (constants.FILE_HANDOFF_COMPLETE, constants.FILE_TASK_COMPLETE):
             complete_file = session_file(agentflow_dir, name, sid)
@@ -88,6 +90,28 @@ def main() -> None:
             except Exception as e:
                 _log_drain(agentflow_dir, {constants.HOOK_FIELD_EVENT: "delete_signal_file_error", constants.HOOK_FIELD_ERROR: str(e), "file": complete_file.name})
 
+
+    # Orchestrator-only: touch agent_active.json on every prompt to reset the drain TTL.
+    if prompt:
+        try:
+            ss_path = session_file(agentflow_dir, constants.FILE_SESSION_STATE, sid)
+            session_type_cur = constants.SESSION_TYPE_UNKNOWN
+            if ss_path.exists():
+                session_type_cur = json.loads(ss_path.read_text(encoding=constants.UTF8)).get(
+                    constants.KEY_SESSION_TYPE, constants.SESSION_TYPE_UNKNOWN
+                )
+            if session_type_cur == constants.SESSION_TYPE_ORCHESTRATOR or is_orchestrate:
+                aa_path = session_file(agentflow_dir, constants.FILE_AGENT_ACTIVE, sid)
+                agentflow_dir.mkdir(parents=True, exist_ok=True)
+                data_str = json.dumps({constants.KEY_TS: time.time()})
+                with tempfile.NamedTemporaryFile(
+                    mode="w", dir=aa_path.parent, delete=False, suffix=".tmp", encoding=constants.UTF8
+                ) as tmp:
+                    tmp.write(data_str)
+                    tmp_path = Path(tmp.name)
+                os.replace(tmp_path, aa_path)
+        except Exception:
+            pass
 
     # If the prompt is exactly "/clear" (slash command, not prose), write the clear signal file
     if prompt and prompt.strip() == "/clear":

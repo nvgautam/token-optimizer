@@ -225,6 +225,93 @@ def test_full_round_lifecycle(tmp_path: Path) -> None:
 # Subprocess: verify the actual agentflow CLI entry point works end-to-end
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Consolidated state: task_complete.json eliminated
+# ---------------------------------------------------------------------------
+
+class TestTaskCompleteEliminated:
+    def test_task_done_no_longer_writes_task_complete(self, tmp_path: Path) -> None:
+        """task_done must write [] tombstone but NOT task_complete.json."""
+        from agentflow.shell.pty_signal import task_done, task_start
+        task_start("T-001", workspace_root=tmp_path)
+        task_done("T-001", workspace_root=tmp_path)
+        assert not (tmp_path / ".agentflow" / "task_complete.json").exists()
+        tif = tmp_path / ".agentflow" / "tasks_in_flight.json"
+        assert tif.exists() and json.loads(tif.read_text()) == []
+
+    def test_poll_session_transitions_task_running_on_empty_tif(self, tmp_path: Path) -> None:
+        """poll_session must transition TASK_RUNNING→TASK_COMPLETE when tif==[]."""
+        from agentflow.shell.handoff_handler import poll_session
+        from agentflow.shell.state_machine import States
+        from tests.shell.conftest import make_manager
+        from unittest.mock import MagicMock
+        agentflow_dir = tmp_path / ".agentflow"
+        agentflow_dir.mkdir(parents=True, exist_ok=True)
+        (agentflow_dir / "tasks_in_flight.json").write_text("[]")
+        sm, _, _ = make_manager()
+        sm._project_root = tmp_path
+        sm.session_type = "orchestrator"
+        sm._state_machine.state = States.TASK_RUNNING
+        sm._log_audit = MagicMock()
+        poll_session(sm)
+        assert sm._state_machine.state == States.TASK_COMPLETE
+
+
+# ---------------------------------------------------------------------------
+# Active flag lifecycle (agent_active.json)
+# ---------------------------------------------------------------------------
+
+class TestActiveFlag:
+    def test_drain_skips_when_agent_active_recent(self, tmp_path: Path) -> None:
+        """drain_restart must skip when agent_active.json mtime is within 120s."""
+        from agentflow.shell.drain_restart import check_drain_restart
+        mgr = _StubManager(tmp_path, fill_tokens=90000)
+        agentflow_dir = tmp_path / ".agentflow"
+        (agentflow_dir / "tasks_in_flight.json").write_text("[]")
+        (agentflow_dir / "agent_active.json").write_text(json.dumps({"ts": time.time()}))
+        check_drain_restart(mgr)
+        assert "drain_restart_triggered" not in _audit_events(mgr)
+        assert "agent_active" in _audit_skip_reasons(mgr)
+
+    def test_drain_proceeds_when_agent_active_stale(self, tmp_path: Path) -> None:
+        """drain_restart proceeds when agent_active.json mtime exceeds 120s TTL."""
+        from agentflow.shell.drain_restart import check_drain_restart
+        mgr = _StubManager(tmp_path, fill_tokens=90000)
+        agentflow_dir = tmp_path / ".agentflow"
+        (agentflow_dir / "tasks_in_flight.json").write_text("[]")
+        aa = agentflow_dir / "agent_active.json"
+        aa.write_text(json.dumps({"ts": time.time() - 200}))
+        stale_ts = time.time() - 200
+        os.utime(str(aa), (stale_ts, stale_ts))
+        check_drain_restart(mgr)
+        assert "drain_restart_triggered" in _audit_events(mgr)
+
+
+# ---------------------------------------------------------------------------
+# /cost capture and parsing
+# ---------------------------------------------------------------------------
+
+class TestCostCapture:
+    def test_parse_claude_cost_valid(self) -> None:
+        from agentflow.shell.usage_parser import parse_claude_cost
+        text = "Total cost:  $0.2467\n  Input:  5,234 tokens ($0.0157)\n  Output:  1,234 tokens ($0.0741)\n"
+        result = parse_claude_cost(text)
+        assert result is not None
+        assert abs(result["total_cost_usd"] - 0.2467) < 1e-6
+
+    def test_parse_claude_cost_with_ansi(self) -> None:
+        from agentflow.shell.usage_parser import parse_claude_cost
+        text = "\x1b[1mTotal cost:\x1b[0m  $0.0123\n"
+        result = parse_claude_cost(text)
+        assert result is not None
+        assert abs(result["total_cost_usd"] - 0.0123) < 1e-6
+
+    def test_parse_claude_cost_missing_field_returns_none(self) -> None:
+        from agentflow.shell.usage_parser import parse_claude_cost
+        assert parse_claude_cost("no cost data here") is None
+        assert parse_claude_cost("") is None
+
+
 def test_round_start_via_subprocess(tmp_path: Path) -> None:
     """`agentflow round start` via subprocess exits 0 and writes correct files."""
     # Force subprocess to use worktree's agentflow package (not the installed copy).

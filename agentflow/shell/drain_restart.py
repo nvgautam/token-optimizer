@@ -10,6 +10,9 @@ from pathlib import Path
 from agentflow.indexer.index_manager import update_index
 from agentflow.shell.session_paths import session_file
 from agentflow.shell.state_machine import States
+from agentflow.config import constants
+
+_AGENT_ACTIVE_TTL = 120.0
 
 # Maximum number of merged round rows to keep in execution_plan.md
 _MAX_MERGED_ROUNDS = 3
@@ -160,6 +163,19 @@ def check_drain_restart(manager) -> None:
 	if not tif_is_tombstone:
 		_skip("tasks_in_flight_nonempty")
 		return
+
+	# Active guard: skip restart if agent touched agent_active.json within TTL.
+	try:
+		agentflow_dir_ag = manager._project_root / ".agentflow"
+		sid_ag = os.environ.get("AGENTFLOW_SESSION_ID", "")
+		aa_path = session_file(agentflow_dir_ag, constants.FILE_AGENT_ACTIVE, sid_ag)
+		if aa_path.exists():
+			age = time.time() - aa_path.stat().st_mtime
+			if age < _AGENT_ACTIVE_TTL:
+				_skip("agent_active", age=round(age, 1))
+				return
+	except Exception as e:
+		manager._log_audit({"event": "drain_active_guard_error", "error": str(e)})
 
 	threshold = manager._config.get("handoff_primary_tokens", 80000)
 	fill_tokens = 0
