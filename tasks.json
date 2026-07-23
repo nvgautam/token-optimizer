@@ -1227,6 +1227,10 @@
     {
       "task_id": "T-344",
       "status": "complete"
+    },
+    {
+      "task_id": "T-345",
+      "status": "pending"
     }
   ]
 }

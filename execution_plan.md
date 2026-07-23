@@ -393,7 +393,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round M-F-19 [PENDING] | T-334 (MERGED) ‖ T-335 ‖ T-336 (parallel) | Enforce conventional commit PR titles + rolling execution_plan archive + log truncation |
 | Round M-F-20 [PENDING] | T-343 (solo) | Implement worktree path propagation to worker agents via bundle metadata |
 | Round M-F-21 [PENDING] | T-338 ‖ T-339 ‖ T-340 ‖ T-341 (parallel) | Oracle write guard + SPIKE: orchestrator lifecycle + Interactive human gate + Oracle re-prioritization block |
-| Round M-F-22 [PENDING] | T-342 (solo, depends T-339) | Implement orchestrator lifecycle fix and state consolidation |
+| Round M-F-22 [PENDING] | T-342 ‖ T-345 (parallel, T-342 depends T-339) | Implement orchestrator lifecycle fix + round table startup housekeeping |
 | Round M-F-23 — MERGED | T-344 (solo) | Enforce critical anti-bias analysis and architecture sparring in Oracle prompts |
 | Round D-2 [MERGED] | T-333 (solo) | Wire market_unknowns.md into Oracle Phase 1 emit |
 | Round E-6 [MERGED] | T-328 (solo) | Ledger-lookup based baseline usage reconstruction |
@@ -1342,3 +1342,20 @@ Forces callers to supply required fields; requires updating every existing `_log
 
 **OWNS:** `commands/claude/oracle.md`, `commands/gemini/skills/oracle/SKILL.md`, `tests/prompts/test_oracle_reactive_rules.py`
 **estimated_lines:** 10
+
+## Addendum: T-345 — Startup round status housekeeping
+
+**Goal:** Implement a deterministic startup housekeeping check in Python. It scans the round table in `execution_plan.md` from the top, verifies if all tasks listed in a round are marked complete in `tasks.json` (or the database), and if so, updates the round status label to `[MERGED]` under lock, halting at the first round containing any pending task. Runs during both Oracle and Orchestrator startup.
+
+**Files:**
+- `agentflow/shell/session_manager.py` (modify) — run the round table check on init/startup
+- `agentflow/shell/drain_restart.py` (modify) — add helper function to check and update round statuses in `execution_plan.md`
+- `tests/shell/test_startup_housekeeping.py` (new) — unit tests validating round status auto-update
+
+**Test scenarios:**
+- All tasks in a round are complete -> round status updated to `[MERGED]` on startup
+- Any task in a round is pending -> round status left as `[PENDING]`, scanning halts
+- Lock is acquired during write and released correctly
+
+**OWNS:** `agentflow/shell/session_manager.py`, `agentflow/shell/drain_restart.py`, `tests/shell/test_startup_housekeeping.py`
+**estimated_lines:** 50
