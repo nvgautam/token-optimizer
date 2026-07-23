@@ -392,6 +392,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Pre-D — MERGED | T-330 ‖ T-331 (parallel) | Split test_user_prompt_submit.py + remove duplicate session_id key |
 | Round M-F-19 [PENDING] | T-334 (MERGED) ‖ T-335 ‖ T-336 (parallel) | Enforce conventional commit PR titles + rolling execution_plan archive + log truncation |
 | Round M-F-20 [PENDING] | T-338 (solo) | Oracle write guard hook with allowlist and risk warning |
+| Round M-F-21 [PENDING] | T-339 (solo) | SPIKE: Simplify and audit orchestrator lifecycle state variables up to PTY restart |
 | Round D-2 [MERGED] | T-333 (solo) | Wire market_unknowns.md into Oracle Phase 1 emit |
 | Round E-6 [MERGED] | T-328 (solo) | Ledger-lookup based baseline usage reconstruction |
 | Round D-3 [PENDING] | T-332 (solo, depends T-333) | Architecture↔market cross-linking in Oracle Phase 2 |
@@ -1250,3 +1251,12 @@ Forces callers to supply required fields; requires updating every existing `_log
 
 **OWNS:** `agentflow/hooks/oracle_write_guard.py`, `tests/hooks/test_oracle_write_guard.py`, `.claude/settings.json`
 **estimated_lines:** 70
+
+## Addendum: T-339 — SPIKE: Simplify and audit orchestrator lifecycle state variables up to PTY restart
+
+**Milestone:** M-F
+
+**Goal:** Map all edge cases and variables in play during the orchestrator lifecycle up to session restart (`tasks_in_flight.json`, `current_round.json`, `task_complete.json`, `agent_active.json`). Audit the risks (stale flags, delay races, multi-session collision) and evaluate if we can consolidate/simplify state tracking to reduce the number of variables in play. Output a concrete design status document with a simplified approach.
+
+**OWNS:** `design_status.md`
+**estimated_lines:** 0

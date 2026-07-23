@@ -72,6 +72,7 @@ Oracle reads on startup. Handoff writes updates. Architecture.md = workers only.
 | task_prs.json role | RESOLVED | Secondary backstop only — populated at merge time if gh pr merge --auto returns OPEN (PR scheduled not immediate). UserPromptSubmit checks URL if registered, else title-match. _detect_pr_create removed (dead code — worker always creates PR inside Agent, parent hook never sees gh pr create). T-223 |
 | Per-session token tracking | RESOLVED | Hook-based: confirmed context_fill.json is single source of truth for restart thresholds. Gap found: oracle_consent.py (line 44) was using output accumulator _last_accumulated_tokens instead of context_fill.json. Fix: swap in _read_fill_tokens(manager._project_root) in should_prompt_consent to evaluate true input+cache token size. |
 | Oracle codebase edits guard | RESOLVED | Programmatic PreToolUse hook blocks Write/Edit on non-allowlisted files during oracle session; allowlist includes 5 state files by default, customizable via config; prints recovery guidance + risk warnings on block. T-338 |
+| Simplify orchestrator lifecycle state | UNRESOLVED | SPIKE: Audit and consolidate state tracking variables (TIF, current_round, task_complete, agent_active) up to PTY restart to reduce variables in play and address race risks. T-339 |
 
 ## Oracle Direction — Sparred 2026-06-30
 
