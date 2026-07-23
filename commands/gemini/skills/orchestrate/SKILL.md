@@ -206,13 +206,24 @@ PR #N ready — [task_ids] ([module])
 git diff main...<branch>
 Worktree: <absolute path>
 PR: <URL> (always push branch to remote and show PR URL, or PR creation link)
-Reply: yes → merge | no [reason] → rework | skip → continue
 ```
-- **PR creation fallback:** Always push the task branch. If `gh pr create` encounters a sandbox permission failure, the agent must fallback to generating and providing the direct PR creation URL (e.g. `https://github.com/<owner>/<repo>/pull/new/<branch>`) instead of skipping.
 
-Once the user replies "yes" (human gate passed), emit: `HANDOFF RECOMMENDED: PR #N open for [task_ids] — good stopping point before you review`
+Execute the human gate prompt via Bash tool:
+```bash
+python agentflow/tools/human_gate_prompt.py --prompt "How should we proceed?" --options "yes - merge both" "merge PR #N only" "provide feedback" "skip"
+```
 
-**Never merge without explicit "yes".**
+Capture stdout from the tool and handle the user's choice:
+- **"yes - merge both"** → proceed to merge
+- **"merge PR #N only"** → merge PR only (don't merge follow-up tasks)
+- **"provide feedback"** → request changes and rework
+- **"skip"** → skip to next round without merging
+
+- **PR creation fallback:** Always push the task branch. If `gh pr create` encounters a sandbox permission failure, fallback to generating and providing the direct PR creation URL (e.g. `https://github.com/<owner>/<repo>/pull/new/<branch>`) instead of skipping.
+
+Once the user selects "yes - merge both" (human gate passed), emit: `HANDOFF RECOMMENDED: PR #N open for [task_ids] — good stopping point before you review`
+
+**Never merge without explicit "yes - merge both" selection.**
 
 ---
 

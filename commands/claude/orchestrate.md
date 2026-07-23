@@ -70,12 +70,24 @@ PR #N ready — [task_ids] ([module])
 git diff main...<branch>
 Worktree: <absolute path>
 PR: <URL>  ← HARD RULE: emit even if URL was shown earlier; never omit
-Reply: yes → merge | no [reason] → rework | skip → continue
 ```
-PR creation fallback: always push branch, show direct PR URL on permission failure. Once user replies "yes", emit: `HANDOFF RECOMMENDED: PR #N open for [task_ids] — good stopping point before you review`
-Never merge without explicit "yes".
 
-**Post-merge conflict resolution:** After user replies "yes" and before final merge, fetch origin/main and merge into the PR branch. Auto-resolve additive conflicts — accept both sides (no content loss). On same-line conflicts, escalate to the user. Push resolved branch, then re-merge into main. OWNS conflict gate is intentionally preserved.
+Execute the human gate prompt via Bash tool:
+```bash
+python agentflow/tools/human_gate_prompt.py --prompt "How should we proceed?" --options "yes - merge both" "merge PR #N only" "provide feedback" "skip"
+```
+
+Capture stdout from the tool and handle the user's choice:
+- **"yes - merge both"** → proceed to merge
+- **"merge PR #N only"** → merge PR only (don't merge follow-up tasks)
+- **"provide feedback"** → request changes and rework
+- **"skip"** → skip to next round without merging
+
+Once user selects "yes - merge both", emit: `HANDOFF RECOMMENDED: PR #N open for [task_ids] — good stopping point before you review`
+
+Never merge without explicit "yes - merge both" selection.
+
+**Post-merge conflict resolution:** After user replies "yes - merge both" and before final merge, fetch origin/main and merge into the PR branch. Auto-resolve additive conflicts — accept both sides (no content loss). On same-line conflicts, escalate to the user. Push resolved branch, then re-merge into main. OWNS conflict gate is intentionally preserved.
 
 ---
 
