@@ -13,6 +13,12 @@ _SENSITIVE_KEYS = frozenset({"api_key", "secret", "password", "token", "passwd",
 
 _MAX_LOG_BYTES: int = 5 * 1024 * 1024  # 5 MB — monkeypatch-able in tests
 _MAX_ROTATED: int = 3                    # monkeypatch-able in tests
+_MAX_FLAT_LINES: int = 10_000            # monkeypatch-able in tests
+_FLAT_LOG_NAMES: tuple[str, ...] = (
+    "proxy_log.jsonl",
+    "payload_inspect.jsonl",
+    "verbosity_log.jsonl",
+)
 
 # ---------------------------------------------------------------------------
 # Background write queue
@@ -118,3 +124,32 @@ def write_audit(
     if session_type is not None:
         record["session_type"] = session_type
     _q.put((log_path, record))
+
+
+def rotate_log_file(log_path: pathlib.Path) -> None:
+    """Rotate *log_path* immediately if it exceeds _MAX_LOG_BYTES (public API)."""
+    _rotate_if_needed(log_path)
+
+
+def truncate_flat_file(log_path: pathlib.Path, max_lines: int | None = None) -> None:
+    """Keep only the last *max_lines* lines of a flat log file (in-place, idempotent).
+
+    When *max_lines* is ``None`` the module-level ``_MAX_FLAT_LINES`` value is
+    used, allowing tests to monkeypatch the limit without rebinding the default.
+    """
+    limit = _MAX_FLAT_LINES if max_lines is None else max_lines
+    try:
+        if not log_path.exists():
+            return
+        lines = log_path.read_text(encoding=UTF8).splitlines(keepends=True)
+        if len(lines) <= limit:
+            return
+        log_path.write_text("".join(lines[-limit:]), encoding=UTF8)
+    except OSError:
+        pass
+
+
+def truncate_flat_logs(agentflow_dir: pathlib.Path) -> None:
+    """Truncate all known global flat log files in *agentflow_dir* to _MAX_FLAT_LINES lines."""
+    for name in _FLAT_LOG_NAMES:
+        truncate_flat_file(agentflow_dir / name)
