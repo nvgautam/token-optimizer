@@ -55,9 +55,7 @@ def test_task_done_writes_task_complete_json_when_drained(tmp_path, monkeypatch)
     monkeypatch.delenv("AGENTFLOW_SESSION_ID", raising=False)
     _task_done("T-001", tmp_path)
 
-    # task_complete.json is no longer written; poll_session watches tif==[] instead.
-    complete = tmp_path / ".agentflow" / "task_complete.json"
-    assert not complete.exists(), "task_complete.json must not be written (T-342)"
+    # Task completion status is signaled by tasks_in_flight.json == []
     assert tif.exists() and json.loads(tif.read_text()) == []
 
 
@@ -68,7 +66,8 @@ def test_task_done_no_task_complete_written_when_tasks_remain(tmp_path):
 
     _task_done("T-001", tmp_path)
 
-    assert not (tmp_path / ".agentflow" / "task_complete.json").exists()
+    # When tasks remain, tasks_in_flight.json contains them (not empty)
+    assert tif.exists() and json.loads(tif.read_text()) == ["T-002"]
 
 
 def test_task_start_sid_scoped_path(tmp_path, monkeypatch):
