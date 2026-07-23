@@ -7451,11 +7451,81 @@
         }
       },
       "status": "closed"
+    },
+    {
+      "session_id": "20260723_115518",
+      "agent": "agy",
+      "task_ids": "",
+      "start_time": "2026-07-23T11:55:18.081534",
+      "end_time": "2026-07-23T11:55:18.081551",
+      "context_at_start": 20733,
+      "input_tokens": 47246932,
+      "output_tokens": 158388,
+      "token_detail": {
+        "uncached_input": 4523350,
+        "cache_creation": 0,
+        "cache_read": 42723582,
+        "output": 158388,
+        "n_turns": 289,
+        "initial_ctx": 20733,
+        "final_ctx": 206233
+      },
+      "n_turns": 289,
+      "final_ctx": 206233,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 72179353,
+        "shadow_output": 252418,
+        "shadow_extra": 23982376,
+        "compaction": {
+          "before": 268658,
+          "after": 94030,
+          "cost_tokens": 94030,
+          "reonboarding_overhead": 681387
+        }
+      },
+      "status": "closed"
+    },
+    {
+      "session_id": "20260723_141108",
+      "agent": "agy",
+      "task_ids": "",
+      "start_time": "2026-07-23T14:11:08.618474",
+      "end_time": "2026-07-23T14:11:08.618492",
+      "context_at_start": 19744,
+      "input_tokens": 14046272,
+      "output_tokens": 55355,
+      "token_detail": {
+        "uncached_input": 2489481,
+        "cache_creation": 0,
+        "cache_read": 11556791,
+        "output": 55355,
+        "n_turns": 100,
+        "initial_ctx": 19744,
+        "final_ctx": 199397
+      },
+      "n_turns": 100,
+      "final_ctx": 199397,
+      "end_reason": "handoff",
+      "notes": "",
+      "shadow_event": {
+        "shadow_input": 23953529,
+        "shadow_output": 151230,
+        "shadow_extra": 9403000,
+        "compaction": {
+          "before": 273929,
+          "after": 95875,
+          "cost_tokens": 95875,
+          "reonboarding_overhead": 230328
+        }
+      },
+      "status": "closed"
     }
   ],
   "shadow_state": {
-    "accumulated_context": 82984,
-    "compaction_events": 143
+    "accumulated_context": 95875,
+    "compaction_events": 145
   },
   "handoffs": [
     {
