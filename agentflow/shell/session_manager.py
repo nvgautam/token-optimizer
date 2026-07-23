@@ -18,6 +18,7 @@ from agentflow.config import constants
 from agentflow.shell.countdown import countdown  # noqa: F401
 from agentflow.shell.state_machine import StateMachine, States
 from agentflow.shell.session_paths import session_file, cleanup_stale_sessions
+from agentflow.shell.audit_logger import truncate_flat_logs
 
 _DEFAULTS = {
     constants.CFG_HANDOFF_PRIMARY_TOKENS: 80000,  # T-151: only threshold that triggers auto-handoff
@@ -57,7 +58,6 @@ class SessionManager:
         self._deadline_state = None
         self._deadline_entered_at: float = 0.0
 
-        # State machine initialization
         self._state_machine = StateMachine(
             initial_state=States.IDLE,
             threshold_tokens=self._config[constants.CFG_HANDOFF_PRIMARY_TOKENS]
@@ -70,13 +70,12 @@ class SessionManager:
 
         self._update_last_current_round_mtime()
 
-        # Wire up wrappers
         pty_wrapper._on_output = self._handle_output
         pty_wrapper._on_exit = self._on_session_exit
         self._run_stale_index_guard()
         cleanup_stale_sessions(self._project_root / constants.DIR_AGENTFLOW)
         self._sync_session_type()
-
+        truncate_flat_logs(self._project_root / constants.DIR_AGENTFLOW)
         # T-194: Only enter TASK_RUNNING for orchestrator sessions with active round
         if self.session_type == constants.SESSION_TYPE_ORCHESTRATOR and self._current_round_path.exists() and not self._task_complete_path.exists():
             self._state_machine.state = States.TASK_RUNNING
@@ -226,6 +225,7 @@ class SessionManager:
         from agentflow.shell.oracle_consent import on_session_exit_oracle
         if on_session_exit_oracle(self):
             return
+        truncate_flat_logs(self._project_root / constants.DIR_AGENTFLOW)
         from agentflow.shell.session_manager_handlers import handle_session_exit
         handle_session_exit(self, exit_code)
 
