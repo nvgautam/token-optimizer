@@ -106,7 +106,7 @@ This restriction prevents accidental modifications to implementation files.
 To allow writing to this file in Oracle sessions:
 
 1. Create .agentflow/oracle_allowlist.json in project root:
-   {{"allowlist": ["path/to/file.py"]}}
+   ["path/to/file.py"]
 
 2. Or contact your project administrator to update the default allowlist.
 """.strip()
