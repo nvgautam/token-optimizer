@@ -392,6 +392,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Pre-D — MERGED | T-330 ‖ T-331 (parallel) | Split test_user_prompt_submit.py + remove duplicate session_id key |
 | Round M-F-19 [PENDING] | T-334 (MERGED) ‖ T-335 ‖ T-336 (parallel) | Enforce conventional commit PR titles + rolling execution_plan archive + log truncation |
 | Round M-F-20 [PENDING] | T-338 ‖ T-339 ‖ T-340 ‖ T-341 (parallel) | Oracle write guard + SPIKE: orchestrator lifecycle + Interactive human gate + Oracle re-prioritization block |
+| Round M-F-21 [PENDING] | T-342 (solo, depends T-339) | Implement orchestrator lifecycle fix and state consolidation |
 | Round D-2 [MERGED] | T-333 (solo) | Wire market_unknowns.md into Oracle Phase 1 emit |
 | Round E-6 [MERGED] | T-328 (solo) | Ledger-lookup based baseline usage reconstruction |
 | Round D-3 [PENDING] | T-332 (solo, depends T-333) | Architecture↔market cross-linking in Oracle Phase 2 |
@@ -1288,3 +1289,22 @@ Forces callers to supply required fields; requires updating every existing `_log
 
 **OWNS:** `commands/claude/oracle.md`, `commands/gemini/skills/oracle/SKILL.md`, `tests/prompts/test_oracle_reactive_rules.py`
 **estimated_lines:** 25
+
+## Addendum: T-342 — Implement orchestrator lifecycle fix and state consolidation
+
+**Milestone:** M-F
+
+**Goal:** Implement the consolidated orchestrator lifecycle state tracking resolved in the T-339 Spike. Eliminate `task_complete.json` and make `poll_session()` watch `tasks_in_flight.json` == `[]` directly. Merge and refine the active flag logic from PR #243 (`agent_active.json` using FILE_AGENT_ACTIVE constant, orchestrator-only UPS writes, and unconditional PostToolUse write to reset TTL). Write a comprehensive integration test that mocks the full session loop (task start, tool/PR merge hooks, active flag, PTY restart, and `/usage` ledger recording) to ensure zero regressions or edge cases exist before packaging for friendlies.
+
+**Files:**
+- `agentflow/config/constants.py` (modify) — add FILE_AGENT_ACTIVE constant.
+- `agentflow/hooks/user_prompt_submit.py` (modify) — implement orchestrator-only UPS touch of `agent_active.json` and prune `task_complete.json` unlinking.
+- `agentflow/hooks/post_tool_use.py` (modify) — implement unconditional touch of `agent_active.json`.
+- `agentflow/hooks/stop_context_capture.py` (modify) — implement Stop hook cleanup.
+- `agentflow/shell/drain_restart.py` (modify) — implement active guard check with 120s TTL.
+- `agentflow/shell/handoff_handler.py` (modify) — update `poll_session()` to transition `TASK_RUNNING` to `TASK_COMPLETE` when `tasks_in_flight.json` is `[]`, eliminating `task_complete.json` dependency.
+- `agentflow/shell/pty_signal.py` (modify) — remove `task_complete.json` write logic.
+- `tests/test_orchestrator_lifecycle_integration.py` (new) — comprehensive integration test for full session loop, active flag lifecycle, state files consolidation, and /usage capture.
+
+**OWNS:** `agentflow/config/constants.py`, `agentflow/hooks/user_prompt_submit.py`, `agentflow/hooks/post_tool_use.py`, `agentflow/hooks/stop_context_capture.py`, `agentflow/shell/drain_restart.py`, `agentflow/shell/handoff_handler.py`, `agentflow/shell/pty_signal.py`, `tests/test_orchestrator_lifecycle_integration.py`
+**estimated_lines:** 180
