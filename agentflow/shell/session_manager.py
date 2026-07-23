@@ -16,6 +16,7 @@ except ImportError:
 
 from agentflow.config import constants
 from agentflow.shell.countdown import countdown  # noqa: F401
+from agentflow.shell.drain_restart import check_and_update_round_statuses
 from agentflow.shell.state_machine import StateMachine, States
 from agentflow.shell.session_paths import session_file, cleanup_stale_sessions
 from agentflow.shell.audit_logger import truncate_flat_logs
@@ -76,6 +77,7 @@ class SessionManager:
         cleanup_stale_sessions(self._project_root / constants.DIR_AGENTFLOW)
         self._sync_session_type()
         truncate_flat_logs(self._project_root / constants.DIR_AGENTFLOW)
+        check_and_update_round_statuses(self)
         # T-194: Only enter TASK_RUNNING for orchestrator sessions with active round
         if self.session_type == constants.SESSION_TYPE_ORCHESTRATOR and self._current_round_path.exists() and not self._task_complete_path.exists():
             self._state_machine.state = States.TASK_RUNNING

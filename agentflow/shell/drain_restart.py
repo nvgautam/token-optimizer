@@ -15,6 +15,60 @@ from agentflow.shell.state_machine import States
 _MAX_MERGED_ROUNDS = 3
 
 
+def check_and_update_round_statuses(manager) -> None:
+	"""Scan execution_plan.md round table; update [PENDING] to [MERGED] if all
+	tasks are complete in tasks.json. Halt at first round with pending task.
+	"""
+	ep_path = manager._project_root / "execution_plan.md"
+	tasks_json_path = manager._project_root / "tasks.json"
+	if not ep_path.exists() or not tasks_json_path.exists():
+		return
+
+	try:
+		tasks_data = json.loads(tasks_json_path.read_text("utf-8"))
+		task_statuses = {t["task_id"]: t["status"] for t in tasks_data.get("tasks", []) if "task_id" in t}
+		lines = ep_path.read_text("utf-8").splitlines(keepends=True)
+	except (OSError, json.JSONDecodeError, KeyError, TypeError):
+		return
+
+	changed = False
+	for i, ln in enumerate(lines):
+		if not ln.startswith("|"):
+			continue
+		parts = [p.strip() for p in ln.strip().strip("|").split("|")]
+		if len(parts) < 3 or not parts[0] or re.match(r"^(-+|Round|Task|T-)$", parts[0], re.IGNORECASE):
+			continue
+		if "[MERGED]" in parts[2]:
+			continue
+
+		task_ids = [t.strip() for t in parts[1].split(",") if t.strip()]
+		if not all(task_statuses.get(tid, "").lower() == "complete" for tid in task_ids):
+			break
+
+		parts[2] = "[MERGED]"
+		lines[i] = "| " + " | ".join(parts) + " |\n"
+		changed = True
+
+	if not changed:
+		return
+
+	lock_path = manager._project_root / "execution_plan.md.lock"
+	try:
+		with open(lock_path, "w", encoding="utf-8") as lf:
+			fcntl.flock(lf.fileno(), fcntl.LOCK_EX)
+			content = "".join(lines)
+			with tempfile.NamedTemporaryFile(
+				mode="w", dir=ep_path.parent, delete=False, suffix=".tmp", encoding="utf-8"
+			) as t:
+				t.write(content)
+				tmp = t.name
+			os.replace(tmp, ep_path)
+			update_index(manager._project_root, ep_path, content)
+			fcntl.flock(lf.fileno(), fcntl.LOCK_UN)
+	except (OSError, fcntl.error):
+		pass
+
+
 def _archive_oldest_merged_round(manager, ep: Path, lines: list[str]) -> list[str]:
     """Move the oldest merged round row to the archive file if count > 3.
 
