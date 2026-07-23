@@ -76,6 +76,17 @@ def assemble_bundle(
     project_root = Path(project_root).resolve()
     out_dir = Path(out_dir).resolve()
 
+    # Fail fast: worker agents must declare a worktree so they write to the right branch.
+    if agent_type == "worker" and worktree_abs_path is None:
+        raise ValueError(
+            f"--worktree PATH is required for worker bundles (task {task_id}). "
+            "Run: agentflow bundle <task_id> --worktree <worktree_abs_path> --agent-type worker"
+        )
+    if worktree_abs_path is not None and not Path(worktree_abs_path).is_dir():
+        raise ValueError(
+            f"Worktree path does not exist or is not a directory: {worktree_abs_path}"
+        )
+
     # 1. Resolve task entry (raises ValueError if not found)
     task_entry = _load_task(project_root / "tasks.json", task_id)
 
