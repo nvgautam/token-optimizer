@@ -1362,7 +1362,7 @@ Forces callers to supply required fields; requires updating every existing `_log
 
 ## Addendum: T-346 — Prohibit worktree editable installs
 
-**Goal:** Update worker agent guidelines to explicitly forbid `pip install -e .` from within task worktrees (which breaks the global/main environment). Mandate running tests via `.venv/bin/python -m pytest` from the worktree directory, which prepends the local worktree path to `sys.path` cleanly for that execution only.
+**Goal:** Update worker agent guidelines to explicitly forbid `pip install -e .` from within task worktrees (which breaks the global/main environment). Mandate running tests via `python -m pytest` (using the active conda/mambaforge environment) from the worktree directory, which prepends the local worktree path to `sys.path` cleanly for that execution only.
 
 **Files:**
 - `commands/claude/worker_system.md` (modify) — update core rules and workflow sections
