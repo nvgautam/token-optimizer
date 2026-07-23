@@ -392,7 +392,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Pre-D — MERGED | T-330 ‖ T-331 (parallel) | Split test_user_prompt_submit.py + remove duplicate session_id key |
 | Round M-F-19 [PENDING] | T-334 (MERGED) ‖ T-335 ‖ T-336 (parallel) | Enforce conventional commit PR titles + rolling execution_plan archive + log truncation |
 | Round M-F-20 [PENDING] | T-343 (solo) | Implement worktree path propagation to worker agents via bundle metadata |
-| Round M-F-21 [PENDING] | T-338 ‖ T-339 ‖ T-340 ‖ T-341 (parallel) | Oracle write guard + SPIKE: orchestrator lifecycle + Interactive human gate + Oracle re-prioritization block |
+| Round M-F-21 — MERGED | T-338 ‖ T-339 ‖ T-340 ‖ T-341 (parallel) | Oracle write guard + SPIKE: orchestrator lifecycle + Interactive human gate + Oracle re-prioritization block |
 | Round M-F-22 [PENDING] | T-342 ‖ T-345 (parallel, T-342 depends T-339) | Implement orchestrator lifecycle fix + round table startup housekeeping |
 | Round M-F-23 — MERGED | T-344 (solo) | Enforce critical anti-bias analysis and architecture sparring in Oracle prompts |
 | Round D-2 [MERGED] | T-333 (solo) | Wire market_unknowns.md into Oracle Phase 1 emit |
