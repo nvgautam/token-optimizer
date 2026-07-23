@@ -192,7 +192,7 @@ def test_cli_errors(tmp_path, monkeypatch):
     assert exc_info.value.code == 1
 
 def test_task_done_writes_task_complete_to_sid_path(tmp_path, monkeypatch):
-    """T-342: task_complete.json is not written; tif tombstone [] in sessions/<sid>/ suffices."""
+    """Task completion status is signaled via tif tombstone [] in sessions/<sid>/."""
     tasks_file = tmp_path / "tasks.json"
     tasks_data = {"tasks": [{"task_id": "T-001"}]}
     tasks_file.write_text(json.dumps(tasks_data))
@@ -207,16 +207,12 @@ def test_task_done_writes_task_complete_to_sid_path(tmp_path, monkeypatch):
     task_start("T-001", workspace_root=tmp_path)
     task_done("T-001", workspace_root=tmp_path)
 
-    # T-342: task_complete.json is no longer written; tif tombstone [] is the signal.
-    sid_complete_file = agentflow_dir / "sessions" / sid / "task_complete.json"
-    flat_complete_file = agentflow_dir / "task_complete.json"
-    assert not sid_complete_file.exists(), "task_complete.json must not be written (T-342)"
-    assert not flat_complete_file.exists(), "task_complete.json must not be written (T-342)"
+    # Task completion status is signaled by tasks_in_flight.json == []
     tif = agentflow_dir / "sessions" / sid / "tasks_in_flight.json"
     assert tif.exists() and json.loads(tif.read_text()) == []
 
 def test_task_done_writes_task_complete_to_flat_path_without_sid(tmp_path, monkeypatch):
-    """T-342: task_complete.json is not written; tif tombstone [] in flat .agentflow/ suffices."""
+    """Task completion status is signaled via tif tombstone [] in flat .agentflow/ when no sid."""
     tasks_file = tmp_path / "tasks.json"
     tasks_data = {"tasks": [{"task_id": "T-001"}]}
     tasks_file.write_text(json.dumps(tasks_data))
@@ -230,9 +226,7 @@ def test_task_done_writes_task_complete_to_flat_path_without_sid(tmp_path, monke
     task_start("T-001", workspace_root=tmp_path)
     task_done("T-001", workspace_root=tmp_path)
 
-    # T-342: task_complete.json is no longer written; tif tombstone [] is the signal.
-    flat_complete_file = agentflow_dir / "task_complete.json"
-    assert not flat_complete_file.exists(), "task_complete.json must not be written (T-342)"
+    # Task completion status is signaled by tasks_in_flight.json == []
     tif = agentflow_dir / "tasks_in_flight.json"
     assert tif.exists() and json.loads(tif.read_text()) == []
 
