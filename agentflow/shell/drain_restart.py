@@ -75,6 +75,22 @@ def check_drain_restart(manager) -> None:
 
 	if manager.session_type != "orchestrator":
 		return
+
+	# Skip if agent is currently active (mid-turn) in this session
+	try:
+		agentflow_dir = manager._project_root / ".agentflow"
+		sid = os.environ.get("AGENTFLOW_SESSION_ID", "")
+		if sid:
+			active_file = session_file(agentflow_dir, "agent_active.json", sid)
+			if active_file.exists():
+				data = json.loads(active_file.read_text("utf-8"))
+				ts = data.get("ts", 0.0)
+				# 120-second TTL to guard against stale files on crashed/killed runs
+				if data.get("active") and time.time() - ts < 120.0:
+					_skip("agent_active", age=round(time.time() - ts, 1))
+					return
+	except Exception as e:
+		manager._log_audit({"event": "drain_check_active_error", "error": str(e)})
 	cooldown_remaining = 30.0 - (time.monotonic() - getattr(manager, "_last_restart_ts", 0.0))
 	if cooldown_remaining > 0:
 		_skip("cooldown", cooldown_remaining=round(cooldown_remaining, 1))
