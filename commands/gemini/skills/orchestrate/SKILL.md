@@ -123,10 +123,13 @@ effective_rate = min(rate_5hr, rate_wkly)
 - No GitHub remote → `gh repo create --source=. --remote=origin --push`
 - Stub every `owns` path (`raise NotImplementedError`)
 - `.gitignore` absent → generate for project tech stack
+- Pre-create branch: `git worktree add .claude/worktrees/<branch> -b <branch> main`.
+- Capture worktree path: `git worktree list | grep <branch> | awk '{print $1}'` as `worktree_abs_path`.
 - Generate `.idx` for each `reads` file ≥50 lines (skip if `.idx` newer than source). For Python files, use `ast` to parse classes, functions, and methods. For Markdown files, grep for H2/H3 headers.
 
 
 **Build each agent prompt:**
+Run `agentflow bundle <task_id> --agent-type worker --worktree <worktree_abs_path>` and include the output bundle path as the context. Alternatively, manually assemble components below:
 1. `commands/claude/worker/system.md`
 2. `commands/claude/worker/context_bundle.md`
 3. `commands/claude/worker/testing_guide.md`
