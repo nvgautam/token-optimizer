@@ -331,3 +331,9 @@ Oracle reads on startup. Handoff writes updates. Architecture.md = workers only.
 | Debugging log consumption | RESOLVED | Restrict log reads to dedicated debug skill using index-targeted reads. |
 | Startup token usage | RESOLVED | Partition checklist.md into micro-modules and enforce token ceiling in PTY. |
 
+## Oracle Direction — Sparred 2026-07-23
+
+| Item | Status | Decision |
+|---|---|---|
+| Startup round status housekeeping | RESOLVED | Automate round-level reconciliation at startup in Python by scanning for completed tasks and updating round status to `[MERGED]`. Filed as T-345. |
+| Prohibit worktree editable installs | RESOLVED | Forbid `pip install -e .` inside worktrees (which breaks global editable link). Mandate `python -m pytest` from the worktree CWD instead. Filed as T-346. |
