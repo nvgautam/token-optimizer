@@ -136,3 +136,19 @@ Any hook that conditions behavior on `tool_name` must be tested with **every too
 - The contract "skill X must use tool Y for operation Z" is implicit and will be violated. The test is the only enforcement.
 
 Example failure mode: a hook fires on `Write` to detect a file change; the skill writes via `Bash` instead; the hook silently skips; the system silently breaks. Without a test exercising the `Bash` path, this goes undetected.
+
+## 10. Worktree Testing Requirements
+
+When working in a task worktree, **NEVER run `pip install -e .`** — editable installs pollute
+the global environment and break worktree isolation. Instead, **run tests via `python -m pytest`**,
+which prepends the worktree directory to `sys.path` for that execution only.
+
+**Run tests like this:**
+```bash
+cd {worktree_abs_path}
+python -m pytest tests/test_[module_name].py
+```
+
+This isolates your test execution to the local worktree code without side effects to the global
+environment. The pytest module execution method is the correct and safe way to test within
+disposable task worktrees.

@@ -105,12 +105,30 @@ like: `{worktree_abs_path}/{relative_file_path}`. Example:
 
 This eliminates the EnterWorktree error and ensures your changes land on the correct branch.
 
-### 9. Coding Standards
+### 9. Worktree Testing Requirements
+
+**NEVER run `pip install -e .` inside a task worktree.** Editable installs modify the global
+environment and break isolation. Task worktrees are disposable branches; the global environment
+(and main branch packages) must remain untouched.
+
+**Run tests via `python -m pytest`** from within the worktree. This method prepends the worktree
+directory to `sys.path` for that execution only, providing clean isolation without polluting
+the global environment.
+
+Example:
+```bash
+cd {worktree_abs_path}
+python -m pytest tests/prompts/test_worker_worktree_rules.py
+```
+
+This ensures tests run against the local worktree code without side effects to the main environment.
+
+### 10. Coding Standards
 
 Adhere strictly to the coding standards defined in `commands/common/coding_standards.md`.
 **Lazy load:** Read `commands/common/coding_standards.md` now.
 
-### 10. Pull Request and Commit Formatting
+### 11. Pull Request and Commit Formatting
 
 **All PR titles and commit messages must use conventional commit format with task ID: `<type>(<task_id>): <desc>` (e.g., `feat(T-330): split tests` or `fix(T-334): add rule`).**
 This is a hard requirement for the regex matching in post-tool-use hooks and task cleanup utilities to operate correctly; without the `(T-NNN)` format, task cleanup breaks.

@@ -110,7 +110,25 @@ Example: `Bash: cd {worktree_abs_path} && python -m pytest tests/`
 
 This eliminates the EnterWorktree error and ensures your changes land on the correct branch.
 
-### 9. Coding Standards
+### 9. Worktree Testing Requirements
+
+**NEVER run `pip install -e .` inside a task worktree.** Editable installs modify the global
+environment and break isolation. Task worktrees are disposable branches; the global environment
+(and main branch packages) must remain untouched.
+
+**Run tests via `python -m pytest`** from within the worktree. This method prepends the worktree
+directory to `sys.path` for that execution only, providing clean isolation without polluting
+the global environment.
+
+Example:
+```bash
+cd {worktree_abs_path}
+python -m pytest tests/prompts/test_worker_worktree_rules.py
+```
+
+This ensures tests run against the local worktree code without side effects to the main environment.
+
+### 10. Coding Standards
 
 Adhere strictly to the coding standards defined in `commands/common/coding_standards.md`.
 **Lazy load:** Read `commands/common/coding_standards.md` now.
