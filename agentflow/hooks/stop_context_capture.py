@@ -22,10 +22,7 @@ def main() -> None:
         agentflow_dir = project_root / constants.DIR_AGENTFLOW
         sid = os.environ.get(constants.ENV_SESSION_ID, "")
         aa_path = session_file(agentflow_dir, constants.FILE_AGENT_ACTIVE, sid if sid else None)
-        try:
-            aa_path.unlink(missing_ok=True)
-        except OSError:
-            pass
+        aa_path.unlink(missing_ok=True)
     except Exception:
         pass
     sys.exit(0)

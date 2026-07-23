@@ -110,8 +110,8 @@ def main() -> None:
                     tmp.write(data_str)
                     tmp_path = Path(tmp.name)
                 os.replace(tmp_path, aa_path)
-        except Exception:
-            pass
+        except Exception as e:
+            _log_drain(agentflow_dir, {constants.HOOK_FIELD_EVENT: "agent_active_touch_error", constants.HOOK_FIELD_ERROR: str(e)})
 
     # If the prompt is exactly "/clear" (slash command, not prose), write the clear signal file
     if prompt and prompt.strip() == "/clear":
