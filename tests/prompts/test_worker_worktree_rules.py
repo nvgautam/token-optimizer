@@ -12,12 +12,7 @@ from pathlib import Path
 @pytest.fixture
 def repo_root():
     """Return the repository root directory."""
-    # The repo root is 5 levels up from tests/prompts/test_worker_worktree_rules.py
-    # prompts -> tests -> task-T-346 -> worktrees -> .claude -> token-optimizer
-    current = Path(__file__).resolve().parent
-    for _ in range(5):
-        current = current.parent
-    return current
+    return Path(__file__).resolve().parents[2]
 
 
 def test_worker_system_forbids_editable_install(repo_root):
