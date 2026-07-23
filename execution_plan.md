@@ -394,6 +394,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round D-2 [MERGED] | T-333 (solo) | Wire market_unknowns.md into Oracle Phase 1 emit |
 | Round E-6 [PENDING] | T-328 (solo) | Ledger-lookup based baseline usage reconstruction |
 | Round D-3 [PENDING] | T-332 (solo, depends T-333) | Architecture↔market cross-linking in Oracle Phase 2 |
+| Round D-4 [PENDING] | T-337 (solo, depends T-332) | Unify Claude and Gemini oracle specs under commands/common/ |
 | Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
 | Round E [PENDING] | T-168 ‖ T-290 (parallel) | product judgment layer + debug terminal step |
 | Round E-2 [PENDING] | T-167 (solo) | Oracle Phase 3 plan-mode preview |
@@ -1209,3 +1210,23 @@ Forces callers to supply required fields; requires updating every existing `_log
 
 **OWNS:** `agentflow/shell/audit_logger.py`, `agentflow/shell/session_manager.py`, `tests/shell/test_log_truncation.py`
 **estimated_lines:** 80
+
+## Addendum: T-337 — Unify Claude and Gemini oracle specs under commands/common/
+
+**Milestone:** M-F
+
+**Goal:** Move the prioritization (`prioritization.md`) and wrap-up (`wrapup.md`) rules from provider-specific folders to `commands/common/oracle/`, parameterize provider-specific calibration/path configs, and eliminate any remaining prompt drift between Claude and Gemini oracle prompts.
+
+**Files:**
+- `commands/claude/oracle.md` (modify) — update references to unified paths.
+- `commands/gemini/skills/oracle/SKILL.md` (modify) — update references to unified paths.
+- `commands/common/oracle/prioritization.md` (modify) — unify content.
+- `commands/common/oracle/wrapup.md` (new) — unified wrapup instructions.
+- `tests/prompts/test_oracle_parity.py` (new) — verify parity of common features.
+
+**Test scenarios:**
+- Verify `commands/claude/oracle.md` and `commands/gemini/skills/oracle/SKILL.md` reference the unified common specs.
+- Verify prompt parity tests pass.
+
+**OWNS:** `commands/claude/oracle.md`, `commands/gemini/skills/oracle/SKILL.md`, `commands/common/oracle/prioritization.md`, `commands/common/oracle/wrapup.md`, `tests/prompts/test_oracle_parity.py`
+**estimated_lines:** 40
