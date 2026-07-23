@@ -1256,7 +1256,7 @@ Forces callers to supply required fields; requires updating every existing `_log
 
 **Milestone:** M-F
 
-**Goal:** Map all edge cases and variables in play during the orchestrator lifecycle up to session restart (`tasks_in_flight.json`, `current_round.json`, `task_complete.json`, `agent_active.json`). Audit the risks (stale flags, delay races, multi-session collision) and evaluate if we can consolidate/simplify state tracking to reduce the number of variables in play. Output a concrete design status document with a simplified approach.
+**Goal:** Map all edge cases and variables in play during the orchestrator lifecycle up to session restart (`tasks_in_flight.json`, `current_round.json`, `task_complete.json`, `agent_active.json`). A partial implementation using `agent_active.json` is committed on branch `fix/drain-restart-mid-turn` and open under PR #243 (https://github.com/nvgautam/token-optimizer/pull/243). The worker/spike should check out this branch to inspect the active flag logic, audit the risks (stale flags, delay races, multi-session collision), and evaluate if we can consolidate/simplify state tracking to reduce the number of variables in play. Output a concrete design status document with a simplified approach.
 
 **OWNS:** `design_status.md`
 **estimated_lines:** 0
