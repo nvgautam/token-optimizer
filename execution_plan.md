@@ -390,7 +390,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round M-F-17 — MERGED | T-325 (solo) | Implement standardized audit logging |
 | Round M-F-18 — MERGED | T-326 (solo) | Asynchronous logging and log rotation |
 | Pre-D — MERGED | T-330 ‖ T-331 (parallel) | Split test_user_prompt_submit.py + remove duplicate session_id key |
-| Round M-F-19 [PENDING] | T-334 ‖ T-335 (parallel) | Enforce conventional commit PR titles + execution_plan rolling archive |
+| Round M-F-19 [PENDING] | T-334 ‖ T-335 ‖ T-336 (parallel) | Enforce conventional commit PR titles + rolling execution_plan archive + log truncation |
 | Round D-2 [MERGED] | T-333 (solo) | Wire market_unknowns.md into Oracle Phase 1 emit |
 | Round E-6 [PENDING] | T-328 (solo) | Ledger-lookup based baseline usage reconstruction |
 | Round D-3 [PENDING] | T-332 (solo, depends T-333) | Architecture↔market cross-linking in Oracle Phase 2 |
@@ -1191,3 +1191,21 @@ Forces callers to supply required fields; requires updating every existing `_log
 
 **OWNS:** `agentflow/shell/drain_restart.py`, `tests/shell/test_drain_restart_archive.py`
 **estimated_lines:** 70
+
+## Addendum: T-336 — Truncate and rotate massive global logs in .agentflow
+
+**Milestone:** M-F
+
+**Goal:** Update the logging framework and session managers to cap the size of global log files (like `proxy_log.jsonl`, `payload_inspect.jsonl`, `verbosity_log.jsonl`) to 5MB using `write_audit` rotation, move logs to session-scoped paths, and truncate flat files to 10,000 lines during PTY session start or exit.
+
+**Files:**
+- `agentflow/shell/audit_logger.py` (modify) — extend `write_audit` capability to arbitrary log files and configure rotation for them.
+- `agentflow/shell/session_manager.py` (modify) — add startup/exit truncation routines for flat files.
+- `tests/shell/test_log_truncation.py` (new) — verify log size capping and rotation.
+
+**Test scenarios:**
+- Verify log files rotate when size exceeds limit.
+- Verify flat files are truncated to 10,000 lines.
+
+**OWNS:** `agentflow/shell/audit_logger.py`, `agentflow/shell/session_manager.py`, `tests/shell/test_log_truncation.py`
+**estimated_lines:** 80
