@@ -391,7 +391,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round M-F-18 — MERGED | T-326 (solo) | Asynchronous logging and log rotation |
 | Pre-D — MERGED | T-330 ‖ T-331 (parallel) | Split test_user_prompt_submit.py + remove duplicate session_id key |
 | Round M-F-19 [PENDING] | T-334 (MERGED) ‖ T-335 ‖ T-336 (parallel) | Enforce conventional commit PR titles + rolling execution_plan archive + log truncation |
-| Round M-F-20 [PENDING] | T-338 ‖ T-339 ‖ T-340 (parallel) | Oracle write guard hook + SPIKE: orchestrator lifecycle + Interactive human gate prompt |
+| Round M-F-20 [PENDING] | T-338 ‖ T-339 ‖ T-340 ‖ T-341 (parallel) | Oracle write guard + SPIKE: orchestrator lifecycle + Interactive human gate + Oracle re-prioritization block |
 | Round D-2 [MERGED] | T-333 (solo) | Wire market_unknowns.md into Oracle Phase 1 emit |
 | Round E-6 [MERGED] | T-328 (solo) | Ledger-lookup based baseline usage reconstruction |
 | Round D-3 [PENDING] | T-332 (solo, depends T-333) | Architecture↔market cross-linking in Oracle Phase 2 |
@@ -1274,3 +1274,17 @@ Forces callers to supply required fields; requires updating every existing `_log
 
 **OWNS:** `agentflow/tools/human_gate_prompt.py`, `commands/claude/orchestrate.md`, `commands/gemini/skills/orchestrate/SKILL.md`, `tests/tools/test_human_gate_prompt.py`
 **estimated_lines:** 50
+
+## Addendum: T-341 — Enforce strict sequential gating and prioritization checks in reactive re-prioritization prompt
+
+**Milestone:** M-F
+
+**Goal:** Update `commands/claude/oracle.md` (and Gemini equivalent) in the Reactive Re-prioritization section to: (1) lazy-load `prioritization.md` on trigger, (2) enforce pairwise-disjoint OWNS checks for parallel tasks, (3) introduce a strict tool-blocking sequence that prevents file writes to `execution_plan.md`/`tasks.json` until the user has explicitly confirmed the proposed rounds.
+
+**Files:**
+- `commands/claude/oracle.md` (modify) — update reactive re-prioritization block instructions.
+- `commands/gemini/skills/oracle/SKILL.md` (modify) — update reactive re-prioritization block instructions.
+- `tests/prompts/test_oracle_reactive_rules.py` (new) — verify prompt rules presence.
+
+**OWNS:** `commands/claude/oracle.md`, `commands/gemini/skills/oracle/SKILL.md`, `tests/prompts/test_oracle_reactive_rules.py`
+**estimated_lines:** 25
