@@ -1,10 +1,7 @@
 """Tests for output_handler._read_fill_tokens with per-SID path support."""
 from __future__ import annotations
 import json
-import os
 import time
-from pathlib import Path
-import pytest
 
 from agentflow.shell.output_handler import _read_fill_tokens
 from agentflow.hooks.stop_context_capture import FILL_STALE_SECONDS
