@@ -50,8 +50,8 @@ Goal: All provider skill + prompt files exist; manually testable.
 
 | Round | Tasks | Note |
 |---|---|---|
-| A | T-013, T-014, T-015, T-025 | Parallel — all unblocked |
-| B | T-026, T-027 | After A |
+| A | T-013, T-014, T-015, T-025 | Parallel — all unblocked | — MERGED
+| B | T-026, T-027 | After A | — MERGED
 
 Acceptance: `/oracle`, `/orchestrate`, `/handoff` invoke correctly; prompt files pass size + content assertions.
 
@@ -87,13 +87,13 @@ Note: json/yaml parsers dropped — .idx format is Python + Markdown only.
 
 | Round | Tasks | Note |
 |---|---|---|
-| A | T-031 | Inline skill; validates empirically |
-| B | T-028a | Python parser |
-| C | T-028b | Markdown parser |
-| D | T-029 | Index manager + brownfield scanner |
-| E | T-036 | Targeted reads in orchestrate |
-| F | T-037 | Targeted reads in oracle re-spar |
-| G | T-038 | CLAUDE.md universal protocol |
+| A | T-031 | Inline skill; validates empirically | — MERGED
+| B | T-028a | Python parser | — MERGED
+| C | T-028b | Markdown parser | — MERGED
+| D | T-029 | Index manager + brownfield scanner | — MERGED
+| E | T-036 | Targeted reads in orchestrate | — MERGED
+| F | T-037 | Targeted reads in oracle re-spar | — MERGED
+| G | T-038 | CLAUDE.md universal protocol | — MERGED
 
 ---
 
@@ -167,13 +167,13 @@ Architecture: architecture.md#config-schema, architecture.md#pty-shell-design
 
 | Round | Tasks | Note |
 |---|---|---|
-| A | T-007 | No deps — first spawn alone |
-| B | T-006 | Depends on T-007 |
-| C | T-008 | Depends on T-006 |
-| D | T-009 | Depends on T-008 |
-| E | T-010 | Depends on T-009 |
-| F | T-052 | Depends on T-008 — extends session_manager.py |
-| G | T-051, T-054, T-055 | T-051: CLI integration tests; T-054: read_check.py enforcement; T-055: _pending_banner turn guard |
+| A | T-007 | No deps — first spawn alone | — MERGED
+| B | T-006 | Depends on T-007 | — MERGED
+| C | T-008 | Depends on T-006 | — MERGED
+| D | T-009 | Depends on T-008 | — MERGED
+| E | T-010 | Depends on T-009 | — MERGED
+| F | T-052 | Depends on T-008 — extends session_manager.py | — MERGED
+| G | T-051, T-054, T-055 | T-051: CLI integration tests; T-054: read_check.py enforcement; T-055: _pending_banner turn guard | — MERGED
 
 **Addendum rounds (pending):**
 
@@ -393,7 +393,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round M-F-19 [PENDING] | T-334 (MERGED) ‖ T-335 ‖ T-336 (parallel) | Enforce conventional commit PR titles + rolling execution_plan archive + log truncation |
 | Round M-F-20 [PENDING] | T-343 (solo) | Implement worktree path propagation to worker agents via bundle metadata |
 | Round M-F-21 — MERGED | T-338 ‖ T-339 ‖ T-340 ‖ T-341 (parallel) | Oracle write guard + SPIKE: orchestrator lifecycle + Interactive human gate + Oracle re-prioritization block |
-| Round M-F-22 [PENDING] | T-342 ‖ T-345 (parallel, T-342 depends T-339) | Implement orchestrator lifecycle fix + round table startup housekeeping |
+| Round M-F-22 [PENDING] | T-342 ‖ T-345 ‖ T-346 (parallel, T-342 depends T-339) | Implement orchestrator lifecycle fix + round table startup housekeeping + prohibit worktree editable installs |
 | Round M-F-23 — MERGED | T-344 (solo) | Enforce critical anti-bias analysis and architecture sparring in Oracle prompts |
 | Round D-2 [MERGED] | T-333 (solo) | Wire market_unknowns.md into Oracle Phase 1 emit |
 | Round E-6 [MERGED] | T-328 (solo) | Ledger-lookup based baseline usage reconstruction |
@@ -1359,3 +1359,20 @@ Forces callers to supply required fields; requires updating every existing `_log
 
 **OWNS:** `agentflow/shell/session_manager.py`, `agentflow/shell/drain_restart.py`, `tests/shell/test_startup_housekeeping.py`
 **estimated_lines:** 50
+
+## Addendum: T-346 — Prohibit worktree editable installs
+
+**Goal:** Update worker agent guidelines to explicitly forbid `pip install -e .` from within task worktrees (which breaks the global/main environment). Mandate running tests via `.venv/bin/python -m pytest` from the worktree directory, which prepends the local worktree path to `sys.path` cleanly for that execution only.
+
+**Files:**
+- `commands/claude/worker_system.md` (modify) — update core rules and workflow sections
+- `commands/claude/worker/system.md` (modify) — update instructions
+- `commands/claude/worker/testing_guide.md` (modify) — update testing instructions
+- `tests/prompts/test_worker_worktree_rules.py` (new) — unit tests validating presence of worktree test guidelines
+
+**Test scenarios:**
+- Verify `commands/claude/worker_system.md` contains the prohibition of editable installs and mandate of `python -m pytest`
+- Verify prompt validation tests pass
+
+**OWNS:** `commands/claude/worker_system.md`, `commands/claude/worker/system.md`, `commands/claude/worker/testing_guide.md`, `tests/prompts/test_worker_worktree_rules.py`
+**estimated_lines:** 25
