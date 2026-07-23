@@ -16,8 +16,14 @@ def parse_round_table(content: str) -> list[dict]:
 	"""
 	rounds = []
 	lines = content.splitlines()
+	in_master_table = "## Master Round Table" not in content
 
 	for i, line in enumerate(lines):
+		if "## Master Round Table" in line:
+			in_master_table = True
+			continue
+		if not in_master_table:
+			continue
 		if not line.startswith("|"):
 			continue
 		inner = line.strip().strip("|")
@@ -35,7 +41,8 @@ def parse_round_table(content: str) -> list[dict]:
 		# This is a round row
 		round_id = first_col
 		tasks_str = parts[1] if len(parts) > 1 else ""
-		task_ids = [t.strip() for t in tasks_str.split(",") if t.strip() and re.match(r"^T-", t.strip())]
+		cleaned = re.sub(r"\(.*?\)", "", tasks_str)
+		task_ids = re.findall(r"\bT-\d+[a-zA-Z]?\b", cleaned)
 
 		if task_ids:
 			rounds.append({"round_id": round_id, "task_ids": task_ids, "line_number": i})
@@ -92,18 +99,31 @@ def run_startup_housekeeping(manager) -> None:
 	changed = False
 
 	for round_info in rounds:
+		line_idx = round_info["line_number"]
+		if line_idx < len(lines):
+			parts = lines[line_idx].split("|")
+			round_col = parts[1] if len(parts) > 1 else ""
+			if "MERGED" in lines[line_idx] and "[PENDING]" not in round_col:
+				continue
+
 		if not is_round_complete(round_info["task_ids"], tasks_by_id):
 			# Halt at first pending round
 			break
 
 		# All tasks complete — mark round as [MERGED]
-		line_idx = round_info["line_number"]
 		if line_idx < len(lines):
 			line = lines[line_idx]
-			if "MERGED" not in line:
+			parts = line.split("|")
+			if len(parts) > 1 and "[PENDING]" in parts[1]:
+				parts[1] = parts[1].replace("[PENDING]", "[MERGED]")
+				lines[line_idx] = "|".join(parts)
+				changed = True
+			elif "MERGED" not in line:
 				# Append — MERGED to the line
 				lines[line_idx] = line.rstrip("\n").rstrip() + " — MERGED\n"
 				changed = True
+
+			if changed:
 				manager._log_audit(
 					{
 						"event": "housekeeping_round_merged",
@@ -125,11 +145,22 @@ def run_startup_housekeeping(manager) -> None:
 			lines = content.splitlines(keepends=True)
 
 			for round_info in rounds:
+				line_idx = round_info["line_number"]
+				if line_idx < len(lines):
+					parts = lines[line_idx].split("|")
+					round_col = parts[1] if len(parts) > 1 else ""
+					if "MERGED" in lines[line_idx] and "[PENDING]" not in round_col:
+						continue
 				if not is_round_complete(round_info["task_ids"], tasks_by_id):
 					break
-				line_idx = round_info["line_number"]
-				if line_idx < len(lines) and "MERGED" not in lines[line_idx]:
-					lines[line_idx] = lines[line_idx].rstrip("\n").rstrip() + " — MERGED\n"
+				if line_idx < len(lines):
+					line = lines[line_idx]
+					parts = line.split("|")
+					if len(parts) > 1 and "[PENDING]" in parts[1]:
+						parts[1] = parts[1].replace("[PENDING]", "[MERGED]")
+						lines[line_idx] = "|".join(parts)
+					elif "MERGED" not in line:
+						lines[line_idx] = line.rstrip("\n").rstrip() + " — MERGED\n"
 
 			final_content = "".join(lines)
 			with tempfile.NamedTemporaryFile(

@@ -1,9 +1,7 @@
 """Tests for log rotation and flat-file truncation in audit_logger and session_manager."""
 from __future__ import annotations
-import pathlib
 from unittest.mock import patch, MagicMock
 
-import pytest
 
 import agentflow.shell.audit_logger as al
 from agentflow.shell.audit_logger import (
@@ -166,6 +164,21 @@ class TestTruncateFlatLogs:
         assert "proxy_log.jsonl" in _FLAT_LOG_NAMES
         assert "payload_inspect.jsonl" in _FLAT_LOG_NAMES
         assert "verbosity_log.jsonl" in _FLAT_LOG_NAMES
+        assert "headroom_ab_log.jsonl" in _FLAT_LOG_NAMES
+        assert "verbosity_ab_log.jsonl" in _FLAT_LOG_NAMES
+        assert "shadow_reads.jsonl" in _FLAT_LOG_NAMES
+        assert "pty_audit.jsonl" in _FLAT_LOG_NAMES
+        assert "telemetry.jsonl" in _FLAT_LOG_NAMES
+        assert "hook_drain_debug.jsonl" in _FLAT_LOG_NAMES
+        assert "size_violations.jsonl" in _FLAT_LOG_NAMES
+
+    def test_payload_inspect_truncated_to_smaller_limit(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(al, "_MAX_FLAT_LINES", 2000)
+        log = tmp_path / "payload_inspect.jsonl"
+        log.write_text("".join(f"line {i}\n" for i in range(3000)))
+        truncate_flat_logs(tmp_path)
+        lines = log.read_text().splitlines()
+        assert len(lines) == 1000
 
     def test_default_max_flat_lines(self):
         assert _MAX_FLAT_LINES == 10_000
@@ -210,3 +223,20 @@ class TestSessionManagerTruncation:
                 sm._on_session_exit(0)
 
         assert len(log.read_text().splitlines()) <= 10_000
+
+    def test_truncate_called_on_restarting(self, tmp_path):
+        """Entering RESTARTING state triggers flush_writes and truncate_flat_logs."""
+        from agentflow.shell.process_manager import handle_enter_restarting
+        from agentflow.config import constants
+
+        mock_manager = MagicMock()
+        mock_manager._project_root = tmp_path
+
+        with patch("agentflow.shell.audit_logger.flush_writes") as mock_flush, \
+             patch("agentflow.shell.audit_logger.truncate_flat_logs") as mock_truncate:
+
+            handle_enter_restarting(mock_manager)
+
+            mock_flush.assert_called_once()
+            mock_truncate.assert_called_once_with(tmp_path / constants.DIR_AGENTFLOW)
+

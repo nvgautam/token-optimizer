@@ -41,11 +41,19 @@ def handle_enter_restarting(manager) -> None:
     manager._just_restarted = True
     # T-209: reset context_fill to 0 before spawning so new session starts clean
     manager._clear_signal_files()
+    try:
+        from agentflow.shell.audit_logger import flush_writes, truncate_flat_logs
+        from agentflow.config import constants
+        flush_writes()
+        truncate_flat_logs(manager._project_root / constants.DIR_AGENTFLOW)
+    except Exception as e:
+        manager._log_audit({"event": "restart_truncate_error", "error": str(e)})
     manager.restart_child()
     try:
         os.write(1, b"\x1b[0m")
     except OSError as e:
         manager._log_audit({"event": "reset_ansi_write_error", "error": str(e)})
+
 
 def restart_child(manager) -> None:
     """Kills the active Claude child process and restarts it."""
