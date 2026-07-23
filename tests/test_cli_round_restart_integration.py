@@ -258,31 +258,41 @@ class TestTaskCompleteEliminated:
 
 
 # ---------------------------------------------------------------------------
-# Active flag lifecycle (agent_active.json)
+# tasks.json terminal-status gate
 # ---------------------------------------------------------------------------
 
-class TestActiveFlag:
-    def test_drain_skips_when_agent_active_recent(self, tmp_path: Path) -> None:
-        """drain_restart must skip when agent_active.json mtime is within 120s."""
+class TestTasksJsonGate:
+    def test_drain_skips_when_tasks_not_terminal(self, tmp_path: Path) -> None:
+        """drain skips when current_round task is still 'pending' in tasks.json."""
         from agentflow.shell.drain_restart import check_drain_restart
         mgr = _StubManager(tmp_path, fill_tokens=90000)
         agentflow_dir = tmp_path / ".agentflow"
+        (agentflow_dir / "current_round.json").write_text(
+            json.dumps({"round_id": "r1", "task_ids": ["T-001"]})
+        )
         (agentflow_dir / "tasks_in_flight.json").write_text("[]")
-        (agentflow_dir / "agent_active.json").write_text(json.dumps({"ts": time.time()}))
+        (tmp_path / "tasks.json").write_text(
+            json.dumps({"tasks": [{"task_id": "T-001", "status": "pending"}]})
+        )
         check_drain_restart(mgr)
         assert "drain_restart_triggered" not in _audit_events(mgr)
-        assert "agent_active" in _audit_skip_reasons(mgr)
+        assert "tasks_not_terminal" in _audit_skip_reasons(mgr)
 
-    def test_drain_proceeds_when_agent_active_stale(self, tmp_path: Path) -> None:
-        """drain_restart proceeds when agent_active.json mtime exceeds 120s TTL."""
+    def test_drain_proceeds_when_all_tasks_terminal(self, tmp_path: Path) -> None:
+        """drain proceeds when all tasks are complete or skipped."""
         from agentflow.shell.drain_restart import check_drain_restart
         mgr = _StubManager(tmp_path, fill_tokens=90000)
         agentflow_dir = tmp_path / ".agentflow"
+        (agentflow_dir / "current_round.json").write_text(
+            json.dumps({"round_id": "r1", "task_ids": ["T-001", "T-002"]})
+        )
         (agentflow_dir / "tasks_in_flight.json").write_text("[]")
-        aa = agentflow_dir / "agent_active.json"
-        aa.write_text(json.dumps({"ts": time.time() - 200}))
-        stale_ts = time.time() - 200
-        os.utime(str(aa), (stale_ts, stale_ts))
+        (tmp_path / "tasks.json").write_text(
+            json.dumps({"tasks": [
+                {"task_id": "T-001", "status": "complete"},
+                {"task_id": "T-002", "status": "skipped"},
+            ]})
+        )
         check_drain_restart(mgr)
         assert "drain_restart_triggered" in _audit_events(mgr)
 

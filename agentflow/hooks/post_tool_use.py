@@ -334,7 +334,7 @@ def validate_state_files(project_root: Path) -> None:
                 if extra:
                     print(f"Validation Error: Task at index {idx} contains extra keys not allowed: {extra}", file=sys.stderr)
                     sys.exit(1)
-                if task.get(constants.KEY_STATUS) not in {constants.STATUS_PENDING, constants.STATUS_COMPLETE, constants.STATUS_CANCELLED}:
+                if task.get(constants.KEY_STATUS) not in {constants.STATUS_PENDING, constants.STATUS_COMPLETE, constants.STATUS_CANCELLED, constants.STATUS_SKIPPED}:
                     print(f"Validation Error: Task {task.get(constants.KEY_TASK_ID)} has invalid status: {task.get(constants.KEY_STATUS)}", file=sys.stderr)
                     sys.exit(1)
         except json.JSONDecodeError:
@@ -414,9 +414,6 @@ def main() -> None:
         fill_path = session_file(agentflow_dir, constants.FILE_CONTEXT_FILL, sid if sid else None)
         _atomic_write(fill_path, json.dumps({constants.KEY_FILL_TOKENS: fill_tokens, constants.KEY_TS: time.time()}))
         _log(agentflow_dir, {constants.HOOK_FIELD_EVENT: "context_fill_written", constants.KEY_FILL_TOKENS: fill_tokens, constants.KEY_SID: sid})
-        # Unconditionally touch agent_active.json to reset the drain-restart TTL.
-        aa_path = session_file(agentflow_dir, constants.FILE_AGENT_ACTIVE, sid if sid else None)
-        _atomic_write(aa_path, json.dumps({constants.KEY_TS: time.time()}))
     except Exception as e:
         _log(agentflow_dir, {constants.HOOK_FIELD_EVENT: "context_fill_write_error", constants.HOOK_FIELD_ERROR: str(e)})
     sys.exit(0)
