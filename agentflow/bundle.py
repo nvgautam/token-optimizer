@@ -65,11 +65,13 @@ def assemble_bundle(
     agent_type: str,
     project_root: Path,
     out_dir: Path = Path("/tmp"),
+    worktree_abs_path: Path | None = None,
 ) -> Path:
     """Assemble ctx bundle JSON, write to out_dir/ctx-<task_id>-<hash>.json, return path.
 
     Raises ValueError if task_id is not found in tasks.json.
     Writes atomically via a temp-file + rename; no partial file on error.
+    Optionally injects worktree_abs_path into bundle metadata.
     """
     project_root = Path(project_root).resolve()
     out_dir = Path(out_dir).resolve()
@@ -92,6 +94,7 @@ def assemble_bundle(
         "addendum": addendum,
         "system_prompt": system_prompt,
         "assembled_at": datetime.now(timezone.utc).isoformat(),
+        "worktree_abs_path": str(worktree_abs_path.resolve()) if worktree_abs_path else None,
     }
 
     # 5. Compute 8-char sha256 of the stable content (exclude assembled_at)

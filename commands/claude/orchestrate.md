@@ -38,7 +38,7 @@ Worker lifecycle stdout signals:
 - Capture worktree path: `git worktree list | grep <branch> | awk '{print $1}'` as `worktree_abs_path`.
 - **Never** run `git checkout` in root — inspect via `git show` or `gh pr diff`.
 **Context bundle delivery (ONLY permitted way to build agent prompt):**
-Run `Bash: agentflow bundle <task_id> --agent-type <worker|reviewer|test>` — prints an output path. Pass that path string as the Agent `prompt` arg — nothing else. Do NOT inline skill content, task definitions, or file reads into the prompt. The bundle contains everything; the worker reads and deletes it on startup.
+Run `Bash: agentflow bundle <task_id> --agent-type <worker|reviewer|test> --worktree <worktree_abs_path>` — prints an output path. Pass that path string as the Agent `prompt` arg — nothing else. Do NOT inline skill content, task definitions, or file reads into the prompt. The bundle contains everything; the worker reads and deletes it on startup.
 
 Close prompt: "End your final message with TOKENS: input=N output=N — nothing after that line."
 - **Model selection:** Mechanical (lines ≤ 80 or test/fix/stub/lint/config) → `model: "haiku"`; Default → `model: "sonnet"`.

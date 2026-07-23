@@ -73,7 +73,11 @@ def cmd_hooks(args: argparse.Namespace) -> int:
 def cmd_bundle(args: argparse.Namespace) -> int:
     from agentflow.bundle import assemble_bundle
     try:
-        out = assemble_bundle(args.task_id, args.agent_type, Path("."), Path(args.out_dir))
+        worktree = Path(args.worktree).resolve() if args.worktree else None
+        out = assemble_bundle(
+            args.task_id, args.agent_type, Path("."), Path(args.out_dir),
+            worktree_abs_path=worktree
+        )
         print(str(out))
         return 0
     except ValueError as e:
@@ -145,6 +149,7 @@ def build_parser() -> argparse.ArgumentParser:
     bundle_p.add_argument("task_id", metavar="TASK_ID")
     bundle_p.add_argument("--agent-type", choices=["worker", "reviewer", "test"], default="worker")
     bundle_p.add_argument("--out-dir", default="/tmp", metavar="DIR")
+    bundle_p.add_argument("--worktree", default=None, metavar="PATH", help="Worktree path to inject into bundle")
 
     validate = sub.add_parser("validate", help="Validate tasks.json schema and ownership rules")
     validate.add_argument("tasks_file", nargs="?", default="tasks.json", metavar="FILE")
