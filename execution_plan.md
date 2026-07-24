@@ -401,15 +401,15 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round D-3 [PENDING] | T-332 (solo, depends T-333) | Architecture↔market cross-linking in Oracle Phase 2 |
 | Round D-4 [PENDING] | T-337 (solo, depends T-332) | Unify Claude and Gemini oracle specs under commands/common/ |
 | Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
-| Round E [PENDING] | T-168 ‖ T-290 (parallel) | product judgment layer + debug terminal step |
+| Round E [PENDING] | T-168 (solo) | product judgment layer |
 | Round E-2 [PENDING] | T-167 (solo) | Oracle Phase 3 plan-mode preview |
 | Round E-5 [SUPERSEDED] | T-327 (solo) | Log troubleshooting debug skill — superseded by T-349/T-350/T-351 |
 | Round F [PENDING] | T-063 (solo) | Multi-provider chain step 1 (enterprise) |
 | Round F-2 [PENDING] | T-064 (solo) | Multi-provider chain step 2 |
 | Round F-3 [PENDING] | T-099 (solo) | Multi-provider chain step 3 |
-| Round G-1 [PENDING] | T-348 (solo) | Fix `agentflow report --agent` for aggregate/split modes |
-| Round G-2 [PENDING] | T-349 ‖ T-351 (parallel) | Generic debug triage skill + Oracle project-setup overlay prompt |
-| Round G-3 [PENDING] | T-350 (solo, depends T-349) | Refactor ops.md as agentflow overlay; merge debug.md in; wire CLAUDE.md |
+| Round M-F-24 [PENDING] | T-350 (solo) | Session restart smoke test: refactor ops.md as agentflow overlay; merge debug.md; wire CLAUDE.md |
+| Round M-F-25 [PENDING] | T-348 ‖ T-349 ‖ T-351 (parallel) | Fix `agentflow report --agent` + generic triage skill + oracle project-setup overlay |
+| Round M-F-26 [PENDING] | T-352 (solo) | Add `agentflow:` namespace prefix to all agentflow skill commands |
 
 
 Priority rationale (2026-07-17): T-274 (P0) + T-273 (P1) prepend Round C — both block reliable orchestrate restart loop. Restart-path hardening (A/B) before skill rewrites — loop reliability prerequisite. CLI spike (T-259) gates T-260. Rounds D–E are spikes/oracle enhancements. Round F deferred until Claude-only loop is solid. T-276 (C-P3) prepends C-1 — audit log coverage is a prerequisite for diagnosing any further drain/restart bugs. T-277 (C-P4) prepends C-1 — this is the root fix for the C-2 premature-drain bug; was documented in T-276 spec but missed during implementation.
@@ -1427,7 +1427,7 @@ Forces callers to supply required fields; requires updating every existing `_log
 
 ## Addendum: T-350 — Refactor ops.md as agentflow overlay; merge debug.md (commands/claude/ops.md)
 
-**Goal:** Absorb `commands/claude/debug.md` content into `ops.md`, restructure using the same 6-phase skeleton from T-349 (domain-specific evidence inventory using agentflow signal files), remove "Internal Only" framing, and add `troubleshooting: commands/claude/ops.md` to CLAUDE.md so triage.md auto-loads it. Delete `commands/claude/debug.md` after merge.
+**Goal:** Absorb `commands/claude/debug.md` content into `ops.md`, restructure using a 6-phase skeleton (domain-specific evidence inventory using agentflow signal files: pty_audit.jsonl, hook_drain_debug.jsonl, current_round.json), remove "Internal Only" framing, and add `troubleshooting: commands/claude/ops.md` to CLAUDE.md so triage.md auto-loads it. Delete `commands/claude/debug.md` after merge. This is also the first post-T-342 orchestrate session restart smoke test.
 
 **Files:**
 - `commands/claude/ops.md` (modify) — absorb debug.md; adopt 6-phase structure with agentflow-specific evidence paths
@@ -1457,3 +1457,22 @@ Forces callers to supply required fields; requires updating every existing `_log
 
 **OWNS:** `commands/common/oracle/checklist.md`, `commands/claude/oracle.md`
 **estimated_lines:** 40
+
+## Addendum: T-352 — Add `agentflow:` namespace prefix to agentflow skill commands
+
+**Goal:** Prevent skill name collisions when customers install agentflow alongside their own projects that define skills like `oracle`, `debug`, or `worker`. All agentflow skills should be accessible with an `agentflow:` prefix (e.g., `/agentflow:oracle`, `/agentflow:debug`) so customer skill names never collide. Research the Claude Code skill namespace mechanism first (directory naming vs. explicit registration), then rename/restructure accordingly and update all CLAUDE.md command references.
+
+**Files:**
+- `commands/claude/` (rename/restructure) — investigate whether renaming to `commands/agentflow/` yields `agentflow:` prefix in Claude Code
+- All `commands/claude/*.md` skill files — update any internal `/skillname` references to `/agentflow:skillname`
+- `CLAUDE.md` (modify) — update all command references to use namespaced form
+- `commands/common/*.md` as needed — update cross-skill references
+
+**Test scenarios:**
+- `/agentflow:oracle` invokes the oracle skill
+- `/agentflow:debug` invokes the debug skill
+- Customer skill named `oracle` coexists without collision
+- All internal skill-to-skill references resolve correctly
+
+**OWNS:** `commands/claude/oracle.md`, `commands/claude/debug.md`, `commands/claude/ops.md`, `commands/claude/handoff.md`, `commands/claude/orchestrate.md`, `CLAUDE.md`
+**estimated_lines:** 60
