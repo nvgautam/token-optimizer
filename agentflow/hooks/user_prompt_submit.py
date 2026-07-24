@@ -228,10 +228,9 @@ def main() -> None:
     except Exception as e:
         print(json.dumps({constants.HOOK_FIELD_HOOK: constants.HOOK_USER_PROMPT_SUBMIT, constants.HOOK_FIELD_EVENT: "session_type_error", constants.HOOK_FIELD_ERROR: str(e), constants.HOOK_FIELD_TS: time.time()}), file=sys.stderr)
 
-    # T-357: Check for restart consent when tokens exceed threshold
+    # T-357: Check for restart consent when tokens exceed threshold (oracle sessions only)
     try:
-        # Only check restart consent if not already handling handoff/orchestrate/oracle commands
-        if prompt and not (is_orchestrate or is_oracle or is_handoff):
+        if prompt and session_type == constants.SESSION_TYPE_ORACLE:
             token_count = _get_session_token_count(agentflow_dir, sid)
             if token_count > constants.RESTART_CONSENT_THRESHOLD_TOKENS:
                 snooze_count = _read_and_decrement_snooze(agentflow_dir, sid)
