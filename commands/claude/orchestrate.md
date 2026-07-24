@@ -99,4 +99,6 @@ Then:
 2. Milestone complete → mark COMPLETE, decompose next milestone lazily.
 Do not manually edit task stubs or archive — always run cleanup_tasks.py.
 
+**Auto-advance to next round:** After merge completes successfully, immediately proceed to the next `[PENDING]` round from the Master Round Table without waiting for user input. Derive the next round via `grep -m 1 '\[PENDING\]'` on execution_plan.md (post-reconciliation), then spawn the worker agent for that round.
+
 **See `commands/claude/orchestrator/targeted_reads.md`, `verbosity.md`, and `telemetry.md`.**

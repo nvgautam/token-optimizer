@@ -52,6 +52,9 @@ python3 -c "import json; d=json.load(open('tasks.json')); [print(json.dumps({k:v
 
 Check `.agentflow/state.json`. It is advisory only. On resume, the next round must be derived by scanning `execution_plan.md` Master Round Table for the first row whose tasks are all pending (not complete/cancelled), and state.json must not be the sole authority for next_round. Present → report resumed state and proceed immediately. Absent → identify first incomplete milestone and proceed. `/orchestrate debug` → reveal grouping plan and proceed.
 
+### Step 4a.5 — Round table reconciliation
+Before selecting the next round, reconcile stale rows in execution_plan.md. Scan the Master Round Table for all rows tagged with `[PENDING]`. For each `[PENDING]` row, extract task_ids (separated by ‖). Cross-check against `tasks.json`: if ALL task_ids have status "complete", update that row's `[PENDING]` tag to `[MERGED]`. If any task_id is "pending" or absent, leave the row unchanged. Reconciliation is idempotent: checking completion status before updating ensures safe re-runs. After reconciliation completes, re-run `grep -m 1 '\[PENDING\]'` on the updated Master Round Table to derive the correct next round.
+
 ### Step 4b — Select round
 Read the round table for the active milestone in `execution_plan.md` and check task statuses in `tasks.json`. Identify the first round that contains PENDING tasks whose dependencies are fully satisfied (i.e. marked as MERGED or complete).
 Announce: `Picking up Round X: T-xxx` (where `X` is the round identifier, e.g., `C`, and `T-xxx` represents the pending task IDs in that round).
