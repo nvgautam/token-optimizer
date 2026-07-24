@@ -83,6 +83,26 @@ was not suppressed by a `# noqa` comment or equivalent. Flag as WARNING if suppr
 
 ---
 
+## 8. Coding Standards Compliance
+
+Lazy-load `commands/common/coding_standards.md` and check the diff for violations.
+
+Check:
+- **Hardcoded Strings**: Hardcoded string literals or magic numbers in logical checks or
+  command inputs should be centralized in constants (e.g., `agentflow/config/constants.py`).
+  Flag as WARNING.
+- **Bare Except**: Check that specific exceptions are caught, not bare `except:`.
+  The pre-filter catches most cases, but contextual misses may exist. Flag as WARNING if found.
+- **File Size Violations**: Implementation files > 250 lines, test files > 350 lines, or
+  prompt/skill files > 150 lines. The pre-filter catches full-file violations, but flag
+  if new lines introduced push a file over its limit. Flag as WARNING.
+- **Idempotency**: Operations must be safe to run twice. Check for unconditional overwrites,
+  lack of existence checks, or duplicate resource creation. Flag as WARNING.
+
+If no coding standards violations found in this diff, report `CLEAN`.
+
+---
+
 ## Output Format
 
 - `CRITICAL: [finding] — [file:line]` — blocks merge; must be fixed
