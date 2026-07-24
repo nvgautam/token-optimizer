@@ -100,6 +100,8 @@ No match → proceed without architecture context for that topic.
 ### Task-filing duplicate check
 Before filing, grep 2–3 title nouns in tasks.json: `python3 -c "import json; n=['x','y']; [print(t['task_id'],t['title']) for t in json.load(open('tasks.json'))['tasks'] if any(w in t['title'].lower() for w in n)]"`. If hits → present as candidates; require user confirmation the new task is distinct.
 
+
+**Write-gate rule:** Do NOT write to `tasks.json` or `execution_plan.md` until you have (1) proposed the new task's round placement and rationale, and (2) received explicit user confirmation. Filing without proposing round placement is blocked.
 **tasks.json schema — HARD RULE:** `{"task_id": "T-NNN", "status": "pending"}` — exactly two keys, nothing else. No `title`, `description`, `owns`, or any other field. All task spec goes in `execution_plan.md` addendum only. Violation breaks the PostToolUse validator and silently blocks restart.
 
 **Lazy load:** Read `commands/common/oracle/phase2_state.md` now.
