@@ -398,6 +398,12 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round D-2 [MERGED] | T-333 (solo) | Wire market_unknowns.md into Oracle Phase 1 emit |
 | Round E-6 [MERGED] | T-328 (solo) | Ledger-lookup based baseline usage reconstruction |
 | Round E-4 [SUPERSEDED] | T-289 (solo) | Oracle troubleshoot detection → offer debug skill — superseded by T-349/T-350/T-351 |
+| Round M-F-24 [PENDING] | T-350 (solo) | Session restart smoke test: refactor ops.md as agentflow overlay; merge debug.md; wire CLAUDE.md |
+| Round M-F-25 [PENDING] | T-354 (solo) | Harden oracle task-filing write gate — mandatory round placement before tasks.json write |
+| Round M-F-26 [PENDING] | T-353 (solo) | Apply coding standards in worker and reviewer |
+| Round M-F-27 [PENDING] | T-355 (solo) | SPIKE: hook-based dynamic skill router for all oracle sub-skills |
+| Round M-F-28 [PENDING] | T-348 ‖ T-349 ‖ T-351 (parallel) | Fix `agentflow report --agent` + generic triage skill + oracle project-setup overlay |
+| Round M-F-29 [PENDING] | T-352 (solo) | Add `agentflow:` namespace prefix to all agentflow skill commands |
 | Round D-3 [PENDING] | T-332 (solo, depends T-333) | Architecture↔market cross-linking in Oracle Phase 2 |
 | Round D-4 [PENDING] | T-337 (solo, depends T-332) | Unify Claude and Gemini oracle specs under commands/common/ |
 | Round D [PENDING] | T-178 ‖ T-211 (parallel) | Hook audit log spike + Gemini lifecycle spike |
@@ -407,10 +413,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round F [PENDING] | T-063 (solo) | Multi-provider chain step 1 (enterprise) |
 | Round F-2 [PENDING] | T-064 (solo) | Multi-provider chain step 2 |
 | Round F-3 [PENDING] | T-099 (solo) | Multi-provider chain step 3 |
-| Round M-F-24 [PENDING] | T-350 (solo) | Session restart smoke test: refactor ops.md as agentflow overlay; merge debug.md; wire CLAUDE.md |
-| Round M-F-25 [PENDING] | T-348 ‖ T-349 ‖ T-351 (parallel) | Fix `agentflow report --agent` + generic triage skill + oracle project-setup overlay |
-| Round M-F-26 [PENDING] | T-352 (solo) | Add `agentflow:` namespace prefix to all agentflow skill commands |
-| Round M-F-27 [PENDING] | T-353 (solo) | Apply coding standards in worker and reviewer |
+
 
 
 Priority rationale (2026-07-17): T-274 (P0) + T-273 (P1) prepend Round C — both block reliable orchestrate restart loop. Restart-path hardening (A/B) before skill rewrites — loop reliability prerequisite. CLI spike (T-259) gates T-260. Rounds D–E are spikes/oracle enhancements. Round F deferred until Claude-only loop is solid. T-276 (C-P3) prepends C-1 — audit log coverage is a prerequisite for diagnosing any further drain/restart bugs. T-277 (C-P4) prepends C-1 — this is the root fix for the C-2 premature-drain bug; was documented in T-276 spec but missed during implementation.
@@ -1492,3 +1495,35 @@ Forces callers to supply required fields; requires updating every existing `_log
 
 **OWNS:** `commands/claude/reviewer/code_review.md`
 **estimated_lines:** 15
+
+## Addendum: T-354 — Harden oracle task-filing write gate
+
+**Goal:** Convert the soft "Trigger: task filed → lazy load prioritization.md" into a mandatory pre-write gate. Oracle cannot write to `tasks.json` or the round table until it has (1) proposed round placement and rationale, and (2) received explicit user confirmation. Pattern mirrors the oracle write guard (T-338). Prevents silent priority drift when new tasks are filed.
+
+**Files:**
+- `commands/claude/oracle.md` (modify) — add write gate rule in Phase 2 task-filing section: proposed round placement + user confirmation required before any tasks.json write
+
+**Test scenarios:**
+- Filing a new task without proposing round placement is blocked by the gate wording
+- User confirmation on round order is captured before tasks.json write proceeds
+
+**OWNS:** `commands/claude/oracle.md`
+**estimated_lines:** 10
+
+## Addendum: T-355 — SPIKE: Hook-based dynamic skill router
+
+**Goal:** Design and prototype a `UserPromptSubmit` hook that classifies incoming prompt context (keywords, session_type, phase signals) and prepends a `[REMINDER: load <skill-path>]` injection before the LLM responds. Covers all oracle sub-skills: `market.md`, `checklist.md`, `prioritization.md`, `generation.md`, `phase2_state.md`, `wrapup.md`, plus worker and reviewer skills. Makes sub-skill routing deterministic and hook-driven rather than LLM-memory-dependent. Spike: define routing table schema, prototype one route (prioritization), measure false-positive rate.
+
+**Files:**
+- `agentflow/hooks/skill_router.py` (new) — UserPromptSubmit hook; keyword → skill-path routing table; injects reminder into prompt context
+- `commands/common/skill_routing_table.json` (new) — routing table: `{signal_keywords: [...], session_types: [...], skill_path: "..."}`
+- `.claude/settings.json` (modify) — register skill_router.py as UserPromptSubmit hook
+
+**Test scenarios:**
+- Prompt containing "file a task" → prioritization.md reminder injected
+- Prompt containing "who is your user" → market.md reminder injected
+- Prompt in orchestrator session → worker/system.md reminder injected
+- No false positives on unrelated prompts
+
+**OWNS:** `agentflow/hooks/skill_router.py`, `commands/common/skill_routing_table.json`
+**estimated_lines:** 120
