@@ -43,6 +43,17 @@ SESSION_TYPE_ORCHESTRATOR = "orchestrator"
 SESSION_TYPE_ORACLE = "oracle"
 SESSION_TYPE_UNKNOWN = "unknown"
 
+
+def is_oracle_session(session_type: str) -> bool:
+    """Check if session type is oracle."""
+    return session_type == SESSION_TYPE_ORACLE
+
+
+def is_orchestrate_session(session_type: str) -> bool:
+    """Check if session type is orchestrator."""
+    return session_type == SESSION_TYPE_ORCHESTRATOR
+
+
 # Tools
 TOOL_BASH = "Bash"
 TOOL_WRITE = "Write"
@@ -57,6 +68,11 @@ CFG_RESTART_DELAY_SECONDS = "restart_delay_seconds"
 CFG_SHELL = "shell"
 CFG_ORACLE_THRESHOLD_TOKENS = "oracle_threshold_tokens"
 CFG_ORACLE_CONSENT_THRESHOLD_TOKENS = "oracle_consent_threshold_tokens"
+
+# Restart consent thresholds and settings
+RESTART_CONSENT_THRESHOLD_TOKENS = 70000
+RESTART_SNOOZE_TURNS = 3
+RESTART_SENTINEL_PREFIX = "[AGENTFLOW_RESTART:"
 
 # Hook metadata fields
 HOOK_FIELD_HOOK = "hook"

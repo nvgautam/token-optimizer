@@ -32,6 +32,52 @@ def _write_session_state_atomic(agentflow_dir: Path, session_type: str, sid: str
         _log_drain(agentflow_dir, {constants.HOOK_FIELD_EVENT: "write_session_state_error", constants.HOOK_FIELD_ERROR: str(e)})
 
 
+def _get_session_token_count(agentflow_dir: Path, sid: str = "") -> int:
+    """Get current session accumulated token count from context_fill.json."""
+    try:
+        context_fill_file = session_file(agentflow_dir, constants.FILE_CONTEXT_FILL, sid)
+        if context_fill_file.exists():
+            data = json.loads(context_fill_file.read_text(constants.UTF8))
+            return data.get("fill_tokens", 0)
+    except Exception:
+        pass
+    return 0
+
+
+def _read_and_decrement_snooze(agentflow_dir: Path, sid: str = "") -> int:
+    """Read snooze file and decrement count. Return remaining count or -1 if file not found."""
+    try:
+        session_dir = session_file(agentflow_dir, "dummy", sid).parent if sid else agentflow_dir
+        snooze_file = session_dir / "restart_snooze"
+        if snooze_file.exists():
+            count = int(snooze_file.read_text(constants.UTF8).strip())
+            if count <= 0:
+                snooze_file.unlink()
+                return -1
+            new_count = count - 1
+            if new_count <= 0:
+                snooze_file.unlink()
+            else:
+                snooze_file.write_text(str(new_count), encoding=constants.UTF8)
+            return new_count
+    except Exception:
+        pass
+    return -1
+
+
+def _inject_restart_consent_prompt() -> None:
+    """Inject restart consent question into the prompt context."""
+    consent_prompt = (
+        "\n<agentflow-restart-consent>\n"
+        "**Session context approaching limit.** Would you like to continue in this session or start fresh?\n"
+        "Reply with:\n"
+        "- **Continue** to keep working here (snooze for 3 more turns)\n"
+        "- **Yes handoff and restart** to flush state and restart\n"
+        "</agentflow-restart-consent>\n"
+    )
+    print(consent_prompt)
+
+
 def main() -> None:
     prompt = None
 
@@ -115,7 +161,7 @@ def main() -> None:
         # Oracle consent check: update context_fill.json timestamp if it exists,
         # then check should_prompt_consent. If it is True, we touch/update context_fill.json ts
         # so that the PTY session manager will also see it as fresh and fire the prompt!
-        if session_type == constants.SESSION_TYPE_ORACLE:
+        if constants.is_oracle_session(session_type):
             fill_path = session_file(agentflow_dir, constants.FILE_CONTEXT_FILL, sid)
             if fill_path.exists():
                 try:
@@ -181,6 +227,17 @@ def main() -> None:
                 inject_consent_prompt(mock_manager)
     except Exception as e:
         print(json.dumps({constants.HOOK_FIELD_HOOK: constants.HOOK_USER_PROMPT_SUBMIT, constants.HOOK_FIELD_EVENT: "session_type_error", constants.HOOK_FIELD_ERROR: str(e), constants.HOOK_FIELD_TS: time.time()}), file=sys.stderr)
+
+    # T-357: Check for restart consent when tokens exceed threshold (oracle sessions only)
+    try:
+        if prompt and constants.is_oracle_session(session_type):
+            token_count = _get_session_token_count(agentflow_dir, sid)
+            if token_count > constants.RESTART_CONSENT_THRESHOLD_TOKENS:
+                snooze_count = _read_and_decrement_snooze(agentflow_dir, sid)
+                if snooze_count == -1:  # No snooze file exists, inject consent
+                    _inject_restart_consent_prompt()
+    except Exception as e:
+        _log_drain(agentflow_dir, {constants.HOOK_FIELD_EVENT: "restart_consent_error", constants.HOOK_FIELD_ERROR: str(e)})
 
     sys.exit(0)
 
