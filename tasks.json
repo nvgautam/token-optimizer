@@ -1038,7 +1038,7 @@
     },
     {
       "task_id": "T-289",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-290",
@@ -1158,7 +1158,7 @@
     },
     {
       "task_id": "T-327",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-328",
@@ -1242,6 +1242,18 @@
     },
     {
       "task_id": "T-348",
+      "status": "pending"
+    },
+    {
+      "task_id": "T-349",
+      "status": "pending"
+    },
+    {
+      "task_id": "T-350",
+      "status": "pending"
+    },
+    {
+      "task_id": "T-351",
       "status": "pending"
     }
   ]
