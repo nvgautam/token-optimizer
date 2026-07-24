@@ -402,7 +402,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round M-F-24 — MERGED | T-350 ‖ T-353 (parallel) | Session restart smoke test: ops.md overlay + coding standards in reviewer |
 | Round M-F-24b [PENDING] | T-357 (solo) | Replace PTY consent injection with hook-based restart consent + sentinel-driven PTY restart |
 | Round M-F-25 [PENDING] | T-354 (solo) | Harden oracle task-filing write gate — mandatory round placement before tasks.json write |
-| Round M-F-27 [PENDING] | T-355 ‖ T-358 ‖ T-359 (parallel) | SPIKE: hook-based dynamic skill router + orchestrator auto-advance + ops.md evidence-first diagnostic |
+| Round M-F-27 [PENDING] | T-355 ‖ T-358 ‖ T-359 ‖ T-360 (parallel) | SPIKE: hook-based dynamic skill router + orchestrator auto-advance + ops.md evidence-first diagnostic + session-type helper cleanup |
 | Round M-F-28 [PENDING] | T-348 ‖ T-349 ‖ T-351 (parallel) | Fix `agentflow report --agent` + generic triage skill + oracle project-setup overlay |
 | Round M-F-29 [PENDING] | T-352 (solo) | Add `agentflow:` namespace prefix to all agentflow skill commands |
 | Round D-3 [PENDING] | T-332 (solo, depends T-333) | Architecture↔market cross-linking in Oracle Phase 2 |
@@ -1593,3 +1593,19 @@ Forces callers to supply required fields; requires updating every existing `_log
 
 **OWNS:** `commands/claude/ops.md`
 **estimated_lines:** 35
+
+## Addendum: T-360 — Replace raw session-type string comparisons with T-357 helper methods
+
+**Goal:** Across `handoff_handler.py`, `threshold_sync.py`, and `oracle_consent.py`, replace all raw string comparisons against `"orchestrator"` / `"oracle"` with the `is_orchestrate_session()` / `is_oracle_session()` helper methods introduced in T-357 (`agentflow/config/constants.py`). No behavior change — pure cleanup to eliminate string literal scatter.
+
+**Files:**
+- `agentflow/shell/handoff_handler.py` (modify) — replace raw string comparisons
+- `agentflow/shell/threshold_sync.py` (modify) — replace raw string comparisons
+- `agentflow/shell/oracle_consent.py` (modify) — replace raw string comparisons
+
+**Test scenarios:**
+- All existing tests pass unchanged (behavior-preserving refactor)
+- No raw `== "orchestrator"` or `== "oracle"` string comparisons remain in the three files
+
+**OWNS:** `agentflow/shell/handoff_handler.py`, `agentflow/shell/threshold_sync.py`, `agentflow/shell/oracle_consent.py`
+**estimated_lines:** 15

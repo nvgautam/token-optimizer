@@ -1278,7 +1278,7 @@
     },
     {
       "task_id": "T-357",
-      "status": "pending"
+      "status": "complete"
     },
     {
       "task_id": "T-358",
@@ -1286,6 +1286,10 @@
     },
     {
       "task_id": "T-359",
+      "status": "pending"
+    },
+    {
+      "task_id": "T-360",
       "status": "pending"
     }
   ]
