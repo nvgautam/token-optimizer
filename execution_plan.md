@@ -1546,7 +1546,7 @@ Forces callers to supply required fields; requires updating every existing `_log
 
 ## Addendum: T-357 — Hook-based restart consent + sentinel-driven PTY restart
 
-**Goal:** Replace the current PTY text injection consent prompt with a cleaner two-part mechanism: (1) UserPromptSubmit hook detects token count > 70K and, if not snoozed, injects a consent question into the prompt for the LLM to surface to the user; (2) when user confirms restart, the handoff skill emits `[AGENTFLOW_RESTART:<sha8>]` sentinel as its last output line and PTY output_handler watches for it to trigger restart. "Continue" writes `.agentflow/restart_snooze_<session_id>` with count=3; each subsequent UserPromptSubmit decrements it; re-surfaces when count reaches 0.
+**Goal:** Replace the current PTY text injection consent prompt with a cleaner two-part mechanism: (1) UserPromptSubmit hook detects token count > 70K and, if not snoozed, injects a consent question into the prompt for the LLM to surface to the user; (2) when user confirms restart, the handoff skill emits `[AGENTFLOW_RESTART:<sha8>]` sentinel as its last output line and PTY output_handler watches for it to trigger restart. "Continue" writes `.agentflow/sessions/<session_id>/restart_snooze` with count=3; each subsequent UserPromptSubmit decrements it; re-surfaces when count reaches 0. GC cleans up automatically via `cleanup_stale_sessions`.
 
 **Files:**
 - `agentflow/hooks/user_prompt_submit.py` (modify) — add token-count check; read/decrement snooze file; inject consent question if threshold exceeded and not snoozed
