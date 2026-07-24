@@ -1460,13 +1460,13 @@ Forces callers to supply required fields; requires updating every existing `_log
 
 ## Addendum: T-352 — Add `agentflow:` namespace prefix to agentflow skill commands
 
-**Goal:** Prevent skill name collisions when customers install agentflow alongside their own projects that define skills like `oracle`, `debug`, or `worker`. All agentflow skills should be accessible with an `agentflow:` prefix (e.g., `/agentflow:oracle`, `/agentflow:debug`) so customer skill names never collide. Research the Claude Code skill namespace mechanism first (directory naming vs. explicit registration), then rename/restructure accordingly and update all CLAUDE.md command references.
+**Goal:** Prevent skill name collisions when customers install agentflow alongside their own projects that define skills like `oracle`, `debug`, or `worker`. Folder name = namespace prefix in Claude Code (e.g. `commands/claude/oracle.md` → `/claude:oracle`). Rename `commands/claude/` → `commands/agentflow/` so all agentflow skills become `/agentflow:oracle`, `/agentflow:debug`, etc. Update all internal cross-skill references and CLAUDE.md command references to use the new namespaced form.
 
 **Files:**
-- `commands/claude/` (rename/restructure) — investigate whether renaming to `commands/agentflow/` yields `agentflow:` prefix in Claude Code
-- All `commands/claude/*.md` skill files — update any internal `/skillname` references to `/agentflow:skillname`
-- `CLAUDE.md` (modify) — update all command references to use namespaced form
-- `commands/common/*.md` as needed — update cross-skill references
+- `commands/claude/` (rename → `commands/agentflow/`) — all skill files move; prefix changes from `claude:` to `agentflow:`
+- All moved `commands/agentflow/*.md` skill files — update internal `/claude:skillname` and `/skillname` references to `/agentflow:skillname`
+- `CLAUDE.md` (modify) — update all `## Commands` skill references to namespaced form
+- `commands/common/*.md` as needed — update any `claude:` cross-references
 
 **Test scenarios:**
 - `/agentflow:oracle` invokes the oracle skill
