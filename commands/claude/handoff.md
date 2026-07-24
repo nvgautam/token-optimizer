@@ -107,6 +107,15 @@ HANDOFF_COMPLETE: <actual-path-written>
 
 Use the actual path from Step 6 (either `.agentflow/handoff_<YYYY-MM-DD>.md` or `.agentflow/sessions/<SID>/handoff_<YYYY-MM-DD>.md`).
 
+**T-357: Emit restart sentinel (if restart confirmed via consent prompt):**
+
+When user confirms "Yes handoff and restart" in response to token consent prompt, emit the sentinel as the final output line:
+```
+[AGENTFLOW_RESTART:<sha8>]
+```
+
+Where `<sha8>` is the first 8 characters of the SHA256 hash of the session ID or timestamp. The PTY output_handler watches for this sentinel and triggers automatic restart.
+
 ### Step 9 — Prompt session restart
 
 **Always** tell the user (whether PTY or interactive):

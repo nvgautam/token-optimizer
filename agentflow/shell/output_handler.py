@@ -77,6 +77,14 @@ def handle_output(manager, chunk: bytes) -> None:
         except Exception as e:
             manager._log_audit({"event": "clear_signal_unlink_error", "error": str(e)})
 
+    # T-357: Check for restart sentinel [AGENTFLOW_RESTART:<sha8>]
+    restart_m = re.search(r"\[AGENTFLOW_RESTART:([a-f0-9]{8})\]", clean)
+    if restart_m:
+        restart_id = restart_m.group(1)
+        manager._log_audit({"event": "restart_sentinel_detected", "restart_id": restart_id})
+        manager._should_restart = True
+        manager._restart_id = restart_id
+
     detected_path = detect_read_path(clean)
     if detected_path and detected_path.startswith("/"):
         cwd = os.getcwd() + "/"

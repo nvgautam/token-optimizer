@@ -58,6 +58,11 @@ CFG_SHELL = "shell"
 CFG_ORACLE_THRESHOLD_TOKENS = "oracle_threshold_tokens"
 CFG_ORACLE_CONSENT_THRESHOLD_TOKENS = "oracle_consent_threshold_tokens"
 
+# Restart consent thresholds and settings
+RESTART_CONSENT_THRESHOLD_TOKENS = 70000
+RESTART_SNOOZE_TURNS = 3
+RESTART_SENTINEL_PREFIX = "[AGENTFLOW_RESTART:"
+
 # Hook metadata fields
 HOOK_FIELD_HOOK = "hook"
 HOOK_FIELD_EVENT = "event"
