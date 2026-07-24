@@ -2,148 +2,88 @@
 
 Structured, low-token protocol for diagnosing AgentFlow failures.
 Invoke as a standalone skill: `/debug`. Do NOT nest inside oracle.
+Evidence-first diagnostic protocol: collect observable signals → reason to anomaly → trace root cause → recommend fix.
 
 ---
 
-## Phase 1: Triage
+## Phase 1: Collect Observable Signals
 
-Identify which symptom class applies (ask user or infer from context):
+Gather evidence from all available sources without pre-classification.
 
-| Code | Symptom |
-|------|---------|
-| A | PTY stuck — session never restarts despite tasks complete |
-| B | Drain missed — merge happened but PTY did not drain |
-| C | Split-brain — `tasks.json` says complete, PTY thinks in-flight |
-
-Load only the files relevant to the matched class. Do not pre-read everything.
-
----
-
-## Phase 2: Evidence Inventory
-
-Signal files for this project:
-
-| File | Contents |
-|------|---------|
-| `.agentflow/hook_drain_debug.jsonl` | Post-tool use hook logs; every entry includes `sid` |
-| `.agentflow/pty_audit.jsonl` | PTY state transitions, handoff status, token evaluations, cleanup events |
-| `.agentflow/current_round.json` | Active session ID and round metadata |
-
-Session-start record schema (first entry per session in hook_drain_debug.jsonl):
-```json
-{"sid": "<uuid>", "session_type": "orchestrator|oracle|worker|reviewer", "task_ids": ["T-NNN"], "ts": <ts>}
-```
-
-Key PTY audit events: `session_start_header`, `session_type_transition`, `trigger_handoff`,
-`drain_check_skip`, `reset_ansi_write_error`.
-
-Filter all logs for a session:
-```bash
-agentflow logs --session <SID>
-```
-
----
-
-## Phase 3: Session Context
-
-Derive SID and read in-flight state for the matched class.
-
-**All classes — derive SID from current_round.json:**
+**Derive SID from current_round.json:**
 ```bash
 SID=$(python3 -c "
 import json, sys
 try:
     print(json.load(open('.agentflow/current_round.json'))['session_id'])
 except Exception as e:
-    print(f'ERROR: {e} — no active round; find SID manually: ls .agentflow/sessions/', file=sys.stderr)
-    sys.exit(1)
+    print(f'ERROR: {e}', file=sys.stderr); sys.exit(1)
 ")
 ```
 
-**Class A & C — in-flight state for active session:**
-```bash
-cat .agentflow/sessions/$SID/tasks_in_flight.json
-```
-
-**Class C — task completion status:**
-```bash
-python3 -c "import json; d=json.load(open('tasks.json')); [print(t['task_id'], t['status']) for t in d.get('tasks',[])]"
-```
-
-**Class B — verify merge path:**
-```bash
-gh pr view <PR_NUMBER> --json mergedAt,mergedBy
-```
-If merged via GitHub UI rather than `gh pr merge`, the hook's command-match pattern may not have fired.
+**Collect signals from all sources:**
+- PTY audit: `grep 'drain_check_skip' .agentflow/pty_audit.jsonl | tail -20`
+- Drain events: `grep -E '"event":\s*"(hook_fired|pr_merge_direct|drain_done)"' .agentflow/hook_drain_debug.jsonl | tail -20`
+- In-flight state: `cat .agentflow/sessions/$SID/tasks_in_flight.json 2>/dev/null`
+- Task completion: `python3 -c "import json; d=json.load(open('tasks.json')); print([t['task_id']+':'+t['status'] for t in d.get('tasks',[])])"`
 
 ---
 
-## Phase 4: Signal Trace
+## Phase 2: Analyze Signals to Identify Anomaly
 
-Read log files per symptom class.
+Map observable evidence to patterns — reason forward, not backward from class.
 
-**Class A — PTY audit:**
-```bash
-grep 'drain_check_skip' .agentflow/pty_audit.jsonl | tail -20
-```
-Note the `reason` field: `tasks_in_flight_nonempty`, `fill_stale`, or other.
+**Drain blocked** (pty_audit has `drain_check_skip`):
+- Reason `tasks_in_flight_nonempty` → PTY has unfinished task
+- Reason `fill_stale` → stale context blocking handoff (novel mode, not pre-enumerated)
+- Any other reason → document for investigation
 
-**Class B — Drain events:**
-```bash
-grep -E '"event":\s*"(hook_fired|pr_merge_direct|drain_done)"' .agentflow/hook_drain_debug.jsonl | tail -40
-```
-Confirm `hook_fired` exists for the merge timestamp. If absent, hook was not triggered.
+**Hook/merge mismatch** (PR merge but no `drain_done`):
+- No `hook_fired` for merge timestamp → hook not triggered
+- `hook_fired` present but no `drain_done` → drain skipped (check pty_audit skip reason)
 
-**Class C — drain_done signal results:**
-```bash
-grep 'drain_done' .agentflow/hook_drain_debug.jsonl | tail -5
-grep '<TASK_ID>' .agentflow/hook_drain_debug.jsonl
-```
-Inspect `signal_results` for expected task IDs.
-
-**Class A — Cross-check git log** (when drain events look incomplete):
-```bash
-git log --oneline --after="<hook_timestamp>" --before="<hook_timestamp+5min>" -- .
-```
-Note: the `cmd` field in hook events is truncated to 80 chars — a single command may have
-merged multiple PRs; only the first PR number may be visible.
+**Sync desync** (tasks.json complete but tasks_in_flight still lists task):
+- `task_done` signal was never sent for active session
 
 ---
 
-## Phase 5: Root Cause Determination
+## Phase 3: Root Cause Determination
 
-Match evidence to known failure patterns.
+Match evidence to patterns and recommend fixes.
 
-**Pattern A — PTY stuck:**
-`drain_check_skip` with reason `tasks_in_flight_nonempty` → task stuck in session.
-git log merge count > hook `pr_merge_direct` count → hook regex caught only the first PR
-in a multi-PR merge command. Fix: widen regex or split multi-PR commands.
+**PTY stuck** (drain_check_skip, reason `tasks_in_flight_nonempty`):
+Task stuck in session. Check git log merge count vs. `pr_merge_direct` count in hook logs.
+If merge count > hook count, PR regex caught only first of multi-PR merge.
+Fix: split multi-PR commands or widen regex pattern.
 
-**Pattern B — Drain missed:**
-No `hook_fired` entry → hook not registered or wrong event type.
-`hook_fired` present but no `drain_done` → drain was skipped (check `pty_audit.jsonl` skip reason).
-PR merged via GitHub UI → hook command-match pattern did not fire; check hook registration.
+**Fill_stale** (drain_check_skip, reason `fill_stale`):
+Stale context from previous session blocking handoff.
+Fix: clear context cache or implement context isolation between sessions.
 
-**Pattern C — Split-brain:**
-`tasks.json` complete but `tasks_in_flight.json` still lists task → `task_done` was never
-signalled for the active session.
-No task ID in `hook_drain_debug.jsonl` → worker closed task directly in tasks.json without
-calling the task_done hook. Fix: ensure worker calls task_done after confirming PR merge.
+**Drain missed** (no `hook_fired` or `hook_fired` but no `drain_done`):
+Hook registration failure or wrong event type.
+Fix: verify hook is registered and command-match pattern is correct.
+
+**Split-brain** (tasks.json complete but tasks_in_flight lists same task):
+`task_done` signal was never sent for active session.
+Fix: ensure worker calls task_done hook after confirming PR merge.
 
 ---
 
-## Phase 6: Report
+## Phase 4: Report
 
-**Output format:** Root cause + fix recommendation in ≤ 3 sentences, followed by any open
-hypotheses labeled explicitly.
+**Output format:** Root cause + fix in ≤ 3 sentences. Label unconfirmed inferences explicitly.
+State evidence gaps explicitly; propose targeted reads to close them.
 
-### Epistemic Discipline
+---
 
-When log evidence is incomplete (truncated `cmd` fields, missing entries, timestamp gaps),
-**state the gap explicitly** and propose a targeted read to close it.
+## Appendix: Example Incidents (Historical A/B/C)
 
-- Treat unverified inferences as **hypotheses** — label them: "Hypothesis: ..."
-- High-confidence claims require a log citation (file + event timestamp)
-- If evidence is absent: "No log entry found — cannot confirm. To close this gap,
-  run: `<specific command>`"
-- Do NOT fill an evidence gap with a conclusion stated as fact
+**Pattern A — PTY stuck:** Session never restarts despite tasks complete.
+Observable: `drain_check_skip` reason `tasks_in_flight_nonempty`.
+
+**Pattern B — Drain missed:** Merge happened but PTY did not drain.
+Observable: `pr_merge_direct` but no `hook_fired` entry.
+
+**Pattern C — Split-brain:** `tasks.json` complete, PTY thinks in-flight.
+Observable: task complete in tasks.json but still in tasks_in_flight.json.
