@@ -6,6 +6,7 @@ import signal
 import time
 from agentflow.shell.state_machine import States
 from agentflow.shell.drain_restart import _write_merged_and_clear, check_drain_restart
+from agentflow.config.constants import is_orchestrate_session
 
 _DEADLINES: dict[States, float] = {
     States.TASK_COMPLETE: 30.0,
@@ -20,7 +21,7 @@ def handle_enter_handoff_pending(manager) -> None:
     if stale.exists():
         stale.unlink()
         manager._log_audit({"event": "handoff_complete_unlinked"})
-    if manager.session_type == "orchestrator":
+    if is_orchestrate_session(manager.session_type):
         hc_path = manager._handoff_complete_path
         try:
             hc_path.parent.mkdir(parents=True, exist_ok=True)
@@ -107,7 +108,7 @@ def poll_session(manager) -> None:
         manager._deadline_state = None
         manager._deadline_entered_at = 0.0
     if state == States.IDLE:
-        if manager.session_type == "orchestrator" and manager._current_round_path.exists():
+        if is_orchestrate_session(manager.session_type) and manager._current_round_path.exists():
             try:
                 mtime = manager._current_round_path.stat().st_mtime
                 if mtime > manager._last_current_round_mtime:
