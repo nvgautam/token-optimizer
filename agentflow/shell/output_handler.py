@@ -82,8 +82,10 @@ def handle_output(manager, chunk: bytes) -> None:
     if restart_m:
         restart_id = restart_m.group(1)
         manager._log_audit({"event": "restart_sentinel_detected", "restart_id": restart_id})
-        manager._should_restart = True
-        manager._restart_id = restart_id
+        try:
+            manager.trigger_handoff(trigger="sentinel")
+        except Exception as e:
+            manager._log_audit({"event": "restart_sentinel_trigger_error", "error": str(e)})
 
     detected_path = detect_read_path(clean)
     if detected_path and detected_path.startswith("/"):

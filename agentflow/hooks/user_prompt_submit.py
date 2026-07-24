@@ -33,14 +33,12 @@ def _write_session_state_atomic(agentflow_dir: Path, session_type: str, sid: str
 
 
 def _get_session_token_count(agentflow_dir: Path, sid: str = "") -> int:
-    """Get current session accumulated token count."""
+    """Get current session accumulated token count from context_fill.json."""
     try:
-        session_file_path = session_file(agentflow_dir, constants.FILE_SESSION_STATE, sid)
-        sessions_dir = session_file_path.parent if sid else agentflow_dir
-        state_file = sessions_dir / "token_count.json"
-        if state_file.exists():
-            data = json.loads(state_file.read_text(constants.UTF8))
-            return data.get("accumulated_tokens", 0)
+        context_fill_file = session_file(agentflow_dir, constants.FILE_CONTEXT_FILL, sid)
+        if context_fill_file.exists():
+            data = json.loads(context_fill_file.read_text(constants.UTF8))
+            return data.get("fill_tokens", 0)
     except Exception:
         pass
     return 0
