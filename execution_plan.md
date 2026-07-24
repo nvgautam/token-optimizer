@@ -398,9 +398,9 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round D-2 [MERGED] | T-333 (solo) | Wire market_unknowns.md into Oracle Phase 1 emit |
 | Round E-6 [MERGED] | T-328 (solo) | Ledger-lookup based baseline usage reconstruction |
 | Round E-4 [SUPERSEDED] | T-289 (solo) | Oracle troubleshoot detection → offer debug skill — superseded by T-349/T-350/T-351 |
-| Round M-F-24 [PENDING] | T-350 (solo) | Session restart smoke test: refactor ops.md as agentflow overlay; merge debug.md; wire CLAUDE.md |
+| Round M-F-23b [PENDING] | T-356 (solo) | Disable orchestrator rate-pacing — spawn all parallel agents simultaneously |
+| Round M-F-24 [PENDING] | T-350 ‖ T-353 (parallel) | Session restart smoke test: ops.md overlay + coding standards in reviewer |
 | Round M-F-25 [PENDING] | T-354 (solo) | Harden oracle task-filing write gate — mandatory round placement before tasks.json write |
-| Round M-F-26 [PENDING] | T-353 (solo) | Apply coding standards in worker and reviewer |
 | Round M-F-27 [PENDING] | T-355 (solo) | SPIKE: hook-based dynamic skill router for all oracle sub-skills |
 | Round M-F-28 [PENDING] | T-348 ‖ T-349 ‖ T-351 (parallel) | Fix `agentflow report --agent` + generic triage skill + oracle project-setup overlay |
 | Round M-F-29 [PENDING] | T-352 (solo) | Add `agentflow:` namespace prefix to all agentflow skill commands |
@@ -1527,3 +1527,18 @@ Forces callers to supply required fields; requires updating every existing `_log
 
 **OWNS:** `agentflow/hooks/skill_router.py`, `commands/common/skill_routing_table.json`
 **estimated_lines:** 120
+
+## Addendum: T-356 — Disable orchestrator rate-pacing
+
+**Goal:** Remove the "spawn first agent alone" rate-pacing behavior from the orchestrator so all parallel tasks in a round are spawned simultaneously. The current logic gates subsequent spawns behind the first agent's token consumption, breaking the intent of parallel rounds. Disable by removing the rate-pacing gate in `orchestrate.md` and simplifying `rate_pacing.md` to a no-op or stub — keep the file for future re-enablement.
+
+**Files:**
+- `commands/claude/orchestrate.md` (modify) — remove "Spawn first agent alone" rule; update rate-pacing reference to note it is disabled
+- `commands/claude/orchestrator/rate_pacing.md` (modify) — mark as disabled/deferred; remove spawn-gating logic
+
+**Test scenarios:**
+- Orchestrate round with two parallel tasks spawns both agents in the same turn
+- No agent waits for another agent's TOKENS report before being spawned
+
+**OWNS:** `commands/claude/orchestrate.md`, `commands/claude/orchestrator/rate_pacing.md`
+**estimated_lines:** 20
