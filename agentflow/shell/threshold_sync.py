@@ -4,12 +4,13 @@ import json
 import os
 
 from agentflow.shell.session_paths import session_file
+from agentflow.config.constants import is_oracle_session, is_orchestrate_session
 
 
 def apply_session_threshold(manager) -> None:
-    if manager.session_type == "oracle":
+    if is_oracle_session(manager.session_type):
         threshold = manager._config.get("oracle_threshold_tokens", 50000)
-    elif manager.session_type == "orchestrator":
+    elif is_orchestrate_session(manager.session_type):
         threshold = manager._config.get("handoff_primary_tokens", 80000)
     else:
         return
@@ -28,7 +29,7 @@ def sync_session_type(manager) -> None:
             if sid_fp.exists():
                 data = json.loads(sid_fp.read_text("utf-8"))
                 st = data.get("session_type", "") if isinstance(data, dict) else ""
-                if st in ("oracle", "orchestrator"):
+                if is_oracle_session(st) or is_orchestrate_session(st):
                     if manager.session_type != st:
                         manager.session_type = st
                         from agentflow.shell.session_audit import update_session_file
@@ -52,7 +53,7 @@ def sync_session_type(manager) -> None:
             else:
                 data = json.loads(fp.read_text("utf-8"))
                 st = data.get("session_type", "") if isinstance(data, dict) else ""
-            if st in ("oracle", "orchestrator"):
+            if is_oracle_session(st) or is_orchestrate_session(st):
                 if manager.session_type != st:
                     manager.session_type = st
                     from agentflow.shell.session_audit import update_session_file

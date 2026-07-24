@@ -10,6 +10,7 @@ from __future__ import annotations
 import os
 
 from agentflow.shell.state_machine import States
+from agentflow.config.constants import is_oracle_session
 
 _CONSENT_THRESHOLD_DEFAULT = 90_000
 _CONSENT_PROMPT = (
@@ -23,7 +24,7 @@ _CONSENT_PROMPT = (
 # ---------------------------------------------------------------------------
 
 def _is_oracle_idle(manager) -> bool:
-    return manager.session_type == "oracle" and manager._state_machine.state == States.IDLE
+    return is_oracle_session(manager.session_type) and manager._state_machine.state == States.IDLE
 
 
 # ---------------------------------------------------------------------------
@@ -104,7 +105,7 @@ def on_enter_handoff_pending_oracle(manager) -> bool:
     Returns True to skip the normal handler when oracle consent was already
     confirmed (handoff ran via oracle skill; don't inject /handoff again).
     """
-    if getattr(manager, "_oracle_consent_confirmed", False) and manager.session_type == "oracle":
+    if getattr(manager, "_oracle_consent_confirmed", False) and is_oracle_session(manager.session_type):
         manager._log_audit({"event": "oracle_consent_handoff_pending_skip"})
         return True
     return False
@@ -118,7 +119,7 @@ def on_session_exit_oracle(manager) -> bool:
     """
     if not getattr(manager, "_oracle_consent_confirmed", False):
         return False
-    if manager.session_type != "oracle":
+    if not is_oracle_session(manager.session_type):
         return False
     if manager._state_machine.state != States.HANDOFF_PENDING:
         return False
@@ -132,7 +133,7 @@ def on_enter_restarting_oracle(manager) -> None:
     """Pre-hook for on_enter_restarting — adds --permission-mode auto for oracle consent."""
     if not getattr(manager, "_oracle_consent_confirmed", False):
         return
-    if manager.session_type != "oracle":
+    if not is_oracle_session(manager.session_type):
         return
     cmd = list(getattr(manager._pty, "_command", []) or [])
     if "--permission-mode" not in cmd:
