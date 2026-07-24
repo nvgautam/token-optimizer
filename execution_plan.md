@@ -400,6 +400,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round E-4 [SUPERSEDED] | T-289 (solo) | Oracle troubleshoot detection → offer debug skill — superseded by T-349/T-350/T-351 |
 | Round M-F-23b [PENDING] | T-356 (solo) | Disable orchestrator rate-pacing — spawn all parallel agents simultaneously |
 | Round M-F-24 [PENDING] | T-350 ‖ T-353 (parallel) | Session restart smoke test: ops.md overlay + coding standards in reviewer |
+| Round M-F-24b [PENDING] | T-357 (solo) | Replace PTY consent injection with hook-based restart consent + sentinel-driven PTY restart |
 | Round M-F-25 [PENDING] | T-354 (solo) | Harden oracle task-filing write gate — mandatory round placement before tasks.json write |
 | Round M-F-27 [PENDING] | T-355 (solo) | SPIKE: hook-based dynamic skill router for all oracle sub-skills |
 | Round M-F-28 [PENDING] | T-348 ‖ T-349 ‖ T-351 (parallel) | Fix `agentflow report --agent` + generic triage skill + oracle project-setup overlay |
@@ -1542,3 +1543,23 @@ Forces callers to supply required fields; requires updating every existing `_log
 
 **OWNS:** `commands/claude/orchestrate.md`, `commands/claude/orchestrator/rate_pacing.md`
 **estimated_lines:** 20
+
+## Addendum: T-357 — Hook-based restart consent + sentinel-driven PTY restart
+
+**Goal:** Replace the current PTY text injection consent prompt with a cleaner two-part mechanism: (1) UserPromptSubmit hook detects token count > 70K and, if not snoozed, injects a consent question into the prompt for the LLM to surface to the user; (2) when user confirms restart, the handoff skill emits `[AGENTFLOW_RESTART:<sha8>]` sentinel as its last output line and PTY output_handler watches for it to trigger restart. "Continue" writes `.agentflow/restart_snooze_<session_id>` with count=3; each subsequent UserPromptSubmit decrements it; re-surfaces when count reaches 0.
+
+**Files:**
+- `agentflow/hooks/user_prompt_submit.py` (modify) — add token-count check; read/decrement snooze file; inject consent question if threshold exceeded and not snoozed
+- `agentflow/shell/output_handler.py` (modify) — watch for `[AGENTFLOW_RESTART:<sha8>]` in output stream; trigger restart on match; remove old PTY text injection logic
+- `commands/claude/handoff.md` (modify) — emit `[AGENTFLOW_RESTART:<sha8>]` sentinel as final output line when restart is confirmed
+- `agentflow/config/constants.py` (modify) — add `RESTART_CONSENT_THRESHOLD_TOKENS = 70000`, `RESTART_SNOOZE_TURNS = 3`, `RESTART_SENTINEL_PREFIX = "[AGENTFLOW_RESTART:"`
+
+**Test scenarios:**
+- Hook injects consent question when session tokens > 70K and no snooze file exists
+- "Continue" response writes snooze file; hook suppresses for 3 turns then re-surfaces
+- "Yes handoff and restart" → handoff skill emits sentinel → PTY detects and restarts
+- New session starts with no snooze file (session-ID-specific path ensures clean slate)
+- Sentinel `[AGENTFLOW_RESTART:<sha8>]` does not appear in normal customer output
+
+**OWNS:** `agentflow/hooks/user_prompt_submit.py`, `agentflow/shell/output_handler.py`, `commands/claude/handoff.md`, `agentflow/config/constants.py`
+**estimated_lines:** 80
