@@ -337,3 +337,4 @@ Oracle reads on startup. Handoff writes updates. Architecture.md = workers only.
 |---|---|---|
 | Startup round status housekeeping | RESOLVED | Automate round-level reconciliation at startup in Python by scanning for completed tasks and updating round status to `[MERGED]`. Filed as T-345. |
 | Prohibit worktree editable installs | RESOLVED | Forbid `pip install -e .` inside worktrees (which breaks global editable link). Mandate `python -m pytest` from the worktree CWD instead. Filed as T-346. |
+| Customer coding standards | DEFERRED | Two modes: (1) override built-in with customer's own coding_standards.md, (2) customer picks which built-in rules apply + adds their own. Deferred to a later milestone. |

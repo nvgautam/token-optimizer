@@ -410,6 +410,7 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round M-F-24 [PENDING] | T-350 (solo) | Session restart smoke test: refactor ops.md as agentflow overlay; merge debug.md; wire CLAUDE.md |
 | Round M-F-25 [PENDING] | T-348 ‖ T-349 ‖ T-351 (parallel) | Fix `agentflow report --agent` + generic triage skill + oracle project-setup overlay |
 | Round M-F-26 [PENDING] | T-352 (solo) | Add `agentflow:` namespace prefix to all agentflow skill commands |
+| Round M-F-27 [PENDING] | T-353 (solo) | Apply coding standards in worker and reviewer |
 
 
 Priority rationale (2026-07-17): T-274 (P0) + T-273 (P1) prepend Round C — both block reliable orchestrate restart loop. Restart-path hardening (A/B) before skill rewrites — loop reliability prerequisite. CLI spike (T-259) gates T-260. Rounds D–E are spikes/oracle enhancements. Round F deferred until Claude-only loop is solid. T-276 (C-P3) prepends C-1 — audit log coverage is a prerequisite for diagnosing any further drain/restart bugs. T-277 (C-P4) prepends C-1 — this is the root fix for the C-2 premature-drain bug; was documented in T-276 spec but missed during implementation.
@@ -1476,3 +1477,18 @@ Forces callers to supply required fields; requires updating every existing `_log
 
 **OWNS:** `commands/claude/oracle.md`, `commands/claude/debug.md`, `commands/claude/ops.md`, `commands/claude/handoff.md`, `commands/claude/orchestrate.md`, `CLAUDE.md`
 **estimated_lines:** 60
+
+## Addendum: T-353 — Apply coding standards in worker and reviewer
+
+**Goal:** Close the gap where `commands/common/coding_standards.md` is loaded by the worker but not enforced by the reviewer. Add a "Coding Standards Compliance" check section to `code_review.md` that lazy-loads `commands/common/coding_standards.md` and flags violations of any rule in the diff under review. Worker already lazy-loads via `worker/system.md`; no worker change needed.
+
+**Files:**
+- `commands/claude/reviewer/code_review.md` (modify) — add Coding Standards Compliance check section; lazy-load `commands/common/coding_standards.md`
+
+**Test scenarios:**
+- Reviewer flags a hardcoded string that belongs in constants.py
+- Reviewer flags a bare `except:` not already caught by pre-filter
+- Reviewer flags a file exceeding line limits introduced in the diff
+
+**OWNS:** `commands/claude/reviewer/code_review.md`
+**estimated_lines:** 15
