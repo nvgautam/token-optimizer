@@ -89,3 +89,4 @@ Quick verify: `grep -n 'UNRESOLVED' commands/claude/orchestrator/startup.md comm
 - Full architecture: architecture.md
 - Milestone plan:    execution_plan.md
 - Task status:       tasks.json
+- Troubleshooting:   commands/claude/ops.md
