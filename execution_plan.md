@@ -398,11 +398,11 @@ Goal: Design partner-safe distribution — skills encrypted, PTY compiled, key s
 | Round D-2 [MERGED] | T-333 (solo) | Wire market_unknowns.md into Oracle Phase 1 emit |
 | Round E-6 [MERGED] | T-328 (solo) | Ledger-lookup based baseline usage reconstruction |
 | Round E-4 [SUPERSEDED] | T-289 (solo) | Oracle troubleshoot detection → offer debug skill — superseded by T-349/T-350/T-351 |
-| Round M-F-23b [PENDING] | T-356 (solo) | Disable orchestrator rate-pacing — spawn all parallel agents simultaneously |
-| Round M-F-24 [PENDING] | T-350 ‖ T-353 (parallel) | Session restart smoke test: ops.md overlay + coding standards in reviewer |
+| Round M-F-23b — MERGED (PR #251 2026-07-24) | T-356 (solo) | Disable orchestrator rate-pacing — spawn all parallel agents simultaneously |
+| Round M-F-24 — MERGED | T-350 ‖ T-353 (parallel) | Session restart smoke test: ops.md overlay + coding standards in reviewer |
 | Round M-F-24b [PENDING] | T-357 (solo) | Replace PTY consent injection with hook-based restart consent + sentinel-driven PTY restart |
 | Round M-F-25 [PENDING] | T-354 (solo) | Harden oracle task-filing write gate — mandatory round placement before tasks.json write |
-| Round M-F-27 [PENDING] | T-355 (solo) | SPIKE: hook-based dynamic skill router for all oracle sub-skills |
+| Round M-F-27 [PENDING] | T-355 ‖ T-358 ‖ T-359 (parallel) | SPIKE: hook-based dynamic skill router + orchestrator auto-advance + ops.md evidence-first diagnostic |
 | Round M-F-28 [PENDING] | T-348 ‖ T-349 ‖ T-351 (parallel) | Fix `agentflow report --agent` + generic triage skill + oracle project-setup overlay |
 | Round M-F-29 [PENDING] | T-352 (solo) | Add `agentflow:` namespace prefix to all agentflow skill commands |
 | Round D-3 [PENDING] | T-332 (solo, depends T-333) | Architecture↔market cross-linking in Oracle Phase 2 |
@@ -1563,3 +1563,33 @@ Forces callers to supply required fields; requires updating every existing `_log
 
 **OWNS:** `agentflow/hooks/user_prompt_submit.py`, `agentflow/shell/output_handler.py`, `commands/claude/handoff.md`, `agentflow/config/constants.py`
 **estimated_lines:** 80
+
+## Addendum: T-358 — Orchestrator auto-advance and round table reconciliation
+
+**Goal:** Fix two gaps in orchestrator startup/resume: (1) after completing a round, orchestrator must automatically proceed to the next `[PENDING]` round without waiting for user input; (2) on startup/restart, before selecting the next round, reconcile the execution_plan.md round table — for any `[PENDING]` row whose task_ids are all complete in tasks.json, update the row to `[MERGED]` in execution_plan.md, then re-run `grep -m 1 '\[PENDING\]'` to derive the correct next round.
+
+**Files:**
+- `commands/claude/orchestrate.md` (modify) — add auto-advance instruction after merge gate; add reconciliation as Step 4a.5 in startup
+- `commands/claude/orchestrator/startup.md` (modify) — add Step 4a.5: round table reconciliation (scan [PENDING] rows, cross-check tasks.json, update stale rows to [MERGED])
+
+**Test scenarios:**
+- On restart after a round where all tasks are complete, stale `[PENDING]` rows are updated to `[MERGED]` before next round selection
+- After round completes and merge gate passes, orchestrator picks up next `[PENDING]` round without user prompt
+- Reconciliation is idempotent — safe to run twice
+
+**OWNS:** `commands/claude/orchestrate.md`, `commands/claude/orchestrator/startup.md`
+**estimated_lines:** 25
+
+## Addendum: T-359 — Revamp ops.md diagnostic to evidence-first protocol
+
+**Goal:** Replace the hardcoded 3-class symptom table (A/B/C: PTY stuck / drain missed / split-brain) in `commands/claude/ops.md` with an evidence-first diagnostic protocol: collect observable signals from `pty_audit.jsonl`, `hook_drain_debug.jsonl`, and state files → reason to anomaly → trace root cause → fix. Prior symptom classes (A/B/C) become historical examples of past incidents, not the primary triage structure. This prevents the classifier from failing on novel failure modes (e.g. `fill_stale` going undiagnosed because it matched no class).
+
+**Files:**
+- `commands/claude/ops.md` (modify) — replace symptom table with signal-collection checklist + reasoning guide; move A/B/C to an "example incidents" appendix
+
+**Test scenarios:**
+- A novel failure mode (fill_stale scenario) can be diagnosed following the evidence-first protocol without matching a pre-enumerated class
+- Protocol guides to the correct root cause for each of the original A/B/C symptom patterns as well
+
+**OWNS:** `commands/claude/ops.md`
+**estimated_lines:** 35
