@@ -164,6 +164,22 @@ class TestRestartConsentConstants:
         assert hasattr(constants, 'RESTART_SENTINEL_PREFIX')
         assert constants.RESTART_SENTINEL_PREFIX == "[AGENTFLOW_RESTART:"
 
+    def test_session_type_helpers(self):
+        """Session type helper functions work correctly."""
+        from agentflow.config import constants
+
+        # Test is_oracle_session
+        assert constants.is_oracle_session(constants.SESSION_TYPE_ORACLE) is True
+        assert constants.is_oracle_session(constants.SESSION_TYPE_ORCHESTRATOR) is False
+        assert constants.is_oracle_session(constants.SESSION_TYPE_UNKNOWN) is False
+        assert constants.is_oracle_session("invalid") is False
+
+        # Test is_orchestrate_session
+        assert constants.is_orchestrate_session(constants.SESSION_TYPE_ORCHESTRATOR) is True
+        assert constants.is_orchestrate_session(constants.SESSION_TYPE_ORACLE) is False
+        assert constants.is_orchestrate_session(constants.SESSION_TYPE_UNKNOWN) is False
+        assert constants.is_orchestrate_session("invalid") is False
+
 
 class TestSnoozeFileManagement:
     """Test snooze file lifecycle."""

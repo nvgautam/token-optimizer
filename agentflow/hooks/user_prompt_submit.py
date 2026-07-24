@@ -161,7 +161,7 @@ def main() -> None:
         # Oracle consent check: update context_fill.json timestamp if it exists,
         # then check should_prompt_consent. If it is True, we touch/update context_fill.json ts
         # so that the PTY session manager will also see it as fresh and fire the prompt!
-        if session_type == constants.SESSION_TYPE_ORACLE:
+        if constants.is_oracle_session(session_type):
             fill_path = session_file(agentflow_dir, constants.FILE_CONTEXT_FILL, sid)
             if fill_path.exists():
                 try:
@@ -230,7 +230,7 @@ def main() -> None:
 
     # T-357: Check for restart consent when tokens exceed threshold (oracle sessions only)
     try:
-        if prompt and session_type == constants.SESSION_TYPE_ORACLE:
+        if prompt and constants.is_oracle_session(session_type):
             token_count = _get_session_token_count(agentflow_dir, sid)
             if token_count > constants.RESTART_CONSENT_THRESHOLD_TOKENS:
                 snooze_count = _read_and_decrement_snooze(agentflow_dir, sid)

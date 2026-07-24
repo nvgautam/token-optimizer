@@ -43,6 +43,17 @@ SESSION_TYPE_ORCHESTRATOR = "orchestrator"
 SESSION_TYPE_ORACLE = "oracle"
 SESSION_TYPE_UNKNOWN = "unknown"
 
+
+def is_oracle_session(session_type: str) -> bool:
+    """Check if session type is oracle."""
+    return session_type == SESSION_TYPE_ORACLE
+
+
+def is_orchestrate_session(session_type: str) -> bool:
+    """Check if session type is orchestrator."""
+    return session_type == SESSION_TYPE_ORCHESTRATOR
+
+
 # Tools
 TOOL_BASH = "Bash"
 TOOL_WRITE = "Write"
